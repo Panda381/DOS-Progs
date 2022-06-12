@@ -4,7 +4,7 @@ DOS Programs
 Home www: http://panda38.sweb.cz
             http://www.breatharian.eu
 email: Panda38@seznam.cz
-alternatie email: hardyplotter2@gmail.com
+alternative email: hardyplotter2@gmail.com
 DOS programs on GitHub: https://github.com/Panda381/DOS-Progs
 
 
