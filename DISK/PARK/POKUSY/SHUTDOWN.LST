@@ -1,0 +1,192 @@
+
+        ; parkov n¡ pevn‚ho disku SHUTDOWN.COM
+
+                                          ;* inicializace videom¢du
+0000 CD11           INT    11               ; ‡ten¡ tabulky vybaven¡
+0002 253000         AND    AX,0030          ; inicializa‡n¡ videom¢d
+0005 B104           MOV    CL,04
+0007 D3E8           SHR    AX,CL            ; -> videom¢d
+0009 0C01           OR     AL,01            ; korekce na monochrom. m¢d
+000B CD10           INT    10               ; nastaven¡ videom¢du
+                                          ;* zobrazen¡ prvn¡ho textu (obr zku)
+000D B87B2A         MOV    AX,2A7B          ; datov˜ segment
+0010 8ED8           MOV    DS,AX
+0012 8EC0           MOV    ES,AX            ; datov˜ segment
+0014 C6062F0101     MOV    Byte Ptr [012F],01 ; ‡¡ta‡ © dk– zobrazen¡
+0019 BD0000         MOV    BP,0000          ; adresa ©etˆzce 1. textu
+001C B80113         MOV    AX,1301          ; funkce zobrazen¡ ©etˆzce znak–
+001F BB0700         MOV    BX,0007          ; str nka 0, atribut b¡l  na ‡ern‚
+0022 B91B00         MOV    CX,001B          ; d‚lka jednoho © dku
+0025 BA000A         MOV    DX,0A00          ; © dek 10, pozice 0
+0028 50             PUSH   AX               ; £schova AX
+0029 53             PUSH   BX               ; £schova BX
+002A 51             PUSH   CX               ; £schova CX
+002B 52             PUSH   DX               ; £schova DX
+002C CD10           INT    10               ; zobrazen¡ prvn¡ho © dku textu
+002E 5A             POP    DX               ; n vrat DX
+002F 59             POP    CX               ; n vrat CX
+0030 5B             POP    BX               ; n vrat BX
+0031 58             POP    AX               ; n vrat AX
+0032 FE062F01     * INC    Byte Ptr [012F]  ; zv˜¨en¡ ‡¡ta‡e © dk–
+0036 83C51A         ADD    BP,+1A           ; zv˜¨en¡ adresy v tabulce
+0039 FEC6           INC    DH               ; zv˜¨en¡ © dku na displeji
+003B 50             PUSH   AX               ; £schova AX
+003C 53             PUSH   BX               ; £schova BX
+003D 51             PUSH   CX               ; £schova CX
+003E 52             PUSH   DX               ; £schova DX
+003F CD10           INT    10               ; z pis druh‚ho © dku textu
+0041 5A             POP    DX               ; n vrat DX
+0042 59             POP    CX               ; n vrat CX
+0043 5B             POP    BX               ; n vrat BX
+0044 58             POP    AX               ; n vrat AX
+0045 803E2F010A     CMP    Byte Ptr [012F],0A ; bylo ji‘ 10 © dk– textu ?
+004A 75E6           JNZ    0032             ; dal¨¡ © dek textu
+                                          ;* inicializace diskov‚ho syst‚mu
+004C 2BC0           SUB    AX,AX
+004E B408           MOV    AH,08            ; funkce poskytnut¡ parametr– disku
+0050 B280           MOV    DL,80            ; ‡¡slo prvn¡ho pevn‚ho disku
+0052 CD13           INT    13               ; poskytnut¡ informac¡ o disku
+0054 88163001       MOV    [0130],DL        ; po‡et pevn˜ch disk– v syst‚mu
+0058 2BC0           SUB    AX,AX            ; AX <- 0
+005A B280           MOV    DL,80            ; ‡¡slo prvn¡ho pevn‚ho disku
+005C CD13           INT    13               ; reset pevn‚ho disku
+                                          ;* zaparkov n¡ prvn¡ho pevn‚ho disku
+005E 06             PUSH   ES               ; £schova datov‚ho segmentu
+005F 2BDB           SUB    BX,BX            ; BX <- 0
+0061 8EC3           MOV    ES,BX            ; ES <- 0
+0063 268B1E0401     MOV    BX,ES:[0104]     ; offset adresy INT 41h
+0068 268B160601     MOV    DX,ES:[0106]     ; segment adresy INT 41h
+006D 8EC2           MOV    ES,DX            ; segment adresy INT 41h
+006F 268B570C       MOV    DX,ES:[BX+0C]    ; parkovac¡ stopa disku
+0073 89162401       MOV    [0124],DX        ; parkovac¡ stopa prvn¡ho disku
+0077 07             POP    ES               ; n vrat datov‚ho segmentu
+0078 A02301         MOV    AL,[0123]        ; ‡¡slo disku (80h)
+007B A22B01         MOV    [012B],AL        ; ‡¡slo parkovan‚ho disku
+007E A12401         MOV    AX,[0124]        ; ‡¡slo parkovac¡ stopy
+0081 A32901         MOV    [0129],AX        ; ‡¡slo parkovac¡ stopy
+0084 E8AA00         CALL   0131             ; zaparkov n¡ prvn¡ho pevn‚ho disku
+0087 803E300102     CMP    Byte Ptr [0130],02 ; je je¨tˆ druh˜ pevn˜ disk ?
+008C 7403           JZ     0091             ; je je¨tˆ druh˜ disk
+008E EB2A           JMP    00BA             ; konec parkov n¡
+0090 90             NOP
+                                          ;* zaparkov n¡ druh‚ho pevn‚ho disku
+0091 06           * PUSH   ES               ; £schova datov‚ho segmentu
+0092 2BDB           SUB    BX,BX            ; BX <- 0
+0094 8EC3           MOV    ES,BX            ; ES <- 0
+0096 268B1E1801     MOV    BX,ES:[0118]     ; offset adresy INT 46h
+009B 268B161A01     MOV    DX,ES:[011A]     ; segment adresy INT 46h
+00A0 8EC2           MOV    ES,DX            ; segment adresy INT 46h
+00A2 268B570C       MOV    DX,ES:[BX+0C]    ; parkovac¡ stopa disku
+00A6 89162701       MOV    [0127],DX        ; parkovac¡ stopa druh‚ho disku
+00AA 07             POP    ES               ; n vrat datov‚ho segmentu
+00AB A02601         MOV    AL,[0126]        ; ‡¡slo disku (81h)
+00AE A22B01         MOV    [012B],AL        ; ‡¡slo parkovan‚ho disku
+00B1 A12701         MOV    AX,[0127]        ; ‡¡slo parkovac¡ stopy
+00B4 A32901         MOV    [0129],AX        ; ‡¡slo parkovac¡ stopy
+00B7 E87700         CALL   0131             ; zaparkov n¡ jednoho pevn‚ho disku
+                                          ;* zobrazen¡ druh‚ho textu (p©ep¡na‡)
+00BA C6062F0101   * MOV    Byte Ptr [012F],1 ; ‡¡ta‡ © dk– pro zobrazen¡
+00BF BD0501         MOV    BP,0105          ; adresa ©etˆzce 2. textu
+00C2 B80113         MOV    AX,1301          ; funkce zobrazen¡ ©etˆzce znak–
+00C5 BB0400         MOV    BX,0004          ; str nka 0,atribut ‡erven  na ‡ern‚
+00C8 B90500         MOV    CX,0005          ; d‚lka jednoho © dku
+00CB BA080C         MOV    DX,0C08          ; © dek 12, pozice 8
+00CE 50             PUSH   AX               ; £schova AX
+00CF 53             PUSH   BX               ; £schova BX
+00D0 51             PUSH   CX               ; £schova CX
+00D1 52             PUSH   DX               ; £schova DX
+00D2 CD10           INT    10               ; zobrazen¡ prvn¡ho © dku textu
+00D4 5A             POP    DX               ; n vrat DX
+00D5 59             POP    CX               ; n vrat CX
+00D6 5B             POP    BX               ; n vrat BX
+00D7 58             POP    AX               ; n vrat AX
+00D8 FE062F01     * INC    Byte Ptr [012F]  ; zv˜¨en¡ ‡¡ta‡e © dk–
+00DC 83C505         ADD    BP,+05           ; zv˜¨en¡ adresy v tabulce
+00DF FEC6           INC    DH               ; zv˜¨en¡ © dku na displeji
+00E1 50             PUSH   AX               ; £schova AX
+00E2 53             PUSH   BX               ; £schova BX
+00E3 51             PUSH   CX               ; £schova CX
+00E4 52             PUSH   DX               ; £schova DX
+00E5 CD10           INT    10               ; z pis druh‚ho © dku textu
+00E7 5A             POP    DX               ; n vrat DX
+00E8 59             POP    CX               ; n vrat CX
+00E9 5B             POP    BX               ; n vrat BX
+00EA 58             POP    AX               ; n vrat AX
+00EB 803E2F0106     CMP    Byte Ptr [012F],6 ; bylo ji‘ 6 © dk– textu ?
+00F0 75E6           JNZ    00D8             ; dal¨¡ © dek textu
+                                          ;* p¡pnut¡ (signalizace zaparkov n¡)
+00F2 B301           MOV    BL,01
+00F4 B0B6           MOV    AL,B6
+00F6 E643           OUT    43,AL            ; inicializace zvukov‚ho gener toru
+00F8 B83311         MOV    AX,1133          ; kmito‡et zvuku
+00FB E642           OUT    42,AL            ; ni‘¨¡ bajt dˆli‡ky
+00FD EB00           JMP    00FF
+00FF 8AC4         * MOV    AL,AH
+0101 E642           OUT    42,AL            ; vy¨¨¡ bajt dˆli‡ky
+0103 EB00           JMP    0105
+0105 E461         * IN     AL,61            ; sou‡asn˜ stav v˜stupu
+0107 EB00           JMP    0109
+0109 8AE0         * MOV    AH,AL            ; £schova stavu v˜stupu
+010B 0C03           OR     AL,03
+010D E661           OUT    61,AL            ; zapnut¡ zvukov‚ho v˜stupu
+010F EB00           JMP    0111
+0111 2BC9         * SUB    CX,CX
+0113 B530           MOV    CH,30                         ;'0'
+0115 E2FE         * LOOP   0115             ; mal  prodleva pro p¡pnut¡
+0117 FECB           DEC    BL
+0119 75FA           JNZ    0115             ; velk  prodleva pro p¡pnut¡
+011B 8AC4           MOV    AL,AH
+011D E661           OUT    61,AL            ; zpˆtn‚ vypnut¡ zvukov‚ho v˜stupu
+011F BE4000         MOV    SI,0040
+0122 8EDE           MOV    DS,SI            ; DS <- 40h
+0124 C60401         MOV    Byte Ptr [SI],01 ; nastaven¡ ‡¡ta‡e vypnut¡ motoru
+0127 803C00       * CMP    Byte Ptr [SI],00 ; je motor disket ji‘ vypnut ?
+012A E0FB           LOOPNZ 0127             ; ‡ek n¡ na vypnut¡ motoru disket
+012C F4             HLT                     ; stop procesoru
+012D FA           * CLI
+012E F4             HLT
+012F EBFC           JMP    012D             ; zablokov n¡ po‡¡ta‡e
+
+                                          ;* zaparkov n¡ jednoho pevn‚ho disku
+
+0131 C6062E0100   * MOV    Byte Ptr [012E],00 ; ‡¡ta‡ pokus–
+0136 FE062E01     * INC    Byte Ptr [012E]  ; zv˜¨en¡ ‡¡ta‡e pokus–
+013A B8010C         MOV    AX,0C01          ; funkce vystaven¡ na stopu
+013D 8A162B01       MOV    DL,[012B]        ; ‡¡slo disku
+0141 8A362C01       MOV    DH,[012C]        ; ‡¡slo hlavy
+0145 8B0E2901       MOV    CX,[0129]        ; ‡¡slo parkovac¡ stopy
+0149 86E9           XCHG   CH,CL            ; CH <- ni‘¨¡ bajt ‡¡sla stopy
+014B D0C9           ROR    CL,1
+014D D0C9           ROR    CL,1             ; CL <- vy¨¨¡ 2 bity ‡¡sla stopy
+014F 0A0E2D01       OR     CL,[012D]        ; ‡¡slo sektoru
+0153 CD13           INT    13               ; vystaven¡ na parkovac¡ stopu
+0155 803E2E0103     CMP    Byte Ptr [012E],03 ; byly ji‘ 3 pokusy ?
+015A 77DA           JA     0136             ; nebyly je¨tˆ 3 pokusy
+015C C3             RET
+
+; datov˜ segment
+
+0160  20 20 20 20 20 C9 CD CD-CD CD CD CD CD CD CD CD       IMMMMMMMMMM
+0170  CD CD CD CD CD CD CD CD-CD BB 20 20 20 20 20 BA  MMMMMMMMM;     :
+0180  C9 CD CD CD CD CD CD CD-BB 20 20 20 20 20 4F 4E  IMMMMMMM;     ON
+0190  20 20 20 BA 20 20 20 20-20 BA BA 20 DB DB DB DB     :     :: [[[[
+01A0  DB 20 BA 20 20 20 20 20-20 DB 20 20 20 BA 20 20  [ :      [   :
+01B0  20 20 20 BA BA 20 B0 B0-B0 B0 B0 20 BA 20 20 20     :: 00000 :
+01C0  20 20 20 DB 20 20 20 BA-20 20 20 20 20 BA BA 20     [   :     ::
+01D0  B1 B1 B1 B1 B1 20 BA 20-20 20 20 20 20 20 20 20  11111 :
+01E0  20 BA 20 20 20 20 20 BA-BA 20 B2 B2 B2 B2 B2 20   :     :: 22222
+01F0  BA 20 20 20 20 20 DC DC-DC 20 20 BA 20 20 20 20  :     \\\  :
+0200  20 BA BA 20 20 20 20 20-20 20 BA 20 20 20 20 20   ::       :
+0210  DD 20 DE 20 20 BA 20 20-20 20 20 BA BA 20 20 20  ] ^  :     ::
+0220  20 20 20 20 BA 20 20 20-20 20 DF DF DF 20 20 BA      :     ___  :
+0230  20 20 20 20 20 BA C8 CD-CD CD CD CD CD CD BC 20       :HMMMMMMM<
+0240  20 20 20 20 4F 46 46 20-20 BA 20 20 20 20 20 C8      OFF  :     H
+0250  CD CD CD CD CD CD CD CD-CD CD CD CD CD CD CD CD  MMMMMMMMMMMMMMMM
+0260  CD CD CD BC 0D 20 20 20-20 20 20 20 20 20 20 B0  MMM<.          0
+0270  B0 B0 B0 B0 B1 B1 B1 B1-B1 B2 B2 B2 B2 B2 DB DB  00001111122222[[
+0280  DB DB DB 80 00 00 81 00-00 00 00 00 00 01 00 01  [[[.............
+
+
+0290  00 07 88 04 98 EB 0E FF-36 C0 58 B8 B2 00 50 E8  .....k..6@X82.Ph
+02A0  47                                               G
+

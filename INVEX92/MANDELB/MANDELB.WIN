@@ -1,0 +1,78 @@
+
+{ ***************************************************************************** }
+{ 										}
+{                         Mandelbrotova množina					}
+{										}
+{ Demonstrace využívá ke své èinnosti obrazec vzniklý generací tzv. fraktálù	}
+{ (Mandelbrotova množina). Zobrazením této množiny vznikne obrazec tvoøící	}
+{ posloupnost bodù o barvách navazujících za sebou. Pøedefinováním barev	}
+{ tìchto bodù lze snadno vytvoøit dojem pohybujícího se obrazce; v tomto	}
+{ pøípadì obrazce je to dojem "krev tekoucí v žilách".				}
+{										}
+{ Tato demonstrace je urèena výhradnì pro grafické karty EGA nebo VGA.		}
+{										}
+{ *****************************************************************************	}
+
+
+{                                                                             }
+{									      }
+{             Deklaraèní èást - obsahuje definice promìnných                  }
+{									      }
+{                                                                             }
+
+Byte X(30):=(19,26,18,22,54,38,52,60,37,45,29,57,57,11,27, {tabulka palet}
+	     19,26,18,22,54,38,52,60,37,45,29,57,57,11,27);
+
+Word N:=0, Citac:=0;		{ukazatel palet, èítaè prùchodù}
+
+{                                                                             }
+{									      }
+{               Programová èást - obsahuje definice procedur                  }
+{									      }
+{                                                                             }
+
+
+{V prùbìhu demonstrace se cyklicky pøedefinovávají paletové registry barvami
+ duhy tak, aby se vytvoøil dojem pohybujícího se obrazce. Ve skuteènosti však
+ je obsah obrazovky nehybný, mìní se pouze barvy jednotlivých èástí obrazovky.
+ Pøedefinovávají se všechny paletové registry kromì registry 47 (bílá barva),
+ který pøedstavuje pozadí obrázku. Z toho dùvodu je pouze 15 fází pohybu.}
+
+
+{ ========================== hlavní procedura =============================== }
+
+Proc Main             		{hlavní procedura}
+
+Video(16);			{videomód 16 - 640x350, 16 barev}
+Page(0,1);			{použijí se videostránky 0 a 1}
+Pic(Obraz,0,0);		{obraz se zobrazí do stránky 1}
+XPage;				{teï se obrázek objeví na displeji}
+
+do
+	on Testkey exit;
+
+	palette(x(n),x(n+1),x(n+2),x(n+3),x(n+4),x(n+5),x(n+6),x(n+7),
+		x(n+8),x(n+9),x(n+10),x(n+11),x(n+12),x(n+13),x(n+14),$3f,0);
+
+	wait(1);
+	n:=n-1; if n<0 then n:=14; endif;
+	Citac:=Citac+1; On Citac>100 Exit; {konec po daném poètu prùchodù}
+enddo;
+
+If TestKey Then 			{byla stisknuta klávesa = pøerušení ?}
+	GetKey;				{zrušení pøípadné klávesy z bufferu}
+	Return(1); 			{pøíznak pøerušení demonstrace}
+Else 
+	Return(0); 			{pøíznak demonstrace OK}
+EndIf; 
+
+EndProc;
+
+
+{                                                                             }
+{									      }
+{        Modulová èást - definuje objekty, které se pøipojí k programu        }
+{									      }
+{                                                                             }
+
+Link(Obraz,"Mandelb.scr");

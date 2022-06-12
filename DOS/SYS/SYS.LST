@@ -1,0 +1,741 @@
+
+; *****************************************************************************
+;                   SYS - generov n¡ syst‚mov‚ diskety
+;                       opera‡n¡ syst‚m MSDOS 2.11
+; *****************************************************************************
+
+0100 EB11           JMP    0113
+
+0100  EB 11 54 4F 53 48 49 42-41 20 56 65 72 73 20 32  k.TOSHIBA Vers 2
+0110  2E 32 31 50 B4 30 CD 21-3C 02 74 09 BA 50 05 B4  .21
+
+                                          ;* start programu
+0113 50             PUSH   AX               ; £schova AX - p©¡znak rozboru
+0114 B430           MOV    AH,30
+0116 CD21           INT    21               ; dotaz na verzi syst‚mu
+0118 3C02           CMP    AL,02            ; je verze 2.x ?
+011A 7409           JZ     0125             ; je verze syst‚mu 2.xx - OK
+                                          ;* chyba verze syst‚mu
+011C BA5005         MOV    DX,0550          ; text "Chybn  verze"
+011F B409           MOV    AH,09
+0121 CD21           INT    21               ; zobrazen¡ chyby verze
+0123 CD20           INT    20               ; konec
+
+0125 58           * POP    AX               ; n vrat AX - p©¡znak rozboru
+0126 EB3A           JMP    0162             ; inicializace programu
+; -----------------------------------------------------------------------------
+
+                                          ;* chyba - neplatn˜ parametr
+0128 BAAA05       * MOV    DX,05AA          ; text 'Invalid parameter'
+012B 8B0EBD05       MOV    CX,[05BD]        ; d‚lka textu
+012F E99601         JMP    02C8             ; chybov˜ n vrat z programu
+
+                                          ;* chyba - neplatn  specifikace disku
+0132 BA8B05         MOV    DX,058B          ; text "Neplatn  specifikace disku"
+0135 8B0EA805       MOV    CX,[05A8]        ; d‚lka textu
+0139 E98C01         JMP    02C8             ; chybov˜ n vrat
+
+; -----------------------------------------------------------------------------
+;                     V˜zva k vlo‘en¡ syst‚mov‚ diskety
+; -----------------------------------------------------------------------------
+                                          ;* nen¡ syst‚mov  disketa - opakov n¡
+013C A03904         MOV    AL,[0439]        ; po‘adovan˜ disk
+013F 0440           ADD    AL,40
+0141 A25106         MOV    [0651],AL
+0144 BA3806         MOV    DX,0638          ; text 'Insert DOS disk in drive..'
+0147 8B0E7106       MOV    CX,[0671]
+014B BB0200         MOV    BX,0002          ; identifik tor chybov‚ho za©¡zen¡
+014E B440           MOV    AH,40
+0150 CD21           INT    21               ; zobraz. textu na chybov‚ za©¡zen¡
+0152 B440           MOV    AH,40                         ;'@'
+0154 8B0E3606       MOV    CX,[0636]
+0158 BA3406         MOV    DX,0634
+015B CD21           INT    21
+015D E8A702         CALL   0407             ; ‡ek n¡ na stisk kl vesy
+0160 32C0           XOR    AL,AL
+
+; --------------------- Test zad n¡ parametr– soubor– -------------------------
+                                          ;* test zad n¡ parametr–
+0162 803E5D0020     CMP    Byte Ptr [005D],20 ; je zad n nˆjak˜ soubor ?
+0167 75BF           JNZ    0128             ; chyba - neplatn˜ parametr
+0169 3CFF           CMP    AL,FF            ; zadan˜ disk - je chyba ?
+016B 74C5           JZ     0132             ; chyba - neplatn  specifikace disku
+016D 803E5C0000     CMP    Byte Ptr [005C],00 ; je aktu ln¡ disk ?
+0172 74BE           JZ     0132             ; chyba - nezad n ‘ dn˜ disk
+                                          ;* nastaven¡ aktivn¡ho disku
+0174 B419           MOV    AH,19
+0176 CD21           INT    21               ; poskytnut¡ aktivn¡ho disku
+0178 FEC0           INC    AL               ; ‡¡slo aktivn¡ho disku
+017A A23904         MOV    [0439],AL        ; ‡¡slo aktivn¡ho disku
+017D 38065C00       CMP    [005C],AL        ; je to zadan˜ disk ?
+0181 74AF           JZ     0132             ; chyba - zad n aktivn¡ disk
+                                          ;* test, zda je disketov  mechanika
+0183 CD11           INT    11               ; ‡ten¡ tabulky vybaven¡
+0185 B106           MOV    CL,06            ; po‡et rotac¡
+0187 D3E8           SHR    AX,CL            ; po‡et disket. mechanik
+0189 250300         AND    AX,0003          ; po‡et disketov˜ch mechanik
+018C 7501           JNZ    018F             ; je v¡ce ne‘ 1 mechanika
+018E 40             INC    AX               ; je logick˜ disk
+018F 40           * INC    AX               ; ‡¡slo disku po disket ch
+0190 3A065C00       CMP    AL,[005C]        ; kontrola, zda je zad na disketa
+0194 7324           JNB    01BA             ; je disketov  mechanika
+                                          ;* kontrola, zda je pevn˜ disk
+0196 8AD8           MOV    BL,AL            ; maxim. disket
+0198 1E             PUSH   DS               ; £schova DS
+0199 33F6           XOR    SI,SI            ; SI <- 0
+019B B87000         MOV    AX,0070          ; AX <- 70h
+019E 8ED8           MOV    DS,AX            ; DS <- 70h
+01A0 AD             LODSW                   ; na‡ten¡ adresy z 0070:000h
+01A1 48             DEC    AX               ; adresa - 1
+01A2 8BF0           MOV    SI,AX            ; adresa - 1
+01A4 AC             LODSB                   ; po‡et pevn˜ch disk–
+01A5 1F             POP    DS               ; n vrat DSA
+01A6 02C3           ADD    AL,BL            ; maxim. disk– (i s pevn˜mi disky)
+01A8 3A065C00       CMP    AL,[005C]        ; kontrola max. ‡¡sla disku
+01AC 7302           JNB    01B0             ; ‡¡slo disku je OK
+01AE EB82           JMP    0132             ; chyba - neplatn  specifikace disku
+01B0 A05C00         MOV    AL,[005C]        ; ‡¡slo po‘adovan‚ho disku
+01B3 2AC3           SUB    AL,BL            ; ‡¡slo pevn‚ho disku
+01B5 FEC8           DEC    AL               ; ‡¡slo pevn‚ho disku
+01B7 A26F04         MOV    [046F],AL        ; ‡¡slo po‘adovan‚ho pevn‚ho disku
+
+; ------------------------ na‡ten¡ syst‚mov˜ch soubor– ------------------------
+                                          ;* p©¡prava syst‚mov˜ch soubor–
+01BA A03904         MOV    AL,[0439]        ; ‡¡slo aktivn¡ho disku
+01BD 0440           ADD    AL,40            ; korekce na znak ASCII
+01BF A23A04         MOV    [043A],AL        ; jm‚no disku 'A:\TBIOS.SYS'
+01C2 A24704         MOV    [0447],AL        ; jm‚no disku 'A:\TDOS.SYS'
+                                          ;* zji¨tˆn¡ informac¡ o syst. soub.
+01C5 FC             CLD                     ; smˆr nahoru
+01C6 BA3A04         MOV    DX,043A          ; syst‚mov˜ soubor 'A:\TBIOS.SYS'
+01C9 BFF204         MOV    DI,04F2          ; buffer informac¡ o TBIOS.SYS
+01CC E85A01         CALL   0329             ; inicializace informac¡ o souboru
+01CF 7303           JNB    01D4             ; soubor nalezen OK
+01D1 E968FF       * JMP    013C             ; chyba - soubor nenalezen
+01D4 BA4704       * MOV    DX,0447          ; syst‚mov˜ soubor 'A:\TDOS.SYS'
+01D7 BF0205         MOV    DI,0502          ; buffer informac¡ o TDOS.SYS
+01DA E84C01         CALL   0329             ; inicializace informac¡ o souboru
+01DD 72F2           JB     01D1             ; chyba - soubor nenalezen
+                                          ;* na‡ten¡ syst‚mov˜ch soubor–
+01DF 8BCC           MOV    CX,SP
+01E1 2B0E4207       SUB    CX,[0742]
+01E5 890E3A05       MOV    [053A],CX        ; maxim ln¡ velikost voln‚ pamˆti
+01E9 E8E000         CALL   02CC             ; na‡ten¡ syst‚mov˜ch soubor–
+                                          ;* uvolnˆn¡ m¡sta na nov‚m disku
+01EC A05C00         MOV    AL,[005C]        ; po‘adovan˜ disk
+01EF 0440           ADD    AL,40            ; korekce na ozna‡en¡ disku
+01F1 A23A04         MOV    [043A],AL        ; ozna‡en¡ disku pro 'A:\TBIOS.SYS'
+01F4 A24704         MOV    [0447],AL        ; ozna‡en¡ disku pro 'A:\TDOS.SYS'
+01F7 A25304         MOV    [0453],AL        ; ozna‡en¡ disku pro 'A:\IBMBIO.COM'
+01FA A26104         MOV    [0461],AL        ; ozna‡en¡ disku pro 'A:\IBMDOS.COM'
+01FD 2C40           SUB    AL,40            ; ‡¡slo disku
+01FF BA1205         MOV    DX,0512          ; soubor *.*
+0202 A21905         MOV    [0519],AL        ; ‡¡slo disku
+0205 B411           MOV    AH,11
+0207 CD21           INT    21               ; nalezen¡ prvn¡ho souboru *.* (FCB)
+0209 3CFF           CMP    AL,FF            ; byl nˆjak˜ soubor nalezen ?
+020B 7431           JZ     023E             ; nen¡ ‘ dn˜ soubor - OK
+020D BA3A04         MOV    DX,043A          ; soubor 'A:\TBIOS.SYS'
+0210 B90700         MOV    CX,0007          ; atributy - HID,SYS,R/O
+0213 B44E           MOV    AH,4E
+0215 CD21           INT    21               ; pokus o nalezen¡ souboru TBIOS.SYS
+0217 730D           JNB    0226             ; soubor nalezen OK
+0219 F8             CLC
+021A BA5304         MOV    DX,0453          ; soubor 'A:\IBMBIO.COM'
+021D B44E           MOV    AH,4E
+021F CD21           INT    21               ; pokus o nalezen¡ souboru IBMIO.COM
+0221 7303           JNB    0226             ; soubor nalezen OK
+0223 E92F01       * JMP    0355             ; chyba - nedostatek m¡sta
+0226 BA4704       * MOV    DX,0447          ; soubor TDOS.SYS
+0229 B44E           MOV    AH,4E
+022B CD21           INT    21               ; pokus o nalezen¡ soub. TDOS.SYS
+022D 730A           JNB    0239             ; soubor nalezen OK
+022F F8             CLC
+0230 BA6104         MOV    DX,0461          ; soubor 'A:\IBMDOS.COM'
+0233 B44E           MOV    AH,4E
+0235 CD21           INT    21               ; pokus o nalezen¡ soub. IBMDOS.COM
+0237 72EA           JB     0223             ; soubor nenalezen - chyba
+0239 E8D601       * CALL   0412             ; zru¨en¡ syst‚mov˜ch soubor–
+023C 72E5           JB     0223             ; chyba ru¨en¡ soubor–
+                                          ;* z pis nov˜ch soubor–
+023E BA3A04         MOV    DX,043A          ; soubor 'A:\TBIOS.SYS'
+0241 B90700         MOV    CX,0007          ; atributy SYS,HID,R/O
+0244 B43C           MOV    AH,3C
+0246 CD21           INT    21               ; vytvo©en¡ nov‚ho souboru TBIOS.SYS
+0248 A30005         MOV    [0500],AX        ; identifik tor v˜st.soub.TBIOS.SYS
+024B BA4704         MOV    DX,0447          ; soubor 'A:\TDOS.SYS'
+024E B43C           MOV    AH,3C
+0250 CD21           INT    21               ; vytvo©en¡ nov‚ho souboru TDOS.SYS
+0252 A31005         MOV    [0510],AX        ; identifik tor v˜st.soub.TDOS.SYS
+0255 E80701         CALL   035F             ; z pis syst‚mov˜ch soubor–
+                                          ;* test, zda jsou ji‘ cel‚ soubory
+0258 A10805         MOV    AX,[0508]        ; velikost TDOS.SYS - vy¨¨¡ slovo
+025B 0B060405       OR     AX,[0504]        ; velikost TDOS.SYS - ni‘¨¡ slovo
+025F 0B06F804       OR     AX,[04F8]        ; velikost TBIOS.SYS - vy¨¨¡ slovo
+0263 0B06F404       OR     AX,[04F4]        ; velikost TBIOS.SYS - ni‘¨¡ slovo
+0267 740F           JZ     0278             ; soubory jsou ji‘ cel‚ p©eneseny
+0269 E86000         CALL   02CC             ; na‡ten¡ dal¨¡ ‡ sti soubor–
+026C EBE7           JMP    0255             ; z pis dal¨¡ ‡ sti soubor–
+
+                                          ;* nekompatibiln¡ velikost soubor–
+026E BAE905         MOV    DX,05E9          ; text "Nekompatibiln¡ velikost..."
+0271 8B0E0306       MOV    CX,[0603]
+0275 EB51           JMP    02C8             ; chybov˜ n vrat z programu
+0277 90             NOP
+
+                                          ;* n vrat data a ‡asu TBIOS.SYS
+0278 8B0EFC04     * MOV    CX,[04FC]        ; ‡as souboru TBIOS.SYS
+027C 8B16FE04       MOV    DX,[04FE]        ; datum souboru TBIOS.SYS
+0280 8B1E0005       MOV    BX,[0500]        ; identifik tor souboru TBIOS.SYS
+0284 B80157         MOV    AX,5701
+0287 CD21           INT    21               ; nastaven¡ data a ‡asu souboru
+0289 B43E           MOV    AH,3E
+028B CD21           INT    21               ; uzav©en¡ v˜stupn¡ho souboru
+                                          ;* n vrat data a ‡asu TDOS.SYS
+028D 8B0E0C05       MOV    CX,[050C]        ; ‡as souboru TDOS.SYS
+0291 8B160E05       MOV    DX,[050E]        ; datum souboru TDOS.SYS
+0295 8B1E1005       MOV    BX,[0510]        ; identifik tor souboru TDOS.SYS
+0299 B80157         MOV    AX,5701          
+029C CD21           INT    21               ; nastaven¡ data a ‡asu souboru
+029E B43E           MOV    AH,3E            
+02A0 CD21           INT    21               ; uzav©en¡ v˜stupn¡ho souboru
+
+02A2 E8EF00         CALL   0394
+02A5 730B           JNB    02B2
+02A7 BA1B06         MOV    DX,061B
+02AA 8B0E3206       MOV    CX,[0632]
+02AE B001           MOV    AL,01
+02B0 EB09           JMP    02BB
+02B2 BA0506         MOV    DX,0605
+02B5 8B0E1906       MOV    CX,[0619]
+02B9 32C0           XOR    AL,AL
+02BB 50             PUSH   AX
+02BC BB0200         MOV    BX,0002
+02BF B440           MOV    AH,40                         ;'@'
+02C1 CD21           INT    21
+02C3 58             POP    AX
+02C4 B44C           MOV    AH,4C                         ;'L'
+02C6 CD21           INT    21
+
+                                          ;* chybov˜ n vrat z programu
+02C8 B001           MOV    AL,01
+02CA EBEF           JMP    02BB
+
+; -----------------------------------------------------------------------------
+;                     Na‡ten¡ syst‚mov˜ch soubor–
+; -----------------------------------------------------------------------------
+                                          ;* na‡ten¡ souboru TBIOS.SYS
+02CC 8B0E3A05       MOV    CX,[053A]        ; maxim ln¡ velikost voln‚ pamˆti
+02D0 8B1EF204       MOV    BX,[04F2]        ; identifik tor souboru TBIOS.SYS
+02D4 8B164205       MOV    DX,[0542]        ; za‡ tek voln‚ pamˆti
+02D8 51             PUSH   CX
+02D9 833EF80400     CMP    Word Ptr [04F8],+00 ; je TBIOS.SYS vˆt¨¡ ne‘ 64 KB ?
+02DE 770A           JA     02EA             ; je vˆt¨¡ ne‘ 64 KB
+02E0 390EF404       CMP    [04F4],CX        ; je vˆt¨¡ ne‘ voln  pamˆŸ ?
+02E4 7704           JA     02EA             ; je vˆt¨¡ ne‘ voln  pamˆŸ
+02E6 8B0EF404       MOV    CX,[04F4]        ; ni‘¨¡ slovo velikosti TBIOS.SYS
+02EA B43F         * MOV    AH,3F
+02EC CD21           INT    21               ; na‡ten¡ souboru TBIOS.SYS
+02EE 03D0           ADD    DX,AX            ; zv˜¨en¡ za‡ tku voln‚ pamˆti
+02F0 89163C05       MOV    [053C],DX        ; adresa konce TBIOS.SYS v pamˆti
+02F4 2906F404       SUB    [04F4],AX        ; sn¡‘en¡ velikosti o na‡ten‚ bajty
+02F8 831EF80400     SBB    Word Ptr [04F8],+00 ; p©enos do vy¨¨¡ho slova
+02FD 59             POP    CX               ; n vrat max. voln‚ pamˆti
+02FE 2BC8           SUB    CX,AX            ; sn¡‘en¡ voln‚ pamˆti
+                                          ;* na‡ten¡ souboru TDOS.SYS
+0300 8B1E0205       MOV    BX,[0502]        ; identifik tor souboru TDOS.SYS
+0304 833E080500     CMP    Word Ptr [0508],+00 ; je TDOS.SYS vˆt¨¡ ne‘ 54 KB ?
+0309 770A           JA     0315             ; je vˆt¨¡ ne‘ 64 KB
+030B 390E0405       CMP    [0504],CX        ; je vˆt¨¡ ne‘ voln  pamˆŸ ?
+030F 7704           JA     0315             ; je vˆt¨¡ ne‘ voln  pamˆŸ
+0311 8B0E0405       MOV    CX,[0504]        ; ni‘¨¡ slovo velikosti
+0315 B43F         * MOV    AH,3F
+0317 CD21           INT    21               ; na‡ten¡ souboru TDOS.SYS
+0319 03D0           ADD    DX,AX            ; zv˜¨en¡ adresy v pamˆti
+031B 89163E05       MOV    [053E],DX        ; adresa konce TDOS.SYS v pamˆti
+031F 29060405       SUB    [0504],AX        ; sn¡‘en¡ velikosti o na‡ten‚ bajty
+0323 831E080500     SBB    Word Ptr [0508],+00 ; p©enos do vy¨¨¡ho slova
+0328 C3           * RET
+; -----------------------------------------------------------------------------
+;                     Inicializace informac¡ o souboru
+; -----------------------------------------------------------------------------
+                                          ;* inicializace informac¡ o souboru
+                                            ; VSTUP: DS:DX=jm‚no souboru
+                                            ;        ES:DI=buffer pro ulo‘en¡
+
+0329 B8003D         MOV    AX,3D00          ; funkce otev©en¡ souboru pro ‡ten¡
+032C CD21           INT    21               ; otev©en¡ souboru pro ‡ten¡
+032E 72F8           JB     0328             ; soubor nenalezen nebo chyba
+0330 AB             STOSW                   ; ulo‘en¡ identifik toru souboru
+0331 8BD8           MOV    BX,AX            ; identifik tor souboru
+0333 B80242         MOV    AX,4202          ; funkce p©esunu ukazatele na konec
+0336 33C9           XOR    CX,CX            ; CX <- 0 offset
+0338 33D2           XOR    DX,DX            ; DX <- 0 offset
+033A CD21           INT    21               ; p©esun ukazatele na konec souboru
+033C AB             STOSW                   ; ni‘¨¡ slovo velikosti souboru
+033D AB             STOSW                   ; ni‘¨¡ slovo velikosti souboru
+033E 8BC2           MOV    AX,DX            ; vy¨¨¡ slovo velikosti souboru
+0340 AB             STOSW                   ; vy¨¨¡ slovo velikosti souboru
+0341 AB             STOSW                   ; vy¨¨¡ slovo velikosti souboru
+0342 33D2           XOR    DX,DX            ; DX <- 0
+0344 B80042         MOV    AX,4200          ; funkce p©esunu ukazatele na za‡ t.
+0347 CD21           INT    21               ; p©esunut¡ na za‡ tek souboru
+0349 B80057         MOV    AX,5700          ; funkce poskytnut¡ data a ‡asu
+034C CD21           INT    21               ; poskytnut¡ data a ‡asu souboru
+034E 8BC1           MOV    AX,CX            ; ‡as souboru
+0350 AB             STOSW                   ; ‡as souboru
+0351 8BC2           MOV    AX,DX            ; datum souboru
+0353 AB             STOSW                   ; datum souboru
+0354 C3             RET
+; -----------------------------------------------------------------------------
+;                   Chyba - na disku nen¡ dost m¡sta
+; -----------------------------------------------------------------------------
+0355 BABF05       * MOV    DX,05BF          ; text "Nen¡ dost m¡sta ..."
+0358 8B0EE705       MOV    CX,[05E7]
+035C E969FF         JMP    02C8             ; chybov˜ n vrat z programu
+; -----------------------------------------------------------------------------
+;                          Z pis syst‚mov˜ch soubor–
+; -----------------------------------------------------------------------------
+                                          ;* z pis souboru TBIOS.SYS
+035F 8B164205       MOV    DX,[0542]        ; adresa za‡ tku TBIOS.SYS
+0363 8B0E3C05       MOV    CX,[053C]        ; adresa konce TBIOS.SYS v pamˆti
+0367 2BCA           SUB    CX,DX            ; v˜po‡et d‚lky souboru TBIOS.SYS
+0369 740E           JZ     0379             ; soubor m  nulovou d‚lku
+036B 8B1E0005       MOV    BX,[0500]        ; identifik tor TBIOS.SYS pro z pis
+036F B440           MOV    AH,40
+0371 CD21           INT    21               ; z pis souboru na disk
+0373 72E0           JB     0355             ; chyba z pisu souboru
+0375 33C1           XOR    AX,CX            ; souhlas¡ po‡et zapsan˜ch bajt– ?
+0377 75DC           JNZ    0355             ; po‡et bajt– nesouhlas¡
+                                          ;* z pis souboru TDOS.SYS
+0379 8B163C05     * MOV    DX,[053C]        ; adresa za‡ tku TDOS.SYS v pamˆti
+037D 8B0E3E05       MOV    CX,[053E]        ; adresa konce TDOS.SYS v pamˆti
+0381 2BCA           SUB    CX,DX            ; v˜po‡et d‚lky souboru TDOS.SYS
+0383 74CF           JZ     0354             ; soubor m  nulovou d‚lku
+0385 8B1E1005       MOV    BX,[0510]        ; identifik tor TDOS.SYS pro z pis
+0389 B440           MOV    AH,40            
+038B CD21           INT    21               ; z pis souboru na disk
+038D 72C6           JB     0355             ; chyba z pisu souboru
+038F 33C1           XOR    AX,CX            ; souhlas¡ po‡et zapsan˜ch bajt– ?
+0391 75C2           JNZ    0355             ; po‡et bajt– nesouhlas¡
+0393 C3             RET
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+0394 B432           MOV    AH,32                         ;'2'
+0396 8A165C00       MOV    DL,[005C]
+039A CD21           INT    21
+039C 8A4716         MOV    AL,[BX+16]
+039F 0E             PUSH   CS
+03A0 1F             POP    DS
+03A1 3CF8           CMP    AL,F8
+03A3 7443           JZ     03E8
+03A5 2407           AND    AL,07
+03A7 3405           XOR    AL,05
+03A9 D0E0           SHL    AL,1
+03AB BB7004         MOV    BX,0470
+03AE 32E4           XOR    AH,AH
+03B0 03D8           ADD    BX,AX
+03B2 8B37           MOV    SI,[BX]
+03B4 268B1E4005     MOV    BX,ES:[0540]     ; za‡ tek voln‚ pamˆti pro ‡ten¡
+03B9 81E3F0FF       AND    BX,FFF0
+03BD 8BFB           MOV    DI,BX
+03BF 83C70B         ADD    DI,+0B
+03C2 B91300         MOV    CX,0013
+03C5 F3             REPZ
+03C6 A4             MOVSB
+03C7 26803E6F0400   CMP    Byte Ptr ES:[046F],00 ; ‡¡slo pevn‚ho disku
+03CD 740B           JZ     03DA
+03CF 26A06F04       MOV    AL,ES:[046F]          ; ‡¡slo pevn‚ho disku
+03D3 BFFD01         MOV    DI,01FD
+03D6 03FB           ADD    DI,BX
+03D8 AA             STOSB
+03D9 1F             POP    DS
+03DA A05C00         MOV    AL,[005C]
+03DD FEC8           DEC    AL
+03DF 33D2           XOR    DX,DX
+03E1 8BCA           MOV    CX,DX
+03E3 41             INC    CX
+03E4 CD26           INT    26
+03E6 58             POP    AX
+03E7 C3             RET
+
+03E8 1E             PUSH   DS
+03E9 33F6           XOR    SI,SI
+03EB B87000         MOV    AX,0070
+03EE 8ED8           MOV    DS,AX
+03F0 AD             LODSW
+03F1 8BF0           MOV    SI,AX
+03F3 AC             LODSB
+03F4 26803E6F0400   CMP    Byte Ptr ES:[046F],00 ; ‡¡slo pevn‚ho disku
+03FA 7405           JZ     0401
+03FC 83C613         ADD    SI,+13
+03FF FEC0           INC    AL
+0401 26A26F04       MOV    ES:[046F],AL          ; ‡¡slo pevn‚ho disku
+0405 EBAD           JMP    03B4
+
+; -----------------------------------------------------------------------------
+;                   €ek n¡ na stisk kl vesy
+; -----------------------------------------------------------------------------
+                                          ;* ‡ek n¡ na stisk kl vesy
+0407 B8080C         MOV    AX,0C08
+040A CD21           INT    21
+040C B8000C         MOV    AX,0C00
+040F CD21           INT    21
+0411 C3             RET
+; -----------------------------------------------------------------------------
+;                  Zru¨en¡ syst‚mov˜ch soubor–
+; -----------------------------------------------------------------------------
+                                          ;* VSTUP: DS:DX=modul DOS
+0412 B80143         MOV    AX,4301
+0415 B90000         MOV    CX,0000          ; vynulov n¡ v¨ech atribut–
+0418 CD21           INT    21               
+041A B441           MOV    AH,41            ; zru¨en¡ souboru
+041C CD21           INT    21
+
+; -------------- Zru¨en¡ souboru IBMBIO.COM / TBIOS.SYS -----------------------
+
+041E 81FA6104       CMP    DX,0461          ; byl soubor IBMDOS.COM ?
+0422 7505           JNZ    0429             ; nebyl - byl TDOS.SYS
+                                          ;* zru¨en¡ souboru IBMBIO.COM
+0424 BA5304         MOV    DX,0453          'A:\IBMBIO.COM',0
+0427 EB03           JMP    042C
+                                          ;* zru¨en¡ souboru TBIOS.SYS
+0429 BA3A04         MOV    DX,043A          'A:\TBIOS.SYS',0
+042C B80143       * MOV    AX,4301
+042F B90000         MOV    CX,0000
+0432 CD21           INT    21               ; vynulov n¡ v¨ech atribut–
+0434 B441           MOV    AH,41
+0436 CD21           INT    21               ; zru¨en¡ souboru
+0438 C3             RET
+
+                    db     0
+
+043a                db     'A:\TBIOS.SYS',0
+0447                db     'A:\TDOS.SYS',0
+0453                db     'A:\IBMBIO.COM',0
+0461                db     'A:\IBMDOS.COM',0
+
+046f                db     0                ; ‡¡slo pevn‚ho disku
+
+0460  00 41 3A 5C 49 42 4D 44-4F 53 2E 43 4F 4D 00 00  .A:\IBMDOS.COM..
+0470  B9 04 A6 04 93 04 80 04-DF 04 00 00 00 00 CC 04  9.&....._.....L.
+0480  00 02 01 01 00 02 40 00-40 01 FE 01 00 08 00 01  ......@.@.~.....
+0490  00 00 00 00 02 02 01 00-02 70 00 80 02 FF 01 00  .........p......
+04A0  08 00 02 00 00 00 00 02-01 01 00 02 40 00 68 01  ............@.h.
+04B0  FC 02 00 09 00 01 00 00-00 00 02 02 01 00 02 70  |..............p
+04C0  00 D0 02 FD 02 00 09 00-02 00 00 00 00 02 02 01  .P.}............
+04D0  00 02 70 00 A0 05 F9 03-00 09 00 02 00 00 00 00  ..p. .y.........
+04E0  02 01 01 00 02 E0 00 60-09 F9 07 00 0F 00 02 00  .....`.`.y......
+04F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+
+                                          ;* buffer informac¡ o TBIOS.SYS
+04f2                dw     0                ; identifik tor souboru
+04f4                dw     0                ; velikost - ni‘¨¡ slovo
+04f6                dw     0                ; velikost - ni‘¨¡ slovo
+04f8                dw     0                ; velikost - vy¨¨¡ slovo
+04fa                dw     0                ; velikost - vy¨¨¡ slovo
+04fc                dw     0                ; ‡as souboru
+04fe                dw     0                ; datum souboru
+0500                dw     0                ; identifik tor v˜st.soub.TBIOS.SYS
+
+                                          ;* buffer informac¡ o TDOS.SYS
+0502                dw     0                ; identifik tor souboru
+0504                dw     0                ; velikost - ni‘¨¡ slovo
+0506                dw     0                ; velikost - ni‘¨¡ slovo
+0508                dw     0                ; velikost - vy¨¨¡ slovo
+050a                dw     0                ; velikost - vy¨¨¡ slovo
+050c                dw     0                ; ‡as souboru
+050e                dw     0                ; datum souboru
+0510                dw     0                ; identifik tor v˜st.soub. TDOS.SYS
+
+0512                db     0ffh
+                    db     0,0,0,0
+                    db     1eh              ; atributy - v¨echny soubory
+
+
+053a                dw     0                ; maxim ln¡ velikost voln‚ pamˆti
+053c                dw     0                ; adresa konce TBIOS.SYS v pamˆti
+053e                dw     0                ; adresa konce TDOS.SYS v pamˆti
+
+0540                dw     0682h            ; za‡ tek voln‚ pamˆti pro ‡ten¡
+0542                dw     0682h            ; za‡ tek voln‚ pamˆti pro z pis
+
+0510  00 00 FF 00 00 00 00 00-1E 00 3F 3F 3F 3F 3F 3F  ..........??????
+0520  3F 3F 3F 3F 3F 00 00 00-00 00 00 00 00 00 00 00  ?????...........
+0530  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0540  82 06 82 08 00 00 00 00-00 00 00 00 00 00 00 00  ................
+
+0550                db     'Incorrect DOS version',13,10,$'
+
+0568                db     'Destination disk cannot be booted'
+0589                dw     21h
+
+058b                db     'Invalid drive specification',13,10
+05a8                dw     1dh
+
+05aa                db     'Invalid parameter',13,10
+05bd                dw     13h
+
+05bf                db     'No room for system on destination disk',13,10
+05e7                dw     28h
+
+05e9                db     'Incompatible system size',13,10
+0603                dw     1ah
+
+
+
+0600  65 0D 0A 1A 00 53 79 73-74 65 6D 20 74 72 61 6E  e....System tran
+0610  73 66 65 72 72 65 64 0D-0A 14 00 55 6E 61 62 6C  sferred....Unabl
+0620  65 20 74 6F 20 77 72 69-74 65 20 42 4F 4F 54 0D  e to write BOOT.
+
+0638                db     'Insert DOS disk in drive '
+0651                db     'A:',13,10,'and press any key when ready'
+0671                dw     39h              ; d‚lka textu
+
+                    db     13 dup(0)
+
+; *****************************************************************************
+;
+;                        Zav dˆc¡ sektor disku
+;
+; *****************************************************************************
+
+0680 EB22           JMP    06A4
+
+0680  EB 22 90 54 20 56 32 2E-31 31 20 00 02 02 01 00  k".T V2.11 .....
+0690  02 70 00 D0 02 FD 02 00-09 00 02 00 00 00 00 00  .p.P.}..........
+06A0  05 0A 00 00 FC FA BA C0-07 BC 00 7C 33 C0 8E D0  ....|z:@.<.|3@.P
+
+06a4 FC             CLD
+06A5 FA             CLI
+06A6 BAC007         MOV    DX,07C0
+06A9 BC007C         MOV    SP,7C00
+06AC 33C0           XOR    AX,AX
+06AE 8ED0           MOV    SS,AX
+06B0 8EC0           MOV    ES,AX
+06B2 FB             STI
+06B3 26C5367800     LDS    SI,ES:[0078]
+06B8 06             PUSH   ES
+06B9 8EC2           MOV    ES,DX
+06BB BF0003         MOV    DI,0300
+06BE B90B00         MOV    CX,000B
+06C1 F3             REPZ
+06C2 A4             MOVSB
+06C3 07             POP    ES
+06C4 8EDA           MOV    DS,DX
+06C6 BB0003         MOV    BX,0300
+06C9 C647040F       MOV    Byte Ptr [BX+04],0F
+06CD 26891E7800     MOV    ES:[0078],BX
+06D2 268C1E7A00     MOV    ES:[007A],DS
+06D7 8A16FD01       MOV    DL,[01FD]
+06DB F6C280         TEST   DL,80
+06DE 750E           JNZ    06EE
+06E0 26A03F04       MOV    AL,ES:[043F]
+06E4 240F           AND    AL,0F
+06E6 33D2           XOR    DX,DX
+06E8 42             INC    DX
+06E9 D0E8           SHR    AL,1
+06EB 73FB           JNB    06E8
+06ED 4A             DEC    DX
+06EE 8816FD01       MOV    [01FD],DL
+06F2 33C0           XOR    AX,AX
+06F4 CD13           INT    13
+06F6 723B           JB     0733
+06F8 E85A00         CALL   0755
+06FB 7236           JB     0733
+06FD BB0007         MOV    BX,0700
+0700 E8BF00         CALL   07C2
+0703 A11800         MOV    AX,[0018]
+0706 2AC1           SUB    AL,CL
+0708 40             INC    AX
+0709 3A062100       CMP    AL,[0021]
+070D 7603           JBE    0712
+070F A02100         MOV    AL,[0021]
+0712 50             PUSH   AX
+0713 B402           MOV    AH,02
+0715 CD13           INT    13
+0717 721A           JB     0733
+0719 58             POP    AX
+071A 28062100       SUB    [0021],AL
+071E 740C           JZ     072C
+0720 32E4           XOR    AH,AH
+0722 01062200       ADD    [0022],AX
+0726 D0E0           SHL    AL,1
+0728 02F8           ADD    BH,AL
+072A EBD4           JMP    0700
+072C 8BDD           MOV    BX,BP
+072E EA00007000     JMP    0070:0000
+0733 FE0E2000       DEC    Byte Ptr [0020]
+0737 7402           JZ     073B
+0739 EBB7           JMP    06F2
+073B B91500         MOV    CX,0015
+073E BE8401         MOV    SI,0184
+0741 E89F00         CALL   07E3
+0744 EBFE           JMP    0744
+0746 B94700         MOV    CX,0047
+0749 BE9701         MOV    SI,0197
+074C E89400         CALL   07E3
+074F 32E4           XOR    AH,AH
+0751 CD16           INT    16
+0753 CD19           INT    19
+0755 A01600         MOV    AL,[0016]
+0758 F6261000       MUL    Byte Ptr [0010]
+075C 03060E00       ADD    AX,[000E]
+0760 8BE8           MOV    BP,AX
+0762 03061C00       ADD    AX,[001C]
+0766 A32200         MOV    [0022],AX
+0769 BB0005         MOV    BX,0500
+076C E85300         CALL   07C2
+076F B80102         MOV    AX,0201
+0772 CD13           INT    13
+0774 724B           JB     07C1
+0776 B90B00         MOV    CX,000B
+0779 BE6E01         MOV    SI,016E
+077C BF0005         MOV    DI,0500
+077F F3             REPZ
+0780 A6             CMPSB
+0781 75C3           JNZ    0746
+0783 B90B00         MOV    CX,000B
+0786 BF2005         MOV    DI,0520
+0789 F3             REPZ
+078A A6             CMPSB
+078B 75B9           JNZ    0746
+078D A10B00         MOV    AX,[000B]
+0790 86E0           XCHG   AH,AL
+0792 F6260D00       MUL    Byte Ptr [000D]
+0796 86E0           XCHG   AH,AL
+0798 48             DEC    AX
+0799 8BD8           MOV    BX,AX
+079B 26A11C05       MOV    AX,ES:[051C]
+079F 03C3           ADD    AX,BX
+07A1 D0EC           SHR    AH,1
+07A3 32C0           XOR    AL,AL
+07A5 86E0           XCHG   AH,AL
+07A7 A22100         MOV    [0021],AL
+07AA B82000         MOV    AX,0020
+07AD F7261100       MUL    Word Ptr [0011]
+07B1 05FF01         ADD    AX,01FF
+07B4 D0EC           SHR    AH,1
+07B6 32C0           XOR    AL,AL
+07B8 86E0           XCHG   AH,AL
+07BA 01062200       ADD    [0022],AX
+07BE 03E8           ADD    BP,AX
+07C0 F8             CLC
+07C1 C3             RET
+
+07C2 A12200         MOV    AX,[0022]
+07C5 33D2           XOR    DX,DX
+07C7 F7361800       DIV    Word Ptr [0018]
+07CB 42             INC    DX
+07CC 52             PUSH   DX
+07CD 33D2           XOR    DX,DX
+07CF F7361A00       DIV    Word Ptr [001A]
+07D3 86F2           XCHG   DH,DL
+07D5 8A16FD01       MOV    DL,[01FD]
+07D9 B106           MOV    CL,06
+07DB D2E4           SHL    AH,CL
+07DD 59             POP    CX
+07DE 0ACC           OR     CL,AH
+07E0 8AE8           MOV    CH,AL
+07E2 C3             RET
+
+; -----------------------------------------------------------------------------
+;                   Zobrazen¡ textu pomoc¡ BIOS
+; -----------------------------------------------------------------------------
+                                          ;* zobrazen¡ textu pomoc¡ BIOS
+                                            ; VSTUP: DS:SI=adresa textu
+                                            ;        CX=po‡et znak–
+07E3 AC           * LODSB
+07E4 B40E           MOV    AH,0E
+07E6 BB0700         MOV    BX,0007
+07E9 CD10           INT    10
+07EB E2F6           LOOP   07E3
+07ED C3             RET
+
+06B0  8E C0 FB 26 C5 36 78 00-06 8E C2 BF 00 03 B9 0B  .@{&E6x...B?..9.
+06C0  00 F3 A4 07 8E DA BB 00-03 C6 47 04 0F 26 89 1E  .s$..Z;..FG..&..
+06D0  78 00 26 8C 1E 7A 00 8A-16 FD 01 F6 C2 80 75 0E  x.&..z...}.vB.u.
+06E0  26 A0 3F 04 24 0F 33 D2-42 D0 E8 73 FB 4A 88 16  & ?.$.3RBPhs{J..
+06F0  FD 01 33 C0 CD 13 72 3B-E8 5A 00 72 36 BB 00 07  }.3@M.r;hZ.r6;..
+0700  E8 BF 00 A1 18 00 2A C1-40 3A 06 21 00 76 03 A0  h?.!..*A@:.!.v.
+0710  21 00 50 B4 02 CD 13 72-1A 58 28 06 21 00 74 0C  !.P4.M.r.X(.!.t.
+0720  32 E4 01 06 22 00 D0 E0-02 F8 EB D4 8B DD EA 00  2d..".P`.xkT.]j.
+0730  00 70 00 FE 0E 20 00 74-02 EB B7 B9 15 00 BE 84  .p.~. .t.k79..>.
+0740  01 E8 9F 00 EB FE B9 47-00 BE 97 01 E8 94 00 32  .h..k~9G.>..h..2
+0750  E4 CD 16 CD 19 A0 16 00-F6 26 10 00 03 06 0E 00  dM.M. ..v&......
+0760  8B E8 03 06 1C 00 A3 22-00 BB 00 05 E8 53 00 B8  .h....#".;..hS.8
+0770  01 02 CD 13 72 4B B9 0B-00 BE 6E 01 BF 00 05 F3  ..M.rK9..>n.?..s
+0780  A6 75 C3 B9 0B 00 BF 20-05 F3 A6 75 B9 A1 0B 00  &uC9..? .s&u9!..
+0790  86 E0 F6 26 0D 00 86 E0-48 8B D8 26 A1 1C 05 03  .`v&...`H.X&!...
+07A0  C3 D0 EC 32 C0 86 E0 A2-21 00 B8 20 00 F7 26 11  CPl2@.`"!.8 .w&.
+07B0  00 05 FF 01 D0 EC 32 C0-86 E0 01 06 22 00 03 E8  ....Pl2@.`.."..h
+07C0  F8 C3 A1 22 00 33 D2 F7-36 18 00 42 52 33 D2 F7  xC!".3Rw6..BR3Rw
+07D0  36 1A 00 86 F2 8A 16 FD-01 B1 06 D2 E4 59 0A CC  6...r..}.1.RdY.L
+07E0  8A E8 C3 AC B4 0E BB 07-00 CD 10 E2 F6 C3 54 42  .hC,4.;..M.bvCTB
+07F0  49 4F 53 20 20 20 53 59-53 54 44 4F 53 20 20 20  IOS   SYSTDOS
+0800  20 53 59 53 0D 0A 44 69-73 6B 20 42 6F 6F 74 20   SYS..Disk Boot
+0810  46 61 69 6C 75 72 65 0D-0A 4E 6F 6E 2D 53 79 73  Failure..Non-Sys
+0820  74 65 6D 20 64 69 73 6B-20 6F 72 20 64 69 73 6B  tem disk or disk
+0830  20 65 72 72 6F 72 0D 0A-52 65 70 6C 61 63 65 20   error..Replace
+0840  61 6E 64 20 70 72 65 73-73 20 61 6E 79 20 6B 65  and press any ke
+0850  79 20 77 68 65 6E 20 72-65 61 64 79 0D 0A 54 4F  y when ready..TO
+0860  53 48 49 42 41 20 56 32-2E 32 31 00 00 00 00 00  SHIBA V2.21.....
+0870  00 00 00 00 00 00 00 00-00 00 00 00 00 00 55 AA  ..............U*
+
+
+
+
+
+
+0120  09 CD 21 CD 20 58 EB 3A-BA AA 05 8B 0E BD 05 E9  .M!M Xk::*...=.i
+0130  96 01 BA 8B 05 8B 0E A8-05 E9 8C 01 A0 39 04 04  ..:....(.i.. 9..
+0140  40 A2 51 06 BA 38 06 8B-0E 71 06 BB 02 00 B4 40  @"Q.:8...q.;..4@
+0150  CD 21 B4 40 8B 0E 36 06-BA 34 06 CD 21 E8 A7 02  M!4@..6.:4.M!h'.
+0160  32 C0 80 3E 5D 00 20 75-BF 3C FF 74 C5 80 3E 5C  2@.>]. u?<.tE.>\
+0170  00 00 74 BE B4 19 CD 21-FE C0 A2 39 04 38 06 5C  ..t>4.M!~@"9.8.\
+0180  00 74 AF CD 11 B1 06 D3-E8 25 03 00 75 01 40 40  .t/M.1.Sh%..u.@@
+0190  3A 06 5C 00 73 24 8A D8-1E 33 F6 B8 70 00 8E D8  :.\.s$.X.3v8p..X
+01A0  AD 48 8B F0 AC 1F 02 C3-3A 06 5C 00 73 02 EB 82  -H.p,..C:.\.s.k.
+01B0  A0 5C 00 2A C3 FE C8 A2-6F 04 A0 39 04 04 40 A2   \.*C~H"o. 9..@"
+01C0  3A 04 A2 47 04 FC BA 3A-04 BF F2 04 E8 5A 01 73  :."G.|::.?r.hZ.s
+01D0  03 E9 68 FF BA 47 04 BF-02 05 E8 4C 01 72 F2 8B  .ih.:G.?..hL.rr.
+01E0  CC 2B 0E 42 07 89 0E 3A-05 E8 E0 00 A0 5C 00 04  L+.B...:.h`. \..
+01F0  40 A2 3A 04 A2 47 04 A2-53 04 A2 61 04 2C 40 BA  @":."G."S."a.,@:
+0200  12 05 A2 19 05 B4 11 CD-21 3C FF 74 31 BA 3A 04  .."..4.M!<.t1::.
+0210  B9 07 00 B4 4E CD 21 73-0D F8 BA 53 04 B4 4E CD  9..4NM!s.x:S.4NM
+0220  21 73 03 E9 2F 01 BA 47-04 B4 4E CD 21 73 0A F8  !s.i/.:G.4NM!s.x
+0230  BA 61 04 B4 4E CD 21 72-EA E8 D6 01 72 E5 BA 3A  :a.4NM!rjhV.re::
+0240  04 B9 07 00 B4 3C CD 21-A3 00 05 BA 47 04 B4 3C  .9..4<M!#..:G.4<
+0250  CD 21 A3 10 05 E8 07 01-A1 08 05 0B 06 04 05 0B  M!#..h..!.......
+0260  06 F8 04 0B 06 F4 04 74-0F E8 60 00 EB E7 BA E9  .x...t.t.h`.kg:i
+0270  05 8B 0E 03 06 EB 51 90-8B 0E FC 04 8B 16 FE 04  .....kQ...|...~.
+0280  8B 1E 00 05 B8 01 57 CD-21 B4 3E CD 21 8B 0E 0C  ....8.WM!4>M!...
+0290  05 8B 16 0E 05 8B 1E 10-05 B8 01 57 CD 21 B4 3E  .........8.WM!4>
+02A0  CD 21 E8 EF 00 73 0B BA-1B 06 8B 0E 32 06 B0 01  M!ho.s.:....2.0.
+02B0  EB 09 BA 05 06 8B 0E 19-06 32 C0 50 BB 02 00 B4  k.:......2@P;..4
+02C0  40 CD 21 58 B4 4C CD 21-B0 01 EB EF 8B 0E 3A 05  @M!X4LM!0.ko..:.
+02D0  8B 1E F2 04 8B 16 42 05-51 83 3E F8 04 00 77 0A  ..r...B.Q.>x..w.
+02E0  39 0E F4 04 77 04 8B 0E-F4 04 B4 3F CD 21 03 D0  9.t.w...t.4?M!.P
+02F0  89 16 3C 05 29 06 F4 04-83 1E F8 04 00 59 2B C8  ..<.).t...x..Y+H
+0300  8B 1E 02 05 83 3E 08 05-00 77 0A 39 0E 04 05 77  .....>...w.9...w
+0310  04 8B 0E 04 05 B4 3F CD-21 03 D0 89 16 3E 05 29  .....4?M!.P..>.)
+0320  06 04 05 83 1E 08 05 00-C3 B8 00 3D CD 21 72 F8  ........C8.=M!rx
+0330  AB 8B D8 B8 02 42 33 C9-33 D2 CD 21 AB AB 8B C2  +.X8.B3I3RM!++.B
+0340  AB AB 33 D2 B8 00 42 CD-21 B8 00 57 CD 21 8B C1  ++3R8.BM!8.WM!.A
+0350  AB 8B C2 AB C3 BA BF 05-8B 0E E7 05 E9 69 FF 8B  +.B+C:?...g.ii..
+0360  16 42 05 8B 0E 3C 05 2B-CA 74 0E 8B 1E 00 05 B4  .B...<.+Jt.....4
+0370  40 CD 21 72 E0 33 C1 75-DC 8B 16 3C 05 8B 0E 3E  @M!r`3Au\..<...>
+0380  05 2B CA 74 CF 8B 1E 10-05 B4 40 CD 21 72 C6 33  .+JtO....4@M!rF3
+0390  C1 75 C2 C3 B4 32 8A 16-5C 00 CD 21 8A 47 16 0E  AuBC42..\.M!.G..
+03A0  1F 3C F8 74 43 24 07 34-05 D0 E0 BB 70 04 32 E4  .<xtC$.4.P`;p.2d
+03B0  03 D8 8B 37 26 8B 1E 40-05 81 E3 F0 FF 8B FB 83  .X.7&..@..cp..{.
+03C0  C7 0B B9 13 00 F3 A4 26-80 3E 6F 04 00 74 0B 26  G.9..s$&.>o..t.&
+03D0  A0 6F 04 BF FD 01 03 FB-AA 1F A0 5C 00 FE C8 33   o.?}..{*. \.~H3
+03E0  D2 8B CA 41 CD 26 58 C3-1E 33 F6 B8 70 00 8E D8  R.JAM&XC.3v8p..X
+03F0  AD 8B F0 AC 26 80 3E 6F-04 00 74 05 83 C6 13 FE  -.p,&.>o..t..F.~
+0400  C0 26 A2 6F 04 EB AD B8-08 0C CD 21 B8 00 0C CD  @&"o.k-8..M!8..M
+0410  21 C3 B8 01 43 B9 00 00-CD 21 B4 41 CD 21 81 FA  !C8.C9..M!4AM!.z
+0420  61 04 75 05 BA 53 04 EB-03 BA 3A 04 B8 01 43 B9  a.u.:S.k.::.8.C9
+

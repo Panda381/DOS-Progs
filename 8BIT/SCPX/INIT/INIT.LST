@@ -1,0 +1,2078 @@
+CONTEXT   0 241   1   0  66
+                                    - # -
+; ***************************************************************************
+;
+;               INIT - program pro form†tov†n° disket
+;
+; ***************************************************************************
+
+0100:  2a 3e 00                ld      hl,(3eh)       ; adresa horkÇho startu systÇmu
+0103:  11 30 00                ld      de,30h         ; verze operaán°ho systÇmu
+0106:  19                      add     hl,de
+0107:  56                      ld      d,(hl)         ; prvn° znak oznaáen° operaán°ho systÇmu
+0108:  23                      inc     hl
+0109:  5e                      ld      e,(hl)         ; druhò znak oznaáen° operaán°ho systÇmu
+010a:  23                      inc     hl
+010b:  e5                      push    hl
+010c:  21 57 42                ld      hl,4257h       ; oznaáen° systÇmu "BW"
+010f:  ed 52                   sbc     hl,de
+0111:  e1                      pop     hl
+0112:  20 19                   jr      nz,lab1        ; nen° spr†vnò operaán° systÇm
+0114:  06 02                   ld      b,2            ; poáet znakñ ke kontrole na á°slice
+0116:  23              lab3:   inc     hl
+0117:  7e                      ld      a,(hl)         ; prvn° á°slice operaán°ho systÇmu
+0118:  fe 30                   cp      "0"            ; je men®° neë "0" ?
+011a:  38 11                   jr      c,lab1         ; je men®° - chyba
+011c:  fe 3a                   cp      ":"            ; je vàt®° neë "9"+1 ?
+011e:  30 0d                   jr      nc,lab1        ; je vàt®° - nen° á°slice - chyba
+0120:  10 f4                   djnz    lab3           ; kontrola dal®° á°slice
+0122:  2b                      dec     hl
+0123:  66                      ld      h,(hl)         ; prvn° á°slice verze operaán°ho systÇmu
+0124:  6f                      ld      l,a
+0125:  11 30 31                ld      de,3130h       ; minim†ln° poëadovan† verze systÇmu 1.0
+0128:  b7                      or      a
+0129:  ed 52                   sbc     hl,de          ; kontrola á°sla verze operaán°ho systÇmu
+012b:  30 3a                   jr      nc,lab4        ; je vàt®° á°slo verze OS - OK
+012d:  cd 31 01        lab1:   call    lab2           ; vòpis chyby verze operaán°ho systÇmu
+0130:  c9                      ret
+; ......................................................
+0131:  11 39 01        lab2:   ld      de,tbl1        ; text chyby operaán°ho systÇmu
+0134:  0e 09                   ld      c,9
+0136:  c3 05 00                jp      5              ; funkce vòstup textu na konzolu
+
+0139:                  tbl1:   db      0dh,0ah        ; text chyby operaán°ho systÇmu
+013b:                          db      "LITUJI, JE NUTNY"
+014b:                          db      " SCPX V1.0 (NEBO VYSSI) !"
+0164:                          db      0dh,0ah,"$"
+; ......................................................
+                                                      ; pokraáov†n° po kontrole verze OS
+0167:  ed 73 be 16     lab4:   ld      (16beh),sp     ; uloëen° systÇmovÇho z†sobn°ku
+016b:  31 bc 16                ld      sp,tbl2        ; vlastn° z†sobn°k
+016e:  11 78 01                ld      de,tbl3        ; £vodn° text
+0171:  0e 09                   ld      c,9
+0173:  cd 05 00                call    5              ; tisk £vodn°ho textu
+0176:  18 31                   jr      lab5
+
+0178:                  tbl3:   db      0ah,0dh        ; £vodn° text
+017a:                          db      "INIT 1520(SCPX)  V 1.2"
+0190:                          db      0ah,0dh
+0192:                          db      "======================$"
+; ......................................................
+                                                      ; pokraáov†n° po tisku £vodn°ho textu
+01a9:  11 b3 01        lab5:   ld      de,tbl4        ; text vòzvy volby disku
+01ac:  0e 09                   ld      c,9
+01ae:  cd 05 00                call    5              ; tisk textu vòzvy
+01b1:  18 1c                   jr      lab6
+
+01b3:                  tbl4:   db      0ah,0ah,0dh
+01b6:                          db      "Prosim, vyberte disk  : $"
+; ......................................................
+                                                      ; pokraáov†n° po vòpisu vòzvy k volbà disku
+01cf:  cd 9e 06        lab6:   call    lab7           ; vstup ©etàzce znakñ z konzoly (velk† p°smena)
+01d2:  fe 01                   cp      1              ; byl zad†n pr†và jeden znak ?
+01d4:  28 24                   jr      z,lab10        ; byl jeden znak - v po©†dku
+01d6:  11 e0 01        lab11:  ld      de,tbl7        ; text chyby ®patnÇho zad†n° disku
+01d9:  0e 09                   ld      c,9
+01db:  cd 05 00                call    5              ; vòstup textu na konzolu
+01de:  18 c9                   jr      lab5           ; opakov†n° zad†n° disku
+
+01e0:                  tbl7:   db      0ah,0dh
+01e2:                          db      "SPATNY NAZEV DISKU ?!?!$"
+; ......................................................
+
+01fa:  7e              lab10:  ld      a,(hl)         ; zadanò disk
+01fb:  32 aa 03                ld      (byt2),a       ; oznaáen° disku k form†tov†n°
+01fe:  d6 41                   sub     "A"            ; korekce na á°slo disku
+0200:  4f                      ld      c,a            ; á°slo disku k form†tov†n°
+0201:  2a 3e 00                ld      hl,(3eh)       ; adresa horkÇho startu systÇmu
+0204:  11 62 00                ld      de,62h
+0207:  19                      add     hl,de          ; celkovò poáet diskñ v systÇmu
+0208:  7e                      ld      a,(hl)         ; celkovò poáet diskñ v systÇmu
+0209:  3d                      dec     a              ; maxim†ln° á°slo disku
+020a:  b9                      cp      c              ; je p©ekroáeno á°slo disku ?
+020b:  38 c9                   jr      c,lab11        ; je p©ekroáeno á°slo disku - chyba zad†n°
+020d:  2a 3e 00                ld      hl,(3eh)       ; adresa horkÇho startu systÇmu
+0210:  11 41 00                ld      de,41h
+0213:  19                      add     hl,de          ; adresa tabulky diskovòch parametrñ
+0214:  5e                      ld      e,(hl)
+0215:  23                      inc     hl
+0216:  56                      ld      d,(hl)         ; adresa tabulky diskovòch parametrñ
+0217:  21 0a 00                ld      hl,0ah         ; offset adresy bloku diskovòch parametrñ
+021a:  19                      add     hl,de
+021b:  11 10 00                ld      de,10h         ; dÇlka jednÇ poloëky tabulky
+021e:  79                      ld      a,c            ; á°slo disku k zform†tov†n°
+021f:  b7              lab150: or      a
+0220:  28 04                   jr      z,lab12        ; disk dosaëen
+0222:  19                      add     hl,de
+0223:  3d                      dec     a
+0224:  18 f9                   jr      lab150         ; dal®° disk v tabulce
+
+0226:  5e              lab12:  ld      e,(hl)         ; p©eáten° adresy bloku diskovòch parametrñ
+0227:  23                      inc     hl
+0228:  56                      ld      d,(hl)
+0229:  d5                      push    de             ; adresa bloku diskovòch parametrñ disku
+022a:  dd e1                   pop     ix             ; blok diskovòch parametrñ disku
+022c:  11 36 02        lab21:  ld      de,tbl8        ; text form†tu
+022f:  0e 09                   ld      c,9
+0231:  cd 05 00                call    5              ; tisk textu nadpisu form†tu
+0234:  18 19                   jr      lab13
+
+0236:                  tbl8:   db      0ah,0ah,0dh
+0239:                          db      "Format muze byt  : "
+024c:                          db      0ah,0dh,"$"
+; ......................................................
+                                                      ; pokraáuje vòpis moënòch form†tñ disku
+024f:  dd 7e 15        lab13:  ld      a,(ix+15h)     ; moënÇ form†ty diskety
+0252:  e6 83                   and     83h
+0254:  21 0f 0c                ld      hl,tbl9        ; tabulka adres form†tñ disket 8"
+0257:  cb 7f                   bit     7,a            ; p©°znak diskety 5 1/4"
+0259:  28 03                   jr      z,lab14        ; nen° disketa 5 1/4"
+025b:  21 17 0c                ld      hl,tbl57       ; tabulka adres form†tñ disket 5 1/4"
+025e:  cb bf           lab14:  res     7,a            ; zru®en° p©°znaku 5 1/4"
+0260:  87                      add     a,a            ; bajt p©°znakñ * 2
+0261:  5f                      ld      e,a
+0262:  16 00                   ld      d,0
+0264:  19                      add     hl,de          ; adresa ukazatele form†tu diskety
+0265:  5e                      ld      e,(hl)         ; p©eáten° adresy ukazatele form†tu diskety
+0266:  23                      inc     hl
+0267:  56                      ld      d,(hl)
+0268:  7a                      ld      a,d
+0269:  b3                      or      e              ; je platn† disketa ?
+026a:  20 39                   jr      nz,lab15       ; je platnò form†t diskety
+026c:  11 79 02                ld      de,tbl56       ; text chyby systÇmu
+026f:  0e 09                   ld      c,9
+0271:  cd 05 00                call    5              ; tisk hl†®en° chyby systÇmu
+0274:  ed 7b be 16             ld      sp,(16beh)     ; n†vrat systÇmovÇho ukazatele z†sobn°ku
+0278:  c9                      ret                    ; n†vrat do systÇmu
+
+0279:                  tbl56:  db      0ah,0ah,0dh
+027c:                          db      "S Y S T E M  E R R O R  -"
+0295:                          db      " INIT ABORTED"
+02a2:                          db      0ah,0dh,"$"
+; ......................................................
+                                                      ; jsou platnÇ form†ty diskety
+02a5:  d5              lab15:  push    de             ; adresa ukazatelñ form†tñ diskety
+02a6:  fd e1                   pop     iy
+02a8:  fd 5e 00                ld      e,(iy+0)       ; adresa textu nab°dky form†tñ
+02ab:  fd 56 01                ld      d,(iy+1)
+02ae:  0e 09                   ld      c,9
+02b0:  cd 05 00                call    5              ; tisk textu nab°dky form†tñ
+02b3:  11 bd 02                ld      de,tbl10       ; text vòzvy k volbà form†tu
+02b6:  0e 09                   ld      c,9
+02b8:  cd 05 00                call    5              ; tisk textu vòzvy k volbà form†tu
+02bb:  18 33                   jr      lab16
+
+02bd:                  tbl10:  db      0ah,0dh
+02bf:                          db      "Prosim, zvolte format pro"
+02d8:                          db      " formatovani (<ET1>=0):$"
+; ......................................................
+02f0:  cd 9e 06        lab16:  call    lab7           ; vstup ©etàzce znakñ z konzoly (velk† p°smena)
+02f3:  fe 08                   cp      8              ; je dÇlka zadanÇho textu = 8 ?
+02f5:  20 1c                   jr      nz,lab17       ; nen° zadanò text dÇlky 8 znakñ
+02f7:  11 0a 03                ld      de,tbl48       ; text "ODDELENE"
+02fa:  47                      ld      b,a            ; poáet znakñ textu (=8)
+02fb:  1a              lab123: ld      a,(de)         ; kontrola zadanÇho textu
+02fc:  be                      cp      (hl)
+02fd:  20 1e                   jr      nz,lab20       ; nen° zad†n text ODDELENE
+02ff:  23                      inc     hl
+0300:  13                      inc     de
+0301:  10 f8                   djnz    lab123         ; dal®° znak ke kontrole
+0303:  af                      xor     a
+0304:  32 12 03                ld      (byt3),a       ; p©°znak samostatnÇ volby form†tu
+0307:  c3 bc 09                jp      lab124         ; vstup parametrñ pro samostatnÇ zad†n°
+
+030a:                  tbl48:  db      "ODDELENE"
+0312:                  byt3:   db      0              ; p©°znak samostatnÇ volby form†tu
+; ......................................................
+                                                      ; kontrola zad†n° form†tu diskety
+0313:  b7              lab17:  or      a
+0314:  20 03                   jr      nz,lab18       ; je zad†n nàjakò znak
+0316:  36 30                   ld      (hl),"0"       ; je automaticky form†t "0"
+0318:  3c                      inc     a              ; je automaticky 1 znak
+0319:  fe 01           lab18:  cp      1              ; je zad†n jeden znak ?
+031b:  28 25                   jr      z,lab19        ; je zad†n jeden znak - OK
+031d:  11 28 03        lab20:  ld      de,tbl11       ; text chyby zad†n°
+0320:  0e 09                   ld      c,9
+0322:  cd 05 00                call    5              ; tisk chyby zad†n°
+0325:  c3 2c 02                jp      lab21
+
+0328:                  tbl11:  db      0ah,0ah,0dh
+032b:                          db      "CHYBA  ZADANI  ! ? ! ?$"
+; ......................................................
+0342:  fd 5e 02        lab19:  ld      e,(iy+2)       ; moën† á°sla volby form†tñ
+0345:  fd 56 03                ld      d,(iy+3)
+0348:  4e                      ld      c,(hl)         ; zadan† á°slice form†tu
+0349:  32 12 03                ld      (byt3),a       ; p©°znak samostatnÇ volby form†tu (1=nen°)
+034c:  1a              lab122: ld      a,(de)         ; moën† á°slice
+034d:  fe ff                   cp      0ffh           ; je konec ?
+034f:  28 cc                   jr      z,lab20        ; je jië konec - znak nenalezen (chybovÇ hl†®en°)
+0351:  b9                      cp      c              ; souhlas° zadanò znak ?
+0352:  28 05                   jr      z,lab22        ; nalezen zadanò znak form†tu
+0354:  13                      inc     de
+0355:  13                      inc     de
+0356:  13                      inc     de
+0357:  18 f3                   jr      lab122         ; dal®° znak
+; ......................................................
+                                                      ; nalezen platnò znak form†tu
+0359:  eb              lab22:  ex      de,hl
+035a:  23                      inc     hl
+035b:  5e                      ld      e,(hl)
+035c:  23                      inc     hl
+035d:  56                      ld      d,(hl)         ; adresa tabulky parametrñ pro danò form†t
+035e:  21 f0 0e                ld      hl,tbl12       ; posledn° form†t
+0361:  b7                      or      a
+0362:  ed 52                   sbc     hl,de          ; je form†t diskety 5 1/4" DD DS
+0364:  20 0a                   jr      nz,lab23       ; nen° tento form†t
+0366:  dd 7e 20                ld      a,(ix+20h)     ; á°slo posledn° stopy
+0369:  fe 4f                   cp      79             ; je stopa 79 ?
+036b:  28 03                   jr      z,lab23        ; je stopa 79
+036d:  11 00 0f                ld      de,tbl47       ; je speci†ln° form†t
+0370:  ed 53 be 03     lab23:  ld      (wrd1),de      ; tabulka parametrñ pro form†tov†n°
+0374:  11 81 03        lab121: ld      de,tbl13       ; text vòzvy k vloëen° diskety
+0377:  0e 09                   ld      c,9
+0379:  cd 05 00                call    5              ; tisk vòzvy k vloëen° diskety
+037c:  cd 9e 06                call    lab7           ; vstup ©etàzce znakñ z konzoly
+037f:  18 3f                   jr      lab24
+                                                      ; text vòzvy k vloëen° diskety
+0381:                  tbl13:  db      0ah,0ah,0dh
+0384:                          db      "VLOZTE FORMATOVANY DISK DO"
+039e:                          db      " MECHANIKY "
+03a9:                          db      22h
+03aa:                  byt2:   db      "A"            ; oznaáen° disku k form†tov†n°
+03ab:                          db      22h
+03ac:                          db      " A STISKNETE <ET>$"
+03be:                  wrd1:   dw      0              ; tabulka parametrñ pro form†tov†n°
+; ......................................................
+                                                      ; zde je prvn° potvrzen° form†tov†n°
+03c0:  11 ca 03        lab24:  ld      de,tbl14       ; text varov†n° p©ed form†tov†n°m
+03c3:  0e 09                   ld      c,9
+03c5:  cd 05 00                call    5              ; tisk textu varov†n°
+03c8:  18 3d                   jr      lab25
+
+03ca:                  tbl14:  db      0ah,0ah,0dh
+03cd:                          db      "VAROVANI !  VSECHNY SOUBORY"
+03e8:                          db      " NA DISKU BUDOU ZRUSENY (A/N):$"
+; ......................................................
+0407:  cd 9e 06        lab25:  call    lab7           ; vstup ©etàzce znakñ z konzoly
+040a:  fe 01                   cp      1              ; byl zad†n pr†và jeden znak ?
+040c:  c2 a9 01                jp      nz,lab5        ; byl zad†n jinò poáet znakñ neë 1
+040f:  7e                      ld      a,(hl)         ; zadanò znak
+0410:  fe 41                   cp      "A"            ; je zad†n znak "A" ?
+0412:  c2 a9 01                jp      nz,lab5        ; nen° zad†n znak "A" - opakov†n° volby
+0415:  11 1f 04                ld      de,tbl15       ; text form†tovanÇ stopy
+0418:  0e 09                   ld      c,9
+041a:  cd 05 00                call    5              ; tisk textu form†tovanÇ stopy
+041d:  18 2d                   jr      lab26
+
+041f:                  tbl15:  db      0ah,0ah,0dh
+0422:                          db      "CEKEJTE !           ( format."
+043f:                          db      " stopa : 00)$"
+; ......................................................
+                                                      ; zah†jen° form†tov†n° diskety
+044c:  21 c1 16        lab26:  ld      hl,tbl16
+044f:  11 c2 16                ld      de,tbl17
+0452:  01 aa 00                ld      bc,0aah        ; dÇlka bufferu
+0455:  36 ff                   ld      (hl),0ffh
+0457:  ed b0                   ldir
+0459:  2a be 03                ld      hl,(wrd1)      ; tabulka parametrñ pro form†tov†n°
+045c:  11 6c 16                ld      de,tbl18       ; pracovn° tabulka diskovòch parametrñ
+045f:  01 10 00                ld      bc,10h         ; dÇlka tabulky diskovòch parametrñ
+0462:  ed b0                   ldir                   ; p©enos tabulky diskovòch parametrñ
+0464:  21 6d 16                ld      hl,tbl19
+0467:  dd 7e 20                ld      a,(ix+20h)     ; á°slo posledn° stopy
+046a:  77                      ld      (hl),a         ; á°slo posledn° stopy
+046b:  23                      inc     hl
+046c:  dd 7e 1b                ld      a,(ix+1bh)     ; stopa k p©epnut° z†znamovÇho proudu
+046f:  77                      ld      (hl),a         ; stopa k p©epnut° z†znamovÇho proudu
+0470:  3a 6c 16                ld      a,(tbl18)      ; p©°znak
+0473:  cb 77                   bit     6,a            ; p©ep°n† se z†znamovò proud ?
+0475:  20 02                   jr      nz,lab27       ; p©ep°n† se
+0477:  36 ff                   ld      (hl),0ffh      ; z†znamovò proud se nep©ep°n†
+0479:  23              lab27:  inc     hl
+047a:  dd 7e 1c                ld      a,(ix+1ch)     ; vòstupn° bajt pro kan†l 12H
+047d:  e6 80                   and     80h            ; sign†l stopy "0"
+047f:  b6                      or      (hl)
+0480:  77                      ld      (hl),a         ; vòstupn° bajt pro kan†l 12H
+0481:  23                      inc     hl
+0482:  dd 46 17                ld      b,(ix+17h)     ; fyzick† mechanika
+0485:  04                      inc     b
+0486:  3e 77                   ld      a,77h          ; vòstupn° bajt vòbàru mechaniky
+0488:  07              lab28:  rlca
+0489:  10 fd                   djnz    lab28          ; vòpoáet vòstupn°ho bajtu vòbàru
+048b:  77                      ld      (hl),a
+048c:  dd e5                   push    ix
+048e:  dd 21 6c 16             ld      ix,tbl18       ; pracovn° tabulka diskovòch parametrñ
+0492:  2a 3e 00                ld      hl,(3eh)       ; adresa horkÇho startu systÇmu
+0495:  11 35 00                ld      de,35h
+0498:  19                      add     hl,de          ; adresa pozice kurzoru
+0499:  5e                      ld      e,(hl)         ; souáasn† pozice kurzoru
+049a:  23                      inc     hl
+049b:  56                      ld      d,(hl)
+049c:  1a                      ld      a,(de)         ; znak kurzoru na displeji
+049d:  cb bf                   res     7,a            ; zru®en° zobrazen° kurzoru
+049f:  12                      ld      (de),a
+04a0:  1b                      dec     de
+04a1:  1b                      dec     de
+04a2:  1b                      dec     de             ; adresa pozice pro tisk stopy
+04a3:  21 c1 16                ld      hl,tbl16
+04a6:  cd 10 0f                call    lab29          ; zform†tov†n° disku
+04a9:  dd e1                   pop     ix             ; ukazatel diskovòch parametrñ
+04ab:  78                      ld      a,b            ; n†vratovò k¢d z form†tov†n°
+04ac:  b7                      or      a
+04ad:  ca 68 05                jp      z,lab70        ; nenastal ë†dn† chyba p©i form†tov†n°
+04b0:  f5                      push    af             ; chyba p©i form†tov†n°
+04b1:  0e 06                   ld      c,6
+04b3:  1e 07                   ld      e,7            ; k¢d pro p°pnut° kl†vesnice
+04b5:  cd 05 00                call    5              ; p°pnut° p©i chybà
+04b8:  f1                      pop     af             ; n†vratovò k¢d chyby
+04b9:  fe 52                   cp      "R"            ; p©eru®en° form†tov†n° ?
+04bb:  c2 c1 04                jp      nz,lab117
+04be:  c3 74 03                jp      lab121         ; opakov†n° form†tov†n°
+
+04c1:  fe 53           lab117: cp      "S"            ; je chyba ochrany z†pisu ?
+04c3:  20 25                   jr      nz,lab118
+04c5:  11 d0 04                ld      de,tbl46       ; text hl†®en° ochrany z†pisu
+04c8:  0e 09                   ld      c,9
+04ca:  cd 05 00                call    5              ; hl†®en° ochrany z†pisu disku
+04cd:  c3 74 03                jp      lab121         ; opakov†n° form†tov†n°
+
+04d0:                  tbl46:  db      0ah,0ah,0dh    ; hl†®en° ochrany z†pisu
+04d3:                          db      "DISK MA OCHRANU ZAPISU$"
+
+; ......................................................
+04ea:  fe 55           lab118: cp      "U"            ; je chyba ®patnÇ rychlosti ot†áek ?
+04ec:  20 20                   jr      nz,lab119
+04ee:  11 f9 04                ld      de,tbl45       ; text ®patnÇ rychlosti ot†áek
+04f1:  0e 09                   ld      c,9
+04f3:  cd 05 00                call    5              ; tisk hl†®en° ®patnÇ rychlosti ot†áek
+04f6:  c3 a9 01                jp      lab5           ; vstup novÇho zad†n° disku
+
+04f9:                  tbl45:  db      0ah,0ah,0dh
+04fc:                          db      "SPATNA RYCHLOST !$"
+; ......................................................
+050e:  fe 54           lab119: cp      "T"            ; chyba vystaven° na stopu "0" ?
+0510:  28 33                   jr      z,lab120
+0512:  11 1f 05                ld      de,tbl44       ; text hl†®en° neuráitelnÇ chyby
+0515:  0e 09                   ld      c,9
+0517:  cd 05 00                call    5              ; tisk hl†®en° neuráitelnÇ chyby
+051a:  ed 7b be 16             ld      sp,(16beh)     ; systÇmovò ukazatel z†sobn°ku
+051e:  c9                      ret
+
+051f:                  tbl44:  db      0ah,0ah,0dh
+0522:                          db      "NEURCITELNA CHYBA - ABORTOVANO !"
+0542:                          db      0ah,0dh,"$"
+; ......................................................
+0545:  11 50 05        lab120: ld      de,tbl43       ; text chyby vystaven° na stopu "0"
+0548:  0e 09                   ld      c,9
+054a:  cd 05 00                call    5              ; tisk chyby vystaven° na stopu "0"
+054d:  c3 a9 01                jp      lab5           ; vstup novÇho zad†n° disku
+
+0550:                  tbl43:  db      0ah,0ah,0dh
+0553:                          db      "STOPA 00 NENALEZENA!$"
+; ......................................................
+                                                      ; spr†vnÇ ukonáen° form†tov†n°
+0568:  11 72 05        lab70:  ld      de,tbl33       ; text ukonáen° form†tov†n°
+056b:  0e 09                   ld      c,9
+056d:  cd 05 00                call    5              ; tisk textu ukonáen° form†tov†n°
+0570:  18 30                   jr      lab71          ; tisk vadnòch stop
+0572:                  tbl33:  db      0dh,0ah,0ah
+0575:                          db      "KONEC FORMATOVANI !"
+0588:                          db      0dh,0ah,0ah
+058b:                          db      "Vadne stopy$"
+0597:                  tbl42:  db      ": zadna$"
+059f:                  tbl34:  db      "  $"          ; dekadickÇ á°slice á°sla stopy
+; ......................................................
+                                                      ; zde bude vòpis vadnòch stop
+05a2:  21 c1 16        lab71:  ld      hl,tbl16
+05a5:  7e                      ld      a,(hl)         ; prvn° vadn† stopa
+05a6:  fe ff                   cp      0ffh           ; je konec tabulky ?
+05a8:  20 0f                   jr      nz,lab72       ; nen° - jsou vadnÇ stopy
+05aa:  11 97 05                ld      de,tbl42       ; text "ë†dn†"
+05ad:  0e 09                   ld      c,9
+05af:  cd 05 00                call    5              ; tisk textu bezchybnÇho form†tov†n°
+05b2:  af                      xor     a
+05b3:  32 12 03                ld      (byt3),a       ; p©°znak samostatnÇ volby form†tu
+05b6:  c3 5b 06                jp      lab78          ; dotaz k opakov†n° form†tov†n°
+; ......................................................
+                                                      ; vòpis vadnòch stop
+05b9:  7e              lab72:  ld      a,(hl)         ; prvn° vadn† stopa k vòpisu
+05ba:  23                      inc     hl             ; n†sleduj°c° vadn† stopa
+05bb:  e5                      push    hl
+05bc:  47                      ld      b,a
+05bd:  c5                      push    bc
+05be:  cd 00 06                call    lab73          ; p©evod HEX á°sla na dekadickÇ
+05c1:  ed 43 9f 05             ld      (tbl34),bc     ; dekadickÇ á°slice á°sla stopy
+05c5:  cd f8 05                call    lab76          ; tisk á°sla vadnÇ stopy
+05c8:  c1              lab116: pop     bc             ; B=vadn† stopa
+05c9:  e1                      pop     hl
+05ca:  7e                      ld      a,(hl)         ; n†sleduj°c° vadn† stopa
+05cb:  23                      inc     hl
+05cc:  fe ff                   cp      0ffh           ; byla to posledn° vadn† stopa ?
+05ce:  ca 12 06                jp      z,lab77        ; byla posledn° vadn† stopa
+05d1:  cb 7f                   bit     7,a
+05d3:  28 0b                   jr      z,lab115       ; tisk á†rky a dal®° vadnÇ stopy
+05d5:  cb bf                   res     7,a
+05d7:  b8                      cp      b
+05d8:  20 06                   jr      nz,lab115      ; tisk á†rky a dal®° vadnÇ stopy
+05da:  47                      ld      b,a
+05db:  23                      inc     hl
+05dc:  e5                      push    hl
+05dd:  c5                      push    bc
+05de:  18 e8                   jr      lab116
+ ......................................................
+05e0:  47              lab115: ld      b,a            ; vadn† stopa
+05e1:  e5                      push    hl
+05e2:  c5                      push    bc
+05e3:  f5                      push    af
+05e4:  1e 2c                   ld      e,","          ; oddàlovac° á†rka
+05e6:  0e 02                   ld      c,2
+05e8:  cd 05 00                call    5              ; tisk oddàlovac° á†rky
+05eb:  f1                      pop     af             ; vadn† stopa
+05ec:  cd 00 06                call    lab73          ; p©evod HEX á°sla na dekadickÇ
+05ef:  ed 43 9f 05             ld      (tbl34),bc     ; dekadickÇ á°slice á°sla stopy
+05f3:  cd f8 05                call    lab76          ; tisk á°sla vadnÇ stopy
+05f6:  18 d0                   jr      lab116         ; tisk dal®° vadnÇ stopy
+ ......................................................
+                                                      ; tisk á°sla vadnÇ stopy
+05f8:  11 9f 05        lab76:  ld      de,tbl34       ; dekadickÇ á°slice á°sla stopy
+05fb:  0e 09                   ld      c,9
+05fd:  c3 05 00                jp      5              ; tisk textu vadnÇ stopy
+ ......................................................
+                                                      ; p©evod HEX á°sla na dekadickÇ
+                                                      ; VSTUP: A=á°slo v HEX tvaru
+                                                      ; VùSTUP: B=jednotky, C=des°tky
+0600:  21 0a 00        lab73:  ld      hl,0ah         ; H=0, L=10
+0603:  95              lab75:  sub     l              ; spoáten° des°tek
+0604:  38 03                   jr      c,lab74
+0606:  24                      inc     h              ; á°taá des°tek
+0607:  18 fa                   jr      lab75
+0609:  85              lab74:  add     a,l            ; zpàtn† korekce jednotek
+060a:  f6 30                   or      "0"            ; jednotky á°sla
+060c:  47                      ld      b,a            ; jednotky
+060d:  7c                      ld      a,h            ; á°taá des°tek
+060e:  f6 30                   or      "0"            ; p©evod na dekadickou á°slici
+0610:  4f                      ld      c,a            ; des°tky á°sla
+0611:  c9                      ret
+ ......................................................
+                                                      ; byly vyps†ny v®echny vadnÇ stopy
+0612:  3a 12 03        lab77:  ld      a,(0312h)      ; p©°znak samostatnÇ volby form†tu
+0615:  b7                      or      a
+0616:  28 43                   jr      z,lab78        ; je samostatn† volba
+0618:  11 32 06                ld      de,tbl41       ; text volby uloëen° vadnòch stop
+061b:  0e 09                   ld      c,9
+061d:  cd 05 00                call    5              ; tisk textu volby k uloëen° vadnòch stop
+0620:  cd 9e 06                call    lab7           ; vstup ©etàzce znakñ z konzoly
+0623:  fe 01                   cp      1              ; byl zad†nm jeden znak ?
+0625:  20 34                   jr      nz,lab78       ; nebyl zad†n jeden znak - uloë° se
+0627:  7e                      ld      a,(hl)
+0628:  fe 4e                   cp      "N"            ; byl zad†n znak "N" ?
+062a:  20 2f                   jr      nz,lab78       ; nebyl zad†n znak "N" - uloë° se
+062c:  af                      xor     a
+062d:  32 12 03                ld      (byt3),a       ; p©°znak samostatnÇ volby form†tu
+0630:  18 29                   jr      lab78          ; nebude se ukl†dat
+
+0632:                  tbl41:  db      0ah,0ah,0dh
+0635:                          db      "ZABLOKOVAT CHYBOVYM SOUBOREM"
+0651:                          db      " ? (A/N):$"
+; ......................................................
+
+065b:  3a 12 03        lab78:  ld      a,(byt3)       ; p©°znak samostatnÇ volby form†tu
+065e:  b7                      or      a
+065f:  c4 c2 06                call    nz,lab79       ; zablokov†n° vadnòch stop
+0662:  11 7d 06                ld      de,tbl40       ; text volby k opakov†n°
+0665:  0e 09                   ld      c,9
+0667:  cd 05 00                call    5              ; tisk textu volby k opakov†n°
+066a:  cd 9e 06                call    lab7           ; vstup ©etàzce znakñ z konzoly
+066d:  fe 01                   cp      1              ; byl zad†n 1 znak ?
+066f:  c2 a9 01                jp      nz,lab5        ; vstup novÇho zad†n° disku
+0672:  7e                      ld      a,(hl)         ; zadanò znak
+0673:  fe 4e                   cp      "N"            ; byl znak "N" ?
+0675:  c2 a9 01                jp      nz,lab5        ; vstup novÇho zad†n° disku
+0678:  ed 7b be 16             ld      sp,(16beh)     ; systÇmovò ukazatel z†sobn°ku
+067c:  c9                      ret                    ; n†vrat do systÇmu
+
+067d:                  tbl40:  db      0ah,0ah,0dh
+0680:                          db      "OPAKOVAT ? (A/N) :$"
+; ......................................................
+                                                      ; buffer pro vstup textu z konzoly
+0693:                  tbl5:   db      9              ; maxim†ln° poáet znakñ bufferu = 8
+0694:                  byt1:   db      0              ; skuteánò poáet zadanòch znakñ
+0695:                  tbl6:   db      0,0,0,0,0,0,0,0,0
+
+; ......................................................
+                                                      ; vstup ©etàzce znakñ z konzoly (velk† p°smena)
+                                                      ; VùSTUP: A=poáet zadanòch znakñ
+                                                      ;         HL=adresa zaá†tku textu
+069e:  0e 0a           lab7:   ld      c,0ah
+06a0:  11 93 06                ld      de,tbl5        ; buffer pro vstup textu
+06a3:  cd 05 00                call    5              ; vstup ©etàzce znakñ z konzoly
+06a6:  3a 94 06                ld      a,(byt1)       ; dÇlka zadanÇho ©etàzce znakñ
+06a9:  21 95 06                ld      hl,tbl6        ; prvn° znak zadanÇho ©etàzce znakñ
+06ac:  b7                      or      a              ; byl zad†n nàjakò znak ?
+06ad:  c8                      ret     z              ; nebyl zad†n ë†dnò znak
+06ae:  47                      ld      b,a            ; poáet zadanòch znakñ
+06af:  f5                      push    af             ; poáet znakñ zadanÇho textu
+06b0:  e5                      push    hl             ; adresa zaá†tku ©etàzce textu
+06b1:  7e              lab9:   ld      a,(hl)         ; znak z textovÇho ©etàzce
+06b2:  fe 61                   cp      "a"
+06b4:  38 06                   jr      c,lab8         ; je men®° neë "a"
+06b6:  fe 7b                   cp      "{"
+06b8:  30 02                   jr      nc,lab8        ; je vàt®° neë "z"+1
+06ba:  cb ae                   res     5,(hl)         ; p©evod na velkÇ p°smeno
+06bc:  23              lab8:   inc     hl
+06bd:  10 f2                   djnz    lab9           ; dal®° znak ze zadanÇho ©etàzce textu
+06bf:  e1                      pop     hl             ; adresa zaá†tku ©etàzce textu
+06c0:  f1                      pop     af             ; poáet znakñ zadanÇho textu
+06c1:  c9                      ret
+ ......................................................
+                                                      ; zablokov†n° vadnòch stop
+06c2:  2a be 03        lab79:  ld      hl,(wrd1)      ; tabulka parametrñ pro form†tov†n°
+06c5:  e5                      push    hl
+06c6:  fd e1                   pop     iy             ; tabulka parametrñ pro form†tov†n°
+06c8:  21 61 17                ld      hl,1761h
+06cb:  36 ff                   ld      (hl),0ffh
+06cd:  23                      inc     hl
+06ce:  36 ff                   ld      (hl),0ffh
+06d0:  2b                      dec     hl
+06d1:  22 6a 16                ld      (wrd15),hl
+06d4:  21 c1 16                ld      hl,tbl16
+06d7:  7e              lab108: ld      a,(hl)
+06d8:  fe ff                   cp      0ffh
+06da:  ca 53 07                jp      z,wrd3
+06dd:  e6 7f                   and     7fh
+06df:  fd 4e 08                ld      c,(iy+8)
+06e2:  b9                      cp      c
+06e3:  30 12                   jr      nc,lab101
+06e5:  23              lab113: inc     hl
+06e6:  7e                      ld      a,(hl)
+06e7:  fe ff                   cp      0ffh
+06e9:  20 04                   jr      nz,lab112
+06eb:  cd 3f 09                call    lab114         ; chybovÇ hl†®en° vadnÇ systÇmovÇ stopy
+06ee:  c9                      ret
+
+06ef:  cb bf           lab112: res     7,a
+06f1:  b9                      cp      c
+06f2:  38 f1                   jr      c,lab113
+06f4:  cd 3f 09                call    lab114         ; chybovÇ hl†®en° vadnÇ systÇmovÇ stopy
+06f7:  7e              lab101: ld      a,(hl)
+06f8:  b9                      cp      c
+06f9:  20 03                   jr      nz,lab102
+06fb:  c3 4c 09                jp      lab110         ; chybovÇ hl†®en° vadnÇ stopy adres†©e
+
+06fe:  91              lab102: sub     c
+06ff:  47                      ld      b,a
+0700:  23                      inc     hl
+0701:  e5                      push    hl
+0702:  cb bf                   res     7,a
+0704:  fd 5e 09                ld      e,(iy+9)
+0707:  16 00                   ld      d,0
+0709:  21 00 00                ld      hl,0
+070c:  b7              lab109: or      a
+070d:  28 04                   jr      z,lab103
+070f:  19                      add     hl,de
+0710:  3d                      dec     a
+0711:  18 f9                   jr      lab109
+
+0713:  cb 3a           lab103: srl     d
+0715:  cb 1b                   rr      e
+0717:  cb 78                   bit     7,b
+0719:  28 01                   jr      z,lab104
+071b:  19                      add     hl,de
+071c:  fd 46 0a        lab104: ld      b,(iy+0ah)
+071f:  cb b8                   res     7,b
+0721:  cb 3c           lab105: srl     h
+0723:  cb 1d                   rr      l
+0725:  10 fa                   djnz    lab105
+0727:  eb                      ex      de,hl
+0728:  2a 6a 16                ld      hl,(wrd15)
+072b:  fd 7e 0b                ld      a,(iy+0bh)
+072e:  cb bf                   res     7,a
+0730:  4e                      ld      c,(hl)
+0731:  23                      inc     hl
+0732:  46                      ld      b,(hl)
+0733:  23                      inc     hl
+0734:  e5                      push    hl
+0735:  d5                      push    de
+0736:  e1                      pop     hl
+0737:  b7                      or      a
+0738:  ed 42                   sbc     hl,bc
+073a:  e1                      pop     hl
+073b:  20 02                   jr      nz,lab106
+073d:  3d                      dec     a
+073e:  13                      inc     de
+073f:  b7              lab106: or      a
+0740:  28 08                   jr      z,lab107
+0742:  73                      ld      (hl),e
+0743:  23                      inc     hl
+0744:  72                      ld      (hl),d
+0745:  23                      inc     hl
+0746:  13                      inc     de
+0747:  3d                      dec     a
+0748:  18 f5                   jr      lab106
+
+074a:  2b              lab107: dec     hl
+074b:  2b                      dec     hl
+074c:  22 6a 16                ld      (wrd15),hl
+074f:  e1                      pop     hl
+0750:  c3 d7 06                jp      lab108
+
+
+0753:  2a 6a 16        wrd3:   ld      hl,(wrd15)
+0756:  23                      inc     hl
+0757:  23                      inc     hl
+0758:  36 00                   ld      (hl),0
+075a:  23                      inc     hl
+075b:  36 00                   ld      (hl),0
+075d:  23                      inc     hl
+075e:  22 6a 16                ld      (wrd15),hl
+0761:  22 66 16                ld      (wrd16),hl
+0764:  dd e5                   push    ix
+0766:  dd 21 63 17             ld      ix,1763h
+076a:  af                      xor     a
+076b:  32 65 16                ld      (byt24),a
+076e:  e5                      push    hl
+076f:  d1                      pop     de
+0770:  13                      inc     de
+0771:  fd 4e 0c                ld      c,(iy+0ch)
+0774:  fd 46 0d                ld      b,(iy+0dh)
+0777:  36 e5                   ld      (hl),0e5h
+0779:  ed b0                   ldir
+077b:  ed 53 68 16             ld      (wrd18),de
+077f:  ed 5b 6a 16     lab100: ld      de,(wrd15)
+0783:  21 ac 09                ld      hl,tbl35       ; poloëka chybovÇho souboru
+0786:  01 10 00                ld      bc,10h
+0789:  ed b0                   ldir
+078b:  21 10 00                ld      hl,10h
+078e:  19                      add     hl,de
+078f:  22 6a 16                ld      (wrd15),hl
+0792:  06 10                   ld      b,10h
+0794:  dd 6e 00        lab98:  ld      l,(ix+0)
+0797:  dd 23                   inc     ix
+0799:  dd 66 00                ld      h,(ix+0)
+079c:  dd 23                   inc     ix
+079e:  7d                      ld      a,l
+079f:  b4                      or      h
+07a0:  28 2e                   jr      z,lab80
+07a2:  7d                      ld      a,l
+07a3:  12                      ld      (de),a
+07a4:  13                      inc     de
+07a5:  05                      dec     b
+07a6:  fd cb 0a 7e             bit     7,(iy+0ah)
+07aa:  28 04                   jr      z,lab97
+07ac:  7c                      ld      a,h
+07ad:  12                      ld      (de),a
+07ae:  13                      inc     de
+07af:  05                      dec     b
+07b0:  78              lab97:  ld      a,b
+07b1:  b7                      or      a
+07b2:  20 e0                   jr      nz,lab98
+07b4:  eb                      ex      de,hl
+07b5:  11 14 00                ld      de,14h
+07b8:  ed 52                   sbc     hl,de
+07ba:  3a 65 16                ld      a,(byt24)
+07bd:  fd cb 0b 7e             bit     7,(iy+0bh)
+07c1:  28 01                   jr      z,lab99
+07c3:  3c                      inc     a
+07c4:  77              lab99:  ld      (hl),a
+07c5:  3c                      inc     a
+07c6:  32 65 16                ld      (byt24),a
+07c9:  23                      inc     hl
+07ca:  23                      inc     hl
+07cb:  23                      inc     hl
+07cc:  36 80                   ld      (hl),80h
+07ce:  18 af                   jr      lab100
+
+ ......................................................
+07d0:  af              lab80:  xor     a
+07d1:  48                      ld      c,b
+07d2:  12              lab81:  ld      (de),a
+07d3:  13                      inc     de
+07d4:  10 fc                   djnz    lab81
+07d6:  41                      ld      b,c
+07d7:  2a 6a 16                ld      hl,(wrd15)
+07da:  11 14 00                ld      de,14h
+07dd:  ed 52                   sbc     hl,de
+07df:  3a 65 16                ld      a,(byt24)
+07e2:  77                      ld      (hl),a
+07e3:  fd cb 0b 7e             bit     7,(iy+0bh)
+07e7:  28 09                   jr      z,lab82
+07e9:  78                      ld      a,b
+07ea:  fe 08                   cp      8
+07ec:  30 04                   jr      nc,lab82
+07ee:  34                      inc     (hl)
+07ef:  c6 08                   add     a,8
+07f1:  47                      ld      b,a
+07f2:  3e 10           lab82:  ld      a,10h
+07f4:  90                      sub     b
+07f5:  fd cb 0a 7e             bit     7,(iy+0ah)
+07f9:  28 02                   jr      z,lab83
+07fb:  cb 1f                   rr      a
+07fd:  47              lab83:  ld      b,a
+07fe:  b7                      or      a
+07ff:  28 07                   jr      z,lab84
+0801:  af                      xor     a
+0802:  fd 4e 0e                ld      c,(iy+0eh)
+0805:  81              lab96:  add     a,c
+0806:  10 fd                   djnz    lab96
+0808:  23              lab84:  inc     hl
+0809:  23                      inc     hl
+080a:  23                      inc     hl
+080b:  77                      ld      (hl),a
+080c:  dd e1                   pop     ix
+080e:  21 c1 16                ld      hl,tbl16
+0811:  3e 0d                   ld      a,0dh
+0813:  fd 46 00                ld      b,(iy+0)
+0816:  cb 70                   bit     6,b
+0818:  28 02                   jr      z,lab85
+081a:  cb f7                   set     6,a
+081c:  cb 50           lab85:  bit     2,b
+081e:  28 02                   jr      z,lab86
+0820:  cb ff                   set     7,a
+0822:  77              lab86:  ld      (hl),a
+0823:  23                      inc     hl
+0824:  dd 7e 17                ld      a,(ix+17h)
+0827:  77                      ld      (hl),a
+0828:  23                      inc     hl
+0829:  fd 7e 08                ld      a,(iy+8)
+082c:  77                      ld      (hl),a
+082d:  23                      inc     hl
+082e:  36 00                   ld      (hl),0
+0830:  23                      inc     hl
+0831:  36 01                   ld      (hl),1
+0833:  23                      inc     hl
+0834:  78                      ld      a,b
+0835:  e6 03                   and     3
+0837:  77                      ld      (hl),a
+0838:  23                      inc     hl
+0839:  fd 7e 07                ld      a,(iy+7)
+083c:  77                      ld      (hl),a
+083d:  23                      inc     hl
+083e:  3e 04                   ld      a,4
+0840:  cb 70                   bit     6,b
+0842:  28 02                   jr      z,lab87
+0844:  3e 0f                   ld      a,0fh
+0846:  77              lab87:  ld      (hl),a
+0847:  23                      inc     hl
+0848:  fd 7e 0f                ld      a,(iy+0fh)
+084b:  77                      ld      (hl),a
+084c:  23                      inc     hl
+084d:  dd 7e 1b                ld      a,(ix+1bh)
+0850:  77                      ld      (hl),a
+0851:  23                      inc     hl
+0852:  fd 7e 03                ld      a,(iy+3)
+0855:  4f                      ld      c,a
+0856:  dd 7e 1c                ld      a,(ix+1ch)
+0859:  e6 80                   and     80h
+085b:  b1                      or      c
+085c:  77                      ld      (hl),a
+085d:  23                      inc     hl
+085e:  dd 7e 1d                ld      a,(ix+1dh)
+0861:  77                      ld      (hl),a
+0862:  23                      inc     hl
+0863:  dd 7e 1e                ld      a,(ix+1eh)
+0866:  77                      ld      (hl),a
+0867:  2a 66 16        lab93:  ld      hl,(wrd16)
+086a:  22 63 16                ld      (wrd17),hl
+086d:  cd b9 08                call    lab88
+0870:  78                      ld      a,b
+0871:  b7                      or      a
+0872:  28 09                   jr      z,lab89
+0874:  fe 52                   cp      "R"
+0876:  28 ef                   jr      z,lab93
+0878:  cd e5 08                call    lab92
+087b:  18 ea                   jr      lab93
+ ......................................................
+087d:  21 c1 16        lab89:  ld      hl,tbl16
+0880:  34                      inc     (hl)
+0881:  2a 68 16                ld      hl,(wrd18)
+0884:  22 63 16                ld      (wrd17),hl
+0887:  cd b9 08        lab95:  call    lab88
+088a:  78                      ld      a,b
+088b:  b7                      or      a
+088c:  28 09                   jr      z,lab90
+088e:  fe 52                   cp      "R"
+0890:  28 f5                   jr      z,lab95
+0892:  cd e5 08                call    lab92
+0895:  18 f0                   jr      lab95
+ ......................................................
+0897:  2a 66 16        lab90:  ld      hl,(wrd16)
+089a:  ed 5b 68 16             ld      de,(wrd18)
+089e:  fd 4e 0c                ld      c,(iy+0ch)
+08a1:  fd 46 0d                ld      b,(iy+0dh)
+08a4:  1a              lab94:  ld      a,(de)
+08a5:  be                      cp      (hl)
+08a6:  20 08                   jr      nz,lab91
+08a8:  13                      inc     de
+08a9:  23                      inc     hl
+08aa:  0b                      dec     bc
+08ab:  78                      ld      a,b
+08ac:  b1                      or      c
+08ad:  20 f5                   jr      nz,lab94
+08af:  c9                      ret
+ ......................................................
+08b0:  cd e5 08        lab91:  call    lab92
+08b3:  21 c1 16                ld      hl,tbl16
+08b6:  35                      dec     (hl)
+08b7:  18 ae                   jr      lab93
+ ......................................................
+08b9:  21 c1 16        lab88:  ld      hl,tbl16
+08bc:  11 d1 16                ld      de,tbl36
+08bf:  01 10 00                ld      bc,10h
+08c2:  ed b0                   ldir
+08c4:  2a 3e 00                ld      hl,(3eh)       ; adresa horkÇho startu systÇmu
+08c7:  11 3f 00                ld      de,3fh
+08ca:  19                      add     hl,de          ; adresa p©°stupu na disk podle tabulky
+08cb:  5e                      ld      e,(hl)
+08cc:  23                      inc     hl
+08cd:  56                      ld      d,(hl)
+08ce:  ed 53 de 08             ld      (8deh),de      ; adresa p©°stupu na disk podle tabulky
+08d2:  21 d1 16                ld      hl,tbl36       ; tabulka pro z†znam na disk
+08d5:  ed 5b 63 16             ld      de,(wrd17)     ; z†znam na disk
+08d9:  dd e5                   push    ix
+08db:  fd e5                   push    iy
+08dd:  cd 00 00                call    0              ; vyvol†n° obsluhy p©°stupu na disk podle tabulky
+08e0:  fd e1                   pop     iy
+08e2:  dd e1                   pop     ix
+08e4:  c9                      ret
+ ......................................................
+08e5:  0e 06           lab92:  ld      c,6
+08e7:  1e 07                   ld      e,7            ; k¢d zvukovÇ signalizace
+08e9:  cd 05 00                call    5              ; p°pnut° p©i chybà
+08ec:  11 f8 08                ld      de,tbl37       ; text vadnÇho sektoru
+08ef:  0e 09           tbl64:  ld      c,9
+08f1:  cd 05 00                call    5              ; tisk textu vadnÇho sektoru
+08f4:  cd 9e 06                call    lab7           ; vstup ©etàzce znakñ z konzoly (velk† p°smena)
+08f7:  c9                      ret                    ; n†vrat z podprogramu
+
+08f8:                  tbl37:  db      0ah,0ah,0dh    ; text hl†®en° vadnÇho sektoru
+08fb:                          db      "CHYBA INIT  -  VADNY SEKTOR"
+0916:                          db      "  ( <ET1> = opakovani, ^C"
+092f:                          db      " = ukonceni ) :$"
+
+; ......................................................
+                                                      ; chybovÇ hl†®en° vadnÇ systÇmovÇ stopy
+093f:  11 51 09        lab114: ld      de,tbl39       ; text vadnÇ systÇmovÇ stopy
+0942:  c5              lab111: push    bc
+0943:  e5                      push    hl
+0944:  0e 09                   ld      c,9
+0946:  cd 05 00                call    5              ; chybovÇ hl†®en° vadnÇ syst. stopy
+0949:  e1                      pop     hl
+094a:  c1                      pop     bc
+094b:  c9                      ret
+; ......................................................
+                                                      ; chybovÇ hl†®en° vadnÇ stopy adres†©e
+094c:  11 6f 09        lab110: ld      de,tbl38
+094f:  18 f1                   jr      lab111
+; ......................................................
+0951:                  tbl39:  db      0ah,0ah,0dh
+0954:                          db      "  VADNA SYSTEMOVA STOPA "
+096c:                          db      0ah,0dh
+096e:                          db      "$"
+
+096f:                  tbl38:  db      0ah,0ah,0dh
+0972:                          db      "  VADNE STOPY ADRESARE -"
+098a:                          db      " OPRAVA NENI MOZNA      "
+09a2:                          db      "       "
+09a9:                          db      0ah,0dh
+09ab:                          db      "$"
+                                                      ; poloëka chybovÇho souboru
+09ac:                  tbl35:  db      11h
+09ad:                          db      "ERRFILE SAV"
+09b8:                          db      0,0,0,0
+
+; ......................................................
+                                                      ; zad†n° voleb pro oddàlenÇ form†tov†n°
+09bc:  dd 46 15        lab124: ld      b,(ix+15h)     ; moënÇ form†ty disket
+09bf:  3e c0                   ld      a,0c0h         ; p©°znak diskety 5 1/4", DD
+09c1:  cb 78                   bit     7,b            ; je disketa 5 1/4", DD ?
+09c3:  20 47                   jr      nz,lab125      ; je disketa 5 1/4", DD
+09c5:  cb 48                   bit     1,b            ; je moën† hustota DD ?
+09c7:  3e 00                   ld      a,0
+09c9:  28 41                   jr      z,lab125       ; nen° moën† hustota DD
+09cb:  11 d5 09        lab149: ld      de,tbl55       ; text volby hustotu z†znamu
+09ce:  0e 09                   ld      c,9
+09d0:  cd 05 00                call    5              ; tisk textu volby hustoty z†znamu
+09d3:  18 22                   jr      lab148
+                                                      ; text volby hustoty z†znamu
+09d5:                  tbl55:  db      0dh,0ah,0ah
+09d8:                          db      "Hustota ? (0 = FM ;  1 = MFM):$"
+; ......................................................
+
+09f7:  cd 9e 06        lab148: call    lab7           ; vstup ©etàzce znakñ z konzoly
+09fa:  fe 01                   cp      1              ; je zad†n 1 znak ?
+09fc:  20 cd                   jr      nz,lab149      ; nen° - opakov†n° volby
+09fe:  7e                      ld      a,(hl)         ; zadanò znak
+09ff:  fe 30                   cp      "0"            ; je hustota SD ?
+0a01:  3e 00                   ld      a,0            ; p©°znak hustoty SD, disketa 8"
+0a03:  28 07                   jr      z,lab125       ; je hustota SD
+0a05:  7e                      ld      a,(hl)
+0a06:  fe 31                   cp      "1"            ; je hustota DD ?
+0a08:  20 c1                   jr      nz,lab149
+0a0a:  3e 40                   ld      a,40h          ; p©°znak hustoty DD, disketa 8"
+0a0c:  dd cb 15 46     lab125: bit     0,(ix+15h)     ; je oboustann† ?
+0a10:  28 46                   jr      z,lab126       ; je jednostrann† mechanika
+0a12:  f5                      push    af
+0a13:  11 1d 0a        lab146: ld      de,tbl54       ; text volby poátu stran
+0a16:  0e 09                   ld      c,9
+0a18:  cd 05 00                call    5              ; tisk textu volby poátu stran
+0a1b:  18 25                   jr      lab145
+                                                      ; text volby poátu stran
+0a1d:                  tbl54:  db      0dh,0ah,0ah
+0a20:                          db      "SINGLE (S) nebo DOUBLE (D)"
+0a3a:                          db      " SIDE?:$"
+; ......................................................
+0a42:  cd 9e 06        lab145: call    lab7           ; vstup ©etàzce znakñ z konzoly
+0a45:  fe 01                   cp      1              ; je zad†n 1 znak ?
+0a47:  20 ca                   jr      nz,lab146      ; nen° pr†và jeden znak - opakov†n° volby
+0a49:  7e                      ld      a,(hl)         ; zadanò znak
+0a4a:  fe 53                   cp      "S"            ; je volba SS ?
+0a4c:  06 00                   ld      b,0            ; p©°znak SS
+0a4e:  28 06                   jr      z,lab147
+0a50:  fe 44                   cp      "D"            ; je volba DS ?
+0a52:  20 bf                   jr      nz,lab146      ; opakov†n° volby
+0a54:  06 04                   ld      b,4            ; p©°znak DS
+0a56:  f1              lab147: pop     af
+0a57:  b0                      or      b              ; nastaven° p©°znaku SS/DS
+0a58:  f5              lab126: push    af
+0a59:  11 63 0a        lab128: ld      de,tbl49       ; text volby systÇmovÇ stopy
+0a5c:  0e 09                   ld      c,9
+0a5e:  cd 05 00                call    5              ; tisk textu volby systÇmovÇ stopy
+0a61:  18 37                   jr      lab127
+
+0a63:                  tbl49:  db      0ah,0ah,0dh
+0a66:                          db      "Stopa 00 = 26*128 (0) nebo"
+0a80:                          db      " shodna s ostatnimi (1)?:$"
+;......................................................
+0a9a:  cd 9e 06        lab127: call    lab7           ; vstup ©etàzce znakñ z konzoly (velk† p°smena)
+0a9d:  fe 01                   cp      1              ; je zad†n 1 znak ?
+0a9f:  20 b8                   jr      nz,lab128      ; nen° pr†và jeden znak - znovu
+0aa1:  7e                      ld      a,(hl)         ; zadanò znak
+0aa2:  fe 30                   cp      "0"            ; je stopa 0 26*128 ?
+0aa4:  06 00                   ld      b,0            ; p©°znak stopy 0 26*128
+0aa6:  28 06                   jr      z,lab129
+0aa8:  fe 31                   cp      "1"            ; je shodn† stopa 0 ?
+0aaa:  20 ad                   jr      nz,lab128
+0aac:  06 20                   ld      b,20h          ; p©°znak shodnÇ stopy 0
+0aae:  f1              lab129: pop     af
+0aaf:  b0                      or      b              ; nastaven° p©°znaku shodnÇ stopy
+0ab0:  f5                      push    af
+0ab1:  11 bb 0a        lab131: ld      de,tbl50       ; text volby sektoru
+0ab4:  0e 09                   ld      c,9
+0ab6:  cd 05 00                call    5              ; tisk textu volby sektoru
+0ab9:  18 35                   jr      lab130
+
+0abb:                  tbl50:  db      0ah,0ah,0dh
+0abe:                          db      "Delka sektoru ? (0=128 ;"
+0ad6:                          db      " 1=256 ; 2=512 ; 3=1024):$"
+; ......................................................
+0af0:  cd 9e 06        lab130: call    lab7           ; vstup ©etàzce znakñ z konzoly (velk† p°smena)
+0af3:  fe 01                   cp      1              ; poáet zadanòch znakñ
+0af5:  20 ba                   jr      nz,lab131      ; nebyl zad†n pr†và jeden znak
+0af7:  7e                      ld      a,(hl)
+0af8:  fe 30                   cp      "0"
+0afa:  38 b5                   jr      c,lab131       ; chyba zad†n°
+0afc:  fe 34                   cp      "4"
+0afe:  30 b1                   jr      nc,lab131      ; chyba zad†n°
+0b00:  e6 03                   and     3              ; ©†d sektoru
+0b02:  47                      ld      b,a
+0b03:  f1                      pop     af
+0b04:  b0                      or      b              ; p©°znakovò bajt
+0b05:  47                      ld      b,a
+0b06:  21 53 16                ld      hl,tbl51       ; pracovn° p©°znak pro form†tov†n°
+0b09:  77                      ld      (hl),a
+0b0a:  23                      inc     hl
+0b0b:  23                      inc     hl
+0b0c:  23                      inc     hl
+0b0d:  3e 04                   ld      a,4            ; vòstupn° bajt pro kan†l 12h
+0b0f:  cb 78                   bit     7,b            ; je disketa 5 1/4" ?
+0b11:  20 08                   jr      nz,lab132      ; je disketa 5 1/4"
+0b13:  cb 70                   bit     6,b            ; je z†znam DD ?
+0b15:  3e 00                   ld      a,0
+0b17:  20 02                   jr      nz,lab132      ; je z†znam DD
+0b19:  3e 04                   ld      a,4
+0b1b:  77              lab132: ld      (hl),a         ; vòstupn° bajt pro kan†l 12h
+0b1c:  23                      inc     hl
+0b1d:  23                      inc     hl
+0b1e:  3e 1a                   ld      a,26
+0b20:  cb 78                   bit     7,b            ; je disketa 5 1/4" ?
+0b22:  20 08                   jr      nz,lab133      ; je disketa 5 1/4"
+0b24:  3e 4d                   ld      a,77
+0b26:  cb 70                   bit     6,b            ; je z†znam DD ?
+0b28:  20 02                   jr      nz,lab133      ; je z†znam DD
+0b2a:  3e 25                   ld      a,38
+0b2c:  77              lab133: ld      (hl),a         ; poáet oddàlovac°ch bajtñ za indexovòm impulsem
+0b2d:  23                      inc     hl
+0b2e:  23                      inc     hl
+0b2f:  e5                      push    hl
+0b30:  11 3a 0b        lab135: ld      de,tbl52       ; text volby poátu sektorñ na stopu
+0b33:  0e 09                   ld      c,9
+0b35:  cd 05 00                call    5
+0b38:  18 29                   jr      lab134
+                                                      ; text volby poátu sektorñ na stopu
+0b3a:                  tbl52:  db      0dh,0ah
+0b3c:                          db      "Pocet sektoru na stopu ( 2 cislice"
+0b5e:                          db      " ) :$"
+; ......................................................
+0b63:  cd 9e 06        lab134: call    lab7           ; vstup ©etàzce znakñ z konzoly
+0b66:  fe 02                   cp      2              ; byly zad†ny 2 á°slice ?
+0b68:  20 c6                   jr      nz,lab135      ; chyba zad†n°
+0b6a:  06 02                   ld      b,2
+0b6c:  cd fb 0b                call    lab136         ; vstup á°slice
+0b6f:  b7                      or      a
+0b70:  28 be                   jr      z,lab135       ; chyba zad†n°
+0b72:  7e                      ld      a,(hl)         ; prvn° zadan† á°slice
+0b73:  e6 0f                   and     0fh
+0b75:  47                      ld      b,a            ; des°tky
+0b76:  04                      inc     b
+0b77:  3e f6                   ld      a,0f6h         ; = -10
+0b79:  0e 0a                   ld      c,0ah
+0b7b:  81              lab140: add     a,c            ; odeáten° des°tek
+0b7c:  10 fd                   djnz    lab140
+0b7e:  23                      inc     hl
+0b7f:  4f                      ld      c,a
+0b80:  7e                      ld      a,(hl)         ; jednotky
+0b81:  e6 0f                   and     0fh
+0b83:  81                      add     a,c
+0b84:  e1                      pop     hl
+0b85:  77                      ld      (hl),a         ; poáet sektorñ na stopu
+0b86:  2b                      dec     hl
+0b87:  e5                      push    hl
+0b88:  11 92 0b        lab142: ld      de,tbl53       ; text zad†n° mezery za daty
+0b8b:  0e 09                   ld      c,9
+0b8d:  cd 05 00                call    5              ; tisk textu zad†n° mezery za daty
+0b90:  18 2e                   jr      lab141
+
+0b92:                  tbl53:  db      0ah,0dh
+0b94:                          db      "Pocet mezerovych bytu za"
+0bac:                          db      " daty ?(3 cislice):$"
+; ......................................................
+0bc0:  cd 9e 06        lab141: call    lab7           ; vstup ©etàzce znakñ z konzoly
+0bc3:  fe 03                   cp      3              ; byly zad†ny 3 znaky ?
+0bc5:  20 c1                   jr      nz,lab142      ; chyba zad†n°
+0bc7:  06 03                   ld      b,3
+0bc9:  cd fb 0b                call    lab136         ; kontrola 3 á°slic
+0bcc:  b7                      or      a
+0bcd:  28 b9                   jr      z,lab142       ; spr†vnÇ zad†n°
+0bcf:  7e                      ld      a,(hl)         ; prvn° zadan† á°slice
+0bd0:  e6 0f                   and     0fh
+0bd2:  3c                      inc     a
+0bd3:  47                      ld      b,a
+0bd4:  3e 9c                   ld      a,9ch          ; = -100
+0bd6:  0e 64                   ld      c,100
+0bd8:  81              lab143: add     a,c
+0bd9:  10 fd                   djnz    lab143         ; p©evod stovek
+0bdb:  f5                      push    af
+0bdc:  23                      inc     hl
+0bdd:  7e                      ld      a,(hl)         ; des°tky
+0bde:  e6 0f                   and     0fh
+0be0:  47                      ld      b,a
+0be1:  04                      inc     b
+0be2:  0e 0a                   ld      c,10
+0be4:  f1                      pop     af
+0be5:  91                      sub     c
+0be6:  81              lab144: add     a,c
+0be7:  10 fd                   djnz    lab144         ; p©evod des°tek
+0be9:  f5                      push    af
+0bea:  23                      inc     hl
+0beb:  7e                      ld      a,(hl)
+0bec:  e6 0f                   and     0fh
+0bee:  4f                      ld      c,a
+0bef:  f1                      pop     af
+0bf0:  81                      add     a,c            ; p©iáten° jednotek
+0bf1:  d6 05                   sub     5              ; korekce - 5 (automatick† mezera)
+0bf3:  e1                      pop     hl
+0bf4:  77                      ld      (hl),a         ; mezera za daty sektoru (bajtñ)
+0bf5:  11 53 16                ld      de,tbl51       ; tabulka pro form†tov†n° disku
+0bf8:  c3 70 03                jp      lab23          ; form†tov†n° disku
+ ......................................................
+                                                      ; vstup dekadickÇ á°slice
+                                                      ; VSTUP: HL=ukazatel textu
+                                                      ; VùSTUP: A=dekadick† á°slice
+0bfb:  c5              lab136: push    bc
+0bfc:  e5                      push    hl
+0bfd:  7e              lab139: ld      a,(hl)
+0bfe:  fe 30                   cp      "0"
+0c00:  38 0a                   jr      c,lab137
+0c02:  fe 3a                   cp      ":"
+0c04:  30 06                   jr      nc,lab137
+0c06:  23                      inc     hl
+0c07:  10 f4                   djnz    lab139
+0c09:  e1              lab138: pop     hl
+0c0a:  c1                      pop     bc
+0c0b:  c9                      ret
+
+0c0c:  af              lab137: xor     a
+0c0d:  18 fa                   jr      lab138
+ ......................................................
+                                                      ; adresy ukazatelñ tabulek
+                                                      ; tabulka form†tñ disket 8"
+0c0f:                  tbl9:   dw      0c1fh          ; disketa 8" SD SS
+0c11:                          dw      0c23h          ; disketa 8" SD DS
+0c13:                          dw      0c27h          ; disketa 8" DD SS
+0c15:                          dw      0c2bh          ; disketa 8" DD DS
+                                                      ; tabulka form†tñ disket 5 1/4"
+0c17:                  tbl57:  dw      0
+0c19:                          dw      0
+0c1b:                          dw      0c2fh          ; disketa 5 1/4" DD SS
+0c1d:                          dw      0c33h          ; disketa 5 1/4" DD DS
+
+                                                      ; adresy tabulek disket 8"
+0c1f:                          dw      0c37h,0e44h    ; disketa 8" SD SS
+0c23:                          dw      0c76h,0e4bh    ; disketa 8" SD DS
+0c27:                          dw      0cceh,0e55h    ; disketa 8" DD SS
+0c2b:                          dw      0d26h,0e5fh    ; disketa 8" DD DS
+                                                      ; adresy tabulek disket 5 1/4"
+0c2f:                          dw      0db0h,0e6fh    ; disketa 5 1/4" DD SS
+0c33:                          dw      0deeh,0e76h    ; disketa 5 1/4" DD DS
+
+                                                      ; disketa 8" SD SS
+0c37:                          db      0ah,0dh
+0c39:                          db      "     0 = SD-SS   4*1024 ( =<ET1> )"
+0c5b:                          db      0ah,0dh
+0c5d:                          db      "     1 = SD-SS  26*128"
+0c73:                          db      0ah,0dh
+0c75:                          db      "$"
+                                                      ; disketa 8" SD DS
+0c76:                          db      0ah,0dh
+0c78:                          db      "     0 = SD-DS   4*1024 ( =<ET1> )"
+0c9a:                          db      0ah,0dh
+0c9c:                          db      "     1 = SD-SS   4*1024"
+0cb3:                          db      0ah,0dh
+0cb5:                          db      "     2 = SD-SS  26*128"
+0ccb:                          db      0ah,0dh
+0ccd:                          db      "$"
+                                                      ; disketa 8" DD SS
+0cce:                          db      0ah,0dh
+0cd0:                          db      "     0 = DD-SS   8*1024 ( =<ET1> )"
+0cf2:                          db      0ah,0dh
+0cf4:                          db      "     1 = SD-SS   4*1024"
+0d0b:                          db      0ah,0dh
+0d0d:                          db      "     2 = SD-SS  26*128"
+0d23:                          db      0ah,0dh
+0d25:                          db      "$"
+                                                      ; disketa 8" DD DS
+0d26:                          db      0ah,0dh
+0d28:                          db      "     0 = DD-DS   8*1024 ( =<ET1> )"
+0d4a:                          db      0ah,0dh
+0d4c:                          db      "     1 = DD-SS   8*1024"
+0d63:                          db      0ah,0dh
+0d65:                          db      "     2 = SD-DS   4*1024"
+0d7c:                          db      0ah,0dh
+0d7e:                          db      "     3 = SD-SS   4*1024"
+0d95:                          db      0ah,0dh
+0d97:                          db      "     4 = SD-SS  26*128"
+0dad:                          db      0ah,0dh
+0daf:                          db      "$"
+                                                      ; disketa 5 1/4" DD SS
+0db0:                          db      0ah,0dh
+0db2:                          db      "     0 = DD-SS  16*256 ( =<ET1> )"
+0dd3:                          db      0ah,0dh
+0dd5:                          db      "     1 = DD-SS  26*128"
+0deb:                          db      0ah,0dh
+0ded:                          db      "$"
+                                                      ; disketa 5 1/4" DD DS
+0dee:                          db      0ah,0dh
+0df0:                          db      "     0 = DD-DS  16*256 ( =<ET1> )"
+0e11:                          db      0ah,0dh
+0e13:                          db      "     1 = DD-SS  16*256"
+0e29:                          db      0ah,0dh
+0e2b:                          db      "     2 = DD-SS  26*128"
+0e41:                          db      0ah,0dh
+0e43:                          db      "$"
+                                                      ; disketa 8" SD SS
+0e44:                          db      "0"
+0e45:                          dw      0e80h          ; disketa 8", SD-SS 4*1024
+0e47:                          db      "1"
+0e48:                          dw      0e90h          ; disketa 8", SD-SS 26*128
+0e4a:                          db      0ffh
+                                                      ; disketa 8" SD DS
+0e4b:                          db      "0"
+0e4c:                          dw      0ea0h          ; disketa 8", SD-DS 4*1024
+0e4e:                          db      "1"
+0e4f:                          dw      0e80h          ; disketa 8", SD-SS 4*1024
+0e51:                          db      "2"
+0e52:                          dw      0e90h          ; disketa 8", SD-SS 26*128
+0e54:                          db      0ffh
+                                                      ; disketa 8" DD SS
+0e55:                          db      "0"
+0e56:                          dw      0eb0h          ; disketa 8", DD-SS 8*1024
+0e58:                          db      "1"
+0e59:                          dw      0e80h          ; disketa 8", SD-SS 4*1024
+0e5b:                          db      "2"
+0e5c:                          dw      0e90h          ; disketa 8", SD-SS 26*128
+0e5e:                          db      0ffh
+                                                      ; disketa 8" DD DS
+0e5f:                          db      "0"
+0e60:                          dw      0ec0h          ; disketa 8", DD-DS 8*1024
+0e62:                          db      "1"
+0e63:                          dw      0eb0h          ; disketa 8", DD-SS 8*1024
+0e65:                          db      "2"
+0e66:                          dw      0ea0h          ; disketa 8", SD-DS 4*1024
+0e68:                          db      "3"
+0e69:                          dw      0e80h          ; disketa 8", SD-SS 4*1024
+0e6b:                          db      "4"
+0e6c:                          dw      0e90h          ; disketa 8", SD-SS 26*128
+0e6e:                          db      0ffh
+                                                      ; disketa 5 1/4" DD SS
+0e6f:                          db      "0"
+0e70:                          dw      0ed0h          ; disketa 5 1/4", DD-SS 16*256
+0e72:                          db      "1"
+0e73:                          dw      0ee0h          ; disketa 5 1/4", DD-SS 26*128"
+0e75:                          db      0ffh
+                                                      ; disketa 5 1/4" DD DS
+0e76:                          db      "0"
+0e77:                          dw      0ef0h          ; disketa 5 1/4", DD-DS 16*256
+0e79:                          db      "1"
+0e7a:                          dw      0ed0h          ; disketa 5 1/4", DD-SS 16*256
+0e7c:                          db      "2"
+0e7d:                          dw      0ee0h          ; disketa 5 1/4", DD-SS 26*128"
+0e7f:                          db      0ffh
+
+                                                      ; disketa 8", SD-SS 4*1024
+0e80:                          db      3,0,0,4,0,25h,47h,4
+0e88:                          db      3,4,1,82h,0,8,10h,2
+                                                      ; disketa 8", SD-SS 26*128
+0e90:                          db      0,0,0,4,0,25h
+0e96:                          db      16h,1ah,2,1ah,3,4,0,8,8,10h
+                                                      ; disketa 8", SD-DS 4*1024
+0ea0:                          db      7,0,0
+0ea3:                          db      4,0,25h,47h,4,2,8,81h,2,0,10h,10h
+0eaf:                          db      4
+                                                      ; disketa 8", DD-SS 8*1024
+0eb0:                          db      43h,0,0,0,0,4dh,6eh,8,2,8,81h,4
+0ebc:                          db      0,10h,10h,4
+                                                      ; disketa 8", DD-DS 8*1024
+0ec0:                          db      47h,0,0,0,0,4dh,6eh,8
+0ec8:                          db      1,10h,81h,4,0,20h,10h,8
+                                                      ; disketa 5 1/4", DD-SS 16*256
+0ed0:                          db      0e1h,0,0
+0ed3:                          db      4,0,1ah,30h,10h,3,10h,3,82h,0,8,10h
+0edf:                          db      8
+                                                      ; disketa 5 1/4", DD-SS 26*128"
+0ee0:                          db      0c0h,0,0,4,0,1ah,23h,1ah,2,1ah
+0eea:                          db      3,4,0,8,8,10h
+                                                      ; disketa 5 1/4", DD-DS 16*256
+0ef0:                  tbl12:  db      0e5h,0,0,4,0,1ah,30h,10h,2,20h,83h
+0efb:                          db      2,0,10h,10h,10h
+                                                      ; zvl†®tn° form†t
+0f00:                  tbl47:  db      0e5h,0,0,4,0,1ah,30h,10h,2,20h,3
+0f0b:                          db      82h,0,8,10h,8
+
+; -----------------------------------------------------------------------------
+                                                      ; zform†tov†n° disku
+                                                      ; VSTUP: DE=pozice kurzoru (pro vòpis stopy)
+                                                      ;        HL=pracovn° tabulka parametrñ form†tov†n°
+0f10:  dd e5           lab29:  push    ix             ; tabulka diskovòch parametrñ pro form†tov†n°
+0f12:  22 16 14                ld      (wrd2),hl
+0f15:  ed 53 07 14             ld      (1407h),de
+0f19:  2e 30                   ld      l,30h
+0f1b:  26 1f                   ld      h,1fh
+0f1d:  22 ae 0f                ld      (wrd4),hl
+0f20:  3e 3e                   ld      a,3eh
+0f22:  32 c5 0f                ld      (byt4),a
+0f25:  e1                      pop     hl             ; tabulka parametrñ pro form†tov†n°
+0f26:  56                      ld      d,(hl)         ; p©°znakovò bajt
+0f27:  23                      inc     hl
+0f28:  4e                      ld      c,(hl)         ; á°slo posledn° stopy
+0f29:  23                      inc     hl
+0f2a:  46                      ld      b,(hl)         ; á°slo stopy k p©epnut° z†znamovÇho proudu
+0f2b:  ed 43 0c 14             ld      (byt23),bc
+0f2f:  23                      inc     hl
+0f30:  7e                      ld      a,(hl)         ; vòstupn° bajt pro kan†l 12h
+0f31:  32 0b 14                ld      (byt5),a       ; vòstupn° bajt pro kan†l 12h
+0f34:  23                      inc     hl
+0f35:  7e                      ld      a,(hl)         ; vòstupn° bajt pro vòbàr mechaniky
+0f36:  d3 18                   out     (18h),a        ; vòbàr mechaniky
+0f38:  23                      inc     hl
+0f39:  4e                      ld      c,(hl)         ; poáet oddàlovac°ch bajtñ za indeximpulsem
+0f3a:  23                      inc     hl
+0f3b:  46                      ld      b,(hl)         ; poáet oddàlovac°ch bajtñ za daty sektoru
+0f3c:  23                      inc     hl
+0f3d:  5e                      ld      e,(hl)         ; poáet sektorñ na stopu
+0f3e:  21 00 00                ld      hl,0           ; poá†teán° á°slo stopy a strany
+0f41:  22 43 14                ld      (1443h),hl     ; á°slo stopy a strany
+0f44:  2c                      inc     l              ; poá†teán° sektor = 1
+0f45:  cb 6a                   bit     5,d            ; p©°znak - 0.stopa shodn† s ostatn°mi
+0f47:  28 06                   jr      z,lab30        ; stopa 0 m† form†t 26*128
+0f49:  3e 03                   ld      a,3            ; form†t stopy 0
+0f4b:  a2                      and     d
+0f4c:  67                      ld      h,a            ; H=form†t sektoru stopy 0
+0f4d:  18 14                   jr      lab69
+ ......................................................
+0f4f:  21 1a 14        lab30:  ld      hl,tbl20       : tabulka parametrñ pro form†tov†n°
+0f52:  dd cb 00 7e             bit     7,(ix+0)       ; p©°znak - disketa 5 1/4"
+0f56:  28 03                   jr      z,lab31
+0f58:  21 1d 14                ld      hl,tbl32       ; hlaviáka sektoru k zform†tov†n°
+0f5b:  4e              lab31:  ld      c,(hl)         ; poáet oddàlovac°ch bajtñ za indeximpulsem
+0f5c:  23                      inc     hl
+0f5d:  46                      ld      b,(hl)         ; poáet oddàlovac°ch bajtñ za daty sektoru
+0f5e:  23                      inc     hl
+0f5f:  5e                      ld      e,(hl)         ; poáet sektorñ na stopu
+0f60:  21 01 00                ld      hl,1           ; H=form†t sektoru, L=poá†teán° sektor
+0f63:  22 45 14        lab69:  ld      (wrd7),hl      ; hlaviáka sektoru - á°slo a dÇlka sektoru
+0f66:  cd e1 13                call    lab32          ; nastaven° parametrñ pro form†tov†n° stopy
+0f69:  f3                      di
+0f6a:  2a e0 f7                ld      hl,(0f7e0h)    ; £schova vektoru p©eru®en°
+0f6d:  22 14 14                ld      (wrd8),hl
+0f70:  21 b5 13                ld      hl,tbl21       ; adresa obsluhy p©eru®en° indexem
+0f73:  22 e0 f7                ld      (0f7e0h),hl    ; vektor obsluhy p©eru®en° indexem
+0f76:  3e e0                   ld      a,0e0h
+0f78:  d3 11                   out     (11h),a        ; vektor p©eru®en° od indexu
+0f7a:  3e 97                   ld      a,97h
+0f7c:  d3 11                   out     (11h),a        ; povolen° p©eru®en°
+0f7e:  3e ff                   ld      a,0ffh
+0f80:  d3 11                   out     (11h),a        ; p©eru®en° nen° od ë†dnÇho bitu
+0f82:  fb                      ei
+0f83:  3e 04                   ld      a,4
+0f85:  d3 12                   out     (12h),a
+0f87:  dd cb 00 7e             bit     7,(ix+0)       ; je mechanika 5 1/4" ?
+0f8b:  cd 52 13                call    lab33
+0f8e:  3e 1f                   ld      a,1fh
+0f90:  20 01                   jr      nz,lab35
+0f92:  af                      xor     a
+0f93:  32 cb 11        lab35:  ld      (byt18),a
+0f96:  21 23 14                ld      hl,tbl24
+0f99:  dd cb 00 7e             bit     7,(ix+0)
+0f9d:  28 03                   jr      z,lab36
+0f9f:  21 33 14                ld      hl,tbl30
+0fa2:  cd bf 13        lab36:  call    lab37
+0fa5:  cd ee 13        lab58:  call    lab40
+0fa8:  11 89 51                ld      de,5189h       ; D=max. poáet krokñ, E=vòstupn° bajt
+0fab:  db 12           lab64:  in      a,(12h)        ; vstup z ©adiáe diskñ
+0fad:  07                      rlca                   ; je stopa "0" ?
+0fae:  30 1f           wrd4:   jr      nc,lab42       ; je jië dosaëeno stopy "0"
+0fb0:  7b              lab62:  ld      a,e
+0fb1:  d3 10                   out     (10h),a        ; klidovò stav vòstupu
+0fb3:  e6 7f                   and     7fh
+0fb5:  d3 10                   out     (10h),a        ; impuls kroku motoru
+0fb7:  f6 80                   or      80h
+0fb9:  d3 10                   out     (10h),a        ; klidovò stav vòstupu
+0fbb:  06 08                   ld      b,8            ; prodleva kroku
+0fbd:  0d              lab63:  dec     c
+0fbe:  20 fd                   jr      nz,lab63
+0fc0:  10 fb                   djnz    lab63          ; áekac° smyáka prodlevy kroku
+0fc2:  15                      dec     d
+0fc3:  20 e6                   jr      nz,lab64       ; dal®° krok k nalezen° stopy "0"
+0fc5:  3e 89           byt4:   ld      a,89h
+0fc7:  bb                      cp      e
+0fc8:  20 57                   jr      nz,lab65
+0fca:  06 54                   ld      b,54h          ; p©°znak chyby vystaven° na stopu "0"
+0fcc:  c3 2c 11                jp      lab57          ; chybovò konec
+ ......................................................
+0fcf:  21 13 14        lab42:  ld      hl,tbl25       ; p©°znak p©°chodu indexu (FFH)
+0fd2:  36 00                   ld      (hl),0
+0fd4:  db 12                   in      a,(12h)
+0fd6:  0f                      rrca                   ; p©°znak p©ipravenosti mechaniky
+0fd7:  30 11                   jr      nc,lab43       ; mechanika je p©ipravena
+0fd9:  06 00                   ld      b,0
+0fdb:  0d              lab68:  dec     c
+0fdc:  3e ff                   ld      a,0ffh
+0fde:  20 fb                   jr      nz,lab68
+0fe0:  10 f9                   djnz    lab68          ; áekac° smyáka mezi dvàma indexi
+0fe2:  be                      cp      (hl)           ; p©i®el indexovò impuls ?
+0fe3:  28 05                   jr      z,lab43        ; p©i®el index
+0fe5:  06 52                   ld      b,"R"          ; chyba nep©ipravenÇ mechaniky
+0fe7:  c3 2c 11                jp      lab57          ; chybovò konec
+
+0fea:  db 12           lab43:  in      a,(12h)        ; vstup z ©adiáe disket
+0fec:  cb 6f                   bit     5,a            ; je ochrana z†pisu ?
+0fee:  20 05                   jr      nz,lab44       ; form†tov†n° stopy 0
+0ff0:  06 53                   ld      b,"S"          ; p©°znak ochrany z†pisu
+0ff2:  c3 2c 11                jp      lab57          ; chybovò konec
+
+0ff5:  21 72 11        lab44:  ld      hl,tbl26       ; start CPU2 - form†tov†n° s mà©en°m ot†áek
+0ff8:  18 66                   jr      lab45          ; start form†tov†n° stopy s mà©en°m ot†áek
+ ......................................................
+0ffa:  2a 11 14        tbl60:  ld      hl,(wrd19)     ; poáet bajtñ na jednu ot†áku
+0ffd:  01 63 14                ld      bc,1463h       ; minim†ln° poáet bajtñ na stopu (5219)
+1000:  11 68 00                ld      de,68h         ; diference - max. bajtñ na stopu (5323)
+1003:  dd cb 00 7e             bit     7,(ix+0)
+1007:  28 06                   jr      z,lab151
+1009:  01 68 18                ld      bc,1868h       ; minim†ln° poáet bajtñ na stopu (6248)
+100c:  11 7d 00                ld      de,7dh         ; diference - max. bajtñ na stopu (6373)
+100f:  ed 42           lab151: sbc     hl,bc          ; kontrola minim†ln°ho poátu bajtñ na stopu
+1011:  38 09                   jr      c,lab152       ; chyba
+1013:  ed 52                   sbc     hl,de          ; kontrola maxim†ln°ho poátu bajtñ na stopu
+1015:  38 16                   jr      c,lab48        ; OK
+1017:  06 55           lab153: ld      b,"U"          ; chyba ot†áek
+1019:  c3 2c 11                jp      lab57          ; chybovò konec
+
+101c:  19              lab152: add     hl,de
+101d:  30 f8                   jr      nc,lab153
+101f:  18 0c                   jr      lab48
+ ......................................................
+1021:  dd 4e 05        lab65:  ld      c,(ix+5)       ; poáet oddàlovac°ch bajtñ za indeximpulsem
+1024:  dd 46 06                ld      b,(ix+6)       ; poáet oddàlovac°ch bajtñ za daty sektoru
+1027:  dd 5e 07                ld      e,(ix+7)       ; poáet sektorñ na stopu
+102a:  cd e1 13        lab67:  call    lab32          ; nastaven° parametrñ pro form†tov†n° stopy
+102d:  3a 0e 14        lab48:  ld      a,(byt8)       ; poáet sektorñ na stopu
+1030:  21 43 14                ld      hl,wrd6        ; hlaviáka sektoru 1
+1033:  ed 4b 43 14             ld      bc,(wrd6)      ; hlaviáka sektoru - á°slo stopy a strany
+1037:  ed 5b 45 14             ld      de,(wrd7)      ; hlaviáka sektoru - á°slo a dÇlka sektoru
+103b:  71              lab49:  ld      (hl),c         ; uloëen° á°sla stopy do hlaviáky sektoru
+103c:  23                      inc     hl
+103d:  70                      ld      (hl),b         ; uloëen° á°sla strany do hlaviáky sektoru
+103e:  23                      inc     hl
+103f:  73                      ld      (hl),e         ; uloëen° á°sla sektoru do hlaviáky sektoru
+1040:  23                      inc     hl
+1041:  72                      ld      (hl),d         ; uloëen° dÇlky sektoru do hlaviáky sektoru
+1042:  23                      inc     hl
+1043:  23                      inc     hl
+1044:  23                      inc     hl
+1045:  1c                      inc     e              ; zvò®en° á°sla sektoru
+1046:  3d                      dec     a              ; á°taá sektorñ
+1047:  20 f2                   jr      nz,lab49
+1049:  3a 0e 14                ld      a,(byt8)       ; poáet sektorñ k form†tov†n°
+104c:  21 43 14                ld      hl,wrd6        ; hlaviáka sektoru 1
+104f:  1e 04           lab52:  ld      e,4            ; dÇlka dat pro vòpoáet kontroln°ho souátu
+1051:  f5                      push    af
+1052:  cd 2b 13                call    lab50          ; vòpoáet kontroln°ho souátu hlaviáky
+1055:  70                      ld      (hl),b         ; vy®®° bajt kontroln°ho souátu
+1056:  23                      inc     hl
+1057:  71                      ld      (hl),c         ; nië®° bajt kontroln°ho souátu
+1058:  23                      inc     hl
+1059:  f1                      pop     af
+105a:  3d                      dec     a
+105b:  20 f2                   jr      nz,lab52       ; vòpoáet dal®°ho sektoru
+105d:  21 a0 11                ld      hl,tbl28       ; adresa programu pro z†pis stopy
+                                                      ; start form†tov†n° 1 stopy
+1060:  ed 4b 01 00     lab45:  ld      bc,(1)         ; £schova skoku z adresy 0
+1064:  22 01 00                ld      (1),hl         ; adresa startu CPU2 - form†tov†n° stopy
+1067:  3e ad                   ld      a,0adh
+1069:  d3 10                   out     (10h),a        ; hlava spu®tàna
+106b:  af                      xor     a
+106c:  d3 14                   out     (14h),a
+106e:  d3 04                   out     (4),a          ; start CPU2
+1070:  3d                      dec     a
+1071:  d3 17                   out     (17h),a        ; port PIO2-B jako bitovò vstup/vòstup
+1073:  d3 17                   out     (17h),a        ; v®echny byty jako vstup
+1075:  3e a1                   ld      a,0a1h
+1077:  d3 10                   out     (10h),a
+1079:  3e 7f                   ld      a,7fh
+107b:  d3 17                   out     (17h),a        ; port PIO2-B jako bajtovò vòstup
+107d:  db 16                   in      a,(16h)
+107f:  ed 43 01 00             ld      (1),bc         ; n†vrat obsahu instrukce skoku
+1083:  af                      xor     a
+1084:  32 13 14                ld      (tbl25),a      ; p©°znak p©°chodu indexu (FFH)
+1087:  3e 00           byt10-1:ld      a,0
+1089:  d3 10                   out     (10h),a
+108b:  01 95 10                ld      bc,tbl27
+108e:  ed 43 0f 14             ld      (wrd14),bc     ; adresa skoku do dal®°ho programu
+1092:  11 00 00                ld      de,0
+1095:  2a 0f 14        tbl27:  ld      hl,(wrd14)     ; adresa skoku do dal®°ho programu
+1098:  15                      dec     d
+1099:  20 04                   jr      nz,lab46
+109b:  1d                      dec     e
+109c:  ca 51 11                jp      z,lab47
+109f:  af              lab46:  xor     a
+10a0:  ed 42                   sbc     hl,bc
+10a2:  28 f1                   jr      z,tbl27
+10a4:  2a 0f 14                ld      hl,(wrd14)     ; adresa skoku do dal®°ho programu
+10a7:  e9                      jp      (hl)
+ ......................................................
+10a8:  21 44 14        tbl63:  ld      hl,byt21       ; hlaviáka sektoru - á°slo strany
+10ab:  11 4c 15                ld      de,tbl59
+10ae:  06 05                   ld      b,5
+10b0:  3a 0e 14                ld      a,(byt8)       ; poáet sektorñ na stopu
+10b3:  4f                      ld      c,a
+10b4:  1a              lab154: ld      a,(de)
+10b5:  be                      cp      (hl)
+10b6:  20 43                   jr      nz,lab55
+10b8:  23                      inc     hl
+10b9:  13                      inc     de
+10ba:  10 f8                   djnz    lab154
+10bc:  06 06                   ld      b,6
+10be:  0d                      dec     c
+10bf:  20 f3                   jr      nz,lab154
+10c1:  dd 7e 00        lab54:  ld      a,(ix+0)       ; p©°znak dÇlky sektoru
+10c4:  e6 03                   and     3
+10c6:  32 46 14                ld      (byt19),a      ; hlaviáka sektoru - dÇlka sektoru
+10c9:  dd cb 00 76             bit     6,(ix+0)       ; p©°znak oboustrannÇ diskety
+10cd:  cd 52 13                call    lab33
+10d0:  dd cb 00 56             bit     2,(ix+0)
+10d4:  28 25                   jr      z,lab55
+10d6:  3e 01                   ld      a,1
+10d8:  32 44 14                ld      (byt21),a      ; hlaviáka sektoru - á°slo strany
+10db:  21 1a 14                ld      hl,tbl20
+10de:  dd cb 00 76             bit     6,(ix+0)
+10e2:  28 03                   jr      z,lab66
+10e4:  21 20 14                ld      hl,tbl31
+10e7:  23              lab66:  inc     hl
+10e8:  4e                      ld      c,(hl)
+10e9:  23                      inc     hl
+10ea:  46                      ld      b,(hl)
+10eb:  23                      inc     hl
+10ec:  5e                      ld      e,(hl)
+10ed:  3e 00                   ld      a,0
+10ef:  d3 12                   out     (12h),a
+10f1:  3a 43 14                ld      a,(wrd6)       ; hlaviáka sektoru - á°slo stopy
+10f4:  b7                      or      a
+10f5:  ca 2a 10                jp      z,lab67        ; je stopa 0 - form†tov†n° stopy 0
+10f8:  c3 21 10                jp      lab65
+ ......................................................
+10fb:  21 43 14        lab55:  ld      hl,wrd6        ; hlaviáka sektoru - á°slo stopy
+10fe:  3a 0d 14                ld      a,(byt22)
+1101:  be                      cp      (hl)
+1102:  3a 0b 14                ld      a,(byt5)       ; vòstupn° bajt pro kan†l 12h
+1105:  30 02                   jr      nc,lab56
+1107:  cb df                   set     3,a
+1109:  d3 12           lab56:  out     (12h),a
+110b:  34                      inc     (hl)
+110c:  3a 0c 14                ld      a,(byt23)
+110f:  be                      cp      (hl)
+1110:  06 00                   ld      b,0
+1112:  38 18                   jr      c,lab57        ; chybovò konec
+1114:  cd f6 13                call    lab60
+1117:  21 23 14                ld      hl,tbl24       ; tabulka form†tñ stop 8"
+111a:  dd cb 00 76             bit     6,(ix+0)       ; p©°znak diskety 5 1/4"
+111e:  28 03                   jr      z,lab61
+1120:  21 33 14                ld      hl,tbl30       ; tabulka form†tñ stop 5 1/4"
+1123:  cd bf 13        lab61:  call    lab37
+1126:  11 a9 01                ld      de,lab5
+1129:  c3 b0 0f                jp      lab62
+ ......................................................
+                                                      ; chybovò n†vrat z prodprogramu form†tov†n° diskety
+112c:  3e 03           lab57:  ld      a,3
+112e:  d3 11                   out     (11h),a        ; z†kaz p©eru®en° od PIO
+1130:  2a 14 14                ld      hl,(wrd8)      ; pñvodn° adresa p©eru®en°
+1133:  22 e0 f7                ld      (0f7e0h),hl
+1136:  c5                      push    bc
+1137:  21 d0 00                ld      hl,0d0h
+113a:  22 ae 0f                ld      (wrd4),hl
+113d:  3e c9                   ld      a,0c9h
+113f:  32 c5 0f                ld      (byt4),a
+1142:  cd a5 0f                db      0cdh
+1143:                  wrd20:  db      0a5h,0fh
+1145:  c1                      pop     bc
+1146:  7a                      ld      a,d
+1147:  b7                      or      a
+1148:  20 02                   jr      nz,lab59
+114a:  06 54                   ld      b,54h
+114c:  3e ff           lab59:  ld      a,0ffh         ; zru®en° vòbàru mechnanik
+114e:  d3 18                   out     (18h),a
+1150:  c9                      ret
+ ......................................................
+1151:  21 0a 14        lab47:  ld      hl,byt20
+1154:  35                      dec     (hl)
+1155:  c2 2d 10                jp      nz,lab48
+1158:  36 05                   ld      (hl),5
+115a:  2a 16 14                ld      hl,(wrd2)
+115d:  3a 43 14                ld      a,(wrd6)       ; hlaviáka sektoru - á°slo stopy
+1160:  4f                      ld      c,a
+1161:  3a 44 14                ld      a,(byt21)      ; hlaviáka sektoru - á°slo strany
+1164:  cb 47                   bit     0,a
+1166:  28 02                   jr      z,lab53
+1168:  cb f9                   set     7,c
+116a:  71              lab53:  ld      (hl),c
+116b:  23                      inc     hl
+116c:  22 16 14                ld      (wrd2),hl
+116f:  c3 c1 10                jp      lab54
+ ......................................................
+                                                      ; start CPU2 - form†tov†n° stopy s mà©en°m ot†áek
+1172:  21 13 14        tbl26:  ld      hl,tbl25       ; p©°znak p©°chodu indexu (FFH)
+1175:  01 00 00                ld      bc,0
+1178:  3e bd                   ld      a,0bdh
+117a:  d3 10                   out     (10h),a        ; start
+117c:  af                      xor     a              ; p©°znak - index je®tà nep©i®el
+117d:  d3 14           lab155: out     (14h),a
+117f:  be                      cp      (hl)           ; p©°znak p©°chodu indexu
+1180:  d3 14                   out     (14h),a        ; z†pis bajtu 00 jako mezera
+1182:  28 f9                   jr      z,lab155
+1184:  77                      ld      (hl),a         ; zru®en° pr°znaku p©°chodu indexu
+1185:  d3 14           lab156: out     (14h),a
+1187:  03                      inc     bc
+1188:  be                      cp      (hl)
+1189:  d3 14                   out     (14h),a
+118b:  03                      inc     bc             ; á°taá bajtñ pro z†pis na stopu
+118c:  28 f7                   jr      z,lab156       ; áek†n° na pr°chod druhÇho indeximpulsu
+118e:  3e b5                   ld      a,0b5h
+1190:  d3 10                   out     (10h),a
+1192:  ed 43 11 14             ld      (wrd19),bc     ; poáet bajtñ na jednu ot†áku
+1196:  21 fa 0f                ld      hl,tbl60       ; kontrola poátu bajtñ na stopu
+1199:  22 0f 14                ld      (wrd14),hl     ; adresa skoku do dal®°ho programu
+119c:  3e bd                   ld      a,0bdh
+119e:  d3 10                   out     (10h),a        ; ukonáen°
+                                                      ; start CPU2 - z†pis stopy
+11a0:  3a 0e 14        tbl28:  ld      a,(byt8)       ; poáet sektorñ na stopu
+11a3:  21 b6 b4        byt11-2:ld      hl,0b4b6h
+11a6:  11 fc c2                ld      de,0c2fch
+11a9:  01 10 00        byt6-2: ld      bc,0010h       ; B=poáet oddàlovac°ch bajtñ za indeximpulsem
+11ac:  d9                      exx
+11ad:  21 13 14                ld      hl,tbl25       ; p©°znak p©°chodu indexu (FFH)
+11b0:  16 00           byt16-1:ld      c,0
+11b2:  5f                      ld      e,a
+11b3:  01 14 06                ld      bc,0614h       ; B=6 poáet bajtñ za indeximpulsem
+11b6:  3e bd                   ld      a,0bdh
+11b8:  d3 10                   out     (10h),a
+11ba:  7a                      ld      a,d
+11bb:  ed 51           lab157: out     (c),d          ; oddàlovac° bajty aë do p©°chodu indexu
+11bd:  cb 46                   bit     0,(hl)         ; p©°znak p©°chodu indexu
+11bf:  ed 51                   out     (c),d
+11c1:  28 f8                   jr      z,lab157       ; áek†n° na index
+11c3:  ed 51                   out     (c),d
+11c5:  36 00                   ld      (hl),0         ; vynulov†n° p©°znaku indexu
+11c7:  d9                      exx
+11c8:  d3 14                   out     (14h),a
+11ca:  18 1f           byt18-1:jr      lab158
+11cc:  d3 14           lab177: out     (14h),a        ; z†pis oddàlovac°ch bajtñ za indeximpulsem
+11ce:  10 fc                   djnz    lab177
+11d0:  af                      xor     a
+11d1:  d3 14                   out     (14h),a        ; synchronizaán° bajt p©ed znaákou
+11d3:  06 00           byt12-1:ld      b,0            ; poáet synchronizaán°ch bajtñ p©ed indexovou znaákou
+11d5:  d3 14           lab178: out     (14h),a
+11d7:  10 fc                   djnz    lab178
+11d9:  06 00           byt17-1:ld      b,0
+11db:  d3 14                   out     (14h),a
+11dd:  ed 69                   out     (c),l          ; indexov† znaáka
+                                                      ; p©i d. 8" je zde JR 1242h
+11df:  7a                      ld      a,d
+11e0:  d3 14                   out     (14h),a        ;
+11e2:  d3 14                   out     (14h),a
+11e4:  d3 14                   out     (14h),a
+11e6:  ed 61                   out     (c),h
+11e8:  7b                      ld      a,e
+11e9:  d3 14                   out     (14h),a
+11eb:  d9              lab158: exx
+11ec:  ed 51                   out     (c),d
+11ee:  21 43 14                ld      hl,wrd6        ; hlaviáka sektoru - á°slo stopy
+11f1:  ed 51           lab165: out     (c),d
+11f3:  7a                      ld      a,d
+11f4:  d9                      exx
+11f5:  d3 14                   out     (14h),a
+11f7:  11 fe a1                ld      de,0a1feh
+11fa:  d3 14           lab159: out     (14h),a        ; z†pis oddàlovac°ch bajtñ p©ed hlaviákou
+11fc:  10 fc                   djnz    lab159
+11fe:  af                      xor     a
+11ff:  d3 14                   out     (14h),a
+1201:  06 00           byt13-1:ld      b,0            ; poáet synchronizaán°ch bajtñ p©ed hlaviákou
+1203:  d3 14           lab160: out     (14h),a        ; z†pis synchronizaán°ch bajtñ p©ed hlaviákou
+1205:  10 fc                   djnz    lab160
+1207:  d3 14                   out     (14h),a
+1209:  ed 69                   out     (c),l
+                                                      ; p©i d. 8" je zde JR 1249H
+120b:  7a                      ld      a,d            ; oddàlovac° bajt p©ed daty
+120c:  d3 14                   out     (14h),a
+120e:  d3 14                   out     (14h),a
+1210:  d3 14                   out     (14h),a
+1212:  ed 61                   out     (c),h
+1214:  7b                      ld      a,e            ; identifikaán° bajt hlaviáky sektoru
+1215:  d3 14                   out     (14h),a
+1217:  d9              lab179: exx
+1218:  ed b3                   otir                   ; z†pis dat hlaviáky sektoru
+121a:  06 06                   ld      b,6            ; poáet synchronizaán°ch bajtñ p©ed daty
+121c:  ed 51                   out     (c),d          ; oddàlovac° bajt
+121e:  7a                      ld      a,d
+121f:  d9                      exx
+1220:  d3 14                   out     (14h),a
+1222:  1e fb                   ld      e,0fbh         ; identifikaán° znaáka dat
+1224:  d3 14                   out     (14h),a
+1226:  06 00           byt15-1:ld      b,0            ; poáet oddàlovac°ch bajtñ p©ed daty
+1228:  d3 14           lab161: out     (14h),a        ; z†pis oddàlovac°ch bajtñ p©ed daty
+122a:  10 fc                   djnz    lab161
+122c:  af                      xor     a
+122d:  d3 14                   out     (14h),a        ; synronizaán° bajt p©ed daty
+122f:  06 00           byt14-1:ld      b,0            ; poáet synchronizaán°ch bajtñ p©ed daty
+1231:  d3 14           lab162: out     (14h),a        ; z†pis synchronizaán°ch bajtñ p©ed daty
+1233:  10 fc                   djnz    lab162
+1235:  06 e5                   ld      b,0e5h         ; bajt vypl§uj°c° obsah sektoru
+1237:  d3 14                   out     (14h),a
+1239:  ed 69                   out     (c),l
+                                                      ; p©i d. 8" je zde JR 1250h
+                                                      ; disketa 5 1/4"
+123b:  7a                      ld      a,d
+123c:  d3 14                   out     (14h),a
+123e:  d3 14                   out     (14h),a
+1240:  18 15                   jr      1257h
+ ......................................................
+                                                      ; disketa 8" z adr. 11dfh
+1242:  7b                      ld      a,e
+1243:  d3 14                   out     (14h),a
+1245:  ed 61                   out     (c),h
+1247:  18 a2                   jr      11ebh
+ ......................................................
+                                                      ; disketa 8" z adr. 120bh
+1249:  7b                      ld      a,e
+124a:  d3 14                   out     (14h),a
+124c:  ed 61                   out     (c),h
+124e:  18 c7                   jr      1217h
+ ......................................................
+                                                      ; disketa 8" z adr. 123bh
+1250:  7b                      ld      a,e
+1251:  d3 14                   out     (14h),a
+1253:  ed 61                   out     (c),h
+1255:  18 07                   jr      125eh
+ ......................................................
+1257:  d3 14           lab163: out     (14h),a
+1259:  ed 61                   out     (c),h
+125b:  7b                      ld      a,e
+125c:  d3 14                   out     (14h),a        ; identifikaán° znaáka dat FBH
+125e:  78              lab180: ld      a,b            ; obsah bajtu sektoru
+125f:  01 00 00                ld      bc,0           ; poáet dat sektoru
+1262:  d3 14           lab164: out     (14h),a        ; z†pis dat sektoru
+1264:  10 fc                   djnz    lab164
+1266:  0d                      dec     c              ; vy®®° á†st á°taáe bajtñ
+1267:  d3 14                   out     (14h),a
+1269:  20 f7                   jr      nz,lab164
+126b:  d3 14                   out     (14h),a        ; datovò bajt sektoru
+126d:  11 00 00                ld      de,0           ; kontroln° souáet sektoru
+1270:  d3 14                   out     (14h),a        ; datovò bajt sektoru
+1272:  7a                      ld      a,d
+1273:  d3 14                   out     (14h),a        ; vy®®° bajt kontroln°ho souátu
+1275:  7b                      ld      a,e
+1276:  0e 10                   ld      c,10h
+1278:  d3 14                   out     (14h),a        ; nië®° bajt kontoln°ho souátu
+127a:  06 00           byt7-1: ld      b,0            ; poáet oddàlovac°ch bajtñ za daty sektoru
+127c:  d9                      exx
+127d:  ed 51                   out     (c),d
+127f:  ed 51                   out     (c),d
+1281:  1d                      dec     e              ; á°taá sektorñ
+1282:  ed 51                   out     (c),d
+1284:  c2 f1 11                jp      nz,lab165      ; z†pis dal®°ho sektoru
+1287:  ed 51           lab166: out     (c),d          ; z†pis mezery za daty sektoru
+1289:  10 fc                   djnz    lab166
+128b:  ed 51                   out     (c),d
+128d:  21 13 14                ld      hl,tbl25       ; p©°znak p©°chodu indexu (FFH)
+1290:  ed 51                   out     (c),d
+1292:  cb 46                   bit     0,(hl)
+1294:  ed 51                   out     (c),d
+1296:  20 7a                   jr      nz,lab167
+1298:  ed 51           lab169: out     (c),d
+129a:  cb 46                   bit     0,(hl)
+129c:  ed 51                   out     (c),d
+129e:  28 f8                   jr      z,lab169       ; z†pis oddàlovac°ch bajtñ do konce stopy
+12a0:  ed 51                   out     (c),d
+12a2:  3e b5                   ld      a,0b5h
+12a4:  d3 10                   out     (10h),a
+12a6:  3a 0e 14                ld      a,(byt8)       ; poáet sektorñ na stopu
+12a9:  08                      ex      af,af'
+12aa:  21 4c 15                ld      hl,tbl59
+12ad:  01 16 05                ld      bc,tbl62
+12b0:  11 fe a1                ld      de,0a1feh
+12b3:  d9                      exx
+12b4:  01 16 87        byt9-2: ld      b,8716h
+12b7:  78                      ld      a,b
+12b8:  d3 10                   out     (10h),a        ; p©epnut° na áten°
+12ba:  d3 14                   out     (14h),a
+12bc:  db 16                   in      a,(16h)        ; prvn° znaáka MK
+12be:  fe fc                   cp      0fch
+12c0:  28 59                   jr      z,lab170       ; je indexov† znaáka ?
+12c2:  d9                      exx
+12c3:  db 16           lab172: in      a,(16h)
+12c5:  ba                      cp      d
+12c6:  28 fb                   jr      z,lab172
+12c8:  bb                      cp      e
+12c9:  db 16                   in      a,(16h)
+12cb:  20 45                   jr      nz,lab167
+12cd:  ed b2                   inir
+12cf:  77                      ld      (hl),a
+12d0:  23                      inc     hl
+12d1:  db 16                   in      a,(16h)
+12d3:  3e b5                   ld      a,0b5h
+12d5:  d3 10                   out     (10h),a
+12d7:  06 05                   ld      b,5
+12d9:  d9                      exx
+12da:  21 fb e5                ld      hl,0e5fbh
+12dd:  78                      ld      a,b
+12de:  cb 4f                   bit     1,a
+12e0:  d3 10                   out     (10h),a
+12e2:  db 16                   in      a,(16h)
+12e4:  20 06                   jr      nz,lab173
+12e6:  db 16                   in      a,(16h)
+12e8:  db 16                   in      a,(16h)
+12ea:  db 16                   in      a,(16h)
+12ec:  db 16           lab173: in      a,(16h)
+12ee:  bd                      cp      l
+12ef:  20 21                   jr      nz,lab167
+12f1:  db 16           lab174: in      a,(16h)
+12f3:  bc                      cp      h
+12f4:  28 fb                   jr      z,lab174
+12f6:  67                      ld      h,a
+12f7:  db 16                   in      a,(16h)
+12f9:  6f                      ld      l,a
+12fa:  af                      xor     a
+12fb:  db 16                   in      a,(16h)
+12fd:  3e b5                   ld      a,0b5h
+12ff:  d3 10                   out     (10h),a
+1301:  ed 52                   sbc     hl,de
+1303:  20 11                   jr      nz,lab175
+1305:  08                      ex      af,af'
+1306:  3d                      dec     a
+1307:  28 18                   jr      z,lab176
+1309:  08                      ex      af,af'
+130a:  78              lab171: ld      a,b
+130b:  d9                      exx
+130c:  d3 10                   out     (10h),a
+130e:  db 16                   in      a,(16h)
+1310:  18 b1                   jr      lab172
+ ......................................................
+1312:  3e b5           lab167: ld      a,0b5h
+1314:  d3 10                   out     (10h),a
+1316:  21 51 11        lab175: ld      hl,lab47
+1319:  18 09                   jr      lab168
+ ......................................................
+131b:  3e b5           lab170: ld      a,0b5h
+131d:  d3 10                   out     (10h),a
+131f:  18 e9                   jr      lab171
+ ......................................................
+1321:  21 a8 10        lab176: ld      hl,tbl63
+1324:  22 0f 14        lab168: ld      (wrd14),hl     ; adresa skoku do dal®°ho programu
+1327:  3e bd                   ld      a,0bdh
+1329:  d3 10                   out     (10h),a
+                                                      ; vòpoáet kontroln°ho souátu (HL-ukazatel)
+132b:  01 ff ff        lab50:  ld      bc,0ffffh
+132e:  7e              lab51:  ld      a,(hl)
+132f:  a8                      xor     b
+1330:  47                      ld      b,a
+1331:  0f                      rrca
+1332:  0f                      rrca
+1333:  0f                      rrca
+1334:  0f                      rrca
+1335:  e6 0f                   and     0fh
+1337:  a8                      xor     b
+1338:  47                      ld      b,a
+1339:  0f                      rrca
+133a:  0f                      rrca
+133b:  0f                      rrca
+133c:  57                      ld      d,a
+133d:  e6 1f                   and     1fh
+133f:  a9                      xor     c
+1340:  4f                      ld      c,a
+1341:  7a                      ld      a,d
+1342:  0f                      rrca
+1343:  e6 f0                   and     0f0h
+1345:  a9                      xor     c
+1346:  4f                      ld      c,a
+1347:  7a                      ld      a,d
+1348:  e6 e0                   and     0e0h
+134a:  a8                      xor     b
+134b:  41                      ld      b,c
+134c:  4f                      ld      c,a
+134d:  23                      inc     hl
+134e:  1d                      dec     e
+134f:  20 dd                   jr      nz,lab51       ; dal®° bajt k vòpoátu
+1351:  c9                      ret
+ ......................................................
+                                                      ; nastaven° parametrñ pro danò form†t stopy
+1352:  16 61           lab33:  ld      d,61h
+1354:  1e 3c                   ld      e,3ch
+1356:  06 13                   ld      b,13h
+1358:  0e 18                   ld      c,18h          ; instrukce JR..
+135a:  21 a5 13                ld      hl,tbl22       ; tabulka pro disketu 8"
+135d:  28 09                   jr      z,lab34        ; nen° disketa 5 1/4" (je 8")
+135f:  0e 7a                   ld      c,7ah
+1361:  06 d3                   ld      b,0d3h
+1363:  58                      ld      e,b
+1364:  50              lab181: ld      d,b
+1365:  21 ad 13                ld      hl,tbl23       ; tabulka pro disketu 5 1/4"
+1368:  ed 43 3b 12     lab34:  ld      (123bh),bc     ; instrukce JR 1250h
+136c:  43                      ld      b,e
+136d:  ed 43 0b 12             ld      (120bh),bc     ; instrukce JR 1249h
+1371:  42                      ld      b,d
+1372:  ed 43 df 11             ld      (11dfh),bc     ; instrukce JR 1242h
+1376:  7e                      ld      a,(hl)
+1377:  32 b6 12                ld      (byt9),a
+137a:  23                      inc     hl
+137b:  7e                      ld      a,(hl)
+137c:  32 88 10                ld      (byt10),a
+137f:  32 a5 11                ld      (byt11),a
+1382:  23                      inc     hl
+1383:  7e                      ld      a,(hl)
+1384:  32 d4 11                ld      (byt12),a
+1387:  32 02 12                ld      (byt13),a
+138a:  32 30 12                ld      (byt14),a
+138d:  23                      inc     hl
+138e:  5e                      ld      e,(hl)
+138f:  23                      inc     hl
+1390:  56                      ld      d,(hl)
+1391:  ed 53 2c 13             ld      (132ch),de
+1395:  23                      inc     hl
+1396:  7e                      ld      a,(hl)
+1397:  32 27 12                ld      (byt15),a
+139a:  23                      inc     hl
+139b:  7e                      ld      a,(hl)
+139c:  32 b1 11                ld      (byt16),a
+139f:  23                      inc     hl
+13a0:  7e                      ld      a,(hl)
+13a1:  32 da 11                ld      (byt17),a
+13a4:  c9                      ret
+ ......................................................
+13a5:                  tbl22:  db      87h,0a4h,4,21h,0efh,8,0ffh,17h
+13ad:                  tbl23:  db      85h,0b4h,0ah,30h,0b2h,13h,4eh,2fh
+                                                      ; obsluha p©eru®en° indexem
+13b5:  f5              tbl21:  push    af
+13b6:  3e ff                   ld      a,0ffh
+13b8:  32 13 14                ld      (tbl25),a      ; p©°znak p©°chodu indexu (FFH)
+13bb:  f1                      pop     af
+13bc:  fb                      ei
+13bd:  ed 4d                   reti
+ ......................................................
+                                                      ; nastaven° programu podle dÇlky sektoru
+13bf:  3a 46 14        lab37:  ld      a,(byt19)      ; hlaviáka sektoru - dÇlka sektoru
+13c2:  01 04 00                ld      bc,4
+13c5:  3c                      inc     a
+13c6:  3d              lab39:  dec     a
+13c7:  28 03                   jr      z,lab38        ; je spr†vn† dÇlka sektoru
+13c9:  09                      add     hl,bc
+13ca:  18 fa                   jr      lab39          ; dal®° sektor v tabulce
+
+13cc:  56              lab38:  ld      d,(hl)         ; dÇlka sektoru
+13cd:  23                      inc     hl
+13ce:  5e                      ld      e,(hl)
+13cf:  ed 53 60 12             ld      (1260h),de     ; poáet bajtñ sektoru
+13d3:  23                      inc     hl
+13d4:  5e                      ld      e,(hl)
+13d5:  23                      inc     hl
+13d6:  56                      ld      d,(hl)
+13d7:  ed 53 6e 12             ld      (126eh),de     ; kontroln° souáet sektoru
+13db:  3e 05                   ld      a,5
+13dd:  32 0a 14                ld      (byt20),a
+13e0:  c9                      ret
+ ......................................................
+                                                      ; nastaven° parametrñ pro form†tov†n° stopy
+13e1:  79              lab32:  ld      a,c
+13e2:  32 ab 11                ld      (byt6),a       ; poáet oddàlovac°ch bajtñ za indeximpulsem
+13e5:  78                      ld      a,b
+13e6:  32 7b 12                ld      (byt7),a       ; poáet oddàlovac°ch bajtñ za daty sektoru
+13e9:  7b                      ld      a,e
+13ea:  32 0e 14                ld      (byt8),a       ; poáet sektorñ na stopu
+13ed:  c9                      ret
+ ......................................................
+13ee:  21 30 30        lab40:  ld      hl,3030h
+13f1:  22 18 14                ld      (wrd10),hl
+13f4:  18 0d                   jr      lab41
+ ......................................................
+13f6:  21 19 14        lab60:  ld      hl,tbl29
+13f9:  3e 3a                   ld      a,3ah
+13fb:  34                      inc     (hl)
+13fc:  be                      cp      (hl)
+13fd:  20 04                   jr      nz,lab41
+13ff:  36 30                   ld      (hl),30h
+1401:  2b                      dec     hl
+1402:  34                      inc     (hl)
+1403:  2a 18 14        lab41:  ld      hl,(wrd10)
+1406:  22 00 00                ld      (0),hl
+1409:  c9                      ret
+ ......................................................
+140a:                  byt20:  db      0
+140b:                  byt5:   db      0              ; vòstupn° bajt pro kan†l 12h
+140c:                  byt23:  db      0              ; poáet stop ke zform†tov†n°
+140d:                  byt22:  db      0              ; stopa k p©epnut° z†znamovÇho proudu
+140e:                  byt8:   db      0              ; poáet sektorñ na stopu
+140f:                  wrd14:  dW      0              ; adresa skoku do dal®°ho programu
+1411:                  wrd19:  dw      0              ; poáet bajtñ na jednu ot†áku
+1413:                  tbl25:  db      0              ; p©°znak p©°chodu indexu (FFH)
+1414:                  wrd8:   dw      0              ; £schova vektoru p©eru®en° F7E0H
+1416:                  wrd2:   db      0,0
+1418:                  wrd10:  db      0
+1419:                  tbl29:  db      0
+141a:                  tbl20:  db      25h,16h,1ah
+141d:                  tbl32:  db      1ah,23h,1ah
+1420:                  tbl31:  db      4dh,30h,1ah
+                                                      ; tabulka form†tñ stop 8"
+1423:                  tbl24:  db      7dh,1,30h,5dh,0fdh,1,0ch,0a4h,0fch
+142c:                          db      2,0f1h,74h,0fah,4,7,11h
+                                                      ; tabulka form†tñ stop 5 1/4"
+1433:                  tbl30:  db      7dh,1,0a7h,62h,0fdh,1,27h,78h,0fch
+143c:                          db      2,0bh,0c4h,0fah,4,30h,1bh
+                                                      ; tabulka hlaviáek sektorñ
+1443:                  wrd6:   db      0              ; hlaviáka sektoru - á°slo stopy
+1444:                  byt21:  db      0              ; hlaviáka sektoru - á°slo strany
+1445:                  wrd7:   db      0              ; hlaviáka sektoru - á°slo sektoru
+1446:                  byt19:  db      0              ; hlaviáka sektoru - dÇlka sektoru
+1447:                          dw      0              ; hlaviáka sektoru - kontroln° souáet
+1449:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1457:                          db      0,0,0,0,0,0,0,0,0,0,0,0
+1463:                  tbl58:  db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1474:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1485:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1496:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+14a7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+14b8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+14c9:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+14da:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+14eb:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+14fc:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+150d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+151e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+152f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1540:                          db      0,0,0,0,0,0,0,0,0,0,0,0
+154c:                  tbl59:  db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+155d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+156e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+157f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1590:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+15a1:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+15b2:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+15c3:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+15d4:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+15e5:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+15f6:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1607:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1618:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1629:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+163a:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+164b:                          db      0,0,0,0,0,0,0,0
+                                                      ; tabulka diskovòch parametrñ pro oddàlenÇ zad†v†n°
+1653:                  tbl51:  db      0              ; pracovn° p©°znak pro form†tov†n°
+                                                      ; bit 0,1: ©†d form†tu sektoru
+                                                      ; bit 2: 1= oboustrann† DS
+                                                      ; bit 3
+                                                      ; bit 4
+                                                      ; bit 5: 1= stopa 0 shodn† s ostatn°mi
+                                                      ; bit 6: 1= hustota DD
+                                                      ; bit 7: 1= disketa 5 1/4"
+1654:                          db      0              ; á°slo posledn° stopy
+1655:                          db      0              ; stopa k p©epnut° z†znamovÇho proudu
+1656:                          db      0              ; vòstupn° bajt pro kan†l 12H
+1657:                          db      0              ; vòstupn° bajt vòbàru mechaniky
+1658:                          db      0              ; poáet oddàlovac°ch bajtñ za indexovòm impulsem
+1659:                          db      0              ; poáet oddàlovac°ch bajtñ za daty sektoru
+165a:                          db      0              ; poáet sektorñ na stopu
+165b:                          db      0,0,0,0,0,0,0,0
+1663:                  wrd17:  dw      0
+1665:                  byt24:  db      0
+1666:                  wrd16:  dw      0
+1668:                  wrd18:  dw      0
+166a:                  wrd15:  dw      0
+
+                                                      ; pracovn° tabulka diskovòch parametrñ
+166c:                  tbl18:  db      0              ; p©°znak pro form†tov†n°
+                                                      ; bit 0,1: ©†d form†tu sektoru
+                                                      ; bit 2: 1= oboustrann† DS
+                                                      ; bit 3
+                                                      ; bit 4
+                                                      ; bit 5: 1= stopa 0 shodn† s ostatn°mi
+                                                      ; bit 6: 1= hustota DD
+                                                      ; bit 7: 1= disketa 5 1/4"
+166d:                  tbl19:  db      0              ; á°slo posledn° stopy
+166e:                          db      0              ; stopa k p©epnut° z†znamovÇho proudu
+166f:                          db      0              ; vòstupn° bajt pro kan†l 12H, nastaven° stopy "0"
+1670:                          db      0              ; vòstupn° bajt vòbàru mechaniky
+1671:                          db      0              ; poáet oddàlovac°ch bajtñ za indexovòm impulsem
+1672:                          db      0              ; poáet oddàlovac°ch bajtñ za daty sektoru
+1673:                          db      0              ; poáet sektorñ na stopu
+1674:                          db      0
+1675:                          db      0
+1676:                          db      0
+1677:                          db      0
+1678:                          db      0
+1679:                          db      0
+167a:                          db      0
+167b:                          db      0
+
+167c:                          db      0,0
+167e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+168f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+16a0:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+16b1:                          db      0,0,0,0,0,0,0,0,0,0,0
+16bc:                  tbl2:   db      0,0            ; vlastn° z†sobn°k
+16be:                          dw      0000           ; systÇmovò ukazatel z†sobn°ku
+16c0:                          db      0ffh
+
+16c1:                  tbl16:  db      "K"
+16c2:                  tbl17:  db      "ONEC"
+16c6:                          db      0,0,0,0,0,0,0,0,0,0,0
+16d1:                  tbl36:  db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+16e2:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+16f3:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0c9h,9fh
+

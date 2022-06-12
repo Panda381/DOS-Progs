@@ -1,0 +1,296 @@
+CONTEXT   0 241   8   8  72
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; --------------------------------------------------------------------------
+;
+;        Zav dˆc¡ sektor diskety SCPX (form t: 4 sektory po 1024 bajtech)
+;
+; --------------------------------------------------------------------------
+
+0400:                          db      "SYL"          ; identifika‡n¡ zna‡ka zavadˆ‡e syst‚mu
+0403:                  ddb1:   db      1              ; form t diskety
+                                                      ;  bit 7
+                                                      ;  bit 6
+                                                      ;  bit 5
+                                                      ;  bit 4 - je zav dˆc¡ stopa se sektory 256 B
+                                                      ;  bit 3 - nastaven¡ st©edu stopy
+                                                      ;  bit 2
+                                                      ;  bit 1 - po‡ te‡n¡ sektor (+ bit 0)
+                                                      ;  bit 0 - po‡ te‡n¡ sektor (+ bit 1)
+0404:                  ddw3:   dw      2b00h          ; d‚lka syst‚mu
+0406:                          db      0
+0407:                  ddw2:   dw      c800h          ; ukl dac¡ adresa
+0409:                          db      0,0,0,0,0,0,0  ; rezervov no
+
+0410:  fd 7e 00        lab1:                          ; kontroln¡ sou‡et CRC
+                               ld      a,(iy+0)
+0413:  a8                      xor     b
+0414:  47                      ld      b,a
+0415:  0f                      rrca
+0416:  0f                      rrca
+0417:  0f                      rrca
+0418:  0f                      rrca
+0419:  e6 0f                   and     0fh
+041b:  a8                      xor     b
+041c:  47                      ld      b,a
+041d:  0f                      rrca
+041e:  0f                      rrca
+041f:  0f                      rrca
+0420:  57                      ld      d,a
+0421:  e6 1f                   and     1fh
+0423:  a9                      xor     c
+0424:  4f                      ld      c,a
+0425:  7a                      ld      a,d
+0426:  0f                      rrca
+0427:  e6 f0                   and     0f0h
+0429:  a9                      xor     c
+042a:  4f                      ld      c,a
+042b:  7a                      ld      a,d
+042c:  e6 e0                   and     0e0h
+042e:  a8                      xor     b
+042f:  41                      ld      b,c
+0430:  4f                      ld      c,a
+0431:  fd 23                   inc     iy
+0433:  1d                      dec     e              ; dal¨¡ bajt
+0434:  20 da                   jr      nz,lab1
+0436:  c9                      ret
+; ......................................................
+                                                      ; start zavadˆ‡e syst‚mu
+0437:  3e ad           start:  ld      a,0adh         ; za‡ tek zavade‡e
+0439:  d3 10                   out     (10h),a        ; nastaven¡ v˜stupu na ©adi‡ floppy
+043b:  3e 03                   ld      a,3
+043d:  d3 40                   out     (40h),a        ; nastaven¡ re‘imu 1920 znak– na obrazovku
+043f:  21 ff ff                ld      hl,0ffffh      ; adresa konce videopamˆti
+0442:  af                      xor     a              ; nulovac¡ bajt
+0443:  01 ff 08                ld      bc,8ffh        ; d‚lka videopamˆti - 1
+0446:  77              lab2:   ld      (hl),a         ; vymaz n¡ znaku na obrazovce
+0447:  2b                      dec     hl
+0448:  0d                      dec     c
+0449:  20 fb                   jr      nz,lab2        ; vnit©n¡ ‡¡ta‡ znak–
+044b:  10 f9                   djnz    lab2           ; vnˆj¨¡ ‡¡ta‡ znak–
+044d:  11 e6 05                ld      de,dtb1        ; tisk textu ROBOTRON LOADER
+0450:  eb                      ex      de,hl          ; DE <- za‡ tek videopamˆti, HL <- text
+0451:  01 0f 00                ld      bc,0fh         ; d‚lka £vodn¡ho textu (=15)
+0454:  ed b0                   ldir                   ; p©enos £vodn¡ho textu na obrazovku
+0456:  fd 21 10 04             ld      iy,lab1        ; po‡ te‡n¡ adresa pro v˜po‡et kontroln¡ho sou‡tu
+045a:  1e ed                   ld      e,0edh         ; po‡et bajt– = 474 (=0410H a‘ 05E9H)
+045c:  0b                      dec     bc             ; po‡ te‡n¡ hodnota pro kontroln¡ sou‡et = FFFFH
+045d:  cd 10 04                call    lab1           ; kontroln¡ sou‡et 0410H a‘ 04FCH
+0460:  cd 10 04                call    lab1           ; kontroln¡ sou‡et 04FDH a‘ 05E9H
+0463:  2a fe 05                ld      hl,(ddw1)      ; p©edpokl dan˜ kontroln¡ sou‡et zavadˆ‡e
+0466:  ed 42                   sbc     hl,bc          ; kontrola kontroln¡ho sou‡tu
+0468:  28 3b                   jr      z,lab3         ; je shoda - pokra‡ov n¡ zav dˆn¡ syst‚mu
+046a:  c3 40 01                jp      140h           ; p©i chybˆ zaveden¡ z druh‚ mech.
+ ......................................................
+046d:  21 f6 07        lab7:                          ; ne£spˆ¨n‚ ‡ten¡
+                               ld      hl,7f6h        ; po‡et opakov n¡ ‡ten¡
+0470:  35                      dec     (hl)
+0471:  20 60                   jr      nz,lab8        ; dal¨¡ pokus o ‡ten¡ syst‚mu
+0473:  21 f5 05                ld      hl,dtb2        ; tisk NO READ
+0476:  11 50 f8                ld      de,0f850h      ; adresa na obrazovce
+0479:  01 07 00                ld      bc,7           ; d‚lka textu
+047c:  3e ff                   ld      a,0ffh
+047e:  d3 18                   out     (18h),a        ; zru¨en¡ v˜bˆru mechanik
+0480:  ed b0                   ldir                   ; p©enod textu na obrazovku
+0482:  18 fe           lab9:   jr      lab9           ; zablokov n¡ zavadˆ‡e
+ ......................................................
+0484:  af              lab4:   xor     a
+0485:  32 b7 04                ld      (4b7h),a       ; ‡¡slo po‡ te‡n¡ho sektoru = 0
+0488:  3c                      inc     a
+0489:  32 f6 03                ld      (3f6h),a       ; © d d‚lky sektoru ke ‡ten¡
+048c:  3e 10                   ld      a,10h
+048e:  32 bc 04                ld      (4bch),a       ; kone‡n˜ sektor = 16
+0491:  32 df 05                ld      (ddb4),a       ; kone‡n˜ sektor = 16
+0494:  3e 03                   ld      a,3
+0496:  32 c1 04                ld      (4c1h),a       ; po‡ te‡n¡ sektor ke ‡ten¡ = 3
+0499:  3e 0e                   ld      a,0eh
+049b:  32 cd 04                ld      (4cdh),a       ; d‚lka syst‚mu na stopˆ 0 = 14 sektor– po 256 B
+049e:  3e 0e                   ld      a,0eh
+04a0:  32 f2 04                ld      (4f2h),a       ; po‡et sektor– k zaveden¡ = 14
+04a3:  18 10                   jr      lab5
+ ......................................................
+
+04a5:  2a 07 04        lab3:   ld      hl,(ddw2)      ; po‡ te‡n¡ ukl dac¡ adresa syst‚mu
+04a8:  22 f0 03                ld      (3f0h),hl      ; ukl dac¡ adresa pro na‡ten¡ sektoru
+04ab:  22 fa 03                ld      (3fah),hl      ; za‡ tek dat
+04ae:  3a 03 04                ld      a,(ddb1)       ; form t diskety
+04b1:  cb 67                   bit     4,a
+04b3:  20 cf                   jr      nz,lab4        ; je disketa se sektory 256 bajt–
+04b5:  21 01 80        lab5:   ld      hl,8001h
+04b8:  22 f0 07                ld      (7f0h),hl      ; po‡ te‡n¡ ‡¡slo sektoru=01, d‚lka sektoru=128B
+04bb:  3e 1a                   ld      a,1ah
+04bd:  32 f2 07                ld      (7f2h),a       ; ‡¡slo kone‡n‚ho sektoru k zaveden¡
+04c0:  3e 05                   ld      a,5
+04c2:  32 f5 03                ld      (3f5h),a       ; po‡ te‡n¡ sektor ke ‡ten¡
+04c5:  32 f6 07                ld      (7f6h),a       ; po‡ te‡n¡ sektor ke ‡ten¡
+04c8:  2a 04 04                ld      hl,(ddw3)      ; d‚lka syst‚mu
+04cb:  01 00 0b                ld      bc,0b00h       ; d‚lka ‡ sti na stopˆ 0 = 22 sektor– po 128 B
+04ce:  ed 42                   sbc     hl,bc
+04d0:  22 04 04                ld      (ddw3),hl      ; d‚lka zbyl‚ ‡ sti syst‚mu k zaveden¡
+
+04d3:  cd 94 01        lab8:   call    194h           ; inicializace na‡ten¡ z znamu ze stopy 0
+04d6:  3e 97                   ld      a,97h
+04d8:  d3 11                   out     (11h),a        ; nastaven¡ masky p©eru¨en¡ PIO1 ©adi‡e
+04da:  3e ff                   ld      a,0ffh
+04dc:  d3 11                   out     (11h),a        ; nen¡ p©eru¨en¡ od ‘ dn‚ho bitu
+04de:  7e              lab6:   ld      a,(hl)         ; p©¡znak proveden¡ operace na‡ten¡ z znamu
+04df:  b7                      or      a
+04e0:  28 fc                   jr      z,lab6         ; ‡ek n¡ na zaveden¡ sektor– ze stopu 0
+04e2:  3d                      dec     a
+04e3:  3e ad                   ld      a,0adh
+04e5:  d3 10                   out     (10h),a
+04e7:  28 84                   jr      z,lab7         ; ne£spˆ¨n‚ ‡ten¡ - probˆhly v¨echny indexy
+04e9:  21 00 07                ld      hl,700h        ; kontroln¡ sou‡et sektoru
+04ec:  3a f3 03                ld      a,(3f3h)       ; v lec pro ‡ten¡ sektoru
+04ef:  fe 00                   cp      0              ; byl v lec 0 ?
+04f1:  3e 16                   ld      a,16h          ; po‡et sektor– k zaveden¡ dal¨¡ stopy
+04f3:  28 03                   jr      z,lab10        ; byl v lec 0
+04f5:  3a f2 07                ld      a,(7f2h)       ; ‡¡slo kone‡n‚ho sektoru - z–st v  stejn‚
+04f8:  fd 2a f0 03     lab10:  ld      iy,(3f0h)      ; ukl dac¡ adresa pro na‡ten¡ sektoru
+04fc:  08              lab14:  ex      af,af'
+04fd:  ed 5b f0 07             ld      de,(7f0h)      ; ‡¡slo po‡ te‡n¡ho sektoru/d‚lka sektoru
+0501:  3a fd 03                ld      a,(3fdh)       ; ©¡d¡c¡ slovo ©adi‡e floppy
+0504:  01 84 bf                ld      bc,0bf84h      ; v˜choz¡ kontroln¡ sou‡et 1
+0507:  cb 4f                   bit     1,a            ; byla zna‡ka /MK ?
+0509:  20 03                   jr      nz,lab11       ; nebyla
+050b:  01 95 e2                ld      bc,0e295h      ; v˜choz¡ kontorln¡ sou‡et 2
+050e:  7b              lab11:  ld      a,e            ; ‡¡slo ‡ten‚ho sektoru
+050f:  5a                      ld      e,d            ; d‚lka sektoru - po‡et bajt–
+0510:  f5              lab12:  push    af
+0511:  cd 10 04                call    lab1           ; kontroln¡ sou‡et jednoho sektoru
+0514:  f1                      pop     af
+0515:  3d                      dec     a              ; ‡¡ta‡ na‡ten˜ch sektor–
+0516:  20 f8                   jr      nz,lab12       ; dal¨¡ sektor
+0518:  7e                      ld      a,(hl)         ; ni‘¨¡ bajt kontroln¡ho sou‡tu
+0519:  b8                      cp      b              ; kontrola s vypo‡ten˜m kontroln¡m sou‡tem
+051a:  c2 6d 04        lab13:  jp      nz,lab7        ; ne£spˆ¨n‚ ‡ten¡
+051d:  23                      inc     hl             ; vy¨¨¡ bajt kontroln¡ho sou‡tu
+051e:  7e                      ld      a,(hl)
+051f:  b9                      cp      c              ; kontrola kontroln¡ho sou‡tu
+0520:  20 f8                   jr      nz,lab13       ; chyba kontroln¡ho sou‡tu
+0522:  08                      ex      af,af'         ; po‡et sektor– k zaveden¡ ze stopy
+0523:  3d                      dec     a              ; dal¨¡ sektor
+0524:  23                      inc     hl
+0525:  20 d5                   jr      nz,lab14       ; kontrola dal¨¡ho sektoru
+0527:  fd 22 f0 03             ld      (3f0h),iy      ; ukl dac¡ adresa konce po zaveden¡
+052b:  21 f3 03                ld      hl,3f3h
+052e:  34                      inc     (hl)           ; zv˜¨en¡ ukazatele v lce
+052f:  3e 01                   ld      a,1
+0531:  be                      cp      (hl)           ; je v lec 1 ?
+0532:  28 09                   jr      z,lab15        ; je v lec 1 - dal¨¡ zaveden¡ syst‚mu
+0534:  2a fc 07                ld      hl,(7fch)      ;
+0537:  ed 4b f2 07             ld      bc,(7f2h)      ; ‡¡slo kone‡n‚ho sektoru
+053b:  18 4b                   jr      lab25
+ ......................................................
+053d:  3a 03 04        lab15:  ld      a,(ddb1)       ; form t diskety
+0540:  d3 12                   out     (12h),a        ; v˜stup na ©adi‡ - kan l B PIO1 - bit 3 nastaven¡ stopy
+0542:  47                      ld      b,a            ; form t diskety
+0543:  2a 04 04                ld      hl,(ddw3)      ; d‚lka zbyl‚ ‡ sti syst‚mu
+0546:  cb 57                   bit     2,a
+0548:  3e 85                   ld      a,85h          ; v˜stup na ©adi‡ floppy - zna‡ka /MK1
+054a:  1e de                   ld      e,0deh
+054c:  20 05                   jr      nz,lab16
+054e:  1e e2                   ld      e,0e2h
+0550:  32 fd 03                ld      (3fdh),a       ; ©¡d¡c¡ slovo ©adi‡e floppy
+0553:  78              lab16:  ld      a,b
+0554:  e6 03                   and     3
+0556:  57                      ld      d,a
+0557:  06 00                   ld      b,0
+0559:  4a                      ld      c,d
+055a:  28 53                   jr      z,lab17
+055c:  cb 1f                   rr      a
+055e:  28 12                   jr      z,lab19
+0560:  3e b2                   ld      a,0b2h
+0562:  32 3d 02                ld      (23dh),a       ; instrukce INIR
+0565:  30 09                   jr      nc,lab24       ; je form t 512 bajt–/sektor
+                                                      ; je 1024 bajt– na sektor
+0567:  cb 3c                   srl     h              ;
+0569:  0c                      inc     c              ; po‡ te‡n¡ sektor
+056a:  32 3f 02                ld      (23fh),a       ; instrukce INIR
+056d:  32 41 02                ld      (241h),a       ; instrukce INIR
+0570:  cb 3c           lab24:  srl     h
+0572:  ed 43 f0 07     lab19:  ld      (7f0h),bc      ; po‡ te‡n¡ ‡¡slo sektoru, d‚lka sektoru
+0576:  01 01 00                ld      bc,1           ; C=po‡ te‡n¡ sektor ke ‡ten¡
+0579:  7b                      ld      a,e
+057a:  59                      ld      e,c            ; po‡ te‡n¡ sektor ke ‡ten¡
+057b:  ed 53 f5 03             ld      (3f5h),de      ; po‡ te‡n¡ sektor, © d d‚lky sektoru
+057f:  82                      add     a,d
+0580:  16 05                   ld      d,5
+0582:  5f                      ld      e,a
+0583:  1a                      ld      a,(de)
+0584:  4f                      ld      c,a
+0585:  7c                      ld      a,h
+0586:  65                      ld      h,l
+0587:  6f                      ld      l,a
+0588:  af              lab25:  xor     a
+0589:  55                      ld      d,l
+058a:  ed 42                   sbc     hl,bc
+058c:  22 fc 07                ld      (7fch),hl
+058f:  38 2a                   jr      c,lab20
+0591:  79                      ld      a,c
+0592:  18 2d                   jr      lab23
+ ......................................................
+                                                      ; skok do opera‡n¡ho syst‚mu
+0594:  2a 71 02        lab21:  ld      hl,(271h)      ; verze zav dˆc¡ ROM
+0597:  3e 03                   ld      a,3
+0599:  d3 11                   out     (11h),a        ; z kaz p©eru¨en¡
+059b:  af                      xor     a
+059c:  3d                      dec     a
+059d:  d3 10                   out     (10h),a
+059f:  d3 18                   out     (18h),a
+05a1:  01 da 1e                ld      bc,1edah       ; kontrola verze zav dˆc¡ ROM
+05a4:  ed 42                   sbc     hl,bc
+05a6:  c0                      ret     nz             ; nen¡ shoda verze ROM - n vrat do ROM
+05a7:  2a 07 04                ld      hl,(ddw2)      ; ukl dac¡ adresa
+05aa:  01 00 16                ld      bc,1600h       ; d‚lka ‡ sti BDOS
+05ad:  09                      add     hl,bc          ; adresa za‡ tku modulu BIOS
+05ae:  e9                      jp      (hl)           ; skok do modulu BIOS
+ ......................................................
+05af:  cb 24           lab17:  sla     h
+05b1:  cb 15                   rl      l
+05b3:  30 01                   jr      nc,lab18
+05b5:  24                      inc     h
+05b6:  06 80           lab18:  ld      b,80h
+05b8:  0c                      inc     c
+05b9:  18 b7                   jr      lab19
+ ......................................................
+05bb:  3e 57           lab20:  ld      a,57h
+05bd:  32 3c 05                ld      (53ch),a
+05c0:  7a                      ld      a,d
+05c1:  b7              lab23:  or      a
+05c2:  28 d0                   jr      z,lab21
+05c4:  32 f2 07                ld      (7f2h),a       ; po‡et sektor–
+05c7:  3e 07                   ld      a,7
+05c9:  32 f6 07                ld      (7f6h),a       ; po‡et opakov n¡ ‡ten¡
+05cc:  3e 2d                   ld      a,2dh
+05ce:  d3 10                   out     (10h),a
+05d0:  3e ad                   ld      a,0adh
+05d2:  d3 10                   out     (10h),a
+05d4:  06 28                   ld      b,28h          ; doba prodlevy
+05d6:  0d              lab22:  dec     c
+05d7:  20 fd                   jr      nz,lab22       ; vnit©n¡ cyklus prodlevy
+05d9:  10 fb                   djnz    lab22          ; vnˆj¨¡ cyklus prodlevy
+05db:  c3 d3 04                jp      lab8           ; dal¨¡ stopa k na‡ten¡
+ ......................................................
+05de:                          db      1ah
+05df:                  ddb4:   db      0fh            ; kone‡n˜ sektor ke ‡ten¡
+05e0:                          db      8,4,2ch,1ah,0fh,8
+05e6:                  dtb1:   db      "ROBOTRON LOADER"   ; £vodn¡ text
+05f5:                  dtb2:   db      "NO READ"           ; text p©i chybˆ zav dˆn¡ syst‚mu
+05fc:                          db      0,0
+05fe:                  ddw1:   dw      41f3h          ; kontroln¡ sou‡et zavadˆ‡e syst‚mu
+

@@ -1,0 +1,913 @@
+                                    D O S
+                            (c) Miroslav Nìmeèek
+
+                  T a b u l k a   o d d í l ù   d i s k u
+    Struktura hlavního zavádìcího sektoru:
++------------+------------+-----------------------------------------------+
+|   offset   |  velikost  |                     obsah                     |
++------------+------------+-----------------------------------------------+
+| 000H (  0) | 1BEH (446) | kód programu, kterı zavede a spustí zavádìcí  |
+|            |            | sektor z aktivního oddílu disku               |
+| 1BEH (446) |  10H ( 16) | poloka oddílu 1                              |
+| 1CEH (462) |  10H ( 16) | poloka oddílu 2                              |
+| 1DEH (478) |  10H ( 16) | poloka oddílu 3                              |
+| 1EEH (494) |  10H ( 16) | poloka oddílu 4                              |
+| 1FEH (510) |  02H (  2) | oznaèení tabulky oddílù disku (AA55H)         |
++------------+------------+-----------------------------------------------+
+
+    Struktura poloky jednoho oddílu:
++------------+------------+-----------------------------------------------+
+|   offset   |  velikost  |                     obsah                     |
++------------+------------+-----------------------------------------------+
+|  00H ( 0)  |     1      | zavádìcí pøíznak: 0=neaktivní, 80H=aktivní    |
+|  01H ( 1)  |     1      | zaèátek oddílu - èíslo hlavy                  |
+|  02H ( 2)  |     2      | zaèátek oddílu - sektor a válec zavád. sektoru|
+|  04H ( 4)  |     1      | kód systému: 0=neznámı, 1=FAT 12b, 4=FAT 16b  |
+|  05H ( 5)  |     1      | konec oddílu - èíslo hlavy                    |
+|  06H ( 6)  |     2      | konec oddílu - sektor a válec posledního sekt.|
+|  08H ( 8)  |     4      | èíslo poèáteèního relativního sektoru         |
+|  0CH (12)  |     4      | velikost (celkovı poèet sektorù)              |
++------------+------------+-----------------------------------------------+
+        ( èíslo_válce * poèet_sektorù_na_stopu * poèet_hlav )
+     +  ( èíslo_hlavy * poèet_sektorù_na_stopu )
+     +  ( èíslo_sektoru - 1 )
+     --------------------------------------------------------
+     =  èíslo_relativního_sektoru
+
+    Jednotlivé  oddíly  zaèínají  vdy  na  sudém èísle válce kromì prvního
+oddílu,  kterı  mùe  zaèínat  na  válci 0, hlavì 0, sektoru 2 (sektor 1 je
+obsazen hlavním zavádìcím sektorem).
+
+    Kdy  zavádìcí  sektor  oddílu  pøejímá  øízení, ukazuje registrovı pár
+DS:SI na poloku tohoto oddílu v tabulce oddílù disku.
+
+
+                 Z a v á d ì c í   s e k t o r   d i s k u
+ Struktura:
++----------+----------+---------------------------------------------------+
+|  offset  | velikost |                     obsah                         |
++----------+----------+---------------------------------------------------+
+| 00H ( 0) |    3     | instrukce skoku na zaèátek programu zavadìèe      |
+| 03H ( 3) |    8     | identifikaèní jméno a verze (napø. "IBM  3.2")    |
+| 0BH (11) |    2     | poèet bajtù na sektor                             |
+| 0DH (13) |    1     | poèet sektorù na alokaèní blok                    |
+| 0EH (14) |    2     | poèet rezervovanıch sektorù (sektory pøed FAT)    |
+| 10H (16) |    1     | poèet tabulek FAT                                 |
+| 11H (17) |    2     | poèet poloek základního (koøenného) adresáøe     |
+| 13H (19) |    2     | celkovı poèet sektorù na médiu (resp. oddílu DOS) |
+| 15H (21) |    1     | popisovaè média (stejná hodnota jako 1. bajt FAT) |
+| 16H (22) |    2     | poèet sektorù jedné tabulky FAT                   |
+| 18H (24) |    2     | poèet sektorù na stopu                            |
+| 1AH (26) |    2     | poèet ètecích/zápisovıch hlav (= povrchù disku)   |
+| 1CH (28) |    2     | poèet skrytıch sektorù                            |
++----------+----------+---------------------------------------------------+
+Popisovaè média:
++----------+--------------------------------------------------------------+
+|  hodnota |         typ média - definováno jako v DOS 3.2                |
++----------+--------------------------------------------------------------+
+|   F8H    |  pevnı disk                                                  |
+|   F9H    |  disketa 5 1/4" HD, 2 strany, 15 sektorù na stopu            |
+|   FCH    |  disketa 5 1/4" DD, 1 strana, 9 sektorù na stopu             |
+|   FDH    |  disketa 5 1/4" DD, 2 strany, 9 sektorù na stopu             |
+|          |  disketa 8" (formát IBM 3740) SD, 2 strany, 26 sekt./stopu   |
+|   FEH    |  disketa 5 1/4" DD, 1 strana, 8 sektorù na stopu             |
+|          |  disketa 8" (formát IBM 3740) SD, 1 strana, 26 sekt./stopu   |
+|          |  disketa 8" DD, 2 strany, 26 sekt./stopu                     |
+|   FFH    |  disketa 5 1/4" DD, 2 strany, 8 sektorù na stopu             |
++----------+--------------------------------------------------------------+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: 1=2 strany; 0=nejsou 2 strany
+                   | +---> 1: 1=8 sektorù; 0=není 8 sektorù
+         1 1 1 1 1 +-----> 2: 1=vyjímatelnı; 0=není vyjímatelnı
+
+
+                          T a b u l k a   F A T
+         - (0)000H .................. volnı alokaèní blok
+         - (F)FF0H a (F)FF7H ....... rezervované alokaèní bloky
+         - (F)FF7H .................. vadnı blok (obsahuje vadnı sektor)
+         - (F)FF8H a (F)FFFH ....... konec alokaèního øetìzce souboru
+         - (0)002H a (F)FEFH ....... èíslo bloku následující v øetìzci
+
+                    A d r e s á ø o v á   p o l o  k a
+      +----------+-------+-------------------------------------------+
+      |  offset  | délka |         název                             |
+      +----------+-------+-------------------------------------------+
+      | 00H ( 0) |   8   | jméno souboru                             |
+      | 08H ( 8) |   3   | rozšíøení jména souboru                   |
+      | 0BH (11) |   1   | atributy souboru                          |
+      | 0CH (12) |  10   | rezervováno                               |
+      | 16H (22) |   2   | èas posledního zápisu                     |
+      | 18H (24) |   2   | datum posledního zápisu                   |
+      | 1AH (26) |   2   | poèáteèní alokaèní blok dat souboru       |
+      | 1CH (28) |   4   | velikost souboru                          |
+      +----------+-------+-------------------------------------------+
+    - Atributy souboru udávají bliší údaje o souboru:
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0 (  1): pouze ètení souboru (Read-only "R/O")
+         | | | | | | +---> 1 (  2): skrytı soubor (Hidden "HID")
+         | | | | | +-----> 2 (  4): systémovı soubor (System "SYS")
+         | | | | +-------> 3 (  8): návìští disku (Volume Label "VOL")
+         | | | +---------> 4 ( 16): podadresáø (Directory "DIR")
+         | | +-----------> 5 ( 32): archivní soubor (Archive "ARC")
+         | +-------------> 6 ( 64): rezervováno (musí bıt nastaven na 0)
+         +---------------> 7 (128): rezervováno (musí bıt nastaven na 0)
+    - Èas  posledního  záznamu:
+       vyšší bajt (relat. adresa 17H):     niší bajt (relat. adresa 16H):
+       15  14  13  12  11  10   9   8       7   6   5   4   3   2   1   0
+      +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+
+      | H | H | H | H | H | M | M | M |   | M | M | M | S | S | S | S | S |
+      +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+
+       +- hodina (0-23) -+ +----- minuta (0-59) -----+ +- sekunda (0-29) +
+                                                      (údaj se vynásobí 2*)
+    - Datum posledního záznamu:
+       vyšší bajt (relat. adresa 15H):     niší bajt (relat. adresa 14H):
+       15  14  13  12  11  10   9   8       7   6   5   4   3   2   1   0
+      +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+
+      | R | R | R | R | R | R | R | M |   | M | M | M | D | D | D | D | D |
+      +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+
+       +------ rok (0-119) ------+ +-- mìsíc (1-12) -+ +--- den (1-31) --+
+    (k údaji se pøiète 1980, tj. 1980 a 2099)
+
+
+
+
+
+
+    P r e f i x   p r o g r a m o v é h o   s e g m e n t u   ( P S P )
+    Prefix programového segmentu má následující strukturu:
++--------+-------+--------------------------------------------------------+
+| offset | délka |             popis                                      |
++--------+-------+--------------------------------------------------------+
+|   00H  |   2   | instrukce INT 20H - ukonèení programu (viz popis)      |
++--------+-------+--------------------------------------------------------+
+|   02H  |   2   | vrchol  pamìti  (adresa  segmentu  vrcholu  alokèaního |
+|        |       | bloku pamìti programu)                                 |
++--------+-------+--------------------------------------------------------+
+|   04H  |   1   | rezervováno                                            |
++--------+-------+--------------------------------------------------------+
+|   05H  |   1   | instrukce INT 21H - vyvolání funkce DOS (viz popis)    |
++--------+-------+--------------------------------------------------------+
+|   06H  |   2   | volná pamì - poèet volnıch bajtù v segmentu (pro COM) |
++--------+-------+--------------------------------------------------------+
+|   08H  |   2   | rezervováno                                            |
++--------+-------+--------------------------------------------------------+
+|   0AH  |   4   | adresa  ukonèení  programu  (IP,CS).  Obsahuje pùvodní |
+|        |       | adresu   obsluhy   pøerušení   pro  ukonèení  programu |
+|        |       | (INT·22H).  Adresa  INT·22H  mùe  bıt  zmìnìna  podle |
+|        |       | poadavkù   uivatelského   programu.   Pøi   ukonèení |
+|        |       | programu DOS navrátí pomocí této poloky pùvodní obsah |
+|        |       | vektoru INT·22H.                                       |
++--------+-------+--------------------------------------------------------+
+|   0EH  |   4   | adresa  obsluhy uivatelského pøerušení <Ctrl>-<Break> |
+|        |       | (<Ctrl>-C)  (IP,CS).  Uivatelskı program mùe obsluhu |
+|        |       | uivatelského   pøerušení   <Ctrl>-<Break>  (<Ctrl>-C) |
+|        |       | (INT·23H)   zmìnit  podle  svıch  poadavkù.  DOS  pøi |
+|        |       | ukonèení   programu   navrátí  pùvodní  obsah  vektoru |
+|        |       | INT·23H z této poloky.                                |
++--------+-------+--------------------------------------------------------+
+|   12H  |   4   | adresa   obsluhy  kritickıch  chyb  (IP,CS).  Obsahuje |
+|        |       | pùvodní  adresu  obsluhy  kritickıch  chyb  (INT·24H). |
+|        |       | Adresa   INT·24H  mùe  bıt  zmìnìna  podle  poadavkù |
+|        |       | uivatelského  programu.  Pøi  ukonèení  programu  DOS |
+|        |       | navrátí  pomocí  této  poloky  pùvodní  obsah vektoru |
+|        |       | INT·24H.                                               |
++--------+-------+--------------------------------------------------------+
+|   16H  |   22  | rezervováno                                            |
++--------+-------+--------------------------------------------------------+
+|   2CH  |    2  | prostøedí - adresa segmentu prostøedí DOS              |
++--------+-------+--------------------------------------------------------+
+|   2EH  |   46  | rezervováno                                            |
++--------+-------+--------------------------------------------------------+
+|   5CH  |   16  | neotevøenı  standardní øídící blok souboru FCB1 (první |
+|        |       | parametr pøíkazového øádku - nastaveno po startu)      |
++--------+-------+--------------------------------------------------------+
+|   6CH  |   20  | neotevøenı  standardní øídící blok souboru FCB2 (druhı |
+|        |       | parametr pøíkazového øádku - nastaveno po startu)      |
++--------+-------+--------------------------------------------------------+
+|   80H  |    1  | délka parametru - poèet bajtù parametru pøíkaz. øádku; |
+|        |       | souèasnì té implicitní adresa diskovıch pøenosù DTA   |
++--------+-------+--------------------------------------------------------+
+|   81H  |  127  | parametr   pøíkazového  øádku  (zbytek  za  pøíkazem). |
+|        |       | Pouívá se té jako standardní DTA (adresa 80H)        |
++--------+-------+--------------------------------------------------------+
+
+
+             Ø í d í c í   b l o k   s o u b o r u   ( F C B )
+    Struktura rozšíøeného øídícího bloku souboru FCBE:
++----------+-----+------------------------+-------------------+----------+
+|  offset  |délka|         název          |    inic. na       | nastaví  |
++----------+-----+------------------------+-------------------+----------+
+|-07H (-7) |  1  | identifikátor FCBE     | FFH (255)         | uivatel |
+|-06H (-6) |  5  | rezervováno            | musí bıt nuly     | uivatel |
+|-01H (-1) |  1  | bajt atributù          | atribut souboru   | uivatel |
+| 00H ( 0) |  1  | kód diskové jednotky   | specifikace disku | uivatel |
+| 01H ( 1) |  8  | jméno souboru          | jméno souboru     | uivatel |
+| 09H ( 9) |  3  | rozšíøení jména souboru| typ souboru       | uivatel |
+| 0CH (12) |  2  | aktuální blok          | 00H (0)           | DOS      |
+| 0EH (14) |  2  | délka jednoho záznamu  | 80H (128)         | DOS      |
+| 10H (16) |  4  | velikost souboru       | hodn. z adresáøe  | DOS      |
+| 14H (20) |  2  | datum posledního zápisu| hodn. z adresáøe  | DOS      |
+| 16H (22) |  2  | èas posledního zápisu  | hodn. z adresáøe  | DOS      |
+| 18H (24) |  8  | rezervováno            |                   |          |
+| 20H (32) |  1  | aktuální záznam        | podle funkce      | uivatel |
+| 21H (33) |  4  | relativní záznam       | podle funkce      | uivatel |
++----------+-----+------------------------+-------------------+----------+
+
+
+     S t a n d a r d n í   i d e n t i f i k á t o r y   s o u b o r ù
+ +-----------------+-------------------------------------+---------------+
+ |   standardní    |                                     |               |
+ |  identifikátor  |               název                 |   oznaèení    |
+ |     souboru     |                                     |               |
+ +-----------------+-------------------------------------+---------------+
+ |        0        |   standardní vstupní zaøízení       |    Stdin      |
+ |        1        |   standardní vıstupní zaøízení      |    Stdout     |
+ |        2        |   standardní chybové zaøízení       |    Stderr     |
+ |        3        |   standardní doplòkové zaøízení     |    Stdaux     |
+ |        4        |   standardní tiskové zaøízení       |    Stdprn     |
+ +-----------------+-------------------------------------+---------------+
+
+
+                         P r o s t ø e d í   D O S
+  +-----------------------+----------------------------------------------+
+  | tvar zápisu:          |    pøíklad pouití v mnemotechnice ASM:      |
+  +-----------------------+----------------------------------------------+
+  | jméno_1=hodnota_1(0)  |  db   'COMSPEC=c:\command.com',0             |
+  | jméno_2=hodnota_2(0)  |  db   'PROMPT=$P$G',0                        |
+  |        :              |  db   'WP=c:\wordproc',0                     |
+  | jméno_N=hodnota_N(0)  |  db   'PATH=d:\;c:\dos;c:\utility',0         |
+  | (0)                   |  db   0                                      |
+  +------------- Pro DOS 3.0 a vyšší: -----------------------------------+
+  | (xxxx)                |  dw   1                                      |
+  | øetìzec_EXEC_1(0)     |  db   'C:\ACCTNG\AR001.EXE',0                |
+  |      :                |  db   0                                      |
+  | øetìzec_EXEC_NN(0)    |                                              |
+  | (0)                   |                                              |
+  +-----------------------+----------------------------------------------+
+Umístìní zavádìcí cesty:
+    Následujícím   za  posledním  øetìzcem  ASCIIZ  prostøedí  je  bajt  0,
+indikující  konec  formálního  prostøedí. Následující dva bajty pøedstavují
+16-bitovı  èítaè  pøídavnıch  øetìzcù  (tato hodnota je normálnì 0001H). Za
+touto  binární  hodnotou  mùete nalézt øetìzec ASCIIZ specifikace souboru,
+kterı byl pouit funkcí DOS 4BH (EXEC) k naètení a odstartování programu.
+
+
+       I n s t a l o v a t e l n é   d r i v e r y   z a ø í z e n í
+Záhlaví zaøízení:
++----------+-----------+----------------------------------------------+
+|  offset: | velikost: |                   popis:                     |
++----------+-----------+----------------------------------------------+
+| 00H ( 0) |    4      | adresa FAR následujícího zaøízení v øetìzci  |
+| 04H ( 4) |    2      | atributy zaøízení                            |
+| 06H ( 6) |    2      | offsetová adresa rutiny strategie            |
+| 08H ( 8) |    2      | offsetová adresa rutiny pøerušení            |
+| 0AH (10) |    8      | jméno zaøízení                               |
++----------+-----------+----------------------------------------------+
+- Atributy zaøízení: Slovo atributù zaøízení indikuje vlastnosti zaøízení.
+ +------+----------------------------------------------------------------+
+ |  bit |                        vıznam                                  |
+ +------+----------------------------------------------------------------+
+ |   0  | 1 = standardní vstupní zaøízení (stdin)                        |
+ |   1  | 1 = standardní vıstupní zaøízení (stdout)                      |
+ |   2  | 1 = standardní nulové zaøízení (NUL:)                          |
+ |   3  | 1 = hodinové zaøízení (CLOCK)                                  |
+ |  4,5 |   rezervováno (musí bıt 0)                                     |
+ |   6  | 1 = podporuje logická zaøízení                                 |
+ | 7-10 |   rezervováno (musí bıt 0)                                     |
+ |  11  | 1 = podporuje otevøení/uzavøení/vımìnu média                   |
+ |  12  |   rezervováno (musí bıt 0)                                     |
+ |  13  | 1 = je zaøízení s formátem NON-IBM (tj. nemá formát disku IBM) |
+ |  14  | 1 = podporuje øízení zaøízení pøes kanál IOCTL (funkce 44H)    |
+ |  15  | 1 = je znakové zaøízení; 0 = je blokové zaøízení               |
+ +------+----------------------------------------------------------------+
+Záhlaví poadavku:
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |    1     | délka tohoto poadavku (záhlaví a data)      |
+  | 01H ( 1) |    1     | èíslo jednotky (pouito pouze pro blok. zaø.)|
+  | 02H ( 2) |    1     | kód povelu (00H-18H) specifikující poad.akci|
+  | 03H ( 3) |    2     | stavové slovo zaøízení (nastavuje driver)    |
+  | 05H ( 5) |    8     | rezervováno                                  |
+  +----------+----------+----------------------------------------------+
+- Kód povelu:
+  +------------+-----------------------------------------------+---------+
+  | kód povelu | vıznam                                        | pouití |
+  +------------+-----------------------------------------------+---------+
+  |  00H ( 0)  | inicializace zaøízení                         |   Z,B   |
+  |  01H ( 1)  | kontrola média                                |    B    |
+  |  02H ( 2)  | vystavìní bloku parametrù BIOS (BPB)          |    B    |
+  |  03H ( 3)  | vstup kanálu pro ovládání zaøízení (IOCTL)    |  Z,B,I  |
+  |  04H ( 4)  | vstup (ètení ze zaøízení)                     |   Z,B   |
+  |  05H ( 5)  | nedestruktivní vstup                          |    Z    |
+  |  06H ( 6)  | statut vstupu                                 |    Z    |
+  |  07H ( 7)  | vyprázdnìní vstupu                            |    Z    |
+  |  08H ( 8)  | vıstup (zápis na zaøízení)                    |   Z,B   |
+  |  09H ( 9)  | vıstup s verifikací                           |   Z,B   |
+  |  0AH (10)  | statut vıstupu                                |    Z    |
+  |  0BH (11)  | vyprázdnìní vıstupu                           |    Z    |
+  |  0CH (12)  | vıstup z kanálu pro ovládání zaøízení (IOCTL) |  Z,B,I  |
+  |  0DH (13)  | otevøení zaøízení               (DOS > 3.0)   |  Z,B,R  |
+  |  0EH (14)  | uzavøení zaøízení               (DOS > 3.0)   |  Z,B,R  |
+  |  0FH (15)  | vımìna média                    (DOS > 3.0)   |   B,R   |
+  |  13H (19)  | generování poadavku IOCTL      (DOS > 3.2)   |    I    |
+  |  17H (23)  | poskytnutí logického zaøízení   (DOS > 3.2)   |   Z,B   |
+  |  18H (24)  | nastavení logického zaøízení    (DOS > 3.2)   |   Z,B   |
+  +------------+-----------------------------------------------+---------+
+    Kódy pouití: Z = driver znakového zaøízení
+                  B = blokové zaøízení (pøedevším diskové drivery)
+                  I = musí podporovat øídící kanál zaøízení IOCTL
+                  R = musí podporovat otevøení/uzavøení/vımìnu média
+
+- Stavové slovo zaøízení:
+ +------+----------------------------------------------------------------+
+ |  bit |                        vıznam                                  |
+ +------+----------------------------------------------------------------+
+ |  0-7 | chybovı kód (viz následující tabulka)                          |
+ |   8  | 1 = akce provedena (po návratu z driveru vdy nastaven)        |
+ |   9  | 1 = zaneprázdnìn (pouze povely 06H a 0AH)                      |
+ | 10-14| rezervováno                                                    |
+ |  15  | 1 = nastala chyba                                              |
+ +------+----------------------------------------------------------------+
+     - Chybovı  kód
+          +-------------+-------------------------------------------+
+          | chybovı kód |                  vıznam                   |
+          +-------------+-------------------------------------------+
+          |  00H ( 0)   |    porušení ochrany zápisu                |
+          |  01H ( 1)   |    neznámá jednotka                       |
+          |  02H ( 2)   |    zaøízení není pøipraveno               |
+          |  03H ( 3)   |    neznámı povel                          |
+          |  04H ( 4)   |    chyba kontrolního souètu (CRC)         |
+          |  05H ( 5)   |    špatná délka struktury poadavku       |
+          |  06H ( 6)   |    chyba vystavení                        |
+          |  07H ( 7)   |    neznámé médium                         |
+          |  08H ( 8)   |    sektor nenalezen                       |
+          |  09H ( 9)   |    v tiskárnì není papír                  |
+          |  0AH (10)   |    chyba zápisu                           |
+          |  0BH (11)   |    chyba ètení                            |
+          |  0CH (12)   |    všeobecná chyba                        |
+          |  0DH (13)   |    (rezervováno)                          |
+          |  0EH (14)   |    (rezervováno)                          |
+          |  0FH (15)   |    neplatná vımìna disku (DOS > 3.0)      |
+          +-------------+-------------------------------------------+
+- Inicializace zaøízení (kód povelu 0):
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |   13     | záhlaví poadavku                            |
+  | 0DH (13) |    1     | vıstup: poèet jednotek definovanıch tímto    |
+  |          |          |         driverem (bloková zaøízení)          |
+  | 0EH (14) |    4     | vıstup: koneèná adresa rezidentního kódu     |
+  | 12H (18) |    4     | vstup:  adresa øetìzce ASCIIZ z CONFIG.SYS   |
+  |          |          | vıstup: adresa bloku parametrù BIOS (BPB)    |
+  |          |          |         pro zaøízení (bloková zaøízení)      |
+  | 16H (22) |    1     | èíslo disku (0=A, 1=B atd.) (DOS > 3.0)      |
+  +----------+----------+----------------------------------------------+
+- Kontrola média (kód povelu 1): Driver urèí, zda bylo médium vymìnìno.
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |   13     | záhlaví poadavku                            |
+  | 0DH (13) |    1     | vstup:  bajt popisovaèe média (DOS testuje,  |
+  |          |          |         zda byl zmìnìn)                      |
+  | 0EH (14) |    1     | vıstup: FFH = médium bylo vymìnìno           |
+  |          |          |         01H = médium je nezmìnìné            |
+  |          |          |         00H = není známé, zda bylo vymìnìno  |
+  | 0FH (15) |    4     | vıstup: adresa øetìzce ASCIIZ pøedchozího    |
+  | 16H (22) |    1     |         identifikaèního návìští (pokud bylo  |
+  |          |          |         médium vymìnìno a je podporováno     |
+  |          |          |         rozpoznání vımìny média              |
+  +----------+----------+----------------------------------------------+
+- Vystavìní bloku parametrù BIOS (kód povelu 02H):
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |   13     | záhlaví poadavku                            |
+  | 0DH (13) |    1     | vstup:  bajt popisovaèe média                |
+  | 0EH (14) |    4     | vstup:  adresa bufferu (FAT sektor 0)        |
+  | 12H (18) |    4     | vıstup: adresa bloku parametrù BIOS (BPB)    |
+  |          |          |         pro zaøízení (bloková zaøízení-disk) |
+  +----------+----------+----------------------------------------------+
+    Blok parametrù BIOS (BPB - délka 13 bajtù):
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |    2     | bajtù na sektor                              |
+  | 02H ( 2) |    1     | sektorù na alokaèní blok (cluster)           |
+  | 03H ( 3) |    2     | zavádìcí a rezervované sektory               |
+  | 05H ( 5) |    1     | poèet alokaèních tabulek souborù (FAT)       |
+  | 06H ( 6) |    2     | maximální poèet poloek adresáøe v zákl. adr.|
+  | 08H ( 8) |    2     | celkovı poèet sektorù na médiu (v oddìl.DOS) |
+  | 0AH (10) |    1     | popisovaè média (=1.bajt FAT)                |
+  | 0BH (11) |    2     | poèet sektorù v jedné alokaèní tab.soub.(FAT)|
+  +----------+----------+----------------------------------------------+
+- Vstup, vıstup (povely 03H, 04H, 08H, 09H, 0CH):
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |   13     | záhlaví poadavku                            |
+  | 0DH (13) |    1     | vstup:  bajt popisovaèe média                |
+  | 0EH (14) |    4     | vstup:  adresa bufferu pro pøenos dat (DTA)  |
+  | 12H (18) |    2     | vstup:  poèet bajtù (pro blokové zaøízení    |
+  |          |          |         poèet sektorù)                       |
+  | 14H (20) |    2     | vstup:  èíslo poèáteèního sektoru (pouze pro |
+  |          |          |         bloková zaøízení)                    |
+  | 16H (22) |    4     | vıstup: adresa øetìzce ASCIIZ identifikaèního|
+  |          |          |         návìští disku (pokud navrátí chybu   |
+  |          |          |         zaøízení 0FH - neplatná vımìna)      |
+  +----------+----------+----------------------------------------------+
+- Nedestruktivní ètení (kód povelu 05H):
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |   13     | záhlaví poadavku                            |
+  | 0DH (13) |    1     | vıstup: hodnota bajtu, kterı je pøipraven    |
+  |          |          |         v øetìzci jako pøíští                |
+  +----------+----------+----------------------------------------------+
+- Generování poadavku IOCTL (kód 13H):
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |   13     | záhlaví poadavku                            |
+  | 0DH (13) |    1     | vstup:  èíslo funkce                         |
+  | 0EH (14) |    1     | vstup:  èíslo podfunkce                      |
+  | 0FH (15) |    2     | vstup:  hodnota v SI ve funkci DOS 44H       |
+  | 11H (17) |    4     | vstup:  hodnota pøedávaná v DI               |
+  | 15H (21) |    4     | vstup:  adresa balíku dat IOCTL              |
+  +----------+----------+----------------------------------------------+
+- Poskytnutí/nastavení logického zaøízení (kódy povelù 17H a 18H):
+  +----------+----------+----------------------------------------------+
+  |  offset  | velikost |                  popis                       |
+  +----------+----------+----------------------------------------------+
+  | 00H ( 0) |   13     | záhlaví poadavku                            |
+  | 0DH (13) |    1     | vstup:  kód jednotky                         |
+  |          |          | vıstup: poslední vztané zaøízení            |
+  | 0EH (14) |    1     | vstup:  kód povelu                           |
+  | 0FH (15) |    2     | statut (nedokumentováno)                     |
+  | 11H (17) |    4     | adresa (rezervováno)                         |
+  +----------+----------+----------------------------------------------+
+
+     D r i v e r   ø í z e n í   k o n z o l y   A N S I . S Y S
++---------------------------+---------------------------------------------+
+|            syntaxe        |              funkce                         |
++---------------------------+---------------------------------------------+
+| <ESC>[(øádek);(pozice)H   | nastavení pozice kurzoru (standardnì        |
+|                           | je 1;1 - levı horní roh)                    |
++---------------------------+---------------------------------------------+
+| <ESC>[(øádek);(pozice)f   | stejná funkce jako pøedešlá                 |
++---------------------------+---------------------------------------------+
+| <ESC>[(øádkù)A            | pøesun kurzoru nahoru (standardní poèet     |
+|                           | øádkù je 1; nejde pøes horní okraj)         |
++---------------------------+---------------------------------------------+
+| <ESC>[(øádkù)B            | pøesun kurzoru dolù (standardní poèet       |
+|                           | øádkù je 1; nejde pøes spodní okraj)        |
++---------------------------+---------------------------------------------+
+| <ESC>[(pozic)C            | pøesun kurzoru vpravo; stand.=1             |
++---------------------------+---------------------------------------------+
+| <ESC>[(pozic)D            | pøesun kurzrou vlevo; stand.=1              |
++---------------------------+---------------------------------------------+
+| <ESC>[2J                  | zrušení obrazovky, kurzor do poèát.rohu     |
++---------------------------+---------------------------------------------+
+| <ESC>[K                   | zrušení zbytku øádku                        |
++---------------------------+---------------------------------------------+
+| <ESC>[6n                  | vıstup akt.øádku a pozice ve formì:         |
+|                           |      <ESC>[(øádek);(pozice)R                |
++---------------------------+---------------------------------------------+
+| <ESC>[s                   | uloení akt. pozice kurzoru (viz <ESC>[u)   |
++---------------------------+---------------------------------------------+
+| <ESC>[u                   | návrat kurzoru na poslednì uloenou pozici  |
++---------------------------+---------------------------------------------+
+| <ESC>[(atr.);...;(atr.)m  | nastavení atributù displeje. (atr.) jsou:   |
+|                           |     0 normální (bílá na èerné)              |
+|                           |     1 zvıraznìné (zvıšená intenzita znakù)  |
+|                           |     4 podtrené (pouze monochrom. displej)  |
+|                           |     5 blikající                             |
+|                           |     7 reverze (èerná na bílé)               |
+|                           |     8 nezobrazuje (pozadí=popøedí)          |
+|                           |    30 èerné popøedí                         |
+|                           |    31 èervené popøedí                       |
+|                           |    32 zelené popøedí                        |
+|                           |    33 luté popøedí                         |
+|                           |    34 modré popøedí                         |
+|                           |    35 fialové popøedí                       |
+|                           |    36 modrozelené popøedí                   |
+|                           |    37 bílé popøedí                          |
+|                           |    40 èerné pozadí                          |
+|                           |    41 èervené pozadí                        |
+|                           |    42 zelené pozadí                         |
+|                           |    43 luté (hnìdé) pozadí                  |
+|                           |    44 modré pozadí                          |
+|                           |    45 fialové pozadí                        |
+|                           |    46 modrozelené pozadí                    |
+|                           |    47 bílé pozadí                           |
++---------------------------+---------------------------------------------+
+| <ESC>[=(mód)h             | nastavení šíøky øádku obrazovky a videomódu |
+|                           |     0 40x25 textovı mód èerná a bílá        |
+|                           |     1 40x25 textovı mód barevnı             |
+|                           |     2 80x25 textovı mód èerná a bílá        |
+|                           |     3 80x25 textovı mód barevnı             |
+|                           |     4 grafickı mód 320x200 barevnı          |
+|                           |     5 grafickı mód 320x200 èernobílı        |
+|                           |     6 grafickı mód 640x200 èernobílı        |
+|                           |     7 pøesun kurzoru na konci øádku na novı |
++---------------------------+---------------------------------------------+
+| <ESC>[=7l                 | kurzor se z konce øádku nepøesune na novı ø.|
++---------------------------+---------------------------------------------+
+| <ESC>[(èíslo);...(èíslo)p | pøedefinuje klávesu na jinou hodnotu; první |
+|       nebo                | èíslo (nebo první znak v øetìzci) udává kód |
+| <ESC>["(øetìzec)"p        | klávesy, která má bıt pøedefinována, násle- |
+|       nebo                | dující hodnoty jsou nové hodnoty klávesy    |
+| <ESC>[(èíslo);"øetìzec"p  |   Následující pøíklad pøedefinuje klávesu   |
+|       nebo                |   F10 tak, aby vypsala DIR<Enter>:          |
+| rùzné kombinace           |      <ESC>[0;68;"DIR";13p                   |
+|                           |   (viz rozšíøené kódy kláves)               |
+|                           | K navrácení kódù káves na jejich pùvodní    |
+|                           | hodnoty nastavte tyto klávesy na jejich     |
+|                           | pùvodní kódy; napø. návrat hodnoty F10:     |
+|                           |      <ESC>[0;68;0;68p                       |
++---------------------------+---------------------------------------------+
+
+
+           D r i v e r   r o z š í ø e n é   p a m ì t i   E M S
+    K  pøístupu na obsluhu rozšíøené pamìti (EMS) pouijte vektor pøerušení
+INT 67H s kódem funkce nastavenım v registru AH:
+ 
++----------------+--------------------------------------------------------+
+|kód funkce (AH) |    vıznam                                              |
++----------------+--------------------------------------------------------+
+|   40H (64)     | poskytnutí statutu EMM                                 |
+|                | (pouijte po ujištìní se, e je EMM nainstalován)      |
+|                |   vıstup: AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   41H (65)     | poskytnutí fyzické adresy segmentu rámeèku EMS         |
+|                | (64K ve ètyøech 16K jednotkách)                        |
+|                |   vıstup: BX=adresa segmentu (pokud je AH=0)           |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   42H (66)     | poskytnutí celkové/volné pamìti                        |
+|                |   vıstup: DX=celkovı poèet stránek EMS (16K kadá)     |
+|                |           BX=poèet volnıch stránek EMS                 |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   43H (67)     | otevøení identifikátoru EMM a pøidìlení stránky        |
+|                |   vstup:  BX=poèet poadovanıch stránek                |
+|                |   vıstup: DX=identifikátor EMM (další operace)         |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   44H (68)     | mapování pamìti                                        |
+|                | (stránkování jedné ze ètyø pøidìlenıch stránek pamìti  |
+|                | do fyzického adresového prostoru)                      |
+|                |   vstup:  AL=èíslo fyzické stránky (0 a 3)            |
+|                |           BX=logická stránka (0 a [n-1], kde          |
+|                |               n je celkovı poèet stránek na ident.     |
+|                |           DX=identifikátor EMM                         |
+|                |   vıstup: AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   45H (69)     | uzavøení identifikátoru/uvolnìní stránek               |
+|                | (uvolní pamì pøidìlenou funkcí EMM 43H)               |
+|                |   vstup:  DX=identifikátor EMM                         |
+|                |   vıstup: AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   46H (70)     | poskytnutí èísla verze EMM                             |
+|                |   vıstup: AL=èíslo verze EMM v kódu BCD (0302H=3.2)    |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   47H (71)     | uloení mapovacího kontextu                            |
+|                | (EMM uloí aktuální mapování fyzickıch na logické      |
+|                | stránky EMM, take programy nebo drivery zaøízení      |
+|                | mohou pouít své vlastní mapování pøi svém bìhu)       |
+|                |   vstup:  DX=identifikátor EMM poadovaného procesu    |
+|                |   vıstup: AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   48H (72)     | navrácení mapovacího kontextu                          |
+|                | (EMM navrátí stránkové mapování, které bylo uloeno    |
+|                | pøedcházejícím volání funkce 47H se stejnım identifi-  |
+|                | kátorem. Diskové drivery a programy by mìly toto       |
+|                | pouít pøes návratem do aplikaèního programu.)         |
+|                |   vstup:  DX=ovladaè EMM poadovaného procesu          |
+|                |   vıstup: AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   49H (73)     | rezervováno - pro EMM verze 3.2 nedefinováno           |
++----------------+--------------------------------------------------------+
+|   4AH (74)     | rezervováno - pro EMM verze 3.2 nedefinováno           |
++----------------+--------------------------------------------------------+
+|   4BH (75)     | poèet stránek ovladaèe                                 |
+|                | (navrací poèet stránek EMS vlastnìné identifikátorem)  |
+|                |   vstup:  DX=identifikátor EMM (proces mùe mít více   |
+|                |                                 ne 1 identifikátor)   |
+|                |   vıstup: BX=poèet logickıch 16-K stránek vlastnìné    |
+|                |              identifikátorem (1-512)                   |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   4CH (76)     | poèet aktivních ovladaèù                               |
+|                | (pouívá se pøed voláním funkce EMM 4DH)               |
+|                |   vstup:  BX=èíslo aktivního identifikátoru            |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   4DH (77)     | poskytnutí informace o stránkách (všechny identif.)    |
+|                | (navrací pole informací popisující kolik pamìti EMS je |
+|                | pøidìleno aktivnímu identifikátoru)                    |
+|                |   vstup:  ES:DI=adresa vyrovnávací pamìti              |
+|                |   vıstup: BX=poèet aktivních identifikátorù EMM        |
+|                |           ES:DI=vyrovnávací pamì je zaplnìna          |
+|                |                 2-slovními polokami (poèet je v BX).  |
+|                |                 První slovo je èíslo identifikátoru    |
+|                |                 a druhé je celkovı poèet stránek       |
+|                |                 vlastnìnıch tímto identifikátorem      |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+|   4EH (78)     | poskytnutí/nastavení mapy zadané stránky               |
+|                | (Tato funkce je navrhována k podpoøe víceúlohového     |
+|                | operaèního systému pro umonìní plného ovládání EMS.   |
+|                | Mapovací pole mùe obsahovat rùzné hardwarovì závislé  |
+|                | informace.)                                            |
+|                |   vstup:  AL=èíslo podfunkce                           |
+|                |              AL=0 - poskytnutí mapovacích registrù     |
+|                |                     do pole na adrese ES:DI            |
+|                |              AL=1 - nastavení mapovacích registrù      |
+|                |                     z pole na adrese DS:SI             |
+|                |              AL=2 - poskytnutí a nastavení mapovacích  |
+|                |                     registrù (kombinace funkcí 1 a 2)  |
+|                |              AL=3 - dotaz na velikost vyrovnávací      |
+|                |                     pamìti potøebné pro funkce 0 a 2  |
+|                |   vıstup: AL=velikost bufferu mapovacích registrù (fn3)|
+|                |           ES:DI=buffer obsahuje pole informací EMS     |
+|                |                 (podfunkce 0 a 2)                     |
+|                |           AH=statut EMM                                |
++----------------+--------------------------------------------------------+
+Chyby (AH):
+   +--------+----------------------------------------------------------+
+   | statut |      vıznam                                              |
+   +--------+----------------------------------------------------------+
+   |  00H   |      ádná chyba; funkce byla úspìšná                    |
+   |  80H   |      vnitøní chyba driveru EMM                           |
+   |  81H   |      hardwarová chyba funkce pamìové desky EMS          |
+   |  82H   |      EMM je zaneprázdnìn                                 |
+   |  83H   |      neplatnı identifikátor                              |
+   |  84H   |      poadovaná nedefinovaná funkce                      |
+   |  85H   |      není volnı ádnı další identifikátor EMM            |
+   |  86H   |      chyba v uloení nebo navrácení mapovacího kontextu  |
+   |  87H   |      alokaèní poadavek byl delší ne celková pamì EMS  |
+   |  88H   |      alokaèní poadavek byl delší ne volné stránky      |
+   |  89H   |      nemùete otevøít identifikátor s poètem stránek 0   |
+   |  8AH   |      váš identifikátor nevlastní tak mnoho stránek       |
+   |  8BH   |      nepovolené mapování - jsou definovány pouze fyzické |
+   |        |      stránky 0 a 3                                      |
+   |  8CH   |      prostor pro ukládání mapovacích kontextù je plnı    |
+   |  8DH   |      mùete uloit kontext pouze jednou na identifikátor |
+   |  8EH   |      nemùete navrátit kontext bez pøedchozího uloení   |
+   |  8FH   |      parametr podfunkce není definovanı                  |
+   +--------+----------------------------------------------------------+
+
+
+                          P ø e r u š e n í   D O S
+
+ I N T    2 0 H (INT 32; 0:0080H) - ukonèení programu
+    vstup:    CS = adresa segmentu prefixu programového segmentu
+           +------------------------------+--------------------+
+           | vıstupní adresa              |  relativní adresa  |
+           +------------------------------+--------------------+
+           | ukonèení programu (INT 22H)  |         0AH        |
+           | <Ctrl>-<Break> (INT 23H)     |         0EH        |
+           | kritická chyba (INT 24H)     |         12H        |
+           +------------------------------+--------------------+
+
+ I N T    2 1 H (INT 33; 0:0084H) - volání funkce DOS
+    vstup:    AH = èíslo funkce
+              ostatní registry = obsah podle poadavkù funkcí
+    vıstup:   podle specifikací jednotlivıch funkcí
+
+ I N T    2 2 H (INT 34; 0:0088H) - adresa ukonèení programu
+
+ I N T    2 3 H (INT 35; 0:008CH) - adresa obsluhy pøerušení Ctrl-Break
+
+
+
+
+
+ I N T    2 4 H (INT 36; 0:0090H) - adresa obsluhy kritickıch chyb
+    vstup:    AX = doplòující informace o chybì
++---+---+---+---+---+---+---+---+-----------------------------------------+
+| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |                vıznam                   |
++---+---+---+---+---+---+---+---+-----------------------------------------+
+| 0 | 0 | . | . | . | . | . | 0 | chyba ètení                             |
+| 0 | 0 | . | . | . | . | . | 1 | chyba zápisu                            |
+| 0 | 0 | . | . | . | 0 | 0 | . | chyba zahrnující systémové soubory DOS  |
+| 0 | 0 | . | . | . | 0 | 1 | . | chyba zahrnující FAT disku              |
+| 0 | 0 | . | . | . | 1 | 0 | . | chyba zahrnující adresáø disku          |
+| 0 | 0 | . | . | . | 1 | 1 | . | chyba zahrnující datovı prostor disku   |
+| 0 | 0 | . | . | 1 | . | . | . | moné opuštìní operace s FAIL-chyba     |
+| 0 | 0 | . | 1 | . | . | . | . | moné opuštìní operace s RETRY-opakování|
+| 0 | 0 | 1 | . | . | . | . | . | moné opuštìní operace s IGNORE-ignorov.|
++---+---+---+---+---+---+---+---+-----------------------------------------+
+              DI = kód chyby
+ +--------------+-------------------------------------------------------+
+ | chybovı kód  |                      popis                            |
+ +--------------+-------------------------------------------------------+
+ |  00H ( 0)    |       pokus o zápis na disk chránìnı proti zápisu     |
+ |  01H ( 1)    |       neznámé èíslo jednotky (diskové)                |
+ |  02H ( 2)    |       disková jednotka není pøipravena                |
+ |  03H ( 3)    |       neplatnı pøíkaz                                 |
+ |  04H ( 4)    |       chyba dat (chyba kontrolního souètu CRC)        |
+ |  05H ( 5)    |       špatná délka struktury poadavku                |
+ |  06H ( 6)    |       chyba pøi vystavení                             |
+ |  07H ( 7)    |       neznámı typ média                               |
+ |  08H ( 8)    |       sektor nenalezen                                |
+ |  09H ( 9)    |       v tiskárnì není papír                           |
+ |  0AH (10)    |       chyba pøi zápisu                                |
+ |  0BH (11)    |       chyba ètení                                     |
+ |  0CH (12)    |       všeobecná, nespecifikovatelná chyba             |
+ +--------------+-------------------------------------------------------+
+              BP:SI = záhlaví zaøízení
+    Obsah  dat  v uivatelském zásobníku od vrcholu na dno zásobníku (první
+poloka dále popsaná je na vrcholu zásobníku, tedy naposledy uloená) je:
+ 
++----------+-------------------------------------------------------------+
+|  SP      | hodnota BP, která byla uloena pomocnou instrukcí PUSH BP   |
+|  SP +  2 | CS:IP ukazatel sluby DOS, která vyvolala pøerušení INT 24H |
+|  SP +  6 | registr pøíznakù pøi pøerušení ze sluby DOS                |
+|  SP +  8 | AX (uivatelskı registr v okamiku pùvodní ádosti INT 21H) |
+|  SP + 10 | BX                        -  "  -                           |
+|  SP + 12 | CX                        -  "  -                           |
+|  SP + 14 | DX                        -  "  -                           |
+|  SP + 16 | SI                        -  "  -                           |
+|  SP + 18 | DI                        -  "  -                           |
+|  SP + 20 | BP                        -  "  -                           |
+|  SP + 22 | DS                        -  "  -                           |
+|  SP + 24 | ES                        -  "  -                           |
+|  SP + 26 | CS:IP z programu, kterı pùvodì vyvolal slubu INT 21H       |
+|  SP + 30 | registr pøíznakù z programu, kterı pùvodnì vyvolal slubu   |
++----------+-------------------------------------------------------------+
+    Pøi  návratu z pøerušení instrukcí IRET (po obsluze chyby nebo pokusu o
+její odstranìní) bude DOS pokraèovat v èinnosti podle obsahu AL takto:
+
+AL = 0 - ignorování chyby
+   = 1 - opakování operace
+   = 2 - ukonèení programu prostøednictvím INT 23H (abortování)
+   = 3 - návrat do aplikaèního programu s ohlášením chyby DOS (> DOS 3.00)
+
+
+ I N T    2 5 H (INT 37; 0:0094H) - absolutní ètení z disku
+    vstup:    AL = èíslo diskové jednotky (0=A, 1=B, atd.)
+              DS:BX = adresa vyrovnávací pamìti (kam se provede ètení)
+              CX = poèet sektorù, které se mají èíst
+              DX = poèáteèní relativní sektor (od zaèátku disku)
+    vıstup:   AX = chybovı kód (je-li CF=1)
+              pøíznaky = DOS ponechá registr pøíznakù v zásobníku !
+AH:
+ +--------------+-------------------------------------------------------+
+ | chybovı kód  |                      popis                            |
+ +--------------+-------------------------------------------------------+
+ |  01H (  1)   |       neplatnı povel                                  |
+ |  02H (  2)   |       adresová znaèka nenalezena                      |
+ |  03H (  3)   |       pokud o zápis na disk chránìnı proti zápisu     |
+ |  04H (  4)   |       sektor nenalezen                                |
+ |  05H (  5)   |       chyba funkce reset                              |
+ |  07H (  7)   |       chyba aktivity diskovıch parametrù              |
+ |  08H (  8)   |       pøeteèení DMA                                   |
+ |  09H (  9)   |       chyba pøekroèení okraje DMA                     |
+ |  10H ( 16)   |       chyba dat CRC nebo ECC                          |
+ |  11H ( 17)   |       moná chyba opravena pomocí ECC (AL = délka)    |
+ |  20H ( 32)   |       chyba øadièe                                    |
+ |  40H ( 64)   |       chybné vystavení                                |
+ |  80H (128)   |       time-out diskové mechaniky                      |
+ |  BBH (187)   |       nedefinovatelná chyba                           |
+ |  FFH (255)   |       chyba rozpoznání operace                        |
+ +--------------+-------------------------------------------------------+
+    Chybové kódy navrácené v registru AL:
+ +--------------+-------------------------------------------------------+
+ | chybovı kód  |                      popis                            |
+ +--------------+-------------------------------------------------------+
+ |  00H ( 0)    |       pokus o zápis na disk chránìnı proti zápisu     |
+ |  01H ( 1)    |       neznámé èíslo jednotky (diskové)                |
+ |  02H ( 2)    |       disková jednotka není pøipravena                |
+ |  03H ( 3)    |       neplatnı pøíkaz                                 |
+ |  04H ( 4)    |       chyba dat (chyba kontrolního souètu CRC)        |
+ |  05H ( 5)    |       špatná délka struktury poadavku                |
+ |  06H ( 6)    |       chyba pøi vystavení                             |
+ |  07H ( 7)    |       neznámı typ média                               |
+ |  08H ( 8)    |       sektor nenalezen                                |
+ |  09H ( 9)    |       v tiskárnì není papír                           |
+ |  0AH (10)    |       chyba pøi zápisu                                |
+ |  0BH (11)    |       chyba ètení                                     |
+ |  0CH (12)    |       všeobecná, nespecifikovatelná chyba             |
+ +--------------+-------------------------------------------------------+
+
+
+ I N T    2 6 H (INT 38; 0:0098H) - absolutní zápis na disk
+    vstup:    AL = èíslo diskové jednotky (0=A, 1=B, atd.)
+              DS:BX = adresa vyrovnávací pamìti (odkud se provede zápis)
+              CX = poèet sektorù, které se mají zapsat
+              DX = poèáteèní relativní sektor (od zaèátku disku)
+    vıstup:   AX = chybovı kód (je-li CF=1)
+              pøíznaky = DOS ponechá registr pøíznakù v zásobníku !
+
+
+ I N T    2 7 H (INT 39; 0:009CH) - ukonèení s uchováním programu v pamìti
+    vstup:    CS:DX = první bajt následující po posledním bajtu programu
+    vıstup:   není návrat
+
+ I N T    2 8 H (INT 40; 0:0080H) - èasování úsekù DOS
+
+ I N T    2 E H (INT 46; 0:00B8H) - provedení povelu DOS
+    vstup:    DS:SI = relativní  adresa  øetìzce  obsahujícího  povel DOS k
+                      provedení (musí bıt volná pamì k naètení programu)
+    vıstup:   není zøejmé, jak obdret statut operace
+
+ I N T    2 F H (INT 47; 0:00BCH) - pøepínatelné pøerušení (DOS)
+    vstup:    AH = pøepínací èíslo
+                   01H - rezidentní èást povelu DOS 'PRINT'
+                   02H - rezidentní èást povelu DOS 'ASSIGN'
+                   10H - rezidentní èást povelu DOS 'SHARE'
+                   03H a 7FH - rezervováno pro DOS
+                   0B7H - rezidentní èást povelu DOS 'APPEN'D
+                   80H a 0FFH - moné pouít jinımi procesy
+              AL = funkce, která bude vykonána pøepínanou obsluhou
+    vıstup:   AX = chybovı kód (pokud je CF = 1)
+              AL = stav instalace (procesy DOS) (pokud je CF = 0)
+                   00H - není instalován, instalace probìhla v poøádku
+                   01H - není instalován, instalace neprobìhla v poøádku
+                   FFH - je ji nainstalován
+
+ I N T    2 F H / 0 1  ( A H = 1 ) - pøepínatelné pøerušení (PRINT)
+    vstup:    AH = 01H
+              AL = funkce, která bude vykonána pøepínanou obsluhou
+                 = 00H (0) - poskytnutí stavu instalace
+                   01H (1) - pøedloení souboru k tisku
+                   02H (2) - zrušení souboru z tiskové fronty
+                   03H (3) - zrušení všech souborù z tiskové fronty
+                   04H (4) - statut
+                   05H (5) - konec statutu
+                   0F8H a 0FFH - rezervováno pro DOS
+    vıstup:   AL = chybovı kód (kromì funkce 00H a 04H)
+                 = 01H ( 1) - neplatné èíslo funkce
+                   02H ( 2) - soubor nenalezen
+                   03H ( 3) - cesta nenalezena
+                   04H ( 4) - pøíliš mnoho otevøenıch souborù
+                   05H ( 5) - poadavek odmítnut
+                   06H ( 6) - neplatnı identifikátor souboru
+                   08H ( 8) - fronta plná
+                   09H ( 9) - zaneprázdnìn
+                   0CH (12) - jméno pøíliš dlouhé (vìtší ne 64 bajtù)
+                   0FH (15) - neplatnı disk
+
+Funkce 00H (0) - poskytnutí stavu instalace
+    vstup:    AH = 01H
+              AL = 00H
+    vıstup:   AL = 00H - neinstalován, instalace probìhla v poøádku
+                   01H - neinstalován, instalace neprobìhla v poøádku
+                   FFH - je ji nainstalován
+
+Funkce 01H (1) - pøedloení souboru k tisku
+    vstup:    AH = 01H
+              AL = 01H
+              DS:DX = ukazatel na pøedkládanı balík
+    vıstup:   AX = chybovı kód (viz vıše)
+
+Funkce 02H (2) - zrušení souboru z tiskové fronty
+    vstup:    AH = 01H
+              AL = 02H
+              DS:DX = ukazatel na øetìzec ASCIIZ specifikující rušenı soub.
+    vıstup:   AX = chybovı kód (viz vıše)
+
+Funkce 03H (3) - zrušení všech souborù z tiskové fronty (vyèištìní fronty)
+    vstup:    AH = 01H
+              AL = 03H
+    vıstup:   ádnı
+
+Funkce 04H (4) - zaèátek statutu (prohlédnutí fronty)
+    vstup:    AH = 01H
+              AL = 04H
+    vıstup:   DX = èítaè chyb
+              DS:SI = ukazatel na tiskovou frontu
+
+Funkce 05H (5) - konec statutu (uvolnìní souborù k tisku)
+    vstup:    AH = 01H
+              AL = 05H
+    vıstup:   AX = chybovı kód (viz vıše)
+
+ I N T    2 F H / 0 2  ( A H = 2 ) - pøepínatelné pøerušení (ASSIGN)
+    vstup:    AH = 02H
+              AL = 00H (0) - poskytnutí stavu instalace
+    vıstup:   AL = 00H - neinstalován, instalace probìhla v poøádku
+                   01H - neinstalován, instalace neprobìhla v poøádku
+                   FFH - je ji nainstalován
+
+ I N T    2 F H / 1 0  ( A H = 1 6 ) - pøepínatelné pøerušení (SHARE)
+    vstup:    AH = 10H
+              AL = 00H (0) - poskytnutí stavu instalace
+    vıstup:   AL = 00H - neinstalován, instalace probìhla v poøádku
+                   01H - neinstalován, instalace neprobìhla v poøádku
+                   FFH - je ji nainstalován
+
+ I N T    2 F H / B 7  ( A H = 1 8 3 ) - pøepínatelné pøerušení (APPEND)
+    vstup:    AH = B7H
+              AL = 00H (0) - poskytnutí stavu instalace
+    vıstup:   AL = 00H - neinstalován, instalace probìhla v poøádku
+                   01H - neinstalován, instalace neprobìhla v poøádku
+                   FFH - je ji nainstalován
+

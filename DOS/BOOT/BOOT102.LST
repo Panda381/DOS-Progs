@@ -1,0 +1,150 @@
+
+; *****************************************************************************
+;
+;                        Zav dˆc¡ sektor diagnostiky IBM
+;                                 (disketa 160 KB)
+;
+; *****************************************************************************
+
+0000:7C00 EB2F           JMP    7C31             ; start zavadˆ‡e
+
+0000:7c02                dw     14h              ; po‡et sektor– ke ‡ten¡
+
+0000:7C04                dw     0                ; offset startu v IBMIO.COM
+0000:7C06                dw     60h              ; segment pro na‡ten¡ syst‚mu
+
+0000:7C00  EB 2F 14 00 00 00 60 00-20 37 2D 4D 61 79 2D 38  k/....`. 7-May-8
+0000:7C10  31 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  1...............
+0000:7C20  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0000:7C30  00 FA 8C C8 8E D8 BA 00-00 8E D2 BC 00 7C FB A1  .z.H.X:...R<.|{!
+
+0000:7C31 FA             CLI
+0000:7C32 8CC8           MOV    AX,CS
+0000:7C34 8ED8           MOV    DS,AX
+0000:7C36 BA0000         MOV    DX,0000
+0000:7C39 8ED2           MOV    SS,DX
+0000:7C3B BC007C         MOV    SP,7C00
+0000:7C3E FB             STI
+0000:7C3F A1067C         MOV    AX,[7C06]        ; =60h segment pro ‡ten¡ syst.
+0000:7C42 8ED8         * MOV    DS,AX
+0000:7C44 8EC0           MOV    ES,AX
+0000:7C46 BA0000         MOV    DX,0000
+0000:7C49 8BC2           MOV    AX,DX
+0000:7C4B CD13           INT    13               ; reset disketov˜ch mechanik
+0000:7C4D 7241           JB     7C90             ; chyba
+0000:7C4F E85800         CALL   7CAA             ; kontrola syst‚mov˜ch soubor–
+0000:7C52 72FB           JB     7C4F
+0000:7C54 2E8B0E027C     MOV    CX,CS:[7C02]     ; po‡et sektor– ke ‡ten¡
+0000:7C59 51             PUSH   CX
+0000:7C5A BB0000         MOV    BX,0000
+0000:7C5D 33D2           XOR    DX,DX
+0000:7C5F B90800         MOV    CX,0008
+0000:7C62 BE0100         MOV    SI,0001
+0000:7C65 56             PUSH   SI
+0000:7C66 B001           MOV    AL,01
+0000:7C68 B402         * MOV    AH,02
+0000:7C6A CD13           INT    13               ; ‡ten¡ sektoru syst‚mu
+0000:7C6C 7222           JB     7C90
+0000:7C6E 5E             POP    SI
+0000:7C6F 58             POP    AX
+0000:7C70 E8E700         CALL   7D5A             ; v˜po‡et ‡¡sla sektoru
+0000:7C73 2BC6           SUB    AX,SI
+0000:7C75 7414           JZ     7C8B
+0000:7C77 FEC5           INC    CH
+0000:7C79 B101           MOV    CL,01
+0000:7C7B BE0800         MOV    SI,0008
+0000:7C7E 3BC6           CMP    AX,SI
+0000:7C80 7304           JNB    7C86
+0000:7C82 8BF0           MOV    SI,AX
+0000:7C84 EB01           JMP    7C87
+0000:7C86 96           * XCHG   AX,SI
+0000:7C87 56             PUSH   SI
+0000:7C88 50             PUSH   AX
+0000:7C89 EBDD           JMP    7C68
+0000:7C8B 2EFF2E047C   * JMP    FAR CS:[7C04]    ; start syst‚mu
+                                               ;* chyba ‡ten¡ BOOT z disku
+0000:7C90 BE447D       * MOV    SI,7D44
+0000:7C93 B8427D         MOV    AX,7D42
+0000:7C96 50             PUSH   AX               ; n vratov  adresa
+0000:7C97 32FF         * XOR    BH,BH
+0000:7C99 AC           * LODSB
+0000:7C9A 247F           AND    AL,7F
+0000:7C9C 740B           JZ     7CA9
+0000:7C9E 56             PUSH   SI
+0000:7C9F B40E           MOV    AH,0E
+0000:7CA1 BB0700         MOV    BX,0007
+0000:7CA4 CD10           INT    10
+0000:7CA6 5E             POP    SI
+0000:7CA7 EBF0           JMP    7C99
+0000:7CA9 C3             RET
+
+                                               ;* kontrola syst‚mov˜ch soubor–
+0000:7CAA BB0000         MOV    BX,0000
+0000:7CAD B90400         MOV    CX,0004
+0000:7CB0 B80102         MOV    AX,0201
+0000:7CB3 CD13           INT    13               ; na‡ten¡ sektoru adres ©e
+0000:7CB5 1E             PUSH   DS
+0000:7CB6 7234           JB     7CEC
+0000:7CB8 8CC8           MOV    AX,CS
+0000:7CBA 8ED8           MOV    DS,AX
+0000:7CBC BF0000         MOV    DI,0000
+0000:7CBF B90B00         MOV    CX,000B
+0000:7CC2 26800D20       OR     Byte Ptr ES:[DI],20           ;' '
+0000:7CC6 26808D200020   OR     Byte Ptr ES:[DI+0020],20      ;' '
+0000:7CCC 47             INC    DI
+0000:7CCD E2F3           LOOP   7CC2             ; p©evod na mal  p¡smena
+0000:7CCF BF0000         MOV    DI,0000
+0000:7CD2 BE767D         MOV    SI,7D76
+0000:7CD5 B90B00         MOV    CX,000B
+0000:7CD8 FC             CLD
+0000:7CD9 F3             REPZ
+0000:7CDA A6             CMPSB                   ; porovn n¡
+0000:7CDB 750F           JNZ    7CEC             ; nen¡ syst‚mov˜ disk
+0000:7CDD BF2000         MOV    DI,0020
+0000:7CE0 BE827D         MOV    SI,7D82
+0000:7CE3 B90B00         MOV    CX,000B
+0000:7CE6 F3             REPZ
+0000:7CE7 A6             CMPSB
+0000:7CE8 7502           JNZ    7CEC             ; nen¡ syst‚mov˜ disk
+0000:7CEA 1F             POP    DS
+0000:7CEB C3             RET
+                                                 ; Chyba - nesyst‚mov˜ disk
+0000:7CEC BEF97C       * MOV    SI,7CF9
+0000:7CEF E8A5FF         CALL   7C97
+0000:7CF2 B400           MOV    AH,00
+0000:7CF4 CD16           INT    16
+0000:7CF6 1F             POP    DS
+0000:7CF7 F9             STC
+0000:7CF8 C3             RET
+
+
+0000:7CF0  A5 FF B4 00 CD 16 1F F9-C3 0D 0A 4E 6F 6E 2D 53  %.4.M..yC..Non-S
+0000:7D00  79 73 74 65 6D 20 64 69-73 6B 20 6F 72 20 64 69  ystem disk or di
+0000:7D10  73 6B 20 65 72 72 6F F2-0D 0A 52 65 70 6C 61 63  sk error..Replac
+0000:7D20  65 20 61 6E 64 20 73 74-72 69 6B 65 20 61 6E 79  e and strike any
+0000:7D30  20 6B 65 79 20 77 68 65-6E 20 72 65 61 64 F9 0D   key when ready.
+0000:7D40  0A 00 CD 18 0D 0A 44 69-73 6B 20 42 6F 6F 74 20  ..M...Disk Boot
+0000:7D50  66 61 69 6C 75 72 E5 0D-0A 00 50 52 8B C6 BF 00  failure...PR.F?.
+
+                                               ;* v˜po‡et ‡¡sla sektoru
+0000:7D5A 50             PUSH   AX
+0000:7D5B 52             PUSH   DX
+0000:7D5C 8BC6           MOV    AX,SI
+0000:7D5E BF0002         MOV    DI,0200
+0000:7D61 F7E7           MUL    DI
+0000:7D63 03D8           ADD    BX,AX
+0000:7D65 5A             POP    DX
+0000:7D66 58             POP    AX
+0000:7D67 C3             RET
+
+0000:7D60  02 F7 E7 03 D8 5A 58 C3-52 6F 62 65 72 74 20 4F  .wg.XZXCRobert O
+0000:7D70  27 52 65 61 72 20 69 62-6D 62 69 6F 20 20 63 6F  'Rear ibmbio  co
+0000:7D80  6D B0 69 62 6D 64 6F 73-20 20 63 6F 6D B0 C9 00  m0ibmdos  com0I.
+0000:7D90  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0000:7DA0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0000:7DB0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0000:7DC0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0000:7DD0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0000:7DE0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0000:7DF0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+

@@ -1,0 +1,716 @@
+*****************************************************************
+*								*
+*	Navod k pouziti filtru HIGL		ver. 2.14	*
+*								*
+*	(c) Petr Labaj, 7. 9. 1988		10. 12. 1988	*
+*								*
+*	JZD AK Slusovice					*
+*								*
+*****************************************************************
+
+
+
+NAVOD K POUZITI FILTRU HIGL
+---------------------------
+
+1 - Zakladni popis cinnosti
+2 - Popis zpracovavanych prikazu
+3 - Rozdily mezi programem HIGL a zapisovacem firmy HI
+4 - Implicitni nastaveni nekterych parametru
+5 - Moznosti pouziti
+
+
+*****************************************************************
+
+
+
+1 - Zakladni popis cinnosti
+    -----------------------
+
+	Filtr HIGL je pametove rezidentni program, slouzici
+k prekodovani grafickeho jazyka zapisovacu firmy HOUSTON
+INSTRUNENT (tzv. HI-GL nebo DMP-GL) na jazyk prikazu, inter-
+pretovatelnych valcovym zapisovacem VZ-930.
+	Vlastni funkce filtru je zalozena na zpracovavani
+veskerych dat, smerovanych na driver seriove linky v BIOSu
+IBM PC XT/AT. Pri systemovem pristupu na seriovou linku COM
+se tedy program HIGL + zapisovac VZ-930 jevi uzivateli jako
+zapisovac HOUSTON INSTRUMENT DMP-51.
+	Pro lepsi vyuziti plochy papiru muze byt filtrem HIGL
+otocen souradny system, tzn. souradnice 0:0 bude pri pohledu
+na zapisovac ze predu v levem blizsim rohu.
+	Zavedeni programu do pameti a jeho aktivaci provedeme
+prikazem
+		HIGL x y
+nebo
+		HIGL/x/y
+
+kde x je cislo seriove linky COM, na ktere je pripojen
+zapisovac VZ-930 a y je bud 'R', 'r' (souradny system bude
+natocen) nebo nic (souradny system bude beze zmeny).
+Napriklad
+		HIGL 2 R
+
+bude provadet prekodovani na COM2 a otoceni souradneho systemu,
+prikaz
+		HIGL/1
+
+bude provadet prekodovani na COM1 beze zmeny souradneho systemu.
+	Po spusteni je program HIGL k dispozici tak dlouho,
+pokud neni proveden RESET systemu. Volani programu je vhodne
+umistit napr. do souboru AUTOEXEC.BAT, pak je program HIGL
+k dispozici neustale.
+	Pokud pri spusteni neni uvedeno cislo linky nebo
+toto cislo je mimo rozsah 1...9, prekodovani bude provadeno
+na COM1. O aktivaci programu je vyslana zprava.
+	Filtr si sam zajistuje nastaveni prenosove rychlosti COMx
+na 9600 Bd a je potreba, aby zapisovac byl nastaven na tutez
+prenosovou rychlost (provadi se na desce CPU zapisovace otocnym
+prepinacem - musi byt v poloze 9. Od vyrobce jiz chodi nastaven
+na tuto rychlost).
+	Nastaveni prepinacu na ovladacim panelu musi byt toto:
+
+	  SP 1      SP 2      SP 3      SP 4
+	11101101  10101001  11111111  10010110
+
+	Pokud by se uzivatel pokusil spustit driver na pocitaci,
+na kterem jiz driver bezi, bude vypsana chybova zprava a funkce
+puvodniho driveru zustane beze zmeny.
+
+
+
+*****************************************************************
+
+
+
+2 - Popis zpracovavanych prikazu
+    ----------------------------
+
+	Program HIGL zpracovava s vyjimkou 3 prikazu celou
+mnozinu grafickeho jazyka HI-GL v MODE 1, t.j. v modu XON/XOFF.
+	Neimplementovane prikazy jsou:
+
+	CE  ...  Elipse Plot
+		 malovani elipsy
+	CG  ...  General Curve Plot
+		 prolozeni hladkou krivkou
+	L   ...  Line Type
+		 typ cary
+
+	Prikazy CE a CG nebyly implementovany pro jejich nizkou
+vyuzitelnost a znacnou delku programu (a tim i zabrane pameti),
+nezbytneho k jejich implementaci. Ukaze-li se potreba implemen-
+tovat i tyto 2 prikazy, je mozne to provest dodatecne.
+	Prikaz L neni implementovan proto, ze soucasna verze
+zapisovace VZ-930 umi kreslit jen 1 typ cary (na rozdil od
+originalniho zapisovace CALCOMP 1039, s nimz je VZ-930 kompati-
+bilni). Je predpoklad, ze dalsi verze tohoto zapisovace jiz
+budou mit i jine typy car (carkovanou, teckovanou atd.), pak
+bude mozne pouzit i jine typy cary v programu HIGL.
+	Nektere dalsi prikazy jazyka HI-GL jsou interpretovany
+nepatrne odlisne od zapisovacu HI v dusledku pouziti hardware
+s jinymi vlastnostmi. Popis techto odchylek je shrnut v kap. 3.
+	Pouziti nektereho neimplementovaneho prikazu nezpusobi
+havarii programu, prikaz vsak nevyvola zadnou (pripadne modi-
+fikovanou) cinnost - viz popis jednotlivych prikazu.
+
+
+
+Podrobny popis prikazu:
+-----------------------
+
+A  ...	Absolute Pen Positioning
+
+	Format prikazu: A
+
+	Prikaz nastavi rezim absolutniho adresovani souradnic.
+
+
+CA ...	Arc Plot
+
+	Format prikazu: CA x,y,d,	x,y ... souradnice stredu
+					d   ... pocet stupnu
+
+	Prikaz namaluje oblouk s pomyslnym stredem v bode x,y.
+	Delka oblouku je vyjadrena poctem stupnu, ktery muze
+	byt v rozsahu -360...360.
+	Zacatek kresleni je v bode, kde se momentalne nachazi pero.
+	Po vykresleni se pero opet vrati do tohoto bodu.
+
+
+CC ...	Circle Plot
+
+	Format prikazu: CC x,y,r,	x,y ... souradnice stredu
+					r   ... polomer
+
+	Prikaz namaluje kruznici se stredem x,y a polomerem r.
+	Po dokonceni kruznice zustane zvednute pero v bode x,y.
+
+
+CE ...	Elipse Plot
+
+	Format prikazu: CE x,y,x1,y1,x2,y2,
+
+	Prikaz neni programem HIGL implementovan, prikaz
+	i parametry budou ignorovany.
+
+
+CG ...	General Curve Plot
+
+	Format prikazu: CG x1,y1,...,xn,yn,CS
+
+	Prikaz pro prolozeni hladkou krivkou body x1,y1 az xn,yn
+	je implementovan jako prolozeni lomenou carou tymiz body.
+	Subprikaz CS ukoncuje seznam souradnic bodu.
+
+
+D  ...	Pen Down
+
+	Format prikazu: D
+
+	Prikaz provede spusteni vybraneho pera.
+
+
+EB ...	Mode Two Prompt Enable
+
+	Format prikazu: EBnn,
+
+	Pouziti prikazu je bez funkce, protoze program HIGL
+	pracuje v komunikacnim modu 1.
+
+
+EC ...	Coordinate Addressing
+
+	Format prikazu: ECn,		n ... velikost kroku
+
+	Prikaz nastavi velikost kroku zapisovace.
+	Na zapisovaci VZ-930 neni mozne realizovat velikosti
+	kroku, vychazejici z palcove miry, napr. 0.001 inch.
+	Dale je uvedeno, jak parametr n interpretuje HI a jak
+	HIGL+VZ-930:
+
+	  n		   HI		HIGL+VZ-930
+	--------------------------------------------
+	  1		0.001"		   0.025 mm
+	  5		0.005"		   0.125 mm
+	  N		0.025 mm	   0.025 mm
+	  M		0.1 mm		   0.1 mm
+
+
+ED ...	Digitize
+
+	Format prikazu: ED
+
+	Prikaz pro manualni digitalizaci, souvisi s hardware HI,
+	ignorovan.
+
+
+EF ...	Large Chart
+
+	Format prikazu: EF
+
+	Nastaveni velkeho formatu - vyznam viz prikaz F.
+
+
+EH ...	Small Chart
+
+	Format prikazu : EH
+
+	Nastaveni maleho formatu - vyznam viz prikaz F.
+
+
+EL ...	Plot Pause
+
+	Format prikazu: EL
+
+	Prikaz zastavi cinnost zapisovace a umozni tak vymenu pera.
+	Opetovne spusteni kresleni se provede stisknutim tlacitka
+	TEST na ridicim panelu zapisovace VZ-930.
+
+
+EM ...	Keyboard Mask
+
+	Format prikazu: EM
+
+	Prikaz souvisi s hadrware HI, ignorovan.
+
+
+ER ...  Report
+
+	Format prikazu: ER
+
+	Prikaz ER zpusobi vyslani informaci o soucasnem stavu
+	ze zapisovace do programu, provadejiciho kresleni na
+	zapisovaci.
+	Vysilaji se tyto informace:
+
+		cislo naposled vybraneho pera
+	  	stav pera (nahore nebo dole)
+		soucasna pozice v/mimo nastavene okno
+		pouzity format (velky nebo maly)
+		soucasna pozice pera x,y
+		nastavene parametry okna
+		nastavene parametry zoom
+
+	Format zpravy:
+
+	(a,b,c,d,e,f,g,h,i,j,k,l)<CR>
+
+	kde:
+		a ... 1. status byte - 3 znaky
+			bit 0-3 ... cislo pera
+			bit 4   ... 0 - pen up, 1 - pen down
+			bit 5   ... 0 - v okne, 1 - mimo
+			bit 6   ... 0 - velky format, 1 - maly
+			bit 7   ... 0
+		b ... 2. status byte - 3 znaky, 00H
+		c ... soucasna pozice x - 5 znaku
+		d ... soucasna pozice y - 5 znaku
+		e ... okno - x, levy dolni roh - 5 znaku
+		f ... okno - y, levy dolni roh - 5 znaku
+		g ... okno - x, pravy horni roh - 5 znaku
+		h ... okno - y, pravy horni roh - 5 znaku
+		i ... zoom - x, levy dolni roh - 5 znaku
+		j ... zoom - y, levy dolni roh - 5 znaku
+		k ... zoom - x, pravy horni roh - 5 znaku
+		l ... zoom - y, pravy horni roh - 5 znaku
+
+
+ET ...	End of Text
+
+	Format prikazu: ERnn,		nn ... 2 ASCII hex-cislice
+
+	Prikaz nastavi znak pro ukonceni vypisu retezce.
+	Implicitne je nastaven znak '_' (5FH).
+
+
+EU ...	UART Setup
+
+	Format prikazu: EUnnn,
+	
+	Prikaz souvisi s hardware HI, ignorovan.
+
+
+F  ...	Frame Advance
+
+	Format prikazu: Fn,		n ... pocet kroku
+
+	Prikaz nastavi posunuty zacatek v zavislosti
+	na nastavenem formatu:
+
+		velky format a n != 0
+	Y new home = Y current home = 0
+	X new home = X current home + n
+
+		maly format a n != 0
+	X new home = X current home = 0
+	Y new home = Y current home + n
+
+		velky format a n = 0
+	Y new home = Y current home = 0
+	X new home = current X position
+
+		maly format a n = 0
+	X new home = X current home = 0
+	Y new home = current Y position
+
+
+H  ...	Home Position
+
+	Format prikazu: H
+
+	Prikaz najede do vychozi pozice, tj. do pozice, ktera mela
+	souradnice 0:0 pred provedenim vsech prikazu posuvu
+	vychozi pozice (prikazu O, F).
+	Za vychozi pozici je povazovana pozice zapisovace po startu
+	filtru HIGL nebo po prikazu RESET (prikaz Z).
+
+
+L  ...	Line Type
+
+	Format prikazu: Ln,		n ... typ cary
+
+	Prikaz zatim neimplementovan a ignorovan.
+
+
+M  ...	Marker Plot
+
+	Format prikazu: Mhhm		hh ... velikost znacky
+					m  ... typ znacky
+
+	Prikaz namaluje jednu ze 6 znacek (0...5).
+	Velikost znacky:
+
+	hh	velikost v nastavenych krocich
+	--------------------------------------
+	1		8
+	1+		12
+	2		16
+	2+		24
+	3		32
+	3+		48
+	4		64
+	4+		96
+	5		128
+
+	Tvar znacek:	0 ... plus
+			1 ... x
+			2 ... ctverecek
+			3 ... osmiuhelnik
+			4 ... trojuhelnik
+			5 ... presypaci hodiny
+
+
+M() ..	Extend Marker Plot
+
+	Format prikazu: M(Sn)m		n ... velikost znacky (1-255)
+					m ... typ znacky
+
+	Prikaz namaluje znacku, jejiz velikost 8*n nastavenych kroku.
+	Typy znacek stejne jaku u prikazu M.
+
+
+O  ...	Set Plot Origin
+
+	Format prikazu: O
+
+	Prikaz nastavi posunuty zacatek, soucasna pozice bude
+	mit souradnice 0:0.
+
+P  ...	New Pen
+
+	Format prikazu: Pn,		n ... cislo pera
+
+	Prikaz provede vymenu pera.
+	Je-li cislo pera > 3, byde vybrano pero 3.
+	Je-li cislo pera 0, pero je deselektovano a je provedeno
+	HOME.
+
+
+Q  ...	Query
+
+	Format prikazu: Q
+
+	Po prijeti prikazu je kreslicimu programu vracena zprava
+	o typu a cisle zapisovace.
+	Program HIGL vraci zpravu:
+
+		(DMP51 0375001)<CR>
+
+
+R  ...	Relative Pen Positioning
+
+	Format prikazu: R
+
+	Prikaz nastavi relativni adresovani souradnic.
+
+
+S  ...	Simple Text
+
+	Format prikazu: Srhh"retezec"ET		r  ... natoceni textu
+						hh ... velikost textu
+						ET ... znak End of Text
+
+	Prikaz provadi vypis textu zvolene velikosti a pod
+	zvolenym uhlem.
+	Uhel vypisu je:	1 ... 0 stupnu
+			2 ... 90 stupnu
+			3 ... 180 stupnu
+			4 ... 270 stupnu
+
+	Velikost pisma je:
+
+	hh		vyska pismena v nastavenych krocich
+	---------------------------------------------------
+	1			14
+	1+			21
+	2			28
+	2+			42
+	3			56
+	3+			84
+	4			112
+	4+			168
+	5			224
+
+	Je-li pouzito jednopismenoveho oznaceni vysky pismene,
+	musi nasledovat mezera (hh ma vzdy 2 znaky).
+	Je li v retezci ASCII znaku CR, pero se presune na
+	zacatek radku, je-li tam LF tak o radek niz.
+
+
+S() ..	Extend Text
+
+	Format prikazu: S(Sn,Wn,I/NI,Gn,Xn,Yn,)"retezec"ET
+
+			Sn ... definuje vysku znaku
+			Wn ... definuje sirku znaku
+			I/NI . italic/nonitalic
+			Gn ... kod narodni abecedy - neimplementovano
+			Xn ... x-souradnice smernice textu
+			Yn ... y-souradnice smernice textu
+
+	Prikaz pise na plotru text o vysce 7*Sn a sirce 6*Wn kroku
+	pod smernici, danou bodem x,y relativne k soucasne pozici.
+	Subprikaz G je ignorovan.
+	V prikazu mohou byt zmeneny i pouze nektere parametry,
+	nastaveni parametru plati az do jeho prenastaveni.
+
+
+T  ...  Plotter Test
+
+	Format prikazu: T
+
+	Prikaz je ignorovan.
+
+
+U  ...	Pen Up
+
+	Format prikazu: U
+
+	Prikaz provede zvednuti pera.
+
+
+V  ...	Set Velocity
+
+	Format prikazu: Vn,
+
+	Zapisovac VZ-930 umi kreslit jen jedinou (maximalni)
+	rychlosti, prikaz je ignorovan.
+
+W  ...	Set Winndow/Viewport Limits
+
+	Format prikazu: W wx1,wy1,wx2,wy2,vx1,vy1,vx2,vy2,
+
+		wx1,wy1 ... souradnice leveho dolniho rohu okna
+		wx2,wy2 ... souradnice praveho horniho rohu okna
+		vx1,vy1 ... souradnice leveho dolniho rohu zoom
+		vx2,vy2 ... souradnice praveho horniho rohu zoom
+
+	Prikaz provede nastaveni okna a zvetseni.
+	Nastaveni okna vsak nema vliv na kresleny obrazec.
+	Zvetseni v jednotlivych osach je:
+
+		zoomx=(vx2-vx1)/(wx2-wx1)
+		zoomy=(vy2-vy1)/(wy2-wy1)
+
+	Pri pouziti programu HIGL je vhodne, aby zoomx i zoomy
+	byly cela cisla, jinak dochazi ke zkresleni obrazce.
+	Pokud je to mozne, je lepsi se pouziti prikazu W vyhnout.
+
+
+Z  ...	Plotter Reset
+
+	Format prikazu: Z
+
+	Prikaz provede nastaveni implicitnich rozmeru okna
+	a zoom, deselekt pera a nastaveni vychozi pozice.
+	Do teto pozice najede zapisovac po prijeti kazdeho
+	dalsiho prikazu HOME, bez ohledu na prikazy pro posuv
+	zacatku souradneho systemu.
+
+
+;: ...	Mode Plotter Select
+
+	Format prikazu: ;:
+
+	Prikaz je bez funkce. Je mozne provest jen vyber
+	komunikacniho modu 1, t.j. XON/XOFF.
+
+
+@  ...	Plotter Deselect
+
+	Format prikazu: @
+
+	Prikaz provede vyprazdneni (vyslani) vystupni
+	vyrovnavaci pameti.
+
+x,y ..	Vector Move to Specified Coordinate
+
+	Format prikazu: x,y,
+
+	Prikaz provede nastaveni pera na zadanou souradnici
+	absolutne nebo relativne.
+
+p  ...	incremental +y
+q  ...	incremental +x, +y
+r  ...	incremental +x
+s  ...	incremental +x, -y
+t  ...	incremental -y
+u  ...	incremental -x, -y
+v  ...	incremental -x
+w  ...	incremental -x, +y
+
+	Format prikazu: p
+
+	Prikaz provede posun o 1 zakladni krok.
+
+
+y  ...	Pen Up
+
+	Format prikazu: y
+
+	Prikaz provede zvednuti pera.
+
+
+z  ...	Pen Down
+
+	Format prikazu: z
+
+	Prikaz provede spusteni pera.
+
+
+
+*****************************************************************
+
+
+
+3 - Rozdily mezi programem HIGL a zapisovacem firmy HI
+    --------------------------------------------------
+
+	Jak plyne z popisu jednotlivych prikazu v kap. 2,
+nektere prikazy jsou programem HIGL interpretovany ponekud
+odlisne, nez na originalnim zapisovaci HOUSTON INSTRUMENT.
+Ale z toho neni treba mit tezkou hlavu, protoze se da
+predpokladat, ze vetsinu z odchylek uzivatel v praxi
+ani nepozna.
+	Pouziti programu HIGL+VZ-930 ma jednu vyhodu:
+driver sam si zajistuje realizaci prenosoveho protokolu,
+takze je mozne prikazem
+
+	COPY JMENO_FILE COMx
+
+provest vykresleni obrazce ze souboru. Je to vyhodne, pokud
+vlastni kreslici program nema vazbu na COMx.
+Je tak take mozne provest dlouhotrvajici kresbu na jinem
+pocitaci, ktery muze byt relativne podstatne mene vykonny.
+V neposledni rade je tak mozne vykreslovat obrazce, genero-
+vane programy, ktere pristupuji na COMx nesystemove, t.j.
+ktere se odkazuji primo na hardware (napr. AUTOCAD).
+
+	Souhrn odlisne implementovanych prikazu:
+        ----------------------------------------
+
+A - Prikazy neimplementovane
+----------------------------
+
+CE ...	malovani elipsy
+	ignorovano
+CG ...	prolozeni hladkou krivkou
+	prolozeno lomenou carou
+L  ...	nastaveni typu cary
+	ignoroveno
+
+	Tyto prikazy jsou neimplementovane, ale v pripade
+	potreby je principielne mozne je doimplementovat.
+	Tato potreba ale asi (mozna s vyjimkou prikazu L)
+	nenastane.
+
+
+B - Prikazy bezfunkcni
+----------------------
+
+EB ...	nastaveni specialniho znaku v MODE 2
+ED ...	manualni digitalizace
+EM ...	zablokovani klavesnice
+EU ...	nastaveni UARTu
+T  ...	test plotru
+V  ...	nastaveni rychlosti kresleni
+
+	Tyto prikazy pri pouziti HIGL+VZ-930 nemaji smysl,
+	jsou ignorovany.
+
+
+C - Prikazy implementovane odlisne
+----------------------------------
+
+EC ... nastaveni velikosti zakladniho kroku
+	  n		   HI		HIGL+VZ-930
+	--------------------------------------------
+	  1		0.001"		   0.025 mm
+	  5		0.005"		   0.125 mm
+	  N		0.025 mm	   0.025 mm
+	  M		0.1 mm		   0.1 mm
+W  ...	nastaveni okna a zoomu
+	Pri zoomu je mozne pouze zvetsovat a to jen v pomeru
+	celych cisel, jinak dochazi ke zkresleni obrazce.
+	Prikaz nastaveni okna je bez funkce, t.j. neumi
+	orezavat kresbu.
+
+	V teto skupine jsou prikazy, implementovane nekompletne
+	nebo odlisne.
+	Principielne je mozne plne doimplementovat prikaz W,
+	prikaz EC z principu nelze.
+	Dodelani prikazu W by vsak vyzadovalo pripojeni
+	rozsahlych float-knihoven a program by se rozrostl
+	na nekolikanasobek.
+
+	Zaverem teto kapitoly je mozne konstatovat, ze vsechny
+odchylky jsou pomerne nepodstatne.
+
+
+
+*****************************************************************
+
+
+
+4 - Implicitni nastaveni nekterych parametru
+    ----------------------------------------
+
+	Po spusteni programu HIGL jsou implicitne nastavene
+nektere parametry.
+	Jsou to:
+
+rozmery okna nastaveny na 800 * 600 mm
+zoom nastaven na 1 - neuplatni se
+znak EOT nastaven na '_'  (5FH)
+pero cislo 1
+pero zvednuto
+nastaven velky format
+soucasna pozice je 0:0
+velikost znacky 8 kroku
+vyska pisma 56 kroku, sirka 48 kroku, zakladni smer psani
+absolutni rezim adresovani
+
+	Nektere parametry se nastavi na implicitni hodnotu
+po prikazu Z (reset). Jedna se o soucasnou pozici, cislo pera,
+stav pera, velikost okna a zoomu.
+
+
+
+*****************************************************************
+
+
+
+5 - Moznosti pouziti
+    ----------------
+
+	Trida pouziti driveru na IBM-PC je pomerna siroka.
+	Pomoci pametove-rezidentniho driveru je mozne primo
+kreslit z programu jako ORCAD, SMARTWORK, REDAC a dalsich.
+	Pomoci vykresleni dat ze souboru prikazem COPY je
+pak mozne kreslit obrazce i z programu, ktere pristupuji na
+seriovou linku nesystemove, napr. z AUTOCADu.
+
+
+
+*****************************************************************
+
+
+
+	Autor bude vdecny za pripominky a poznatky uzivatelu.
+	Pripominky zasilejte prosim na
+
+	ing. Petr Labaj
+	JZD AK Slusovice
+	zavod sluzeb
+	tel. Brno, 335945
+
+	nebo primo na
+
+	ing. Petr Labaj
+	Simackova 130
+	628 00  BRNO
+
+
+*****************************************************************
+

@@ -1,0 +1,976 @@
+Bitová_mapa_pøíkazù:
+                 +-------+
+                 | bit 7 |
+                 +---+---+
+                   0 | 1
+         +-----------+-------------+
+     +---+---+                 +---+---+
+     | bit 6 |                 | bit 6 |
+     +---+---+                 +---+---+
+       0 | 1                     0 | 1
+    +----+---+          +----------+------------------+
++---+---+ +--+----+ +---+---+                     +---+---+
+| CEKEJ | | VODA  | | bit 5 |                     | bit 5 |
++---+---+ +-------+ +---+---+                     +---+---+
+ 00H|                 0 | 1                         0 | 1
++---+---+         +-----+----+               +--------+----------+
+| STOP  |     +---+----+ +---+---+       +---+---+           +---+---+
++-------+     | TOPENI | | bit 4 |       | bit 4 |           | bit 4 |
+              +--------+ +---+---+       +---+---+           +---+---+
+                      0 +----+ 1           0 | 1               0 | 1
+                 +------+-----+         +----+----+         +----+----+
+              +--+-----+ +----+---+ +---+---+ +---+---+ +---+---+ +---+---+
+              | MOTOR  | | RSKOK  | | SKOK  | | PODP  | |  IND  | | bit 3 |
+              +--------+ +--------+ +-------+ +-------+ +-------+ +---+---+
+                                                               0 +----+ 1
+                                                            +----+----+
+                                                        +---+---+ +---+---+
+                                                        |  PAR  | | bit 2 |
+                                                        +-------+ +---+---+
+                                                              0  +----+ 1
+                                                            +----+----+
+                                                        +---+---+ +---+---+
+                                                        | PODM  | | bit 1 |
+                                                        +-------+ +---+---+
+                                                    0 +---------------+ 1
+                                             +--------+----------+
+                                         +---+---+           +---+---+
+                                         | bit 0 |           | bit 0 |
+                                         +---+---+           +---+---+
+                                           0 | 1               0 | 1
+                                        +----+----+         +----+----+
+                                    +---+---+ +---+---+ +---+---+ +---+---+
+                                    | LABEL | |  BOD  | |  RET  | |  NOP  |
+                                    +-------+ +-------+ +-------+ +-------+
+
+    Celkem je možné navolit 15 programù (aretovaná tlaèítka "A", "B", "C" a
+"D").  Volba  programu se provádí nastavením tlaèítek pøi vypnutém napájení
+nebo  ve stavu TOTAL STOP a odstartováním tlaèítkem "START/STOP". Tlaèítkem
+"START/STOP" lze bìhem chodu programu uvést praèku do pøechodného klidového
+stavu   (pozastavení   -  stav  STOP)  -  pozastaví  se  všechny  provádìné
+funkce.Stav  STOP se indikuje inverzním zpùsobem (namísto trvalého svitu se
+zmtavováním je indikace ztmavená a poblikává). Opìtovným stlaèením tlaèítka
+program opìt pokraèuje. Pøi dlouhém držení tlaèítka "START/STOP" se provádí
+pøeskakování  blokù  programu  (indikaèní  LED  vždy  rychle zabliká barvou
+nastavenou  pro  daný blok). Pøi pøeskakování bloku zùstane praèka ve stavu
+klidu  nebo  chodu  podle  stavu  pøed  stiskem  tlaèítka.  Pøepínání èísla
+programu  bìhem praní nemá na chod programu vliv kromì kombinace 0 (všechna
+tlaèítka  jsou  rozepnuta)  -  pokud  je pozastavený program opìt spuštìn s
+touto  nastavenou  kombinací,  provede  se nucené uvedení praèky do klidu -
+vypustí se voda a praèka pøejde do stavu TOTAL STOP.
+
+
+
+
+
+CEKEJ - èekání po zadanou dobu (kód 01h-3Fh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 0 | 0 | W | C | C | C | C | C |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   +---+---+---+---+----->0-4: doba èekání (v 1/3 minuty)
+  |   |   |
+  |   |   +-------------------------> 5:  1=nastavení podmínìného èekání
+  |   |
+  +---+----------------------------->6-7: identifikace pøíkazu CEKEJ
+
+    Syntaxe pøíkazu:
+
+         CEKEJ [W] doba
+
+              W         - definice doby pro podmínìné èekání
+
+              doba      - doba èekání v 1/3 minuty (èíslo 1 až 31)
+
+         CEKEJ W 0      - podmínìné èekání je neomezené
+
+
+    Funkce pøíkazu:
+
+         Pokud  není  zadán  parametr  W,  provádí se nepodmínìné èekání po
+    zadanou  dobu.  Údaj doby je èíslo v rozsahu 1 až 31, které pøedstavuje
+    dobu  èekání  20  sekund  až  10  minut 20 sekund po krocích 20 sekund.
+    Nastavená  doba èekání se tedy vypoète podle vztahu doba èekání [min] =
+    doba/3.  Bìhem  této  doby  se mohou provádìt nastavené operace (motor,
+    topení  atd.). Pøi zadání parametru W se jedná o nevýkonný povel, který
+    definuje  maximální  dobu  pro  podmínìné èekání (tj. doba pro platnost
+    parametru  W  pøíkazu).  To  znamená,  že všechny následující operace s
+    podmínìným  èekáním  budou  až  do dalšího nastavení èekat na provedení
+    operace  pouze po zadaný èas, potom program opìt pokraèuje (tedy nadále
+    platí,  jakoby  parametr  W  nebyl  zadán).  Pokud  je  zadána doba pro
+    podmínìné  èekání  0,  není  doba  èekání  na  provedení operace èasovì
+    omezena.  Pøíkaz  CEKEJ 0 (tedy bez parametru W) pøedstavuje jiný zápis
+    povelu  STOP.  Základní  èasový  krok  (zde 20 sekund) je volitelný pro
+    všechny  programy  souèasnì,  lze  jej  zvolit oddìlenì pro nepodmínìné
+    èekání a pro podmínìné èekání.
+
+
+
+STOP  - ukonèení chodu programu (kód 00h)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
++---+---+---+---+---+---+---+---+
+
+    Syntaxe pøíkazu:
+
+         STOP
+
+    Funkce pøíkazu:
+
+         Pøíkaz  zpùsobí  zastavení  programu a uvedení do klidového stavu.
+    Jsou ukonèeny všechny nedokonèené operace, program je opìt pøipraven ke
+    spuštìní.  Tento  pøíkaz  je  jiným  tvarem  zápisu pro pøíkaz CEKEJ 0.
+    Pøíkaz lze uvést i v podprogramu bez provedení návratu do programu.
+
+
+
+VODA  - napouštìní/vypouštìní vody (kód 40h-7Fh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 0 | 1 | W | H | H | V3| V2| V1|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   +-----> 0:  ventil 1 -+
+  |   |   |   |   |   |   +---------> 1:  ventil 2  +- 000 = vypouštìní
+  |   |   |   |   |   +-------------> 2:  ventil 3 -+
+  |   |   |   |   |
+  |   |   |   +---+----------------->3-4: požadovaná hladina 0 až 3
+  |   |   |
+  |   |   +-------------------------> 5:  1=èeká na dosažení hladiny
+  |   |
+  +---+----------------------------->6-7: identifikace pøíkazu VODA
+
+    Syntaxe pøíkazu:
+
+         VODA [W]  hladina [ventil [ventil] ... ]
+
+              W         - èekání na dosažení hladiny
+              hladina   - požadovaná  hladina (èíslo 0 až 3); pokud se zadá
+                          hladina  0  bez  udání  ventilù a bez parametru W
+                          (tedy  povel  VODA 0), zapne se trvalé vypouštìní
+                          až do opìtovného zadání povelu VODA 0.
+              ventil    - sepnuté  ventily (èíslo 1 až 3); bez uvedení ven-
+                          tilu se jedná o vypouštìní
+
+    Funkce pøíkazu:
+
+         Pøíkaz  provádí  operace  s  napouštìním  nebo  vypouštìním  vody.
+    V·pøíkazu se uvádí èíslo požadované hladiny, které má být touto operací
+    dosaženo (hladinové spínaèe 0 až 3). Pokud se uvede parametr W, èeká se
+    na  dosažení  hladiny (tj. není provádìn další pøíkaz programu). Funkce
+    napouštìní  však zùstává nastavena i nadále až do nového zadání pøíkazu
+    VODA  -  tj.  pokud  dojde k poklesu hladiny vody, provede se dopuštìní
+    vody.  Funkce  vypouštìní se po provedení operace (kromì povelu VODA 0)
+    vypne.  Pokud se uvede jeden nebo více napouštìcích ventilù, provádí se
+    napouštìní   vody   ze  zadaného  ventilu  (ventilù).  Pokud  se  bìhem
+    napouštìní  vody  z  ventilù  1 a 2 (tj. míchání) provádí funkce ohøevu
+    vody  na  danou  teplotu, provádí se míchání vody z ventilù 1=studená a
+    2=teplá  na  požadovanou teplotu vody (podle termoèidla). Napouštìní se
+    provádí  do  doby,  kdy  sepne pøíslušný hladinový spínaè. Nezadá-li se
+    žádný  ventil,  provádí  se  vypouštìní  vody. Vypouštìní se provádí do
+    doby,  kdy  rozepne zadaný hladinový spínaè. Urèitou výjimkou je pøíkaz
+    VODA  0  (vypouštìní  vody na hladinu 0 bez èekání). Tento pøíkaz zapne
+    trvalé  vypouštìní  a  to  až  do  zadání  nového pøíkazu VODA 0 (vypne
+    vypouštìní) nebo do jiného zadání pøíkazu VODA.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TOPENI  - ohøev vody (kód 80h-9Fh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 0 | 0 | W | T | T | T | T |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   +---+---+---+----->0-3: požadovaná teplota (viz tabulka)
+  |   |   |   |
+  |   |   |   +---------------------> 4:  1=èeká na dosažení teploty
+  |   |   |
+  +---+---+------------------------->5-7: identifikace pøíkazu TOPENI
+
+
+    Syntaxe pøíkazu:
+
+         TOPENI [W] [teplota]
+
+              W         - èekání na dosažení teploty
+              teplota   - požadovaná teplota (èíslo 0 až 15 podle tabulky);
+                          bez  uvedení  teploty  je  automaticky parametr 0
+                          (=·ohøev vypnut).
+
+                           +----+-----------------+
+                           |  0 | ohøev vypnut    |
+                           |  1 | 30°C            |
+                           |  2 | 40°C            |
+                           |  3 | 50°C            |
+                           |  4 | 55°C            |
+                           |  5 | 60°C            |
+                           |  6 | 65°C            |
+                           |  7 | 70°C            |
+                           |  8 | 75°C            |
+                           |  9 | 80°C            |
+                           | 10 | 85°C            |
+                           | 11 | 90°C            |
+                           | 12 | 95°C            |
+                           | 13 | 98°C            |
+                           | 14 | 100°C vyváøení  |
+                           | 15 | ruèní regulace  |
+                           +----+-----------------+
+
+    Funkce pøíkazu:
+
+        Pøíkaz provádí ohøev vody na požadovanou teplotu. Pokud se napouští
+    voda  z·ventilù  1=studená  a  2=teplá,  provádí  se  míchání  vody  na
+    požadovanou  teplotu.  Topení  pro  ohøev  vody se zapne až po dosažení
+    hladiny  0,  povel  lze  tedy zadat i pøed napouštìním vody. Parametr 0
+    vypne ohøev vody. Ohøev vody je nutno vypnout i pøi zadání parametru W,
+    nebo  se  tímto  parametrem  provede pouze pozastavení chodu programu,
+    avšak  funkce  ohøevu zùstane zapnuta - tj. pøi poklesu teploty se opìt
+    zapne topení.
+
+
+
+
+
+
+
+
+
+
+
+
+
+MOTOR  - otáèení motoru (kód A0h-AFh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 0 | 1 | 0 | L | O | O | O |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   +---+---+----->0-2: typ otáèení (viz tabulka)
+  |   |   |   |   |
+  |   |   |   |   +-----------------> 3:  1=snížené otáèky, 0=normální ot.
+  |   |   |   |
+  +---+---+---+--------------------->4-7: identifikace pøíkazu MOTOR
+
+    Syntaxe pøíkazu:
+
+         MOTOR STOP     - zastavení chodu motoru (= MOTOR 0)
+
+         MOTOR [L] typ
+
+              L         - jsou snížené otáèky motoru (praní nebo odstøed.)
+              typ       - typ otáèení (èíslo 0 až 7 podle tabulky)
+                          +-----+----------------------------------------+
+                          |  0  |  zastavení motoru (MOTOR STOP)         |
+                          |  1  | 15 sekund chod,  5 sekund klid, obousm.|
+                          |  2  |  5 sekund chod, 15 sekund klid, obousm.|
+                          |  3  |  5 sekund chod, 55 sekund klid, obousm.|
+                          |  4  | 15 sekund chod,  5 sekund klid, jednos.|
+                          |  5  |  5 sekund chod, 15 sekund klid, jednos.|
+                          |  6  |  5 sekund chod, 55 sekund klid, jednos.|
+                          |  7  |  odstøedìní                            |
+                          +-----+----------------------------------------+
+
+    Funkce pøíkazu:
+
+         Pøíkaz  slouží  ke spouštìní a zastavení motoru pro otáèení bubnu.
+    Lze  zvolit  6  typù  praní,  odstøedìní nebo zastavení motoru, lze též
+    zvolit snížené otáèky motoru.
+
+
+RSKOK - relativní skok (kód B0h-BFh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 0 | 1 | 1 | S | V | V | V |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   +---+---+----->0-2: vzdálenost skoku:
+  |   |   |   |   |                       vpøed: 1 až 8 bajtù od násl.adr.
+  |   |   |   |   |                       zpìt: 1 až 8 bajtù od instrukce
+  |   |   |   |   |
+  |   |   |   |   +-----------------> 3:  smìr skoku: 0=vpøed, 1=zpìt
+  |   |   |   |
+  +---+---+---+--------------------->4-7: identifikace pøíkazu RSKOK
+
+    Syntaxe pøíkazu:
+
+         RSKOK vzdálenost
+
+              vzdálenost   - èíslo -1 až -8 nebo 1 až 8
+
+    Funkce pøíkazu:
+
+         RSKOK  provede  skok  o zadaný poèet bajtù a to buï od následující
+    instrukce  vpøed  (kladné  èíslo) nebo od instrukce RSKOK zpìt (záporné
+    èíslo). Pro skok na vìtší vzdálenost lze použít instrukci SKOK.
+SKOK - skok na návìští (kód C0h-CFh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 0 | 0 | L | L | L | L |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   +---+---+---+----->0-3: èíslo návìští (1 až 16)
+  |   |   |   |
+  +---+---+---+--------------------->3-7: identifikace pøíkazu SKOK
+
+    Syntaxe pøíkazu:
+
+         SKOK návìští
+
+              návìští   - návìští, na které se skok provede
+
+
+    Funkce pøíkazu:
+
+         Pøíkaz  provede skok na zadané návìští LABEL bez uložení návratové
+    adresy. Návìští LABEL se èíslují od zaèátku pamìti programù od èísla 1,
+    mùže  být  použito celkem maximálnì 16 návìští (èísla návìští 1 až 16).
+    Pro skoky v menším rozsahu lze použít instrukci RSKOK.
+
+
+
+PODP - skok do podprogramu (kód D0h-DFh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 0 | 1 | L | L | L | L |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   +---+---+---+----->0-3: èíslo návìští 1 až 16
+  |   |   |   |
+  +---+---+---+--------------------->3-7: identifikace pøíkazu PODP
+
+    Syntaxe pøíkazu:
+
+         PODP návìští
+
+              návìští   - návìští, na které se skok provede
+
+
+    Funkce pøíkazu:
+
+         Pøíkaz  provede  skok na zadané návìští LABEL s uložením návratové
+    adresy  - provede se vyvolání podprogramu oznaèeného tímto návìštím. Po
+    pøíkazu  RET  se  provede návrat z podprogramu zpìt za instrukci, která
+    tento  podprogram  vyvolala. Návìští LABEL se èíslují od zaèátku pamìti
+    programù  od  èísla  1,  mùže  být  použito celkem maximálnì 16 návìští
+    (èísla návìští 1 až 16). Podprogram lze volat do osmi úrovní.
+
+
+
+
+
+
+
+
+
+
+
+
+IND  - indikace chodu programu (kód E0h-EFh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 0 | K | K | B | B |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   +---+----->0-1: barva (podle tabulky)
+  |   |   |   |   |   |
+  |   |   |   |   +---+------------->2-3: kód blikání 1 až 4
+  |   |   |   |
+  +---+---+---+--------------------->4-7: identifikace pøíkazu IND
+
+    Syntaxe pøíkazu:
+
+         IND barva kód
+
+              barva     - odstín barvy (èíslo 1 až 4)
+
+                    +-------+----------------+
+                    |   1   |  zelená        |
+                    |   2   |  žlutozelená   |
+                    |   3   |  žlutá         |
+                    |   4   |  oranžová      |
+                    +-------+----------------+
+
+              kód       - kód blikání (èíslo 1 až 4)
+
+
+    Funkce pøíkazu:
+
+         Pøíkaz  slouží  ke  svìtelné  indikaci  chodu  programu.  Umožòuje
+    nastavení barvy indikaèní LED a nastavení kódu blikání (1 až 4 bliknutí
+    upøesòující stav programu - napø. èíslo operace máchání). Èervená barva
+    je  vyhrazena  pro  indikaci  zapnutí ohøevu - vždy pøi sepnutí spínaèe
+    topení   se  rozsvítí  èervená  barva  indikace,  kód  blikání  zùstává
+    nezmìnìn.  Pokud  je  tlaèítkem  "START/STOP" pozastaven chod programu,
+    probíhá  indikace stavu inverzním zpùsobem - indikaèní LED je ztmavená,
+    poblikává  zadaným  kódem. Po zastavení programu praèky nebo po zapnutí
+    napájení  pøejde  program do stavu TOTAL STOP, který se liší od bìžného
+    stavu  STOP  tím,  že  lze nastavit èíslo programu praèky a program lze
+    spustit  od  zaèátku.  Tento  stav  se indikuje po zapnutí nebo výpadku
+    napájení  støídáním  zelené  a  èervené  barvy,  po  dokonèení programu
+    støídáním  žluté  a  zelené  barvy.  Pokud  byla  po  zapnutí  napájení
+    identifikována  voda,  støídá  se  žlutá  a  èervená  barva, lze zvolit
+    náhradní program.
+
+
+
+
+       žlutá, 1 bliknutí     - pøedpraní
+       žlutá, 2 bliknutí     - praní
+       èervená, 1 bliknutí   - pøedpraní - probíhá ohøev
+       èervená, 2 bliknutí   - praní - probíhá ohøev
+       zelená, 1 bliknutí    - 1. máchání
+       zelená, 2 bliknutí    - 2. máchání
+       zelená, 3 bliknutí    - 3. máchání
+
+
+
+
+
+
+
+
+PAR - parametry podprogramu (kód F0h-F7h)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 1 | 0 | D | P | P |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   +---+----->0-1: èíslo/poèet parametrù - 1
+  |   |   |   |   |   |
+  |   |   |   |   |   +-------------> 2:  následuje definice parametrù
+  |   |   |   |   |
+  +---+---+---+---+----------------->3-7: identifikace pøíkazu DEFP
+
+    Syntaxe pøíkazu:
+
+         PAR [D] èíslo/poèet
+
+              D         - následuje definice parametrù
+              èíslo/poèet - èíslo symbolického parametru nebo poèet
+                            definovaných parametrù (èíslo 1 až 4)
+
+    Funkce pøíkazu:
+
+         Pøíkaz  umožòuje  pøedávání  parametrù  do  podprogramu. Bez udání
+    parametru   D   pøedstavuje  pøíkaz  symbolickou  instrukci  (s  èíslem
+    parametru  1 až 4), která se pøi provádìní programu nahradí pøedvoleným
+    pøíkazem.  Tímto  zpùsobem lze pøedávat 4 parametry jako pøíkazy, které
+    se  dosadí  až  pøi provádìní programu. Jako parametr nesmí být použito
+    návìští.  Pøíkaz  PAR  se  zadaným  parametrem  D  pøedstavuje definici
+    parametrù.  Jako parametr pøíkazu se udává poèet následujících pøíkazù,
+    které  pøedstavují definice parametrù. Ve skuteènosti nejde o nahrazení
+    úplného  pøíkazu, ale pouze 1. bajtu pøíkazu, parametr tedy pøedstavuje
+    poèet  bajtù,  které  jsou  použity  jako  parametry.  Parametry se pøi
+    definici  nastavují  v poøadí od èísla 1 po èíslo 4, pøedchozí definice
+    parametrù s vyššími èísly zùstávají nezmìnìny.
+
+
+
+PODM - podmínìná instrukce (kód F8h-FBh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 1 | 1 | 0 | T | T |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   bity
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   +---+-----> 0:  èíslo testu 1 až 4 (viz tabulka)
+  |   |   |   |   |   |
+  +---+---+---+---+---+------------->3-7: identifikace pøíkazu PODM
+
+    Syntaxe pøíkazu:
+
+         PODM  test
+
+              test      - èíslo testu (èíslo 1 až 4)
+                          +-----+--------------------------------+
+                          |  1  |  je dosažena teplota ohøevu    |
+                          |  2  |  je dosažena hladina vody      |
+                          |  3  |  není dosažena teplota ohøevu  |
+                          |  4  |  není dosažena hladina vody    |
+                          +-----+--------------------------------+
+
+    Funkce pøíkazu:
+
+         Pøíkaz  testuje  zadanou  podmínku  a pokud je splnìna, provede se
+    následující pøíkaz. Pokud ne, následující pøíkaz se pøeskoèí.
+LABEL - návìští v programu (kód FCh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 |
++---+---+---+---+---+---+---+---+
+
+    Syntaxe pøíkazu:
+
+         LABEL
+
+    Funkce pøíkazu:
+
+         LABEL  oznaèuje  místo  v  programu,  kam  mùže  být provádìn skok
+    instrukcí  SKOK  nebo PODP. Lze uvést max. 16 návìští, která se èíslují
+    od zaèátku pamìti programù s poøadovými èísly od èísla 1 po èíslo 16.
+
+
+BOD - identifikaèní bod programu (kód FDh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 1 | 1 | 1 | 0 | 1 |
++---+---+---+---+---+---+---+---+
+
+    Syntaxe pøíkazu:
+
+         BOD
+
+    Funkce pøíkazu:
+
+         BOD slouží k oznaèení bodu v programu, kde program mùže pokraèovat
+    pøi nuceném krokování programu. Tato funkce se používá napø. po výpadku
+    napájení  a to tak, že se dlouhým držením tlaèítka "START/STOP" provede
+    pøeskoèení programu na další identifikaèní bod programu.
+
+
+RET - návrat z podprogramu (kód FEh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 1 | 1 | 1 | 1 | 0 |
++---+---+---+---+---+---+---+---+
+
+    Syntaxe pøíkazu:
+
+         RET
+
+    Funkce pøíkazu:
+
+         Pøíkaz  provede  návrat  z  podprogramu  za  instrukci PODP, která
+    vyvolala  podprogram.  Pokud  je pøíkaz uveden v základním programu, má
+    stejný úèinek jako pøíkaz STOP.
+
+
+NOP - prázdná instrukce (nemá žádný úèinek) (kód FFh)
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
++---+---+---+---+---+---+---+---+
+
+    Syntaxe pøíkazu:
+
+         NOP
+
+
+Seznam_povelù:
+
+
+BOD - identifikaèní bod programu (kód FDh)
+
+CEKEJ [W] doba - èekání po zadanou dobu (kód 01h-3Fh)
+
+IND  barva kód - indikace chodu programu (kód E0h-EFh)
+
+LABEL - návìští v programu (kód FCh)
+
+MOTOR {STOP | [L] typ} - otáèení motoru (kód A0h-AFh)
+
+NOP - prázdná instrukce (nemá žádný úèinek) (kód FFh)
+
+PAR [D] èíslo/poèet - parametry podprogramu (kód F0h-F7h)
+
+PODM test - podmínìná instrukce (kód F8h-FBh)
+
+PODP návìští - skok do podprogramu (kód D0h-DFh)
+
+RET - návrat z podprogramu (kód FEh)
+
+RSKOK vzdálenost - relativní skok (kód B0h-BFh)
+
+SKOK návìští - skok na návìští (kód C0h-CFh)
+
+STOP  - ukonèení chodu programu (kód 00h)
+
+TOPENI [W] [teplota] - ohøev vody (kód 80h-9Fh)
+
+VODA [W] hladina [ventil] ... - napouštìní/vypouštìní vody (kód 40h-BFh)
+
+
+
+
+Kódy_povelù:
+
+
+STOP  - ukonèení chodu programu (kód 00h)
+
+    00:  STOP  - ukonèení chodu programu, pøejítí do stavu TOTAL STOP
+
+
+CEKEJ - èekání po zadanou dobu (kód 01h-3Fh)
+
+    01:  CEKEJ 1   - nepodmínìné èekání 20 sekund
+    02:  CEKEJ 2   - nepodmínìné èekání 40 sekund
+    03:  CEKEJ 3   - nepodmínìné èekání 1 minutu
+    04:  CEKEJ 4   - nepodmínìné èekání 1 minutu 20 sekund
+    05:  CEKEJ 5   - nepodmínìné èekání 1 minutu 40 sekund
+    06:  CEKEJ 6   - nepodmínìné èekání 2 minuty
+    07:  CEKEJ 7   - nepodmínìné èekání 2 minuty 20 sekund
+    08:  CEKEJ 8   - nepodmínìné èekání 2 minuty 40 sekund
+    09:  CEKEJ 9   - nepodmínìné èekání 3 minuty
+    0A:  CEKEJ 10  - nepodmínìné èekání 3 minuty 20 sekund
+    0B:  CEKEJ 11  - nepodmínìné èekání 3 minuty 40 sekund
+    0C:  CEKEJ 12  - nepodmínìné èekání 4 minuty
+    0D:  CEKEJ 13  - nepodmínìné èekání 4 minuty 20 sekund
+    0E:  CEKEJ 14  - nepodmínìné èekání 4 minuty 40 sekund
+    0F:  CEKEJ 15  - nepodmínìné èekání 5 minut
+    10:  CEKEJ 16  - nepodmínìné èekání 5 minut 20 sekund
+    11:  CEKEJ 17  - nepodmínìné èekání 5 minut 40 sekund
+    12:  CEKEJ 18  - nepodmínìné èekání 6 minut
+    13:  CEKEJ 19  - nepodmínìné èekání 6 minut 20 sekund
+    14:  CEKEJ 20  - nepodmínìné èekání 6 minut 40 sekund
+    15:  CEKEJ 21  - nepodmínìné èekání 7 minut
+    16:  CEKEJ 22  - nepodmínìné èekání 7 minut 20 sekund
+    17:  CEKEJ 23  - nepodmínìné èekání 7 minut 40 sekund
+    18:  CEKEJ 24  - nepodmínìné èekání 8 minut
+    19:  CEKEJ 25  - nepodmínìné èekání 8 minut 20 sekund
+    1A:  CEKEJ 26  - nepodmínìné èekání 8 minut 40 sekund
+    1B:  CEKEJ 27  - nepodmínìné èekání 9 minut
+    1C:  CEKEJ 28  - nepodmínìné èekání 9 minut 20 sekund
+    1D:  CEKEJ 29  - nepodmínìné èekání 9 minut 40 sekund
+    1E:  CEKEJ 30  - nepodmínìné èekání 10 minut
+    1F:  CEKEJ 31  - nepodmínìné èekání 10 minut 20 sekund
+    20:  CEKEJ W 0   - nastavení podmínìného èekání na dobu neomezenou
+    21:  CEKEJ W 1   - nastavení podmínìného èekání na 20 sekund
+    22:  CEKEJ W 2   - nastavení podmínìného èekání na 40 sekund
+    23:  CEKEJ W 3   - nastavení podmínìného èekání na 1 minutu
+    24:  CEKEJ W 4   - nastavení podmínìného èekání na 1 minutu 20 sekund
+    25:  CEKEJ W 5   - nastavení podmínìného èekání na 1 minutu 40 sekund
+    26:  CEKEJ W 6   - nastavení podmínìného èekání na 2 minuty
+    27:  CEKEJ W 7   - nastavení podmínìného èekání na 2 minuty 20 sekund
+    28:  CEKEJ W 8   - nastavení podmínìného èekání na 2 minuty 40 sekund
+    29:  CEKEJ W 9   - nastavení podmínìného èekání na 3 minuty
+    2A:  CEKEJ W 10  - nastavení podmínìného èekání na 3 minuty 20 sekund
+    2B:  CEKEJ W 11  - nastavení podmínìného èekání na 3 minuty 40 sekund
+    2C:  CEKEJ W 12  - nastavení podmínìného èekání na 4 minuty
+    2D:  CEKEJ W 13  - nastavení podmínìného èekání na 4 minuty 20 sekund
+    2E:  CEKEJ W 14  - nastavení podmínìného èekání na 4 minuty 40 sekund
+    2F:  CEKEJ W 15  - nastavení podmínìného èekání na 5 minut
+    30:  CEKEJ W 16  - nastavení podmínìného èekání na 5 minut 20 sekund
+    31:  CEKEJ W 17  - nastavení podmínìného èekání na 5 minut 40 sekund
+    32:  CEKEJ W 18  - nastavení podmínìného èekání na 6 minut
+    33:  CEKEJ W 19  - nastavení podmínìného èekání na 6 minut 20 sekund
+    34:  CEKEJ W 20  - nastavení podmínìného èekání na 6 minut 40 sekund
+    35:  CEKEJ W 21  - nastavení podmínìného èekání na 7 minut
+    36:  CEKEJ W 22  - nastavení podmínìného èekání na 7 minut 20 sekund
+    37:  CEKEJ W 23  - nastavení podmínìného èekání na 7 minut 40 sekund
+    38:  CEKEJ W 24  - nastavení podmínìného èekání na 8 minut
+    39:  CEKEJ W 25  - nastavení podmínìného èekání na 8 minut 20 sekund
+    3A:  CEKEJ W 26  - nastavení podmínìného èekání na 8 minut 40 sekund
+    3B:  CEKEJ W 27  - nastavení podmínìného èekání na 9 minut
+    3C:  CEKEJ W 28  - nastavení podmínìného èekání na 9 minut 20 sekund
+    3D:  CEKEJ W 29  - nastavení podmínìného èekání na 9 minut 40 sekund
+    3E:  CEKEJ W 30  - nastavení podmínìného èekání na 10 minut
+    3F:  CEKEJ W 31  - nastavení podmínìného èekání na 10 minut 20 sekund
+
+
+VODA  - napouštìní/vypouštìní vody (kód 40h-7Fh)
+
+    40:  VODA 0         - zapnutí úplného vypouštìní vody
+    41:  VODA 0 1       - napouštìní vody z ventilu 1 na hladinu 0
+    42:  VODA 0 2       - napouštìní vody z ventilu 2 na hladinu 0
+    43:  VODA 0 1 2     - napouštìní vody z ventilù 1 a 2 na hladinu 0
+    44:  VODA 0 3       - napouštìní vody z ventilu 3 na hladinu 0
+    45:  VODA 0 1 3     - napouštìní vody z ventilù 1 a 3 na hladinu 0
+    46:  VODA 0 2 3     - napouštìní vody z ventilù 2 a 3 na hladinu 0
+    47:  VODA 0 1 2 3   - napouštìní vody z ventilù 1, 2 a 3 na hladinu 0
+    48:  VODA 1         - vypouštìní vody na hladinu 1
+    49:  VODA 1 1       - napouštìní vody z ventilu 1 na hladinu 1
+    4A:  VODA 1 2       - napouštìní vody z ventilu 2 na hladinu 1
+    4B:  VODA 1 1 2     - napouštìní vody z ventilù 1 a 2 na hladinu 1
+    4C:  VODA 1 3       - napouštìní vody z ventilu 3 na hladinu 1
+    4D:  VODA 1 1 3     - napouštìní vody z ventilù 1 a 3 na hladinu 1
+    4E:  VODA 1 2 3     - napouštìní vody z ventilù 2 a 3 na hladinu 1
+    4F:  VODA 1 1 2 3   - napouštìní vody z ventilù 1, 2 a 3 na hladinu 1
+    50:  VODA 2         - vypouštìní vody na hladinu 2
+    51:  VODA 2 1       - napouštìní vody z ventilu 1 na hladinu 2
+    52:  VODA 2 2       - napouštìní vody z ventilu 2 na hladinu 2
+    53:  VODA 2 1 2     - napouštìní vody z ventilù 1 a 2 na hladinu 2
+    54:  VODA 2 3       - napouštìní vody z ventilu 3 na hladinu 2
+    55:  VODA 2 1 3     - napouštìní vody z ventilù 1 a 3 na hladinu 2
+    56:  VODA 2 2 3     - napouštìní vody z ventilù 2 a 3 na hladinu 2
+    57:  VODA 2 1 2 3   - napouštìní vody z ventilù 1, 2 a 3 na hladinu 2
+    58:  VODA 3         - vypouštìní vody na hladinu 3
+    59:  VODA 3 1       - napouštìní vody z ventilu 1 na hladinu 3
+    5A:  VODA 3 2       - napouštìní vody z ventilu 2 na hladinu 3
+    5B:  VODA 3 1 2     - napouštìní vody z ventilù 1 a 2 na hladinu 3
+    5C:  VODA 3 3       - napouštìní vody z ventilu 3 na hladinu 3
+    5D:  VODA 3 1 3     - napouštìní vody z ventilù 1 a 3 na hladinu 3
+    5E:  VODA 3 2 3     - napouštìní vody z ventilù 2 a 3 na hladinu 3
+    5F:  VODA 3 1 2 3   - napouštìní vody z ventilù 1, 2 a 3 na hladinu 3
+    60:  VODA W 0       - vypustìní vody na hladinu 0
+    61:  VODA W 0 1     - napustìní vody z ventilu 1 na hladinu 0
+    62:  VODA W 0 2     - napustìní vody z ventilu 2 na hladinu 0
+    63:  VODA W 0 1 2   - napustìní vody z ventilù 1 a 2 na hladinu 0
+    64:  VODA W 0 3     - napustìní vody z ventilu 3 na hladinu 0
+    65:  VODA W 0 1 3   - napustìní vody z ventilù 1 a 3 na hladinu 0
+    66:  VODA W 0 2 3   - napustìní vody z ventilù 2 a 3 na hladinu 0
+    67:  VODA W 0 1 2 3 - napustìní vody z ventilù 1, 2 a 3 na hladinu 0
+    68:  VODA W 1       - vypustìní vody na hladinu 1
+    69:  VODA W 1 1     - napustìní vody z ventilu 1 na hladinu 1
+    6A:  VODA W 1 2     - napustìní vody z ventilu 2 na hladinu 1
+    6B:  VODA W 1 1 2   - napustìní vody z ventilù 1 a 2 na hladinu 1
+    6C:  VODA W 1 3     - napustìní vody z ventilu 3 na hladinu 1
+    6D:  VODA W 1 1 3   - napustìní vody z ventilù 1 a 3 na hladinu 1
+    6E:  VODA W 1 2 3   - napustìní vody z ventilù 2 a 3 na hladinu 1
+    6F:  VODA W 1 1 2 3 - napustìní vody z ventilù 1, 2 a 3 na hladinu 1
+    70:  VODA W 2       - vypustìní vody na hladinu 2
+    71:  VODA W 2 1     - napustìní vody z ventilu 1 na hladinu 2
+    72:  VODA W 2 2     - napustìní vody z ventilu 2 na hladinu 2
+    73:  VODA W 2 1 2   - napustìní vody z ventilù 1 a 2 na hladinu 2
+    74:  VODA W 2 3     - napustìní vody z ventilu 3 na hladinu 2
+    75:  VODA W 2 1 3   - napustìní vody z ventilù 1 a 3 na hladinu 2
+    76:  VODA W 2 2 3   - napustìní vody z ventilù 2 a 3 na hladinu 2
+    77:  VODA W 2 1 2 3 - napustìní vody z ventilù 1, 2 a 3 na hladinu 2
+    78:  VODA W 3       - vypustìní vody na hladinu 3
+    79:  VODA W 3 1     - napustìní vody z ventilu 1 na hladinu 3
+    7A:  VODA W 3 2     - napustìní vody z ventilu 2 na hladinu 3
+    7B:  VODA W 3 1 2   - napustìní vody z ventilù 1 a 2 na hladinu 3
+    7C:  VODA W 3 3     - napustìní vody z ventilu 3 na hladinu 3
+    7D:  VODA W 3 1 3   - napustìní vody z ventilù 1 a 3 na hladinu 3
+    7E:  VODA W 3 2 3   - napustìní vody z ventilù 2 a 3 na hladinu 3
+    7F:  VODA W 3 1 2 3 - napustìní vody z ventilù 1, 2 a 3 na hladinu 3
+
+
+TOPENI  - ohøev vody (kód 80h-9Fh)
+
+    80:  TOPENI 0  - vypnutí ohøevu
+    81:  TOPENI 1  - zapnutí ohøevu vody na teplotu 30°C
+    82:  TOPENI 2  - zapnutí ohøevu vody na teplotu 40°C
+    83:  TOPENI 3  - zapnutí ohøevu vody na teplotu 50°C
+    84:  TOPENI 4  - zapnutí ohøevu vody na teplotu 55°C
+    85:  TOPENI 5  - zapnutí ohøevu vody na teplotu 60°C
+    86:  TOPENI 6  - zapnutí ohøevu vody na teplotu 65°C
+    87:  TOPENI 7  - zapnutí ohøevu vody na teplotu 70°C
+    88:  TOPENI 8  - zapnutí ohøevu vody na teplotu 75°C
+    89:  TOPENI 9  - zapnutí ohøevu vody na teplotu 80°C
+    8A:  TOPENI 10 - zapnutí ohøevu vody na teplotu 85°C
+    8B:  TOPENI 11 - zapnutí ohøevu vody na teplotu 90°C
+    8C:  TOPENI 12 - zapnutí ohøevu vody na teplotu 95°C
+    8D:  TOPENI 13 - zapnutí ohøevu vody na teplotu 98°C
+    8E:  TOPENI 14 - zapnutí ohøevu vody na teplotu 100°C (vyváøení)
+    8F:  TOPENI 15 - zapnutí ohøevu vody na teplotu podle ruèní regulace
+    90:  TOPENI W 0  - vypnutí ohøevu
+    91:  TOPENI W 1  - ohøev vody na teplotu 30°C
+    92:  TOPENI W 2  - ohøev vody na teplotu 40°C
+    93:  TOPENI W 3  - ohøev vody na teplotu 50°C
+    94:  TOPENI W 4  - ohøev vody na teplotu 55°C
+    95:  TOPENI W 5  - ohøev vody na teplotu 60°C
+    96:  TOPENI W 6  - ohøev vody na teplotu 65°C
+    97:  TOPENI W 7  - ohøev vody na teplotu 70°C
+    98:  TOPENI W 8  - ohøev vody na teplotu 75°C
+    99:  TOPENI W 9  - ohøev vody na teplotu 80°C
+    9A:  TOPENI W 10 - ohøev vody na teplotu 85°C
+    9B:  TOPENI W 11 - ohøev vody na teplotu 90°C
+    9C:  TOPENI W 12 - ohøev vody na teplotu 95°C
+    9D:  TOPENI W 13 - ohøev vody na teplotu 98°C
+    9E:  TOPENI W 14 - ohøev vody na teplotu 100°C (vyváøení)
+    9F:  TOPENI W 15 - ohøev vody na teplotu podle ruèní regulace
+
+
+MOTOR  - otáèení motoru (kód A0h-AFh)
+
+    A0:  MOTOR STOP  - zastavení chodu motoru
+    A1:  MOTOR 1     - obousmìrné praní 15 sekund chod, 5 sekund klid
+    A2:  MOTOR 2     - obousmìrné praní 5 sekund chod, 15 sekund klid
+    A3:  MOTOR 3     - obousmìrné praní 5 sekund chod, 55 sekund klid
+    A4:  MOTOR 4     - jednosmìrné praní 15 sekund chod, 5 sekund klid
+    A5:  MOTOR 5     - jednosmìrné praní 5 sekund chod, 15 sekund klid
+    A6:  MOTOR 6     - jednosmìrné praní 5 sekund chod, 55 sekund klid
+    A7:  MOTOR 7     - odstøedìní
+    A8:  MOTOR L STOP- zastavení chodu motoru
+    A9:  MOTOR L 1   - pomalé obousm. praní 15 sekund chod, 5 sekund klid
+    AA:  MOTOR L 2   - pomalé obousm. praní 5 sekund chod, 15 sekund klid
+    AB:  MOTOR L 3   - pomalé obousm. praní 5 sekund chod, 55 sekund klid
+    AC:  MOTOR L 4   - pomalé jednos. praní 15 sekund chod, 5 sekund klid
+    AD:  MOTOR L 5   - pomalé jednosm. praní 5 sekund chod, 15 sekund klid
+    AE:  MOTOR L 6   - pomalé jednosm. praní 5 sekund chod, 55 sekund klid
+    AF:  MOTOR L 7   - pomalé odstøedìní
+
+
+RSKOK - relativní skok (kód B0h-BFh)
+
+    B0:  RSKOK 1   - skok o 1 bajt (od následující adresy) vpøed
+    B1:  RSKOK 2   - skok o 2 bajty (od následující adresy) vpøed
+    B2:  RSKOK 3   - skok o 3 bajty (od následující adresy) vpøed
+    B3:  RSKOK 4   - skok o 4 bajty (od následující adresy) vpøed
+    B4:  RSKOK 5   - skok o 5 bajtù (od následující adresy) vpøed
+    B5:  RSKOK 6   - skok o 6 bajtù (od následující adresy) vpøed
+    B6:  RSKOK 7   - skok o 7 bajtù (od následující adresy) vpøed
+    B7:  RSKOK 8   - skok o 8 bajtù (od následující adresy) vpøed
+    B8:  RSKOK -1  - skok o 1 bajt (od zaèátku této instrukce RSKOK) zpìt
+    B9:  RSKOK -2  - skok o 2 bajty (od zaèátku této instrukce RSKOK) zpìt
+    BA:  RSKOK -3  - skok o 3 bajty (od zaèátku této instrukce RSKOK) zpìt
+    BB:  RSKOK -4  - skok o 4 bajty (od zaèátku této instrukce RSKOK) zpìt
+    BC:  RSKOK -5  - skok o 5 bajtù (od zaèátku této instrukce RSKOK) zpìt
+    BD:  RSKOK -6  - skok o 6 bajtù (od zaèátku této instrukce RSKOK) zpìt
+    BE:  RSKOK -7  - skok o 7 bajtù (od zaèátku této instrukce RSKOK) zpìt
+    BF:  RSKOK -8  - skok o 8 bajtù (od zaèátku této instrukce RSKOK) zpìt
+
+
+SKOK - skok na návìští (kód C0h-CFh)
+
+    B0:  SKOK 1    - skok na návìští LABEL 1
+    B1:  SKOK 2    - skok na návìští LABEL 2
+    B2:  SKOK 3    - skok na návìští LABEL 3
+    B3:  SKOK 4    - skok na návìští LABEL 4
+    B4:  SKOK 5    - skok na návìští LABEL 5
+    B5:  SKOK 6    - skok na návìští LABEL 6
+    B6:  SKOK 7    - skok na návìští LABEL 7
+    B7:  SKOK 8    - skok na návìští LABEL 8
+    B8:  SKOK 9    - skok na návìští LABEL 9
+    B9:  SKOK 10   - skok na návìští LABEL 10
+    BA:  SKOK 11   - skok na návìští LABEL 11
+    BB:  SKOK 12   - skok na návìští LABEL 12
+    BC:  SKOK 13   - skok na návìští LABEL 13
+    BD:  SKOK 14   - skok na návìští LABEL 14
+    BE:  SKOK 15   - skok na návìští LABEL 15
+    BF:  SKOK 16   - skok na návìští LABEL 16
+
+
+PODP - skok do podprogramu (kód D0h-DFh)
+
+    D0:  PODP 1    - skok do podprogramu oznaèeného návìštím LABEL 1
+    D1:  PODP 2    - skok do podprogramu oznaèeného návìštím LABEL 2
+    D2:  PODP 3    - skok do podprogramu oznaèeného návìštím LABEL 3
+    D3:  PODP 4    - skok do podprogramu oznaèeného návìštím LABEL 4
+    D4:  PODP 5    - skok do podprogramu oznaèeného návìštím LABEL 5
+    D5:  PODP 6    - skok do podprogramu oznaèeného návìštím LABEL 6
+    D6:  PODP 7    - skok do podprogramu oznaèeného návìštím LABEL 7
+    D7:  PODP 8    - skok do podprogramu oznaèeného návìštím LABEL 8
+    D8:  PODP 9    - skok do podprogramu oznaèeného návìštím LABEL 9
+    D9:  PODP 10   - skok do podprogramu oznaèeného návìštím LABEL 10
+    DA:  PODP 11   - skok do podprogramu oznaèeného návìštím LABEL 11
+    DB:  PODP 12   - skok do podprogramu oznaèeného návìštím LABEL 12
+    DC:  PODP 13   - skok do podprogramu oznaèeného návìštím LABEL 13
+    DD:  PODP 14   - skok do podprogramu oznaèeného návìštím LABEL 14
+    DE:  PODP 15   - skok do podprogramu oznaèeného návìštím LABEL 15
+    DF:  PODP 16   - skok do podprogramu oznaèeného návìštím LABEL 16
+
+
+IND  - indikace chodu programu (kód E0h-EFh)
+
+    E0:  IND 1 1   - svìtelná indikace - zelená barva,      1 bliknutí
+    E1:  IND 2 1   - svìtelná indikace - žlutozelená barva, 1 bliknutí
+    E2:  IND 3 1   - svìtelná indikace - žlutá barva,       1 bliknutí
+    E3:  IND 4 1   - svìtelná indikace - oranžová barva,    1 bliknutí
+    E4:  IND 1 2   - svìtelná indikace - zelená barva,      2 bliknutí
+    E5:  IND 2 2   - svìtelná indikace - žlutozelená barva, 2 bliknutí
+    E6:  IND 3 2   - svìtelná indikace - žlutá barva,       2 bliknutí
+    E7:  IND 4 2   - svìtelná indikace - oranžová barva,    2 bliknutí
+    E8:  IND 1 3   - svìtelná indikace - zelená barva,      3 bliknutí
+    E9:  IND 2 3   - svìtelná indikace - žlutozelená barva, 3 bliknutí
+    EA:  IND 3 3   - svìtelná indikace - žlutá barva,       3 bliknutí
+    EB:  IND 4 3   - svìtelná indikace - oranžová barva,    3 bliknutí
+    EC:  IND 1 4   - svìtelná indikace - zelená barva,      4 bliknutí
+    ED:  IND 2 4   - svìtelná indikace - žlutozelená barva, 4 bliknutí
+    EE:  IND 3 4   - svìtelná indikace - žlutá barva,       4 bliknutí
+    EF:  IND 4 4   - svìtelná indikace - oranžová barva,    4 bliknutí
+
+
+PAR - parametry podprogramu (kód F0h-F7h)
+
+    F0:  PAR 1     - parametr programu èíslo 1
+    F1:  PAR 2     - parametr programu èíslo 2
+    F2:  PAR 3     - parametr programu èíslo 3
+    F3:  PAR 4     - parametr programu èíslo 4
+    F4:  PAR D 1   - následuje 1 bajt pro definici parametru 1
+    F5:  PAR D 2   - následují 2 bajty pro definici parametrù 1 a 2
+    F6:  PAR D 3   - následují 3 bajty pro definici parametrù 1 až 3
+    F7:  PAR D 4   - následují 4 bajty pro definici parametrù 1 až 4
+
+
+PODM - podmínìná instrukce (kód F8h-FBh)
+
+    F8:  PODM 1    - násl.povel se provede, je-li dosažena teplota ohøevu
+    F9:  PODM 2    - násl.povel se provede, je-li dosažena hladina vody
+    FA:  PODM 3    - násl.povel se provede, není-li dosažena teplota ohøevu
+    FB:  PODM 4    - násl.povel se provede, není-li dosažena hladina vody
+
+
+LABEL - návìští v programu (kód FCh)
+
+    FC:  LABEL     - oznaèení návìští v programu
+
+
+BOD - identifikaèní bod programu (kód FDh)
+
+    FD:  BOD       - identifikaèní bod programu
+
+
+RET - návrat z podprogramu (kód FEh)
+
+    FE:  RET       - návrat z podprogramu
+
+
+NOP - prázdná instrukce (nemá žádný úèinek) (kód FFh)
+
+    FF:  NOP       - prázdný (nevýkonný) povel
+
+
+
+
+
+Obsazení_portù_procesoru:
+
+KANÁL 0:
+    bit 0 až bit 3 - zelená indikaèní LED; 1=svítí, 0=nesvítí
+    bit 4 až bit 7 - èervená indikaèní LED; 1=svítí, 0=nesvítí
+
+KANÁL 1:
+    bit 0 - èerpadlo; 1=zapnuto
+    bit 1 - vstup z tlaèítka START/STOP; 0=stisknuto
+    bit 2 - napouštìcí ventil 1; 0=zapnut
+    bit 3 - napouštìcí ventil 2; 0=zapnut
+    bit 4 - napouštìcí ventil 3; 0=zapnut
+    bit 6 a bit 5 - 11=klid, 10=praní vlevo, 01=praní vpravo, 11=ostøedìní
+    bit 7 - topení; 0=zapnuto
+
+KANÁL 2:
+    bit 0 - vstup z tlaèítka volby programu "A"
+    bit 1 - vstup z tlaèítka volby programu "B"
+    bit 2 - vstup z tlaèítka volby programu "C"
+    bit 3 - vstup z tlaèítka volby programu "D"
+    bit 4 - mìøení teploty vody
+    bit 5 - mìøení nastavení polohy potenciometru
+    bit 6 - vstup z hladinového spínaèe 1 (0=hladiny dosaženo)
+    bit 7 - vstup z hladinového spínaèe 2 (0=hladiny dosaženo)
+
+vstup T0 - vstup z hladinového spínaèe 0 (0=hladiny dosaženo)
+
+vstup T1 - vstup ze snímaèe prùchodu proudu nulou (1=je prùchod nulou)
+
+vstup I - vstup ze snímaèe prùchodu napìtí nulou (0=je prùchod nulou)
+

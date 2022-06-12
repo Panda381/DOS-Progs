@@ -1,0 +1,4296 @@
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± º
+º ±±                                                                   ±± º
+º ±±                 ÿD  ÿO  ÿS     ÿ-     ÿsÿlÿuÿ‘ÿbÿy                ±± º
+º ±±                                                                   ±± º
+º ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+                            (c) Miroslav Nˆme‡ek
+
+
+    Slu‘by modulu opera‡n¡ho syst‚mu DOS se vyvol vaj¡ instrukc¡ INT 21H, v
+registru AH je p©itom ulo‘eno ‡¡slo po‘adovan‚ funkce. V dal¨¡ch registrech
+jsou  ulo‘eny  parametry podle po‘adavk– funkce. Ovlivnˆn¡ dal¨¡ch registr–
+je  z visl‚  na prov dˆn‚ operaci; obsah registru AL je zni‡en t‚mˆ© ka‘dou
+funkc¡.
+
+Pozn.: Z  d–vod–  slu‡itelnosti  se  star¨¡mi verzemi DOSu jsou mo‘n‚ je¨tˆ
+       dal¨¡ dvˆ mo‘nosti vol n¡ slu‘eb DOSu:
+
+         1.- Um¡stit  ‡¡slo  funkce  do  AH  a  prov‚st  vzd len‚ vol n¡ na
+             relativn¡  adresu  0050H  v prefixu programov‚ho segmentu PSP.
+             Tuto metodu nelze pou‘¡t pro verze DOS ni‘¨¡ ne‘ 2.0.
+
+         2.- Do  registru  CL  um¡stit  ‡¡slo  funkce  a  ostatn¡  registry
+             nastavit  podle  funk‡n¡ch  specifikac¡. Pak se provede vol n¡
+             uvnit©  programov‚ho  segmentu  na  pamˆŸov‚ m¡sto 0005H. Toto
+             pamˆŸov‚  m¡sto  obsahuje  vzd len‚  vol n¡ dispe‡era funkce v
+             DOS.  P©i pou‘it¡ t‚to metody se v‘dy zru¨¡ obsah registru AX.
+             Tato  metoda  je pou‘iteln  jen pro vol n¡ funkc¡ 00H a‘ 24H a
+             pou‘¡vala  se u star¨¡ch program– typu COM. Pro novˆ vytvo©en‚
+             programy je nevhodn .
+
+    Pokud  je  u  dan‚  slu‘by uveden p©¡klad (uk zkov˜ program), lze tento
+p©¡klad  pou‘¡t  v makroassembleru MASM s t¡m, ‘e uk zkov  ‡ st programu se
+v‡len¡  do jednotn‚ struktury programu (tato struktura slou‘¡ jako p©¡klad,
+je  z rove¤ ulo‘ena jako zdrojov˜ soubor pro nov‚ programy vúC:\ASSEMB\ pod
+n zvem SOURCE.ASM):
+
+(Pozn.: P©¡klady  jsou  zjednodu¨eny  vypou¨tˆn¡m  instrukc¡  nastavuj¡c¡ch
+        registry  p©ed  ka‘dou  funkc¡, neboŸ z–st vaj¡ nastaveny p©ede¨lou
+        funkc¡.  P©i  bˆ‘n‚m  psan¡  programu je v¨ak vhodn‚ tyto instrukce
+        ps t  d–slednˆ,  neboŸ  se  t¡m sn¡‘¡ chybovost p©i z pisu programu
+        nebo p©i jeho pozdˆj¨¡ modifikaci.)
+
+
+===========================================================================
+
+COMMENT %
+               pozn mka - obsahuje popis programu
+        %
+
+;--------------------------------------------------------------------------
+;                            Segment z sobn¡ku
+;--------------------------------------------------------------------------
+
+stack    SEGMENT   stack
+
+         DW        256 DUP(?)               ; z sobn¡k
+
+stack    ENDS
+
+;--------------------------------------------------------------------------
+;                            Programov˜ segment
+;--------------------------------------------------------------------------
+
+code     SEGMENT   page
+         ASSUME    cs:code,ds:code,ss:stack
+
+start:                                      ; hlavn¡ tˆlo programu
+         mov       ax,SEG code              ; segment dat=segment programu
+         mov       ds,ax                    ; nastaven¡ datov‚ho segmentu
+
+         ; ..............................................
+         ;  PROGRAM - zde je um¡stˆn program z p©¡kladu
+         ; ..............................................
+
+         mov       ah,4ch                   ; ukon‡en¡ programu
+         int       21h
+
+code     ENDS
+
+         END       start               ; startovac¡ adresa programu
+
+===========================================================================
+
+
+
+    K p©ekladu programu lze pou‘¡t n sleduj¡c¡ p©¡kazov˜ soubor:
+
+
+IF NOT EXIST C:\ASSMEB\SOURCE\%1.ASM COPY C:\ASSEMB\SOURCE.ASM
+                                                    C:\ASSMEB\SOURCE\%1.ASM
+:START
+C:\ASSEMB\EDITOR C:\ASSEMB\SOURCE\%1.ASM
+C:\ASSEMB\MASM C:\ASSEMB\SOURCE\%1 /Z;
+IF ERRORLEVEL == 1 GOTO START
+C:\ASSEMB\LINK %1,C:\ASSEMB\EXEC\%1;
+IF ERRORLEVEL == 1 GOTO START
+DEL %1.OBJ
+
+
+    Makroassembler  (MASM.EXE),  spojovac¡  program  (LINK.EXE) a p©¡kazov˜
+soubor  (ASM.BAT)  jsou um¡stˆny na disku C: v adres ©i C:\ASSEMB. Zdrojov˜
+text  programu  (text  v bˆ‘n‚m ASCII form tu a s roz¨¡©en¡m jm‚na .ASM) je
+ulo‘en  v adres ©i C:\ASSEMB\SOURCE, p©elo‘en˜ program je ulo‘en v adres ©i
+C:\ASSEMB\EXEC.    P©eklad    se    spust¡   zaps n¡m   p©¡kazov‚ho   © dku
+C:\ASSEMB>ASMújm‚no_programu  (bez ud n¡ roz¨¡©en¡ souboru). Program EDITOR
+je  editor  slou‘¡c¡ k editaci textu programu. Pokud je vyvol n nov˜ (je¨tˆ
+neexistuj¡c¡)  soubor  .ASM, pou‘ije se zdrojov˜ text (uveden˜ v˜¨e), kter˜
+je ulo‘en v adres ©i C:\ASSEMB\ pod jm‚nem SOURCE.ASM.
+
+
+
+Seznam syst‚mov˜ch funkc¡ DOS:
+
+
+Funkce 00H ( 0) - p©eru¨en¡ programu
+Funkce 01H ( 1) - vstup znaku z kl vesnice s echem
+Funkce 02H ( 2) - v˜stup znaku
+Funkce 03H ( 3) - pomocn˜ vstup znaku
+Funkce 04H ( 4) - pomocn˜ v˜stup znaku
+Funkce 05H ( 5) - v˜stup znaku na tisk rnu
+Funkce 06H ( 6) - p©¡m˜ vstup/v˜stup znaku na konzolu
+Funkce 07H ( 7) - ©¡zen˜ vstup znaku z konzoly bez echa
+Funkce 08H ( 8) - vstup znaku z konzoly bez echa
+Funkce 09H ( 9) - tisk ©etˆzce
+Funkce 0AH (10) - vstup textu do bufferu
+Funkce 0BH (11) - test stavu standradn¡ho vstupu
+Funkce 0CH (12) - vymaz n¡ vstupn¡ho bufferu a proveden¡ funkce kl vesnice
+Funkce 0DH (13) - reset disku
+Funkce 0EH (14) - v˜bˆr aktivn¡ho disku
+Funkce 0FH (15) - otev©en¡ souboru s pou‘it¡m FCB
+Funkce 10H (16) - uzav©en¡ souboru s pou‘it¡m FCB
+Funkce 11H (17) - nalezen¡ prvn¡ho vyhovuj¡c¡ho souboru s pou‘it¡m FCB
+Funkce 12H (18) - nalezen¡ dal¨¡ho vyhovuj¡c¡ho souboru s pou‘it¡m FCB
+Funkce 13H (19) - zru¨en¡ souboru s pou‘it¡m FCB
+Funkce 14H (20) - sekven‡n¡ ‡ten¡ ze souboru s pou‘it¡m FCB
+Funkce 15H (21) - sekven‡n¡ z pis do souboru s pou‘it¡m FCB
+Funkce 16H (22) - vytvo©en¡ souboru s pou‘it¡m FCB
+Funkce 17H (23) - p©ejmenov n¡ souboru s pou‘it¡m FCB
+Funkce 18H (24) - rezervov no
+Funkce 19H (25) - poskytnut¡ aktivn¡ho disku
+Funkce 1AH (26) - nastaven¡ adresy diskov˜ch p©enos– (DTA)
+Funkce 1BH (27) - poskytnut¡ informace FAT p©ihl ¨en‚ho disku
+Funkce 1CH (28) - poskytnut¡ informace FAT specifikovan‚ho disku
+Funkce 1DH (29) - rezervov no
+Funkce 1EH (30) - rezervov no
+Funkce 1FH (31) - rezervov no
+Funkce 20H (32) - rezervov no
+Funkce 21H (33) - ‡ten¡ s p©¡m˜m p©¡stupem s pou‘it¡m FCB
+Funkce 22H (34) - z pis s p©¡m˜m p©¡stupem s pou‘it¡m FCB
+Funkce 23H (35) - poskytnut¡ velikosti souboru s pou‘it¡m FCB
+Funkce 24H (36) - nastaven¡ polo‘ky relativn¡ho z znamu s pou‘it¡m FCB
+Funkce 25H (37) - nastaven¡ vektoru p©eru¨en¡
+Funkce 26H (38) - vytvo©en¡ programov‚ho segmentu
+Funkce 27H (39) - ‡ten¡ bloku s p©¡m˜m p©¡stupem s pou‘it¡m FCB
+Funkce 28H (40) - z pis bloku s p©¡m˜m p©¡stupem s pou‘it¡m FCB
+Funkce 29H (41) - rozbor jm‚na souboru
+Funkce 2AH (42) - poskytnut¡ syst‚mov‚ho data
+Funkce 2BH (43) - nastaven¡ syst‚mov‚ho data
+Funkce 2CH (44) - poskytnut¡ syst‚mov‚ho ‡asu
+Funkce 2DH (45) - nastaven¡ syst‚mov‚ho ‡asu
+Funkce 2EH (46) - nastaven¡ nebo resetov n¡ p©ep¡na‡e VERIFY
+Funkce 2FH (47) - poskytnut¡ adresy diskov˜ch p©enos– (DTA)
+Funkce 30H (48) - poskytnut¡ ‡¡sla verze DOS
+Funkce 31H (49) - p©eru¨en¡ a ponech n¡ rezidentn¡m
+Funkce 32H (50) - rezervov no
+Funkce 33H (51) - poskytnut¡ nebo nastaven¡ statutu BREAK
+Funkce 34H (52) - rezervov no
+Funkce 35H (53) - poskytnut¡ vektoru p©eru¨en¡
+Funkce 36H (54) - poskytnut¡ voln‚ho m¡sta disku
+Funkce 37H (55) - rezervov no
+Funkce 38H (56) - poskytnut¡ nebo nastaven¡ n rodnostnˆ z visl˜ch informac¡
+Funkce 39H (57) - vytvo©en¡ adres ©e (MKDIR)
+Funkce 3AH (58) - zru¨en¡ adres ©e (RMDIR)
+Funkce 3BH (59) - zmˆna adres ©e (CHDIR)
+Funkce 3CH (60) - vytvo©en¡ souboru (CREAT)
+Funkce 3DH (61) - otev©en¡ souboru
+Funkce 3EH (62) - uzav©en¡ identifik toru souboru
+Funkce 3FH (63) - ‡ten¡ ze souboru nebo za©¡zen¡ s pou‘it¡m identif. soub.
+Funkce 40H (64) - z pis do souboru nebo za©¡zen¡ s pou‘it¡m identif. soub.
+Funkce 41H (65) - zru¨en¡ souboru (UNLINK)
+Funkce 42H (66) - p©em¡stˆn¡ ukazatele souboru (LSEEK)
+Funkce 43H (67) - poskytnut¡ nebo nastaven¡ atribut– souboru (CHMOD)
+Funkce 44H (68) - vstupnˆ/v˜stupn¡ ovl d n¡ za©¡zen¡ (IOCTL)
+Funkce 4400H (68- 0) - IOCTL: poskytnut¡ informac¡ o za©¡zen¡
+Funkce 4401H (68- 1) - IOCTL: nastaven¡ informac¡ o za©¡zen¡
+Funkce 4402H (68- 2) - IOCTL: ‡ten¡ ze znakov‚ho za©¡zen¡
+Funkce 4403H (68- 3) - IOCTL: z pis na znakov‚ za©¡zen¡
+Funkce 4404H (68- 4) - IOCTL: ‡ten¡ z blokov‚ho za©¡zen¡
+Funkce 4405H (68- 5) - IOCTL: z pis na blokov‚ za©¡zen¡
+Funkce 4406H (68- 6) - IOCTL: poskytnut¡ vstupn¡ho statutu
+Funkce 4407H (68- 7) - IOCTL: poskytnut¡ v˜stupn¡ho statutu
+Funkce 4408H (68- 8) - IOCTL: je za©¡zen¡ v˜mˆnn‚ ?               ò DOS 3.0
+Funkce 4409H (68- 9) - IOCTL: je logick‚ za©¡zen¡ d lkov‚ ?       ò DOS 3.1
+Funkce 440AH (68-10) - IOCTL: je identif. d lkov‚ho za©¡zen¡ ?    ò DOS 3.1
+Funkce 440BH (68-11) - IOCTL: zmˆna ‡¡ta‡e opakov n¡ pro sd¡len¡  ò DOS 3.0
+Funkce 440DH (68-13) - IOCTL: generov n¡ po‘adavku IOCTL          ò DOS 3.2
+Funkce 440EH (68-14) - IOCTL: poskytnut¡ logick‚ho disku          ò DOS 3.2
+Funkce 440FH (68-15) - IOCTL: nastaven¡ logick‚ho disku           ò DOS 3.2
+Funkce 45H (69) - zdvojen¡ identifik toru souboru (DUP)
+Funkce 46H (70) - nucen‚ zdvojen¡ identifik toru souboru (FORCDUP)
+Funkce 47H (71) - poskytnut¡ aktivn¡ho adres ©e
+Funkce 48H (72) - p©idˆlen¡ pamˆti
+Funkce 49H (73) - uvolnˆn¡ p©idˆlen‚ pamˆti
+Funkce 4AH (74) - modifikace p©idˆlen‚ pamˆti (SETBLOCK)
+Funkce 4BH (75) - na‡ten¡ nebo proveden¡ programu (EXEC)
+Funkce 4CH (76) - ukon‡en¡ procesu (EXIT)
+Funkce 4DH (77) - poskytnut¡ n vratov‚ho k¢du podprocesu (WAIT)
+Funkce 4EH (78) - nalezen¡ prvn¡ho vyhovuj¡c¡ho souboru (FIND FIRST)
+Funkce 4FH (79) - nalezen¡ dal¨¡ho vyhovuj¡c¡ho souboru (FIND NEXT)
+Funkce 50H (80) - rezervov no
+Funkce 51H (81) - rezervov no
+Funkce 52H (82) - rezervov no
+Funkce 53H (83) - rezervov no
+Funkce 54H (84) - poskytnut¡ informace o nastaven¡ VERIFY
+Funkce 55H (85) - rezervov no
+Funkce 56H (86) - p©ejmenov n¡ souboru
+Funkce 57H (87) - poskytnut¡ nebo nastaven¡ data a ‡asu souboru
+Funkce 59H (89) - poskytnut¡ roz¨i©uj¡c¡ch chybov˜ch informac¡    ò DOS 3.0
+Funkce 5AH (90) - vytvo©en¡ jedine‡n‚ho souboru                   ò DOS 3.0
+Funkce 5BH (91) - vytvo©en¡ nov‚ho souboru                        ò DOS 3.0
+Funkce 5CH (92) - zamknut¡/odemknut¡ p©¡stupu k souboru           ò DOS 3.0
+Funkce 5DH (93) - rezervov no
+Funkce 5E00H (94-0) - poskytnut¡ jm‚na za©¡zen¡                   ò DOS 3.1
+Funkce 5E02H (94-2) - nastaven¡ inicializa‡n¡ho ©etˆzce tisk rny  ò DOS 3.1
+Funkce 5E03H (94-3) - poskytnut¡ inicializa‡n¡ho ©etˆzce tisk rny ò DOS 3.1
+Funkce 5F02H (95-2) - poskytnut¡ polo‘ky v˜pisu p©esmˆrov n¡      ò DOS 3.1
+Funkce 5F03H (95-3) - p©esmˆrov n¡ za©¡zen¡                       ò DOS 3.1
+Funkce 5F04H (95-4) - zru¨en¡ p©esmˆrov n¡                        ò DOS 3.1
+Funkce 60H (96) - rezervov no
+Funkce 61H (97) - rezervov no
+Funkce 62H (98) - poskytnut¡ adresy prefixu program. segmentu     ò DOS 3.0
+
+
+
+
+Rozdˆlen¡ funkc¡ do oblast¡:
+
+Syst‚mov‚ informace:
+
+38H - ‡¡slo verze opera‡n¡ho syst‚mu DOS
+2AH - syst‚mov‚ datum
+2CH - syst‚mov˜ ‡as
+19H - aktivn¡ disk
+47H - aktivn¡ adres ©
+38H - n rodnostnˆ z visl‚ informace
+
+2FH - sou‡asn  adresa diskov˜ch p©enos– DTA
+62H - sou‡asn  adresa prefixu programov‚ho segmentu PSP
+35H - ‡ten¡ hodnoty vektoru p©eru¨en¡
+4DH - k¢d ukon‡en¡ procesu
+59H - roz¨i©uj¡c¡ chybov‚ informace
+44H - ovl d n¡ I/O za©¡zen¡ (statut za©¡zen¡/soubor–)
+
+54H - nastaven¡ p©ep¡na‡e m¢du VERIFY
+33H - nastaven¡ p©ep¡na‡e kontroly Ctrl-Break
+
+37H - nastaven¡ p©ep¡na‡e znak– (QUERY)
+34H - adresa statutu pozad¡ DOS
+
+36H, 1BH, 1CH - velikost disku, voln‚ bajty
+32H - podp–rn‚ informace o disku
+
+57H - ‡as/datum souboru
+
+4EH, 4FH, 11H, 12H - hled n¡ souboru
+
+
+
+Znakov‚ vstupy/v˜stupy:
+
+01H, 3FH (BX=0) - vstup z kl vesnice
+08H - vstup z kl vesnice (bez echa)
+07H - nefiltrovan˜ vstup z kl vesnice (bez echa)
+0BH - poskytnut¡ vstupn¡ho statutu
+0CH - vymaz n¡ vyrovn vac¡ pamˆti kl vesnice a vstup znaku z kl vesnice
+0AH, 3FH (BX=0) - vstup ©etˆzce znak– z kl vesnice
+06H - vstup a v˜stup na konzolu
+
+02H, 40H (BX=1,2) - zobrazen¡ jednoho znaku
+09H, 40H (BX=1,2) - zobrazen¡ ©etˆzce znak–
+
+03H, 3FH (BX=3) - vstup z p©¡davn‚ho za©¡zen¡ (s‚riov˜ port)
+04H, 40H (BX=3) - v˜stup na p©¡davn‚ za©¡zen¡ (s‚riov˜ port)
+
+05H, 40H (BX=4) - v˜stup na tisk rnu
+INT 2FH - p©ep¡nateln‚ funkce
+
+
+Vstupnˆ/v˜stupn¡ operace s pou‘it¡m FCB:
+
+(lze vyu‘¡t pouze aktivn¡ adres ©)
+
+29H - rozbor popisu souboru v textov‚m tvaru na tvar FCB
+11H, 12H - prohled v n¡ aktivn¡ho adres ©e
+
+16H - vytvo©en¡ souboru
+0FH - otev©en¡ souboru
+10H - uzav©en¡ souboru
+13H - zru¨en¡ souboru
+
+14H - sekven‡n¡ ‡ten¡ ze souboru
+15H - sekven‡n¡ z pis do souboru
+
+21H - ‡ten¡ z znamu s p©¡m˜m p©¡stupem
+27H - v¡cen sobn‚ ‡ten¡ z znamu s p©¡m˜m p©¡stupem
+22H - z pis z znamu s p©¡m˜m p©¡stupem
+28H - v¡cen sobn˜ z pis z znamu s p©¡m˜m p©¡stupem
+24H - nastaven¡ polo‘ky FCB relativn¡ z znam
+
+
+Vstupnˆ/v˜stupn¡ operace s pou‘it¡m identifik toru souboru:
+
+3CH - vytvo©en¡ souboru
+5BH - vytvo©en¡ nov‚ho souboru (nesm¡ existovat)
+5AH - vytvo©en¡ jedine‡n‚ho/do‡asn‚ho souboru
+
+3DH - otev©en¡ souboru
+3EH - uzav©en¡ souboru
+41H - zru¨en¡ souboru
+
+42H - nastaven¡ ukazatele pro ‡ten¡/z pis
+3FH - ‡ten¡ ze souboru/za©¡zen¡
+40H - z pis do souboru/za©¡zen¡
+44H - ©¡zen¡  vstupnˆ/v˜stupn¡ch  za©¡zen¡  IOCTL  (lze  pou‘¡t k testov n¡
+      konce souboru
+
+45H - duplikov n¡ identifik toru souboru
+46H - p©esmˆrov n¡ I/O identifik toru souboru
+
+
+Pr ce s adres ©i a se soubory:
+
+39H - vytvo©en¡ nov‚ho adres ©e
+3AH - zru¨en¡ adres ©e
+3BH - nastaven¡ nov‚ho aktivn¡ho adres ©e
+47H - poskytnut¡ aktivn¡ho adres ©e
+
+0EH - nastaven¡ aktivn¡ho disku
+19H - poskytnut¡ aktivn¡ho disku
+
+56H, 17H - p©ejmenov n¡ souboru
+57H - nastaven¡/informace o ‡asu a data souboru
+42H, 23H - informace o velikosti souboru
+28H - nastaven¡ velikosti souboru (s pou‘it¡m funkce 42H)
+43H - zmˆna/poskytnut¡ atribut– souboru
+
+5CH - zam‡en¡/odemknut¡ p©¡stupu k souboru
+
+4EH, 4FH - hled n¡ souboru podle jm‚na ASCIIZ
+11H, 12H - hled n¡ souboru v adres ©i podle FCB
+
+29H - rozklad textu (jm‚na souboru) do polo‘ky FCB
+
+
+¡zen¡ proces–:
+
+4BH - vykon n¡ synovsk‚ho procesu
+26H - vytvo©en¡ prefixu programov‚ho segmentu (PSP)
+62H - poskytnut¡ adresy prefixu programov‚ho segmentu (PSP) procesu
+
+31H, INT 27H - ukon‡en¡ programu s jeho uchov n¡m v pamˆti
+
+00H, INT 20H - tradi‡n¡ ukon‡en¡ programu (kompatibiln¡)
+
+4CH - ukon‡en¡ programu a p©ed n¡ v˜stupn¡ho k¢du otcovsk‚mu procesu
+4DH - poskytnut¡ v˜stupn¡ho k¢du ukon‡en‚ho procesu
+
+INT 23H - p©eru¨en¡ pomoc¡ kl ves <Ctrl>-<Break> (<Ctrl>-C)
+INT 24H - p©eru¨en¡ p©i kritick‚ chybˆ
+
+
+Funkce pro ovl d n¡ pamˆti:
+
+48H - p©idˆlen¡ bloku pamˆti procesu (nebo ur‡en¡ nejvˆt¨¡ho bloku pamˆti)
+49H - uvolnˆn¡ p©idˆlen˜ch blok– pamˆti
+4AH - zvˆt¨en¡/zmˆn¨en¡ blok– pamˆti
+
+INT 12H - navr cen¡ celkov‚ pamˆti syst‚mu
+
+
+Dopl¤uj¡c¡ funkce:
+
+1AH - nastaven¡ adresy diskov˜ch p©enos– DTA
+25H - nastaven¡ vektoru p©eru¨en¡
+0EH - nastaven¡ aktivn¡ho disku DOS
+
+5CH - zam‡en¡/odemknut¡ p©¡stupu k soubor–m
+5EH - dopl¤uj¡c¡ funkce pro pr ci v s¡ti
+5FH - p©esmˆrov n¡ s¡Ÿov‚ho za©¡zen¡
+
+0DH - reset disku (vypr zdnˆn¡ vyrovn vac¡ pamˆti)
+29H - rozklad textu na jm‚na souboru v FCB
+
+2BH - nastaven¡ syst‚mov‚ho data
+2DH - nastaven¡ syst‚mov‚ho ‡asu
+57H - poskytnut¡ ‡asu/data souboru
+
+2EH - nastaven¡ statutu verifikace
+37H - p©ep¡n n¡ znak– QUERY
+
+38H - nastaven¡ aktivn¡ zemˆ
+
+44H - komunika‡n¡ kan ly k ovl d n¡ za©¡zen¡
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ0ÿH ÿ(ÿ0ÿ)  - p©eru¨en¡ programu
+
+    vstup:    AH = 00H
+              CS = adresa segmentu prefixu programov‚ho segmentu PSP
+
+    v˜stup:   ‘ dn˜
+
+    Funkce ukon‡uje program a navrac¡ ©¡zen¡ do DOS.
+
+    DOS  p©eru¨¡ program, vypr zdn¡ buffery soubor–, navr t¡ obsahy vektor–
+INT  22H,  INT  23H  a  INT  24H  z prefixu programov‚ho segmentu PSP - tj.
+v˜stupn¡  adresy  (vektory)  pro  ukon‡en¡ (adr. 0AH), <Ctrl>-<Break> (adr.
+0EH)  a kritick‚ chyby (adr. 12H) a p©ed  ©¡zen¡ na adresu vektoru ukon‡en¡
+programu v PSP (n vrat do otcovsk‚ho procesu).
+
+    P©ed  vyvol n¡m  slu‘by  nejd©¡ve  uzav©ete  v¨echny  soubory. Potom se
+p©esvˆd‡te, zda CS obsahuje adresu segmentu PSP.
+
+Pozn.: Tato  funkce  je  vol na  pomoc¡ p©eru¨en¡ INT 20H a pracuje stejn˜m
+       zp–sobem.  Slu‘ba  je  historick˜m poz–statkem nemaj¡c¡ ‘ dn‚ v˜hody
+       oproti   funkci  4CH  (ukon‡en¡  programu)  a  z–st v   pouze  kv–li
+       slu‡itelnosti  se  star¨¡mi programy. Proto pou‘¡vejte radˆji funkci
+       4CH, kter  umo‘¤uje navr tit chybov˜ k¢d pou‘iteln˜ jin˜m programem.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ1ÿH ÿ(ÿ1ÿ)  - vstup znaku z kl vesnice s echem
+
+    vstup:    AH = 01H
+
+    v˜stup:   AL = p©e‡ten˜ znak ze standardn¡ho vstupu
+
+    Funkce ‡te znak ze standardn¡ho vstupn¡ho za©¡zen¡ (obvykle kl vesnice)
+a  provede  t‚‘  jeho echo (tj. kop¡rov n¡ znaku i na v˜stup) na standardn¡
+v˜stupn¡ za©¡zen¡ (obvykle obrazovka). Funkce ‡ek  na p©¡chod znaku
+
+    Pokud je stisknuta kl vesa se speci ln¡ funkc¡ (nap©. kurzorov‚ kl vesy
+a  pod.),  navr t¡ funkce v AL nejd©¡ve k¢d 00H; opˆtn˜m vol n¡m funkce lze
+p©e‡¡st orienta‡n¡ k¢d kl vesy (viz tabulka k¢d– kl ves).
+
+    P©i  duplikov n¡  znaku na displej se prov dˆj¡ ©¡d¡c¡ k¢dy BEL (07H) =
+p¡pnut¡, BS (08H) = krok kurzoru zpˆt a vymaz n¡ posledn¡ho znaku, HT (09H)
+=  tabel tor,  LF  (0AH) = p©esun na n sleduj¡c¡ © dek, FF (0CH) = vymaz n¡
+obrazovky, CR (0DH) = p©echod na za‡ tek © dku a p©i nainstalovan‚m driveru
+obrazovky ANSI.SYS t‚‘ ESC (1BH) = speci ln¡ ©¡d¡c¡ funkce.
+
+    Kombinace  kl ves  <Ctrl>-<Break>  nebo  <Ctrl>-C  vygeneruje p©eru¨en¡
+INTú23H (u‘ivatelsk‚ p©eru¨en¡).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ2ÿH ÿ(ÿ2ÿ)  - v˜stup znaku
+
+    vstup:    AH = 02H
+              DL = znak k v˜stupu
+
+    v˜stup:   ‘ dn˜
+
+    Funkce vy¨le znak ulo‘en˜ v registru DL na standardn¡ v˜stupn¡ za©¡zen¡
+(obvykle obrazovka).
+
+Pozn.: Pokud  je  stisknuta  kombinace kl ves <Ctrl>-<Break> nebo <Ctrl>-C,
+       provede  funkce  p©eru¨en¡  INT  23H.  Test  kl ves se prov d¡ a‘ po
+       zobrazen¡ znaku.
+
+       P©i  v˜stupu  znaku se prov dˆj¡ ©¡d¡c¡ k¢dy BEL (07H) = p¡pnut¡, BS
+       (08H)  =  krok  kurzoru zpˆt a vymaz n¡ posledn¡ho znaku, HT (09H) =
+       tabel tor,  LF  (0AH)  =  p©esun  na  n sleduj¡c¡  © dek, FF (0CH) =
+       vymaz n¡  obrazovky,  CR  (0DH)  =  p©echod  na  za‡ tek © dku a p©i
+       nainstalovan‚m  driveru obrazovky ANSI.SYS t‚‘ ESC (1BH) = speci ln¡
+       ©¡d¡c¡ funkce.
+
+       V˜stup zadan‚ho ©etˆzce textu - viz funkce 09H.
+
+P©¡klad: N sleduj¡c¡ program p©evede mal  p¡smena na velk  a zobraz¡ je.
+
+         cyklus:   mov       ah,8           ; funkce vstupu znaku z kl v.
+                   int       21h            ; vstup znaku z kl vesnice
+                   cmp       al,27          ; kl vesa <Esc>
+                   jz        konec          ; ukon‡en¡ programu
+                   cmp       al,"a"         ; je men¨¡ ne‘ "a" ?
+                   jl        neprev         ; je men¨¡ - nep©ev dˆt
+                   cmp       al,"z"         ; je vˆt¨¡ ne‘ "z" ?
+                   jg        neprev         ; je vˆt¨¡ ne‘ "z" - nep©ev dˆt
+                   sub       al,20h         ; p©evod mal‚ho p¡sm. na velk‚
+         neprev:   mov       ah,2           ; funkce v˜stupu na displej
+                   mov       dl,al          ; znak k v˜stupu na displej
+                   int       21h            ; v˜stup znaku na displej
+                   jmp       cyklus         ; dal¨¡ znak
+         konec:                             ; n sleduje ukon‡en¡ programu
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ3ÿH ÿ(ÿ3ÿ)  - vstup znaku z p©¡davn‚ho za©¡zen¡
+
+    vstup:    AH = 03H
+
+    v˜stup:   AL = p©e‡ten˜ znak z p©¡davn‚ho za©¡zen¡
+
+    Funkce  ‡te  znak  (‡ek   na  jeho  p©¡chod) ze standardn¡ho p©¡davn‚ho
+za©¡zen¡  AUX.  Standardn¡m  p©¡davn˜m za©¡zen¡m (ozna‡en¡ AUX) je norm lnˆ
+prvn¡  s‚riov˜  port  COM1.  Vstup  nepou‘¡v  vyrovn vac¡ pamˆŸ, nen¡ ©¡zen
+p©eru¨en¡m  a  prob¡h   formou  ‡ek n¡  na  p©¡chod  znaku.  P©i zpracov n¡
+p©ich zej¡c¡ch   znak–   je   proto   nutn‚,  aby  aplika‡n¡  program  mezi
+jednotliv˜mi  vstupy  neprov dˆl  prodlevy,  neboŸ by mohlo doj¡t ke ztr tˆ
+dat.  Mˆl by si zajistit vhodnou formou komunika‡n¡ho protokolu, aby mu byl
+vys¡l n  pouze  ur‡it˜ po‡et bajt–, kter‚ si nejd©¡ve ukl d  do vyrovn vac¡
+pamˆti  a  a‘  p©ijde  p©esnˆ  definovan˜  po‡et  bajt–, provede zpracov n¡
+p©ijat˜ch  dat  a vyzve protˆj¨¡ za©¡zen¡ k vysl n¡ dal¨¡ho bal¡ku dat.
+
+    P©i  startu syst‚mu inicializuje DOS prvn¡ s‚riov˜ port COM1 na hodnotu
+2400  baud,  8údatov˜ch  bit–,  jeden  stop bit, ‘ dn  parita. Povelem MODE
+(extern¡ p©¡kaz opera‡n¡ho syst‚mu) lze tyto hodnoty mˆnit.
+
+Pozn.: Pokud  je  detekov na  kombinace  kl ves  <Ctrl>-<Break> (<Ctrl>-C),
+       potom je vygenerov no p©eru¨en¡ INT 23H.
+
+       Vstup  znaku  nen¡  ukl d n  do bufferu a nen¡ ©¡zen p©es p©eru¨en¡;
+       pokud v ¨ program nen¡ schopen ‡¡st znaky plnou rychlost¡, mohou b˜t
+       data ztracena.
+
+       Funkce  neumo‘¤uje  monitorov n¡  stavu  komunika‡n¡ho portu (zda je
+       p©ipraven  p©ijat˜  znak).  Pro  vˆt¨¡  kontrolu nad portem pou‘ijte
+       p©eru¨en¡  INT 14H ROM-BIOSu. Viz t‚‘ popis adapt‚ru s‚riov˜ch port–
+       a p©eru¨en¡ INT 0CH a INT 0BH.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ4ÿH ÿ(ÿ4ÿ)  - v˜stup znaku na p©¡davn‚ za©¡zen¡
+
+    vstup:    AH = 04H
+              DL = znak k v˜stupu na p©¡davn‚ za©¡zen¡
+
+    v˜stup:   ‘ dn˜
+
+    Tato  funkce  umo‘¤uje  v˜stup  znaku, jeho‘ ASCII hodnota je ulo‘ena v
+registru DL, na standardn¡ p©¡davn‚ za©¡zen¡ AUX. P©itom ‡ek , a‘ je vysl n
+p©edch zej¡c¡  znak  (tj. a‘ je vypr zdnˆn vys¡lac¡ buffer a a‘ je protˆj¨¡
+za©¡zen¡ p©ipraveno p©ijmout znak).
+
+    Standardn¡m  p©¡davn˜m  za©¡zen¡m  (ozna‡en¡  AUX)  je  norm lnˆ  prvn¡
+s‚riov˜   port   COM1.  V˜stup  nepou‘¡v   vyrovn vac¡  pamˆŸ,  nen¡  ©¡zen
+p©eru¨en¡m  a  prob¡h   formou ‡ek n¡ na vysl n¡ p©edch zej¡c¡ho znaku. Zda
+bude  aplika‡n¡ program ponech vat mezi jednotliv˜mi vyslan˜mi znaky mezery
+vznikl‚  jin˜mi ‡innostmi programu, je vˆc¡ aplika‡n¡ho programu a m  pouze
+vliv  na  zpomalen¡  p©enosu.  Pouze  p©i  synchronn¡m re‘imu provozu by se
+nemˆly objevovat meziznakov‚ mezery.
+
+    P©i  startu syst‚mu inicializuje DOS prvn¡ s‚riov˜ port COM1 na hodnotu
+2400  baud,  8údatov˜ch  bit–,  jeden  stop bit, ‘ dn  parita. Povelem MODE
+(extern¡ p©¡kaz opera‡n¡ho syst‚mu) lze tyto hodnoty mˆnit.
+
+Pozn.: Pokud  je  detekov na  kombinace  kl ves  <Ctrl>-<Break> (<Ctrl>-C),
+       potom je vygenerov no p©eru¨en¡ INT 23H.
+
+       Funkce  neumo‘¤uje  monitorov n¡  stavu komunika‡n¡ho portu (zda byl
+       vysl n  p©edch zej¡c¡  znak). Pro vˆt¨¡ kontrolu nad portem pou‘ijte
+       p©eru¨en¡  INT 14H ROM-BIOSu. Viz t‚‘ popis adapt‚ru s‚riov˜ch port–
+       a p©eru¨en¡ INT 0CH a INT 0BH.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ5ÿH ÿ(ÿ5ÿ)  - v˜stup znaku na tisk rnu
+
+    vstup:    AH = 05H
+              DL = znak k v˜stupu na tisk rnu
+
+    v˜stup:   ‘ dn˜
+
+    Funkce  vy¨le  znak,  jeho‘  ASCII hodnota je ulo‘ena v registru DL, na
+standardn¡  tiskov‚  za©¡zen¡  PRN, kter˜m je norm lnˆ prvn¡ paraleln¡ port
+tisk rny (LPT1).
+
+Pozn.: Pokud  je  za©¡zen¡  (tisk rna)  zanepr zdnˆno,  funkce  ‡ek   a‘ je
+       p©ipraveno p©ijmout znak.
+
+       Povel   opera‡n¡ho  syst‚mu  MODE  umo‘¤uje  p©esmˆrovat  standardn¡
+       tiskov˜ v˜stup PRN na s‚riov˜ port.
+
+       Pokud  je  detekov na  kombinace  kl ves  <Ctrl>-<Break> (<Ctrl>-C),
+       potom je vygenerov no p©eru¨en¡ INT 23H.
+
+P©¡klad: N sleduj¡c¡ program tiskne na tisk rnu © dky ASCII znak–.
+
+                   mov       bl,32          ; po‡ te‡n¡ znak k tisku
+                   mov       ah,5           ; funkce pro tisk znaku
+         radek:    mov       cx,80          ; po‡et znak– na © dek
+                   mov       dl,bl          ; znak k tisku
+         znak:     int       21h            ; tisk znaku na tisk rnu
+                   inc       dl             ; zv˜¨en¡ znaku
+                   loop      znak           ; dal¨¡ znak na © dku k tisku
+                   mov       dl,13          ; znak CR
+                   int       21h            ; tisk znaku CR
+                   mov       dl,10          ; znak LF
+                   int       21h            ; tisk znaku LF
+                   inc       bl             ; zv˜¨en¡ znaku pro dal¨¡ © dek
+                   cmp       bl,128-80      ; je ji‘ zak zan˜ znak ?
+                   jl        radek          ; tisk dal¨¡ho © dku
+                                            ; konec programu
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ6ÿH ÿ(ÿ6ÿ)  - p©¡m˜ vstup/v˜stup znaku na konzolu
+
+    vstup:    AH = 06H
+              DL = FFH            - vstup znaku z kl vesnice (ne‡ek )
+                   jin  hodnota   - znak k v˜stupu na displej
+
+    v˜stup:   AL = znak z kl vesnice (pokud je vstup z kl vesnice DL=FFH)
+              ZF = (ovlivnˆn, pokud je vstup z kl vesnice - tj. DL=FFH)
+                   0 (NZ) - p©ijat znak z kl vesnice (AL = znak)
+                   1 (ZR) - nen¡ p©ipraven znak z k vesnice (AL = 0)
+
+    Pokud  je  v  registru  DL  ulo‘ena  hodnota  FFH, je prov dˆn vstup ze
+standardn¡ho  vstupn¡ho  za©¡zen¡  (obvykle  kl vesnice), ne‡ek  na p©¡chod
+znaku.  Funkce  testuje, zda je p©ipraven znak ze vstupn¡ho za©¡zen¡. Pokud
+ano,  je  znak  ulo‘en do registru AL a je vynulov n p©¡znak nuly ZF. Pokud
+nen¡  p©ipraven znak, je p©¡znak ZF nastaven a obsah registru AL je nulov˜.
+P©i vstupu znaku nen¡ prov dˆno echo na v˜stupn¡ za©¡zen¡ (displej).
+
+    Pokud  je v registru DL ulo‘ena jin  hodnota ne‘ FFH, je obsah registru
+pova‘ov n  za  znak,  kter˜  m   b˜t vysl n na standardn¡ v˜stupn¡ za©¡zen¡
+(displej).
+
+    Pokud  je  p©i vstupu znaku navr cena v registru AL nula (a pokud je to
+platn˜  znak,  tj.  p©¡znak ZF je vynulov n - tj. plat¡ podm¡nka NZ), jde o
+zvl ¨tn¡  ©¡d¡c¡  znak  (nap©.  funk‡n¡  nebo  kurzorov   kl vesa).  Druh˜m
+vyvol n¡m   t‚to  funkce  je  navr cena  druh   ‡ st  speci ln¡ho  znaku  -
+orienta‡n¡ k¢d kl vesy (viz tabulku k¢d– kl ves).
+
+    Funkce neprov d¡ detekci kombinace kl ves <Ctrl>-<Break> (<Ctrl>-C).
+
+    P©i  v˜stupu  znaku  se  prov dˆj¡  ©¡d¡c¡ k¢dy BEL (07H) = p¡pnut¡, BS
+(08H)  =  krok  kurzoru  zpˆt  a  vymaz n¡  posledn¡ho  znaku,  HT  (09H) =
+tabel tor,  LF  (0AH)  =  p©esun  na n sleduj¡c¡ © dek, FF (0CH) = vymaz n¡
+obrazovky, CR (0DH) = p©echod na za‡ tek © dku a p©i nainstalovan‚m driveru
+obrazovky ANSI.SYS t‚‘ ESC (1BH) = speci ln¡ ©¡d¡c¡ funkce.
+
+P©¡klad: N sleduj¡c¡ p©¡klad vypisuje na obrazovce k¢dy kl ves v HEX tvaru.
+         Pokud  je  stisknuta  speci ln¡ kl vesa (generuje prvn¡ bajt = 0),
+         zobraz¡  se  nejd©¡ve  znak  "*" a potom jej¡ orienta‡n¡ k¢d v HEX
+         tvaru. Ukon‡en¡ programu je mo‘n‚ pomoc¡ kl vesy <Esc>.
+
+         cyklus:  mov       ah,6            ; funkce vstupu znaku z konzoly
+                  mov       dl,0ffh
+                  int       21h             ; vstup znaku z konzoly
+                  jz        cyklus          ; nebyl zad n ‘ dn˜ znak (‡ek )
+                  test      al,al           ; test - je AL = 0 ?
+                  jnz       cykl2           ; AL nen¡ = 0
+                  mov       dl,'*'          ; ozna‡en¡ roz¨¡©en‚ho k¢du
+                  jmp       short cykl3     ; tisk prefixu "*"
+         cykl2:   cmp       al,27           ; je znak <Esc> ?
+                  jz        konec           ; konec programu
+                  call      bajt            ; tisk bajtu v AL v HEX tvaru
+                  mov       dl,13           ; znak CR
+                  int       21h             ; tisk znaku CR
+                  mov       dl,10           ; znak LF
+         cykl3:   int       21h             ; tisk znaku LF
+                  jmp       short cyklus
+                                            ; podprogram tisku bajtu HEX
+         bajt:    push      ax              ; znak k v˜stupu
+                  ror       al,1            ; rotace AL o 4 bity vpravo
+                  ror       al,1
+                  ror       al,1
+                  ror       al,1
+                  call      hex             ; tisk znaku HEX
+                  pop       ax              ; n vrat znaku k tisku
+         hex:     and       al,0fh          ; ni‘¨¡ tetr da znaku
+                  add       al,90h          ; p©evod na znak HEX
+                  daa
+                  adc       al,40h
+                  daa
+                  mov       ah,6            ; funkce pro v˜stup znaku
+                  mov       dl,al           ; znak k v˜stupu na konzolu
+                  int       21h             ; v˜stup znaku na konzolu
+                  ret
+         konec:                             ; konec programu
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ7ÿH ÿ(ÿ7ÿ)  - ©¡zen˜ vstup znaku z konzoly bez echa
+
+    vstup:    AH = 07H
+
+    v˜stup:   AL = znak ze standardn¡ho vstupn¡ho za©¡zen¡
+
+    Funkce  ‡ek   na  p©¡chod  znaku  se  standardn¡ho  vstupn¡ho  za©¡zen¡
+(obvykle   konzola).   Neprov d¡   echo   a   nekontroluje   zad n¡  kl ves
+<Ctrl>-<Break>  (<Ctrl>-C)  -  p©i  zad n¡  kombinace kl ves <Ctrl>-<Break>
+(<Ctrl>-C) navr t¡ hodnotu k¢du 03H.
+
+    Pokud  je p©i vstupu znaku navr cena v registru AL nula, jde o zvl ¨tn¡
+©¡d¡c¡  znak  (nap©. funk‡n¡ nebo kurzorov  kl vesa). Druh˜m vyvol n¡m t‚to
+funkce  je  navr cena druh  ‡ st speci ln¡ho znaku - orienta‡n¡ k¢d kl vesy
+(viz tabulku k¢d– kl ves).
+
+    Pou‘ijte funkci DOS 0BH k testov n¡ vstupn¡ho statutu.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ8ÿH ÿ(ÿ8ÿ)  - vstup znaku z konzoly bez echa
+
+    vstup:    AH = 08H
+
+    v˜stup:   AL = znak z konzoly
+
+    Funkce  ‡ek   na  p©¡chod  znaku  se  standardn¡ho  vstupn¡ho  za©¡zen¡
+(obvykle   konzola).   Neprov d¡   echo,   kontroluje  v¨ak  zad n¡  kl ves
+<Ctrl>-<Break> (<Ctrl>-C).
+
+    Pokud  je p©i vstupu znaku navr cena v registru AL nula, jde o zvl ¨tn¡
+©¡d¡c¡  znak  (nap©. funk‡n¡ nebo kurzorov  kl vesa). Druh˜m vyvol n¡m t‚to
+funkce  je  navr cena druh  ‡ st speci ln¡ho znaku - orienta‡n¡ k¢d kl vesy
+(viz tabulku k¢d– kl ves).
+
+Pozn.: Jedin˜  rozd¡l mezi touto funkc¡ a funkc¡ 07H je ten, ‘e tato funkce
+       prov d¡  kontrolu zad n¡ kombinace kl ves <Ctrl>-<Break> (<Ctrl>-C),
+       p©i detekci t‚to kombinace kl ves provede p©eru¨en¡ INT 23H.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿ9ÿH ÿ(ÿ9ÿ)  - tisk ©etˆzce
+
+    vstup:    AH = 09H
+              DS:DX = ukazatel na textov˜ ©etˆzec ukon‡en˜ znakem $
+
+    v˜stup:   ‘ dn˜
+
+    Funkce  vy¨le  zadan˜  ©etˆzec  znak–  na standardn¡ v˜stupn¡ za©¡zen¡.
+etˆzec  mus¡  b˜t  ukon‡en  znakem  $ (symbol dolaru). Tento znak nen¡ ji‘
+zobrazen.  Funkce  nen¡  tedy  vhodn  pro zobrazen¡ ©etˆzc–, kter‚ obsahuj¡
+symbol  dolaru  $,  v¨echny ostatn¡ znaky, v‡etnˆ ©¡d¡c¡ch, jsou zobrazeny.
+Kúv˜stupu  textu  v‡etnˆ  znaku  dolaru  $  m–‘ete  pou‘¡t  funkci  DOS 40H
+(súidentifik torem souboru BX=0), kter  umo‘¤uje v˜stup textu zadan‚ d‚lky.
+
+    P©i  v˜stupu  znaku  se  prov dˆj¡  ©¡d¡c¡ k¢dy BEL (07H) = p¡pnut¡, BS
+(08H)  =  krok  kurzoru  zpˆt  a  vymaz n¡  posledn¡ho  znaku,  HT  (09H) =
+tabel tor,  LF  (0AH)  =  p©esun  na n sleduj¡c¡ © dek, FF (0CH) = vymaz n¡
+obrazovky, CR (0DH) = p©echod na za‡ tek © dku a p©i nainstalovan‚m driveru
+obrazovky ANSI.SYS t‚‘ ESC (1BH) = speci ln¡ ©¡d¡c¡ funkce. Norm ln¡ zp–sob
+od© dkov n¡  textu  (tj. p©echod na nov˜ © dek) je vysl n¡ dvojice ©¡d¡c¡ch
+k¢d– CR (0DH) a LF (0AH).
+
+    Funkce   prov d¡   kontrolu   zad n¡  kombinace  kl ves  <Ctrl>-<Break>
+(<Ctrl>-C), p©i detekci t‚to kombinace kl ves provede p©eru¨en¡ INT 23H.
+
+P©¡klad: Tento p©¡klad vytiskne na obrazovce jednoduch˜ obrazec.
+
+                   mov       dx,offset text ; text k tisku
+                   mov       cx,10          ; po‡et © dk– k tisku
+                   mov       ah,9           ; funkce tisku ©etˆzce
+         cyklus:   int       21h            ; tisk ©etˆzce od adresy DS:DX
+                   inc       dx             ; zv˜¨en¡ ukazatele ©etˆzce
+                   loop      cyklus         ; dal¨¡ © dek k tisku
+                   mov       ah,4ch         ; ukon‡en¡ programu
+                   int       21h
+
+         text      db        '0123456789',13,10,'$'   ; tisknut˜ ©etˆzec
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿAÿH ÿ(ÿ1ÿ0ÿ) - vstup textu ze vstupn¡ho za©¡zen¡
+
+    vstup:    AH = 0AH
+              DS:DX = ukazatel  na  vstupn¡  vyrovn vac¡ pamˆŸ
+
+    v˜stup:   ‘ dn˜ (n vrat informac¡ ve vstupn¡m bufferu)
+              (navr ceno AL = ukon‡ovac¡ znak 0DH)
+
+    Funkce  ‡te  ©etˆzec  znak–  ze  standardn¡ho  vstupn¡ho za©¡zen¡ a‘ po
+zad n¡  kl vesy  <Enter>  (znak  s k¢dem 0DH = 13) nebo po zaplnˆn¡ vstupn¡
+vorovn vac¡  pamˆti  (tj.  je zad n po‡et znak– MAX-1, kde MAX je maxim ln¡
+po‡et  znak–  nastaven˜  v  prvn¡m  bajtu vyrovn vac¡ pamˆti). P©i zad v n¡
+znak–  ze  vstupn¡ho  za©¡zen¡  (kl vesnice) prov d¡ echo znak– na v˜stupn¡
+za©¡zen¡  (displej).  Znaky  (v‡etnˆ ukon‡ovac¡ho znaku <Enter> = 0DH) jsou
+ukl d ny do bufferu DS:DX po‡¡naje offsetem 02H (t©et¡ bajt).
+
+    Struktura vstupn¡ho bufferu textu:
+
+         offset 00H (1.bajt): (hodnota  1  a‘ 254) maxim ln¡ po‡et znak– ve
+                              vyrovn vac¡  pamˆti  v‡etnˆ  znaku CR (0DH) -
+                              tuto  hodnotu  mus¡  u‘ivatel  nastavit  p©ed
+                              vyvol n¡m funkce.
+         offset 01H (2.bajt): skute‡n˜  po‡et zadan˜ch znak– textu bez CR -
+                              tato hodnota je nastavena funkc¡
+         offset 02H (3.bajt): vyrovn vac¡   pamˆŸ;  mus¡  b˜t  alespo¤  tak
+                              dlouh , jak ud v  1.bajt.
+
+    Maxim ln¡  po‡et  zadan˜ch znak– je omezen velikost¡ vstupn¡ho bufferu,
+kter   je  ud na  prvn¡m  bajtem vstupn¡ho bufferu DS:DX (max. 255 zadan˜ch
+znak– v‡etnˆ CR). Tuto hodnotu nastavuje u‘ivatel p©ed vyvol n¡m funkce.
+
+    P©i n vratu je v bufferu DS:DX na offsetu 1 (tj. druh˜ bajt vyrovn vac¡
+pamˆti)  navr cen  po‡et  platn˜ch znak–, kter‚ byly zaznamen ny do bufferu
+(bez koncov‚ho znaku CR - 0DH). Text je v‘dy ukon‡en znakem CR
+
+    Funkce   prov d¡   kontrolu   zad n¡  kombinace  kl ves  <Ctrl>-<Break>
+(<Ctrl>-C), p©i detekci t‚to kombinace provede p©eru¨en¡ INT 23H.
+
+Pozn.: Bˆjem  zad v n¡  textu  pomoc¡  t‚to  funkce  jsou aktivn¡ editovac¡
+       povely  DOS.  Znaky  obsa‘en‚  v  bufferu  (v‡etnˆ bajtu d‚lky) p©ed
+       vol n¡m   funkce  jsou  pou‘ity  jako  do‡asn‚  a  povely  DOS  maj¡
+       n sleduj¡c¡  £‡inek: Kl vesa <Esc> zobraz¡ znak \ a obnovuje editaci
+       (navr t¡  ji  do p–vodn¡ho stavu), <F3> zobraz¡ cel˜ do‡asnˆ ulo‘en˜
+       text  a‘  po  konec, <F5> zobraz¡ znak @ a ulo‘¡ sou‡asn˜ © dek jako
+       do‡asn˜  (tj.  lze  jej editovat), kl vesy <-- a --> ru¨¡ a obnovuj¡
+       znak z do‡asn‚ho textu atd.
+
+       Pokud  se  buffer  napln¡  do kapacity bez jednoho bajtu, DOS odm¡t 
+       v¨echny  zad van‚  znaky  kromˆ  ukon‡ovac¡  kl vesy  <Enter> (resp.
+       nˆkter˜ch povel– editoru), oz˜v  se zvukov˜ sign l chyby.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿBÿH ÿ(ÿ1ÿ1ÿ) - test stavu standardn¡ho vstupu
+
+    vstup:    AH = 0BH
+
+    v˜stup:   AL = FFH  - je p©ipraven znak ze vstupn¡ho za©¡zen¡
+                   00H  - nen¡ p©ipraven znak ze vstupn¡ho za©¡zen¡
+
+    Funkce  kontroluje,  zda  je  p©ipraven  znak ze standardn¡ho vstupn¡ho
+za©¡zen¡  (konzoly).  M–‘e b˜t pou‘ita ke kontrole p©ipravenosti znaku p©ed
+vstupem znaku z konzoly, kter˜ ‡ek  na zad n¡ znaku (funkce 01H, 07H, 08H).
+
+    Funkce   prov d¡   kontrolu   zad n¡  kombinace  kl ves  <Ctrl>-<Break>
+(<Ctrl>-C),  p©i  detekci  t‚to  kombinace  provede p©eru¨en¡ INT 23H. Tato
+funkce   je  nejvhodnˆj¨¡  metodou  k  testov n¡  zad n¡  kombinace  kl ves
+<Ctrl>-<Break>  (<Ctrl>-C)  p©i  dlouh˜ch v˜po‡tech programu kter‚ norm lnˆ
+neprov dˆj¡ ‘ dn‚ vstupnˆ/v˜stupn¡ operace, neboŸ nem  ‘ dn‚ dal¨¡ vedlej¨¡
+£‡inky.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿCÿH ÿ(ÿ1ÿ2ÿ) - vymaz n¡ vstup. bufferu a proveden¡ funkce
+
+    vstup:    AH = 0CH
+              AL = funkce, kter  se m  prov‚st (01H, 06H, 07H, 08H, 0AH)
+                   jak koliv jin  hodnota - neprov d¡ se dal¨¡ zpracov n¡
+
+    v˜stup:   AL = zadan˜ znak (pokud vzta‘n  funkce nebyla 0AH)
+                 = 0, pokud nebyla v AL ‘ dn  funkce kl vesnice
+
+    Funkce  vyma‘e v¨echny znaky ze vstupn¡ vyrovn vac¡ pamˆti znak–, potom
+provede specifikovanou funkci vstupu (‡¡slo funkce v registru AL). Pou‘ijte
+tuto  funkci  pokud  si  chcete  b˜t  jisti,  ‘e program p©ijme nov˜ znak z
+kl vesnice ani‘ by pou‘il znaky zadan‚ bˆhem d©¡vˆj¨¡ch operac¡. Obvykle se
+tato  funkce  pou‘¡v   nap©. p©i ohl ¨en¡ chybov‚ho stavu a ‡ek n¡ na dal¨¡
+volby u‘ivatele.
+
+Pozn.: P©i  zad n¡  funkce  06H  nemus¡ prov dˆt funkce pouze vstup znaku z
+       kl vesnice,  ale  m–‘e  prov‚st  i v˜stup znaku na v˜stupn¡ za©¡zen¡
+       (viz detaily funkce 06H).
+
+       Pokud  chcete  vynulovat  vstupn¡  buffer  bez  proveden¡  jak‚koliv
+       operace (bez ‡ten¡ znaku), zadejte funkci AL = 06H a DL = 0FFH (test
+       p©ipravenosti znaku z kl vesnice).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿDÿH ÿ(ÿ1ÿ3ÿ) - reset disku
+
+    vstup:    AH = 0DH
+
+    v˜stup:   ‘ dn˜
+
+    Funkce  vypr zdn¡  v¨echny  vyrovn vac¡  pamˆti  soubor–,  soubory v¨ak
+neuzav¡r .  Zapisuje  modifikovan‚  vyrovn vac¡  pamˆti  na  disk  a ozna‡¡
+v¨echny  vnit©n¡  vyrovn vac¡  pamˆti  jako voln‚. K zaji¨tˆn¡ ulo‘en¡ zmˆn
+polo‘ky  souboru  v adres ©i pou‘ijte p©ed vyvol n¡m t‚to funkce nˆkterou z
+funkc¡  pro  uzav©en¡ souboru (10H nebo 3EH). Funkce se nemus¡ vyvolat p©ed
+v˜mˆnou  disku,  jestli‘e  v¨echny  soubory,  v  nich‘ do¨lo ke zmˆnˆ, byly
+uzav©eny. Obvykle se tato funkce pou‘¡v  k zaji¨tˆn¡ zn m‚ho stavu syst‚mu.
+Tuto funkci by mˆly volat programy obsluhuj¡c¡ <Ctrl>-<Break>.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿEÿH ÿ(ÿ1ÿ4ÿ) - v˜bˆr aktivn¡ho disku
+
+    vstup:    AH = 0EH
+              DL = ‡¡slo aktivn¡ho disku (0 = A, 1 = B atd.)
+
+    v˜stup:   AL = po‡et logick˜ch disk– v syst‚mu
+
+    Funkce nastav¡ aktivn¡ disk a navr t¡ po‡et disk– v syst‚mu libovoln‚ho
+typu, v‡etnˆ pevn˜ch disk– a logick˜ch disk–.
+
+Pozn.: Disketov   jednotka  v  jednodisketov‚m  syst‚mu  se po‡¡t  jako dva
+       logick‚ disky A: a B:.
+
+       DOS  verze  3.x  a  pozdˆj¨¡  verze  hl s¡  5 logick˜ch disk–, pokud
+       neobsahuje CONFIG.SYS jin‚ p©i©azen¡ pomoc¡ LASTDRIVE.
+
+       K  ur‡en¡  po‡tu  fyzick˜ch  disketov˜ch jednotek v syst‚mu pou‘ijte
+       p©eru¨en¡  INT  11H  (17).  K  ur‡en¡  po‡tu pevn˜ch disk– v syst‚mu
+       pou‘ijte p©eru¨en¡ INT 13H (19)/funkci 08H.
+
+       Pou‘ijte  funkci  DOS  19H  (poskytnut¡  aktivn¡ho  disku), pokud se
+       chcete p©esvˆd‡it o spr vnosti operace.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ0ÿFÿH ÿ(ÿ1ÿ5ÿ) - otev©en¡ souboru s pou‘it¡m FCB
+
+    vstup:    AH = 0FH
+              DS:DX = ukazatel na neotev©en˜ FCB souboru
+
+    v˜stup:   AL = 00H - soubor £spˆ¨nˆ otev©en (a FCB spr vnˆ vyplnˆn)
+                   FFH - soubor nenalezen nebo jej nelze otev©¡t
+
+    Funkce  otev©e existuj¡c¡ soubor s pou‘it¡m FCB souboru. DS:DX obsahuje
+adresu  neotev©en‚ho  ©¡d¡c¡ho  bloku  FCB.  Jmenovan˜  soubor  se  hled  v
+aktivn¡m  adres ©i aktivn¡ho disku nebo disku specifikovan‚ho v polo‘ce FCB
+(tj.  prvn¡  bajt  FCB:  0=aktivn¡  disk; 1=A; 2=B; ...). Nalezne-li se pro
+soubor  vyhovuj¡c¡ adres ©ov  polo‘ka, AL vr t¡ hodnotu 0, soubor se otev©e
+v  kompatibiln¡m p©¡stupov‚m m¢du (viz funkce DOS 3DH - otev©en¡ souboru) a
+FCB se vypln¡ n sledovnˆ:
+
+    - Je-li  k¢d  diskov‚  jednotky 0 (implicitn¡ disk), zmˆn¡ se p©¡slu¨n 
+      polo‘ka FCB na aktivn¡ pou‘it˜ disk (1=A, 2=B, atd.).
+
+    - Polo‘ka aktivn¡ blok se vynuluje.
+
+    - D‚lka z znamu se nastav¡ na syt‚movou implicitn¡ hodnotu 128 (80H).
+
+    - D‚lka  souboru,  datum  a ‡as posledn¡ho z pisu do souboru se nastav¡
+      podle adres ©ov‚ polo‘ky.
+
+    P©ed  proveden¡m sekven‡n¡ diskov‚ operace se souborem se mus¡ nastavit
+polo‘ka  aktivn¡ z znam. P©ed proveden¡m diskov‚ operace s p©¡m˜m p©¡stupem
+se  souborem  se  mus¡  nastavit  polo‘ka  relativn¡  z znam. Nevyhovuje-li
+implicitn¡  d‚lka  z znamu  128  bajt–, je nutno ji nastavit na po‘adovanou
+d‚lku p©ed proveden¡m n sleduj¡c¡ diskov‚ operace.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ0ÿH ÿ(ÿ1ÿ6ÿ) - uzav©en¡ souboru s pou‘it¡m FCB
+
+    vstup:    AH = 10H
+              DS:DX = ukazatel na otev©en˜ FCB souboru
+
+    v˜stup:   AL = 00H - soubor £spˆ¨nˆ uzav©en
+                   FFH - soubor nenalezen
+
+
+    Funkce  uzav©e  soubor  a  ulo‘¡ jeho adres ©ovou polo‘ku do adres ©e s
+pou‘it¡m FCB. Tato funkce se mus¡ vyvolat po proveden˜ch zmˆn ch v souboru,
+aby se aktualizovala adres ©ov  polo‘ka.
+
+    Polo‘ka  adres ©e  mus¡ b˜t na sv‚m p–vodn¡m m¡stˆ v sou‡asn‚m aktivn¡m
+adres ©i a disku, z kter‚ho byl soubor otev©en.
+
+    Je-li  pro  soubor  nalezena  odpov¡daj¡c¡ adres ©ov  polo‘ka, um¡stˆn¡
+souboru  se  porovn   s  odpov¡daj¡c¡mi polo‘kami v FCB. Pokud je to nutn‚,
+aktualizuje  se adres ©ov  polo‘ka podle FCB a vyrovn vac¡ pamˆŸ souboru se
+vypr zdn¡. AL vr t¡ hodnotu 0.
+
+Pozn.: Pokud  uzav¡r te soubor na disketˆ, DOS se sna‘¡ nejd©¡ve ur‡it, zda
+       byla  v disketov‚ jednotce vymˆnˆna disketa. Pokud ano, navrac¡ v AL
+       hodnotu  0FFH.  Ur‡ov n¡  v˜mˆny disket nen¡ spolehliv‚ v d©¡vˆj¨¡ch
+       verz¡ch  DOS  ne‘  3.0;  pou‘it¡  t‚to  funkce  v DOS 2.x p©i v˜mˆnˆ
+       diskety m–‘e m¡t za n sledek zni‡en¡ obsahu diskety.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ1ÿH ÿ(ÿ1ÿ7ÿ) - nalezen¡ prvn¡ho souboru s pou‘it¡m FCB
+
+    vstup:    AH = 11H
+              DS:DX = ukazatel na neotev©en˜ FCB souboru
+
+    v˜stup:   AL = 00H - soubor nalezen (a DTA vyplnˆna)
+                   FFH - ‘ dn˜ soubor nenalezen
+
+    Funkce  hled   v  aktivn¡m  adres ©i  prvn¡ vyhovuj¡c¡ soubor. DS:DX je
+adresa  neotev©en‚ho FCB, kter˜ m–‘e obsahovat konven‡n¡ znaky (tj. * a ?).
+K  prohled v n¡ skryt˜ch nebo syst‚mov˜ch soubor– mus¡ DX ukazovat na prvn¡
+bajt roz¨¡©en‚ho FCB.
+ş
+Pozn.: P©edpokl dan‚  pou‘it¡  t‚to slu‘by je ovl d n¡ soubor– obsahuj¡c¡ch
+       maskovac¡ znaky "?" ve sv‚m jm‚nˆ (univerz ln¡ znak - na t‚to pozici
+       m–‘e b˜t uveden jak˜koliv znak). Tato funkce zah j¡ porces hled n¡ a
+       funkce  12H  (18)  pokra‡uje  v  hled n¡  n sleduj¡c¡ch vyhovuj¡c¡ch
+       soubor–.
+
+       Funkci  29H  (rozlo‘en‚  jm‚no  souboru)  lze  pou‘¡t  pro vytv ©en¡
+       neotev©en‚ho FCB souboru v p©¡pravˆ pro hled n¡.
+
+       Pokud  je  soubor nalezen, vytvo©¡ se na sou‡asn‚ adrese pro diskov‚
+       p©enosy   (DTA)   neotev©en˜   FCB   stejn‚ho  typu  (norm ln¡  nebo
+       roz¨¡©en˜).  P©ed  vol n¡m t‚to funkce je pot©eba se p©esvˆd‡it, zda
+       je dostatek m¡sta rezervovan‚ho na DTA pro CFB; pokud nen¡, je nutno
+       nastavit pomoc¡ funkce 1AH novou adresu DTA.
+
+       Pokud funkce hled n¡ pou‘¡v  roz¨¡©en˜ FCB (FCBE), je FCBE ulo‘en na
+       adrese  DTA s nastaven˜m bitem identifik toru (offset -7) na hodnotu
+       0FFH.
+
+       Rozsah  hled n¡ m–‘ete ©¡dit zad n¡m bajtu atribut– v roz¨¡©en‚m FCB
+       (offset  -1).  Pokud  je bajt atribut– nastaven na 00H, hled  funkce
+       pouze  norm ln¡ soubory (tj. mohou m¡t nastaven pouze atribut "pouze
+       ‡ten¡"  a/nebo  "archivn¡"). Pokud je v bajtu atributu specifikov na
+       nˆjak   kombinace  atribut– "skryt˜ soubor", "syst‚mov˜ soubor" nebo
+       "adres ©",  budou  se  vyhled vat  norm ln¡  soubory  a tak‚ v¨echny
+       soubory  s  tˆmito  atributy. Pokud je v bajtu atribut– specifikov n
+       atribut   "n vˆ¨t¡  disku",  bude  funkce  hledat  pouze  polo‘ku  s
+       atributem  "n vˆ¨t¡  disku".  Atributy  "pouze  ‡ten¡"  a "archivn¡"
+       nemaj¡ vliv na hled n¡.
+
+         Struktura bajtu atribut– souboru:
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0 (  1): pouze ‡ten¡ souboru (Read-only "R/O")
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1 (  2): skryt˜ soubor (Hidden "HID")
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2 (  4): syst‚mov˜ soubor (System "SYS")
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3 (  8): n vˆ¨t¡ disku (Volume Label "VOL")
+         ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4 ( 16): adres © (Directory "DIR")
+         ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5 ( 32): archivn¡ soubor (Archive "ARC")
+         ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6 ( 64): rezervov no (mus¡ b˜t nastaven na 0)
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7 (128): rezervov no (mus¡ b˜t nastaven na 0)
+
+            - bli‘¨¡ popis atribut– viz "Adres ©ov  polo‘ka"
+
+       FCB  jsou poz–statky z DOS 1. Je v˜hodnˆj¨¡ pou‘¡t k hled n¡ soubor–
+       funkce 4EH a 4FH.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ2ÿH ÿ(ÿ1ÿ8ÿ) - nalezen¡ dal¨¡ho souboru s pou‘it¡m FCB
+
+    vstup:    AH = 12H
+              DS:DX = ukazatel  na  neotev©en˜ FCB souboru specifikovan˜ ve
+                      funkci 11H nebo 12H
+
+    v˜stup:   AL = 00H - dal¨¡ soubor nalezen
+                   FFH - soubor nenalezen
+
+    Funkce  hled   v  aktivn¡m  adres ©i  dal¨¡  vyhovuj¡c¡  soubor.  DS:DX
+obsahuje adresu FCB specifikovan‚ho v p©edchoz¡m hled n¡ pomoc¡ funkce 11H.
+Funkce  12H  se  pou‘¡v   po  funkci  11H  (vyhled n¡  prvn¡ho vyhovuj¡c¡ho
+souboru) k nalezen¡ dal¨¡ch vyhovuj¡c¡ch adres ©ov˜ch polo‘ek.
+
+Varov n¡: Informace  pot©ebn‚  funkc¡  12H  jsou  zni‡eny  jakoukoliv jinou
+          operac¡  pou‘¡vaj¡c¡  vytv ©en¡  FCB  souboru  (jako nap©. funkce
+          11H).  Proto,  pokud chcete hledat v¡ce soubor– a prov dˆt v nich
+          t‚‘  vstupnˆ/v˜stupn¡  operace, mus¡te ulo‘it informace k hled n¡
+          tak, ‘e ulo‘¡te FCB.
+
+
+P©¡klad: N sleduj¡c¡  p©¡klad  prov d¡  v˜pis soubor– aktivn¡ho adres ©e na
+         aktivn¡m  disku (podobnˆ jako p©¡kaz DIR) na obrazovku a to v pˆti
+         sloupc¡ch.
+
+              mov       ah,1ah              ; funkce nastaven¡ DTA
+              mov       dx,offset buffer    ; adresa bufferu jako DTA
+              int       21h                 ; nastaven¡ adresy DTA
+              mov       ah,11h              ; funkce nalezen¡ prvn¡ polo‘ky
+              mov       dx,offset fcb       ; adresa FCB
+              int       21h                 ; nalezen¡ prvn¡ polo‘ky FCB
+              inc       al                  ; je AL=FFH ? (tj. nenalezen)
+              mov       dx,offset neni      ; textchybov‚ho hl ¨en¡
+              jz        konec1              ; nen¡ soubor v adres ©i
+    vypis:    mov       si,offset buffer+1  ; adresa FCB nalezen‚ho souboru
+              mov       cx,8                ; po‡et znak– jm‚na
+              mov       ah,2                ; funkce v˜stupu znaku
+    jmeno:    mov       dl,[si]             ; znak jm‚na souboru k tisku
+              int       21h                 ; tisk znaku na displej
+              inc       si                  ; dal¨¡ znak jm‚na souboru
+              loop      jmeno               ; dal¨¡ znak jm‚na
+              mov       dl,"."              ; oddˆlovac¡ znak te‡ky
+              int       21h                 ; tisk oddˆlovac¡ te‡ku
+              mov       cx,3                ; po‡et znak– roz¨¡©en¡ souboru
+    typ:      mov       dl,[si]             ; znak typu souboru k tisku
+              int       21h                 ; tisk znaku typu souboru
+              inc       si                  ; dal¨¡ znak typu souboru
+              loop      typ                 ; tisk dal¨¡ho znaku typu
+              mov       dl," "              ; oddˆlovac¡ mezera
+              int       21h                 ; tisk 4 oddˆlovac¡ch mezer
+              int       21h
+              int       21h
+              int       21h
+              mov       ah,12h              ; funkce vyhled n¡ dal¨¡ho s.
+              mov       dx,offset fcb       ; adresa FCB
+              int       21h                 ; nalezen¡ dal¨¡ho souboru
+              inc       al                  ; je AL=FFH ? (tj. nenalezen)
+              jnz       vypis               ; je dal¨¡ soubor
+              mov       dx,offset tiskcr    ; od© dkov n¡ textu
+    konec1:   mov       ah,9                ; funkce tisku textu
+              int       21h                 ; tisk textu
+              jmp       konec               ; konec programu
+
+    neni      db        'V adres ©i nen¡ ‘ dn˜ soubor.'
+    tiskcr    db        13,10,'$'
+    fcb       db        0,"???????????"
+              db        25 dup (0)
+    buffer    db        128 dup (0)
+
+    konec:                                      ; konec programu
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ3ÿH ÿ(ÿ1ÿ9ÿ) - zru¨en¡ souboru s pou‘it¡m FCB
+
+    vstup:    AH = 13H
+              DS:DX = ukazatel na neotev©en˜ FCB souboru
+
+    v˜stup:   AL = 00H - soubor nalezen a zru¨en
+                   FFH - soubor nenalezen
+
+    Funkce  zru¨¡  v¨echny  soubory  s  aktivn¡m  adres ©i,  kter‚  spl¤uj¡
+podm¡nky dan‚ FCB souboru.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Specifikace  souboru  m–‘e obsahovat znaky "?" nahrazuj¡c¡ jak˜koliv
+       znak ve specifikaci jm‚na souboru.
+
+       Soubory read-only nebudou touto funkc¡ zru¨eny.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ4ÿH ÿ(ÿ2ÿ0ÿ) - sekven‡n¡ ‡ten¡ ze souboru s pou‘it¡m FCB
+
+    vstup:    AH = 14H
+              DS:DX = ukazatel na otev©en˜ FCB
+
+    v˜stup:   AL = 00H - ‡ten¡ probˆhlo £spˆ¨nˆ
+                   01H - nalezen konec souboru, ‘ dn  data nep©e‡tena
+                   02H - prostor DTA p©¡li¨ mal˜ (nebo p©elom segmentu)
+                   03H - nalezen konec souboru, p©e‡tena ‡ st dat
+
+    Funkce  ‡te  sekven‡nˆ  n sleduj¡c¡ z znam souboru do bufferu na adrese
+DTA,  po  ‡ten¡  inkrementuje  ukazatele v FCB souboru na dal¨¡ z znam (tj.
+inkrementuje aktivn¡ blok a aktivn¡ z znam). P©ed vyvol n¡m funkce mus¡ b˜t
+v FCB nastaveny polo‘ky aktivn¡ blok a aktivn¡ z znam.
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va ‡ten¡ READ.
+
+Pozn.: €¡sko  sekven‡n¡ho  z znamu  je  odvozeno  z  hodnot aktivn¡ho bloku
+       (offset  0CH)  a  aktivn¡ho z znamu (offset 20H) v FCB souboru. Tyto
+       polo‘ky  FCB  jsou  automaticky  zaznamen ny po operaci ‡ten¡. Po‡et
+       ‡ten˜ch bajt– je pou‘it z polo‘ky velikosti z znamu na offsetu 0EH v
+       FCB.
+
+       Data  jsou ‡tena do bufferu na adrese ozna‡en‚ jako Adresa diskov‚ho
+       p©enosu  DTA.  Pokud by p©enos dat mohl zp–sobit p©ete‡en¡ segmentu,
+       je vygenerov na chyba 2.
+
+       Pokud  je  nalezen konec souboru je¨tˆ p©ed na‡ten¡m cel‚ho z znamu,
+       je zbytek z znamu doplnˆn nulami a‘ do pln‚ velikosti z znamu.
+
+P©¡klad: N sleduj¡c¡  program  vyp¡¨e  na obrazovku z aktivn¡ho adres ©e na
+         aktivn¡m  disku  textov˜  soubor  DIRINFO  (pokud existuje), kter˜
+         obsahuje  informace o nastaven‚m adres ©i (tento informa‡n¡ soubor
+         pou‘¡v  t‚‘ Norton Commander).
+
+              mov       ah,1AH              ; funkce nastaven¡ DTA
+              mov       dx,offset buffer    ; adresa bufferu
+              int       21h                 ; nastaven¡ adresy DTA
+              mov       ah,0fh              ; funkce otev©en¡ souboru
+              mov       dx,offset fcb       ; adresa fcb
+              int       21h                 ; otev©en¡ souboru
+              inc       al                  ; je AL = FFH ? (tj. nenalezen)
+              jz        konec               ; konec programu
+              mov       [fcb+14],1          ; nastaven¡ d‚lky z znamu na 1
+    cteni:    mov       dx,offset fcb       ; adresa fcb
+              mov       ah,14h              ; funkce sekven‡n¡ho ‡ten¡
+              int       21h                 ; sekven‡n¡ ‡ten¡ z znamu
+              or        al,al               ; je spr vn‚ ‡ten¡ ?
+              jnz       zavri               ; konec - uzavreni souboru
+              mov       dl,[buffer]         ; p©e‡ten˜ znak
+              cmp       dl,1ah              ; je znak konce souboru ?
+              je        zavri               ; konec souboru - uzav©i
+              mov       ah,2                ; funkce v˜stupu znaku
+              int       21h                 ; zobrazen¡ znaku
+              jmp       short cteni         ; dal¨¡ znak ze souboru
+    zavri:    mov       ah,10h              ; funkce uzav©en¡ souboru
+              mov       dx,offset fcb       ; adresa fcb
+              int       21h                 ; uzav©en¡ souboru
+              jmp       short konec         ; konec programu
+
+    fcb       db        0,"DIRINFO    "     ; polo‘ka FCB souboru
+              db        25 dup (0)
+    buffer    db        1 dup (?)           ; z sobn¡k 1 znaku
+
+    konec:                                  ; konec programu
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ5ÿH ÿ(ÿ2ÿ1ÿ) - sekven‡n¡ z pis do souboru s pou‘it¡m FCB
+
+    vstup:    AH = 15H
+              DS:DX = ukazatel na otev©en˜ FCB
+
+    v˜stup:   AL = 00H - z pis probˆhl £spˆ¨nˆ
+                   01H - disk je pln˜
+                   02H - prostor DTA p©¡li¨ mal˜ (nebo p©elom segmentu)
+
+    Funkce zapisuje sekven‡nˆ data z bufferu na adrese DTA do n sleduj¡c¡ho
+z znamu  souboru,  po  z pisu inkrementuje ukazatele v FCB souboru na dal¨¡
+z znam (tj. inkrementuje aktivn¡ blok a aktivn¡ z znam).
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va z pisu WRITE.
+
+Pozn.: €¡sko  sekven‡n¡ho  z znamu  je  odvozeno  z  hodnot aktivn¡ho bloku
+       (offset  0CH)  a  aktivn¡ho z znamu (offset 20H) v FCB souboru. Tyto
+       polo‘ky  FCB  jsou  automaticky zaznamen ny po operaci z pisu. Po‡et
+       zapisovan˜ch  bajt– je pou‘it z polo‘ky velikosti z znamu na offsetu
+       0EH v FCB.
+
+       Data  jsou  zapisov na  na  disk  z  bufferu na adrese ozna‡en‚ jako
+       Adresa  diskov‚ho  p©enosu  DTA.  Pokud  by p©enos dat mohl zp–sobit
+       p©ete‡en¡ segmentu, je vygenerov na chyba 2.
+
+       Pokud zapisovan  data nevypln¡ zapisovan˜ sektor, DOS ukl d  data do
+       bufferu pro evenu ln¡ z pis pokud jsou data v bufferu nashrom ‘dˆna.
+
+       Pokud  m  specifikovan˜ soubor nastaven atribut ochrany proti z pisu
+       Read-Only, z pis se neprovede.
+
+P©¡klad: Program  zde  uveden˜  odstra¤uje tabel tory z textov‚ho souboru a
+         nahrazuje  je  odpov¡daj¡c¡m  po‡tem  mezer.  P©ev dˆn˜  soubor se
+         zad v   p©i  vyvol n¡  programu  jako  parametr za jm‚nem programu
+         (pou‘¡v   se  polo‘ka  FCB  na adrese 005CH v prefixu programov‚ho
+         segmentu).  Soubor  mus¡  b˜t v aktivn¡m adres ©i (v aktivn¡m nebo
+         uveden‚m  disku).  Jako  v˜stupn¡  soubor  se  (pro  jednoduchost)
+         vytvo©¡  soubor  stejnˆ  pojmenovan˜  jako  zdrojov˜ soubor, ale s
+         ozna‡en¡m typu $$$.
+
+                                            ; program pou‘¡v  FCB souboru
+                                            ; na adrese ES:005CH
+         mov       ax,es                    ; datov˜ segment
+         mov       ds,ax                    ; datov˜ segment
+         mov       ax,cs                    ; segment programu
+         mov       es,ax                    ; segment programu
+         mov       si,5ch                   ; zdrojov  adresa
+         mov       di,offset fcb            ; c¡lov  adresa
+         mov       cx,12                    ; po‡et znak– jm‚na
+         rep       movsb                    ; p©enos jm‚na souboru
+         mov       si,5ch                   ; zdrojov  adresa FCB
+         mov       di,offset fcbout         ; v˜stupn¡ soubor
+         mov       cx,9                     ; d‚lka - jen jm‚no
+         rep       movsb                    ; p©enos jm‚na souboru
+         mov       ax,cs                    ; segment programu
+         mov       ds,ax                    ; segment programu
+         mov       dx,offset buffer         ; buffer znaku souboru
+         mov       ah,1ah                   ; funkce nastaven¡ adresy DTA
+         int       21h                      ; nastaven¡ adresy DTA
+         mov       dx,offset fcb            ; adresa FCB souboru k p©evodu
+         mov       ah,0fh                   ; funkce pro otev©en¡ souboru
+         int       21h                      ; otev©en¡ souboru
+         inc       al                       ; byl soubor nalezen ?
+         jz        hlaseni                  ; chybov‚ hl ¨en¡
+         mov       word ptr [fcb+14],1      ; d‚lka z znamu = 1 znak
+         mov       ah,16h                   ; funkce vytvo©en¡ souboru
+         mov       dx,offset fcbout         ; v˜stupn¡ soubor
+         int       21h                      ; vytvo©en¡ souboru
+         inc       al                       ; je voln‚ m¡sto ?
+         jz        hlaseni                  ; nen¡ m¡sto v adres ©i
+         mov       word ptr [fcbout+14],1   ; d‚lka z znamu = 1 znak
+prevod:  mov       ah,14h                   ; funkce sekven‡n¡ho ‡ten¡
+         mov       dx,offset fcb            ; adresa fcb souboru
+         int       21h                      ; ‡ten¡ znaku ze souboru
+         or        al,al                    ; je chyba ?
+         jnz       zavri                    ; konec - uzav©i soubor
+         mov       al,[buffer]              ; znak ze souboru
+         mov       cx,1                     ; po‡et znak– k z pisu
+         cmp       al,0ah                   ; znak LF ?
+         je        zapis                    ; z pis znaku LF
+         cmp       al,0dh                   ; je znak CR ?
+         jne       nenicr                   ; nen¡ znak CR
+         mov       word ptr [pozice],0      ; vynulov n¡ pozice
+         jmp       short zapis              ; z pis znaku
+nenicr:  inc       word ptr [pozice]        ; zv˜¨en¡ pozice
+         cmp       al,9                     ; znak tabel toru ?
+         jne       zapis                    ; nen¡ - z pis znaku
+         dec       word ptr [pozice]        ; n vrat pozice
+         mov       ax,[pozice]              ; pozice znaku
+         and       ax,0fff8h                ; nastaven¡ na p©edchoz¡ tabel.
+         add       ax,8                     ; nastaven¡ na dal¨¡ tabel tor
+         mov       bx,ax                    ; £schova nov‚ pozice
+         sub       ax,[pozice]              ; po‡et znak– k tabelaci
+         mov       [pozice],bx              ; nov  pozice
+         mov       cx,ax                    ; po‡et vlo‘en˜ch mezer
+         mov       al,' '                   ; oddˆlovac¡ znak mezery
+zapis:   mov       [buffer],al              ; znak k z pisu do souboru
+         mov       dx,offset fcbout         ; v˜stupn¡ soubor
+         mov       ah,15h                   ; funkce z pisu znaku
+znak:    int       21h                      ; z pis znaku
+         or        al,al                    ; je chyba ?
+         jnz       hlaseni                  ; chyba - hl ¨en¡ chyby
+         loop      znak                     ; z pis dal¨¡ho znaku
+         jmp       short prevod             ; dal¨¡ znak k p©evodu
+zavri:   mov       ah,10h                   ; funkce uzav©en¡ souboru
+         mov       dx,offset fcb            ; adresa fcb
+         int       21h                      ; uzav©en¡ souboru
+         mov       dx,offset fcbout         ; z lo‘n¡ fcb
+         int       21h
+         jmp       short konec
+hlaseni: mov       dx,offset chyba
+         mov       ah,9
+         int       21h
+         jmp       short konec
+
+chyba    db        'Chyba !',13,10,'$'      ; chybov‚ hl ¨en¡
+pozice   dw        0                        ; ‡¡ta‡ pozice na © dku
+buffer   db        1                        ; buffer znaku
+fcbout   db        0,'        $$$'          ; v˜stupn¡ soubor
+         db        25 dup (?)
+fcb      db        0,'           '          ; p©ev dˆn˜ soubor
+         db        25 dup (?)
+konec:                                      ; konec programu
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ6ÿH ÿ(ÿ2ÿ2ÿ) - vytvo©en¡ souboru s pou‘it¡m FCB
+
+    vstup:    AH = 16H
+              DS:DX = ukazatel na neotev©en˜ FCB souboru
+
+    v˜stup:   AL = 00H - soubor £spˆ¨nˆ vytvo©en
+                   FFH - soubor nevytvo©en (pln˜ adres ©)
+
+    Funkce  vytvo©¡ a otev©e nov˜ soubor s pou‘it¡m FCB souboru nebo otev©e
+ji‘ existuj¡c¡ soubor s t¡m, ‘e jej zkr t¡ na nulovou d‚lku.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Pou‘it¡m  roz¨¡©en‚ho  FCB  m–‘ete  p©i©adit  souboru  p©i  otev©en¡
+       speci ln¡ atributy.
+
+       Otev©en‚mu  souboru  je p©i©azena nulov  d‚lka. Proto se tato funkce
+       pou‘¡v  k otev©en¡ v˜stupn¡ho souboru, zat¡mco funkce 0FH se pou‘¡v 
+       k otev©en¡ souboru ke ‡ten¡.
+
+       Tato  funkce je poz–statkem z DOS v1.0. V˜hodnˆj¨¡ je pou‘¡t novˆj¨¡
+       funkci k vytvo©en¡ souboru, jako je nap©. funkce 3CH.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ7ÿH ÿ(ÿ2ÿ3ÿ) - p©ejmenov n¡ souboru s pou‘it¡m FCB
+
+    vstup:    AH = 17H
+              DS:DX = ukazatel na FCB, kter˜ m  b˜t modifikov n
+
+    v˜stup:   AL = 00H - operace probˆhla £spˆ¨nˆ
+                   FFH - operace  ne£spˆ¨n  (polo‘ka nenalezena nebo c¡lov˜
+                         soubor ji‘ existuje)
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+    Funkce  mˆn¡  jm‚na  v¨ech  soubor– podle zadan‚ specifikace v aktivn¡m
+adres ©i  na druh  specifikovan  jm‚na. Specifikace nov‚ho jm‚na souboru je
+um¡stˆna  v  FCB ¨est bajt– od konce prvn¡ho jm‚na (tj. na offsetu 11H=17 v
+FCB).
+
+Pozn.: V  prvn¡m  i  druh‚m  jm‚nˆ souboru lze pou‘¡t znaky "?" nahrazuj¡c¡
+       jak˜koliv  znak  (v  druh‚m jm‚nˆ m  znak "?" ten v˜znam, ‘e znak na
+       odpov¡daj¡c¡ pozici jm‚na nebude zmˆnˆn).
+
+       Funkce  nep©ejm‚nuje soubor na jm‚no, kter‚ v adres ©i ji‘ existuje;
+       v tom p©¡padˆ se funkce p©eru¨¡ a navr t¡ AL = FFH.
+
+       Soubory  s  nastavenou  ochranou  proti  z pisu  nelze  touto funkc¡
+       p©ejmenovat.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ8ÿH ÿ(ÿ2ÿ4ÿ) - rezervov no
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿ9ÿH ÿ(ÿ2ÿ5ÿ) - poskytnut¡ aktivn¡ho disku
+
+    vstup:    AH = 19H
+
+    v˜stup:   AL = ‡¡slo aktivn¡ho disku (0 = A, 1 = B, atd.)
+
+    Funkce navr t¡ ‡¡slo aktivn¡ho disku.
+
+Pozn.: €¡slo  disku  navr cen‚  touto  funkc¡  je o 1 men¨¡ ne‘ ‡¡sla disk–
+       uv dˆn   v jin˜ch funkc¡ch (nap©. FCB souboru); mnoho funkc¡ pou‘¡v 
+       0 k ozna‡en¡ aktivn¡ho disku.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿAÿH ÿ(ÿ2ÿ6ÿ) - nastaven¡ adresy diskov‚ho p©enosu (DTA)
+
+    vstup:    AH = 1AH
+              DS:DX = nov  adresa diskov˜ch p©enos– DTA
+
+    v˜stup:   ‘ dn˜
+
+    Adresa   diskov‚ho  p©enosu  DTA  (Disk  Transfer  Address)  je  adresa
+vyrovn vac¡  pamˆti,  do  kter‚  jsou  ukl d na  (nebo z n¡ ‡tena) data p©i
+diskov‚m  p©enosu  ze  souboru  (do  souboru).  Diskov‚  p©enosy se nemohou
+p©episovat  z  konce  segmentu  na  za‡ tek,  ani nemohou p©et‚ct do jin‚ho
+segmentu.  Proto  slu‘by  pro  p©enosy  dat  v tˆchto p©¡padech hl s¡ chybu
+nedosta‡uj¡c¡ velikosti prostoru DTA.
+
+Pozn.: Pokud nen¡ nastavena DTA jinak, pou‘¡v  DOS jako aktivn¡ DTA prostor
+       o  d‚lce  128  bajt–  na offsetu 80H v prefixu programov‚ho segmentu
+       (PSP).
+
+       Rezervujte  dostate‡n˜ prostor bufferu; pokud DOS zjist¡, ‘e by data
+       p©i p©enosu p©etekla p©es okraj segmentu, abortuje diskov˜ p©enos.
+
+       Tato  funkce  se  pou‘¡v   s operacemi ‡ten¡ a z pisu pomoc¡ FCB a s
+       operacemi  pro  nalezen¡ prvn¡ho a n sleduj¡c¡ho souboru pou‘¡vaj¡c¡
+       FCB.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿBÿH ÿ(ÿ2ÿ7ÿ) - poskytnut¡ informac¡ FAT aktivn¡ho disku
+
+    vstup:    AH = 1BH
+
+    v˜stup:   AL = po‡et sektor– na blok
+              CX = velikost sektoru v bajtech
+              DX = celkov˜ po‡et blok– disku
+              DS:BX = ukazatel na bajt popisova‡e m‚dia (identifik tor FAT)
+
+    zni‡en‚ registry: DS
+
+    Funkce  navrac¡  charakteristiku  m‚dia  a  bajt  popisova‡e  m‚dia pro
+aktivn¡ disk (bajt popisova‡e m‚dia specifikuje typ diskov‚ jednotky).
+
+    Bajt popisova‡e m‚dia (identifika‡n¡ bajt FAT):
+
+    Bajt popisova‡e m‚dia je omezen na hodnoty F0H a‘ FFH.
+ 
+ ÉÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º  FFH  ³    oboustrann  disketa 5 1/4", 8 sektor–          º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  FEH  ³    jednostrann  disketa 5 1/4", 8 sektor– nebo    º
+ º       ³    jednostrann  disketa 8", 26 sektor– nebo       º
+ º       ³    jednostrann  disketa 8", 8 sektor–             º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  FDH  ³    oboustrann  disketa 5 1/4", 9 sektor– nebo     º
+ º       ³    jednostrann  disketa 8", 26 sektor–            º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  FCH  ³    jednostrann  disketa, 9 sektor–                º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  F9H  ³    oboustrann  disketa 5 1/4", 15 sektor–         º
+ º       ³    oboustrann  disketa 3 1/2", 9 sektor–          º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  F8H  ³    pevn˜ disk                                     º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  F0H  ³    oboustrann  disketa 3 1/2", 18 sektor– nebo    º
+ º       ³    jin˜ nedefinovateln˜ typ m‚dia                 º
+ ÈÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Dal¨¡  informace  o typu m‚dia obdr‘¡te pomoc¡ p©eru¨en¡ INT 25H, kter‚
+umo‘¤uje ‡ten¡ bloku parametr– BIOS (BPB) ze zav dˆc¡ho sektoru disku.
+
+Pozn.: Tato funkce mˆn¡ hodnotu registru DS, proto ji p©ed vyvol n¡m funkce
+       uschovejte pomoc¡ PUSH DS.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿCÿH ÿ(ÿ2ÿ8ÿ) - poskytnut¡ informac¡ FAT specifik. disku
+
+    vstup:    AH = 1CH
+              DL = ‡¡slo disku (0 = aktivn¡, 1 = A, 2 = B, atd.)
+
+    v˜stup:   AL = po‡et sektor– na blok
+              CX = velikost sektoru v bajtech
+              DX = celkov˜ po‡et blok– disku
+              DS:BX = ukazatel na bajt popisova‡e m‚dia (identifik tor FAT)
+
+    zni‡en‚ registry: DS
+
+    Funkce  navrac¡  charakteristiku  m‚dia  a  bajt  popisova‡e  m‚dia pro
+aktivn¡ disk (bajt popisova‡e m‚dia specifikuje typ diskov‚ jednotky).
+
+    Bajt popisova‡e m‚dia (identifika‡n¡ bajt FAT):
+
+    Bajt popisova‡e m‚dia je omezen na hodnoty F0H a‘ FFH.
+  
+ ÉÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º  FFH  ³    oboustrann  disketa 5 1/4", 8 sektor–          º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  FEH  ³    jednostrann  disketa 5 1/4", 8 sektor– nebo    º
+ º       ³    jednostrann  disketa 8", 26 sektor– nebo       º
+ º       ³    jednostrann  disketa 8", 8 sektor–             º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  FDH  ³    oboustrann  disketa 5 1/4", 9 sektor– nebo     º
+ º       ³    jednostrann  disketa 8", 26 sektor–            º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  FCH  ³    jednostrann  disketa, 9 sektor–                º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  F9H  ³    oboustrann  disketa 5 1/4", 15 sektor–         º
+ º       ³    oboustrann  disketa 3 1/2", 9 sektor–          º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  F8H  ³    pevn˜ disk                                     º
+ ÇÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+ º  F0H  ³    oboustrann  disketa 3 1/2", 18 sektor– nebo    º
+ º       ³    jin˜ nedefinovateln˜ typ m‚dia                 º
+ ÈÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Dal¨¡  informace  o typu m‚dia obdr‘¡te pomoc¡ p©eru¨en¡ INT 25H, kter‚
+umo‘¤uje ‡ten¡ bloku parametr– BIOS (BPB) ze zav dˆc¡ho sektoru disku.
+
+Pozn.: Tato funkce mˆn¡ hodnotu registru DS, proto ji p©ed vyvol n¡m funkce
+       uschovejte pomoc¡ PUSH DS.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿDÿH ÿ(ÿ2ÿ9ÿ) - rezervov no
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿEÿH ÿ(ÿ3ÿ0ÿ) - rezervov no
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ1ÿFÿH ÿ(ÿ3ÿ1ÿ) - rezervov no
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ0ÿH ÿ(ÿ3ÿ2ÿ) - rezervov no
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ1ÿH ÿ(ÿ3ÿ3ÿ) - ‡ten¡ s p©¡m˜m p©¡stupem s pou‘it¡m FCB
+
+    vstup:    AH = 21H
+              DS:DX = ukazatel na otev©en˜ FCB
+
+    v˜stup:   AL = 00H - ‡ten¡ probˆhlo £spˆ¨nˆ
+                   01H - nalezen konec souboru, ‘ dn  data nep©e‡tena
+                   02H - prostor DTA p©¡li¨ mal˜ (p©elom segmentu)
+                   03H - nalezen konec souboru, p©e‡tena ‡ st dat
+
+    Funkce  ‡te  specifikovan˜  z znam  souboru  do  bufferu na adrese DTA.
+Z znam  je  specifikov n  v  FCB nastaven¡m ‡¡sla n hodn‚ho z znamu (offset
+21H)  a  velikost¡  z znamu  (offset 0EH), z tˆchto £daj– je odvozeno ‡¡slo
+bloku se z znamem a ‡¡slo z znamu v bloku.
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va ‡ten¡ READ.
+
+Pozn.: Polo‘ka  n hodn‚ho  z znamu  nen¡  po t‚to operaci ulo‘ena. Proto je
+       nutn‚,  aby  program  nastavil  polo‘ku  n hodn‚ho z znamu v‘dy p©ed
+       vyvol n¡m  t‚to  funkce.  Funkce  27H, kter  je obdobou t‚to funkce,
+       ukl d   automaticky  polo‘ku  n hodn‚ho z znamu (funkce 27H m–‘e t‚‘
+       ‡¡st z znam v¡cen sobnˆ).
+
+       Data  jsou ‡tena do bufferu na adrese ozna‡en‚ jako Adresa diskov‚ho
+       p©enosu  DTA.  Pokud by p©enos dat mohl zp–sobit p©ete‡en¡ segmentu,
+       je vygenerov na chyba 2.
+
+       Pokud  je  nalezen konec souboru je¨tˆ p©ed na‡ten¡m cel‚ho z znamu,
+       je zbytek z znamu doplnˆn nulami a‘ do pln‚ velikosti z znamu.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ2ÿH ÿ(ÿ3ÿ4ÿ) - z pis s p©¡m˜m p©¡stupem s pou‘it¡m FCB
+
+    vstup:    AH = 22H
+              DS:DX = ukazatel na otev©en˜ FCB
+
+    v˜stup:   AL = 00H - z pis probˆhl £spˆ¨nˆ
+                   01H - disk je pln˜
+                   02H - prostor DTA p©¡li¨ mal˜ (p©elom segmentu)
+
+    Funkce  zapisuje  specifikovan˜  z znam  z  bufferu  na  adrese  DTA do
+souboru. Z znam je specifikov n ‡¡slem n hodn‚ho z znamu (offset 21H v FCB)
+a  velikost¡  z znamu  (offset 0EH v FCB). Aktivn¡ blok a aktivn¡ z znam v
+bloku jsou odvozeny z ‡¡sla n hodn‚ho z znamu a velikosti z znamu.
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va z pisu WRITE.
+
+Pozn.: Polo‘ka  n hodn‚ho  z znamu  nen¡  po t‚to operaci ulo‘ena. Proto je
+       nutn‚,  aby  program  nastavil  polo‘ku  n hodn‚ho z znamu v‘dy p©ed
+       vyvol n¡m  t‚to  funkce.  Funkce  28H, kter  je obdobou t‚to funkce,
+       ukl d   automaticky  polo‘ku  n hodn‚ho z znamu (funkce 28H m–‘e t‚‘
+       zapisovat z znam v¡cen sobnˆ).
+
+       Data  jsou  zapisov na  z  bufferu  na  adrese  ozna‡en‚ jako Adresa
+       diskov‚ho  p©enosu  DTA. Pokud by p©enos dat mohl zp–sobit p©ete‡en¡
+       segmentu, je vygenerov na chyba 2.
+
+       Pokud  je  nalezen konec souboru je¨tˆ p©ed na‡ten¡m cel‚ho z znamu,
+       je zbytek z znamu doplnˆn nulami a‘ do pln‚ velikosti z znamu.
+
+       Pokud  m  specifikovan˜ soubor nastaven atribut ochrany proti z pisu
+       Read-Only, z pis se neprovede.
+
+       Je-li  d‚lka  z znamu  men¨¡  ne‘  sektor  (512  bajt–), zapisuj¡ se
+       z znamy  do  vyrovn vac¡  pamˆti  dokud nen¡ k z pisu p©ipraven cel˜
+       sektor.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ3ÿH ÿ(ÿ3ÿ5ÿ) - poskytnut¡ velikosti souboru s pou‘it¡m FCB
+
+    vstup:    AH = 23H
+              DS:DX = ukazatel na neotev©en˜ FCB
+
+    v˜stup:   AL = 00H - pokud byl po‘adovan˜ soubor nalezen
+                   FFH - pokud nebyl nalezen ‘ dn˜ vyhovuj¡c¡ soubor
+
+    Funkce hl s¡ velikost souboru jako po‡et z znam– (zaokrouhleno nahoru).
+Po‡et z znam– je navracen v polo‘ce FCB relativn¡ z znam (offset 21H).
+
+Pozn.: Tato  funkce  m   stejn˜  £‡inek,  jakoby  bylo po‘adov no nastaven¡
+       ukazatele  relativn¡ho  z znamu  na  konec souboru, p©¡¨t¡ operace s
+       p©¡m˜m  p©¡stupem  by  prob¡hala  za  konec souboru (nov˜ z znam p©i
+       z pisu).
+
+       P©ed  vol n¡m  funkce  mus¡te  nastavit  polo‘ku  velikosti  z znamu
+       (offset  0EH)  v FCB. Pokud chcete ur‡it velikost souboru v bajtech,
+       mastavte polo‘ku velikosti z znamu na hodnotu 1.
+
+       K   ur‡en¡   velikosti   souboru  s  pou‘it¡m  funkc¡  pou‘¡vaj¡c¡ch
+       identifik tory  souboru  pou‘ijte  funkci  LSEEK (funkce 42H), kter 
+       nastav¡ ukazatel na konec souboru.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ4ÿHÿ ÿ(ÿ3ÿ6ÿ) - nastaven¡ relativ. z znamu s pou‘it¡m FCB
+
+    vstup:    AH = 24H
+              DS:DX = ukazatel na neotev©en˜ FCB
+
+    v˜stup:   ‘ dn˜
+
+    Funkce  nastav¡ polo‘ku relativn¡ho z znamu v FCB tak, aby souhlasila s
+nastaven¡m polo‘ek aktivn¡ho bloku a aktivn¡ho z znamu v FCB.
+
+Pozn.: Tato  funkce usnad¤uje p©ep¡n n¡ ze sekven‡n¡ch operac¡ na operace s
+       p©¡m˜m  p©¡stupem.  Zpˆtn‚  p©epnut¡  je  mo‘n‚ t¡m zp–sobem, ‘e p©i
+       operac¡ch  s  p©¡m˜m  p©¡stupem  DOS  automaticky  nastavuje polo‘ky
+       aktivn¡ho bloku a aktivn¡ho z znamu v FCB.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ5ÿHÿ ÿ(ÿ3ÿ7ÿ) - nastaven¡ vektoru p©eru¨en¡
+
+    vstup:    AH = 25H
+              AL = ‡¡slo p©eru¨en¡
+              DS:DX = adresa nov‚ho ovlada‡e p©eru¨en¡
+
+    v˜stup:   ‘ dn˜
+
+Pozn.: P©ed  vol n¡m  funkce  25H  si  m–‘ete  vy‘ dat  informaci  o adrese
+       sou‡asn‚ho  ovlada‡e  p©eru¨en¡  (pomoc¡  funkce  35H),  aby byl v ¨
+       program  schopen  navr tit  p–vodn¡  adresu  ovlada‡e  p©eru¨en¡ p©i
+       ukon‡en¡  programu.  Toto  je  preferovan  cesta k nastaven¡ vektoru
+       p©eru¨en¡. Nepou‘¡vejte nastaven¡ adresy p©eru¨en¡ p©¡mo v pamˆti !
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ6ÿHÿ ÿ(ÿ3ÿ8ÿ) - vytvo©en¡ programov‚ho segmentu
+
+    vstup:    AH = 26H
+              DX = adresa segmentu nov‚ho prefixu programov‚ho segmentu
+              CS:0 = prefix program. segmentu, z kter‚ho se zkop¡ruj¡ inf.
+
+    v˜stup:   ‘ dn˜
+
+    Funkce  vytvo©¡  nov˜  prefix  programov‚ho  segmentu  (PSP),  aby byly
+votvo©eny podm¡nky k oddˆlen‚mu na‡ten¡ podprogramu a jeho spu¨tˆn¡. PSP na
+za‡ tku segmentu sou‡asn‚ho k¢du programu se zkop¡ruje do prvn¡ch 256 bajt–
+nov‚ho  segmentu  specifikovan‚ho  v  registru  DX.  Nov˜  PSP  se ulo‘¡ se
+sou‡asn˜m   nastaven¡m   vektor–  p©eru¨en¡  INTú22h,  INTú23H  a  INTú24H.
+Informace  o  velikosti  pamˆti na relativn¡ adrese 06H nov‚ho PSP se ulo‘¡
+souhlasnˆ podle skute‡n‚ho stavu voln‚ pamˆti.
+
+Pozn.: Tato  funkce  je  u  verz¡  DOS  2.0 a vy¨¨¡ch nahrazena funkc¡ EXEC
+       (funkce 4BH); tato funkce by nemˆla b˜t pou‘¡v na.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ7ÿHÿ ÿ(ÿ3ÿ9ÿ) - ‡ten¡ bloku s p©¡m˜m p©¡stupem s pou‘. FCB
+
+    vstup:    AH = 27H
+              CX = po‡et z znam– ke ‡ten¡
+              DS:DX = ukazatel na otev©en˜ FCB
+
+    v˜stup:   AL = 00H - ‡ten¡ probˆhlo £spˆ¨nˆ
+                   01H - nalezen konec souboru, posledn¡ z znam vcelku
+                   02H - prostor DTA p©¡li¨ mal˜ (p©elom segmentu)
+                   03H - nalezen konec souboru, p©e‡tena ‡ st dat
+              CX = po‡et skute‡nˆ p©e‡ten˜ch z znam–
+
+    Funkce  ‡te  jeden  nebo  v¡ce  z znam–  do  pamˆti na sou‡asnou adresu
+diskov˜ch  p©enos–  DTA.  Po‡et z znam– specifikuje registr CX. Je-li po‡et
+z znam–  nastaven  na  0,  ukon‡¡  se funkce bez ‡ten¡ jak‚hokoliv z znamu.
+€ten¡  za‡¡n  na relativn¡ adrese z znamu (offset 21H). Velikost z znam– je
+specifikov na polo‘kou velikosti z znamu (offset 0EH). Polo‘ky aktivn¡ blok
+a  aktivn¡  z znam  se  nastav¡  odpov¡daj¡c¡m zp–sobem k polo‘ce relativn¡
+z znam.
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va ‡ten¡ READ.
+
+Pozn.: Pou‘ijte  funkci 1AH k nastaven¡ adresy diskov˜ch p©enos– DTA. Pokud
+       by  p©enos  dat  mohl  zp–sobit  p©ete‡en¡ segmentu, je vygenerov na
+       chyba 2.
+
+       Pokud  je  nalezen konec souboru je¨tˆ p©ed na‡ten¡m cel‚ho z znamu,
+       je zbytek z znamu doplnˆn nulami a‘ do pln‚ velikosti z znamu.
+
+       Po  na‡ten¡  po‘adovan‚ho  z znamu  ulo‘¡  tato funkce novou hodnotu
+       polo‘ky  relativn¡ho z znamu a polo‘ky aktivn¡ blok a aktivn¡ z znam
+       tak,  ‘e  ukazuj¡  na  nov˜ z znam. Funkce 21H je jednodu¨¨¡ obmˆnou
+       t‚to funkce, kromˆ toho, ‘e funkce 21H neukl d  automaticky poslednˆ
+       jmenovan‚  t©i  polo‘ky  a  m–‘e  ‡¡st  pouze  jeden z znam na jedno
+       vol n¡.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ8ÿHÿ ÿ(ÿ4ÿ0ÿ) - z pis bloku s p©¡m˜m p©¡stupem s pou‘. FCB
+
+    vstup:    AH = 28H
+              CX = po‡et z znam– k z pisu
+              DS:DX = ukazatel na otev©en˜ FCB
+
+    v˜stup:   AL = 00H - z pis probˆhl £spˆ¨nˆ
+                   01H - disk je pln˜
+                   02H - prostor DTA p©¡li¨ mal˜ (p©elom segmentu)
+              CX = po‡et zapsan˜ch z znam–
+
+    Funkce  zapisuje  jeden  nebo v¡ce z znam– ze sou‡asn‚ adresy diskov˜ch
+p©enos–  DTA na disk. Po‡et z znam– specifikuje registr CX. Z pis za‡¡n  na
+relativn¡  adrese  z znamu  (offset 21H). Velikost z znam– je specifikov na
+polo‘kou  velikosti  z znamu  (offset  0EH). Polo‘ky aktivn¡ blok a aktivn¡
+z znam se nastav¡ odpov¡daj¡c¡m zp–sobem k polo‘ce relativn¡ z znam.
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va z pisu WRITE.
+
+Pozn.: Pou‘ijte  funkci 1AH k nastaven¡ adresy diskov˜ch p©enos– DTA. Pokud
+       by  p©enos  dat  mohl  zp–sobit  p©ete‡en¡ segmentu, je vygenerov na
+       chyba 2.
+
+       Pokud  zapisovan˜ z znam nezapln¡ cel˜ sektor (512 Bajt–), DOS ulo‘¡
+       data do vyrovn vac¡ pamˆti a ulo‘¡ sektor a‘ po jeho naplnˆn¡ (resp.
+       a‘ ve chv¡li, kdy je po‘adov n p©¡stup na jin˜ sektor ne‘ kter˜ je v
+       pamˆti).
+
+       Pokud  specifikovan˜ soubor m  nastaven atribut "pouze ‡ten¡", z pis
+       se neprovede.
+
+       Pokud  specifikujete  hodnotu  v  CX  =  0  (po‡et  z znam–), funkce
+       nezap¡¨e   ‘ dn˜  z znam,  av¨ak  zkr t¡  d‚lku  souboru  na  pozici
+       specifikovanou  ‡¡slem  relativn¡ho z znamu. Tato funkce se pou‘¡v ,
+       pokud  chcete logicky zru¨it z znamy za koncem souboru a uvolnit tak
+       m¡sto na disku.
+
+       Po  z pisu  po‘adovan‚ho  z znamu  ulo‘¡  tato  funkce novou hodnotu
+       polo‘ky  relativn¡ho z znamu a polo‘ky aktivn¡ blok a aktivn¡ z znam
+       tak,  ‘e  ukazuj¡  na  nov˜ z znam. Funkce 22H je jednodu¨¨¡ obmˆnou
+       t‚to funkce, kromˆ toho, ‘e funkce 22H neukl d  automaticky poslednˆ
+       jmenovan‚  t©i  polo‘ky a m–‘e zapisovat pouze jeden z znam na jedno
+       vol n¡.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿ9ÿHÿ ÿ(ÿ4ÿ1ÿ) - rozbor jm‚na souboru
+
+    vstup:    AH = 29H
+              DS:SI = ukazatel na ©etˆzec, kter˜ m  b˜t rozebr n
+              ES:DI = ukazatel na neotev©enou polo‘ku FCB
+              AL = parametry rozboru:
+                   bit 0 - zkoum n¡ od posledn¡ho oddˆl. znaku (ingorov n)
+                       1 - identifika‡n¡  bajt  disku  v FCB je modifikov n
+                           pouze  pokud  je  disk specifikov n v p©¡kazov‚m
+                           © dku
+                       2 - jm‚no  souboru v FCB je modifikov no pouze pokud
+                           je  jm‚no  souboru  specifikov no  v  p©¡kazov‚m
+                           © dku
+                       3 - roz¨¡©en¡  jm‚na  souboru  v FCB je modifikov no
+                           pouze   pokud   je   roz¨¡©en¡   jm‚na   souboru
+                           specifikov no v p©¡kazov‚m © dku
+                       4-7 ignorov ny
+
+    v˜stup:   AL = FFH - funkce neprobˆhla £spˆ¨nˆ
+                   00H - funkce £spˆ¨n , nenalezeny ‘ dn‚ maskovac¡ znaky
+                   01H - funkce £spˆ¨n , nalezeny maskovac¡ znaky (?,*)
+              DS:SI = prvn¡ bajt po ©etˆzci, kter˜ se rozeb¡ral
+              ES:DI = nov˜ neotev©en˜ FCB
+
+    Funkce  29H  prov d¡  rozbor  p©¡kazov‚ho © dku pro specifikaci souboru
+pomoc¡  formy d:JMNO_SOUBORU.TYP. Pokud je nalezeno jm‚no souboru, vytvo©¡
+se  FCB.  Jinak  funkce  navrac¡ v AL hodnotu FFH. Funkce umo‘¤uje programu
+nastavit  aktivn¡  disk,  jm‚no  souboru  a roz¨¡©en¡ (typ) jm‚na souboru a
+ponechat na u‘ivateli, aby zmˆnil tyto aktivn¡ hodnoty.
+
+Pozn.: DS:SI ukazuje na lokaci ©etˆzce specifikace souboru, jeho‘ rozbor m 
+       b˜t  proveden  (text  z p©¡kazov‚ho © dku). ES:DI ukazuje na lokaci,
+       kde  bude  vytvo©en  nov˜ FCB. V ni‘¨¡ tetr dˆ registru AL (tj. jeho
+       ni‘¨¡ ‡ty©i bity) jsou specifikov ny parametry pro rozbor:
+
+         - bit 0: Pokud  je  nastaven  na  1, hled  se jm‚no souboru i p©es
+                  po‡ te‡n¡  oddˆlovac¡ znaky soubor– (nap©. mezera). Pokud
+                  je  nastaven  na  0, p©edpokl d  se, ‘e jm‚no specifikace
+                  souboru za‡¡n  na prvn¡m bajtu p©¡kazov‚ho © dku.
+
+         - bit 1: Pokud je nastaven na 1, nastav¡ funkce bajt disku pouze v
+                  p©¡padˆ, ‘e povelov˜ © dek obsahuje specifikaci disku. To
+                  umo‘¤uje programu definovat sv–j vlastn¡ implicitn¡ disk.
+                  Pokud je nastaven na 0, je disk nastavem na specifikovan˜
+                  disk nebo na implicitn¡ disk (hodnota 0).
+
+         - bit 2: Pokud  je nastaven na 1, zmˆn¡ funkce jm‚no souboru v FCB
+                  pouze  v  p©¡padˆ,  ‘e  nalezne  platn‚  jm‚no  souboru v
+                  p©¡kazov‚m  © dku.  To  umo‘¤uje  programu  nastavit  sv‚
+                  implicitn¡    jm‚no    souboru,   kter‚   m–‘e   u‘ivatel
+                  p©edefinovat. Pokud je bit nastaven na 0 a nen¡ v ©etˆzci
+                  specifikov no  jm‚no souboru, nastav¡ se jm‚no souboru na
+                  8 mezer.
+
+         - bit 3: Pokud  je  nastaven  na  1,  zmˆn¡ funkce roz¨¡©en¡ jm‚na
+                  souboru   v  FCB  pouze  v  p©¡padˆ,  ‘e  nalezne  platn‚
+                  roz¨¡©en¡  jm‚na souboru v p©¡kazov‚m © dku. Pokud je bit
+                  nastaven  na  0  a  nen¡  v  ©etˆzci  specifikov no jm‚no
+                  souboru, nastav¡ se jm‚no souboru na 3 mezery.
+
+
+       Pokud  funkce  nalezne  ve  specifikaci jm‚na souboru maskovac¡ znak
+       "*",  nahrad¡  zbytek  jm‚na  souboru  nebo  roz¨¡©en¡ jm‚na souboru
+       maskovac¡mi znaky "?". Pokud je zbytek rozboru £spˆ¨n˜, navr t¡ v AL
+       hodnotu   01H   informuj¡c¡   program,   ‘e   mus¡   pou‘¡t   funkce
+       nalezni_prvn¡/nalezni_dal¨¡ (tj. funkce 11H a 12H).
+
+       Pokud  operace  neprobˆhne  £spˆ¨nˆ,  navr t¡ AL hodnotu FFH a druh˜
+       bajt FCB (ES:DI+1) bude pr zdn˜.
+
+       Funkce  29H  nem–‘e  pracovat  s  popisem cest soubor–. Soubory jsou
+       pops ny  pouze  ve  tvaru d:jm‚no.typ (d=ozna‡en¡ disku; jm‚no=jm‚no
+       souboru; typ=typ souboru, roz¨¡©en¡ jm‚na souboru).
+
+       Jako oddˆlova‡e jm‚na souboru se pou‘¡vaj¡ znaky:
+         : . ; , = + / " [ ] < > | mezera tabel tor
+
+       Ukon‡ovac¡  znaky  jm‚na  souboru  zahrnuj¡ v¨echny oddˆlovac¡ znaky
+       plus  jak˜koliv  ©¡d¡c¡  znak  (tj. znak s k¢dem men¨¡m ne‘ 20H=32).
+       Jm‚no souboru nem–‘e obsahovat ukon‡ovac¡ znak jm‚na souboru.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿAÿHÿ ÿ(ÿ4ÿ2ÿ) - poskytnut¡ syst‚mov‚ho data
+
+    vstup:    AH = 2AH
+
+    v˜stup:   AL = den v t˜dnu (0 - 6; 0 = nedˆle)
+              CX = rok (1980 - 2099)
+              DH = mˆs¡c (1 - 12)
+              DL = den (1 - 31)
+
+Pozn.: P©¡ru‡ky  k  DOS 2.00 a 2.10 nesr vnˆ uv d¡, ‘e funkce 2CH navrac¡ v
+       registru AL den v t˜dnu.
+
+       €¡seln‚ £daje jsou v bin rn¡ formˆ.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿBÿHÿ ÿ(ÿ4ÿ3ÿ) - nastaven¡ syst‚mov‚ho data
+
+    vstup:    AH = 2BH
+              CX = rok (1980 - 2099)
+              DH = mˆs¡c (1 - 12)
+              DL = den (1 - 31)
+
+    v˜stup:   AL = 00H - bylo zad no spr vn‚ datum
+                   FFH - bylo zad no neplatn‚ datum
+
+Pozn.: €¡seln‚ £daje jsou v bin rn¡ formˆ.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿCÿHÿ ÿ(ÿ4ÿ4ÿ) - poskytnut¡ syst‚mov‚ho ‡asu
+
+    vstup:    AH = 2CH
+
+    v˜stup:   CH = hodina (0 - 23)
+              CL = minuta (0 - 59)
+              DH = sekunda (0 - 59)
+              DL = setina sekundy (0 - 99)
+
+Pozn.: V   mnoha   syst‚mech   je   polo‘ka  setiny  sekundy  (registr  DL)
+       zaokrouhlov na po ‡ stech 1/18.2 sekundy.
+
+       V  nˆkter˜ch syst‚mech, jejich‘ hodiny neumo‘¤uj¡ prov dˆt krokov n¡
+       po setin ch sekundy, m–‘e b˜t hodnota v DL nedefinovateln .
+
+       €¡seln‚ £daje jsou v bin rn¡ formˆ.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿDÿHÿ ÿ(ÿ4ÿ5ÿ) - nastaven¡ syst‚mov‚ho ‡asu
+
+    vstup:    AH = 2CH
+              CH = hodina (0 - 23)
+              CL = minuta (0 - 59)
+              DH = sekunda (0 - 59)
+              DL = setina sekundy (0 - 99)
+
+    v˜stup:   AL = 00H - bylo zad n spr vn˜ ‡as
+                   FFH - bylo zad n neplatn˜ ‡as
+
+Pozn.: €¡seln‚ £daje jsou v bin rn¡ formˆ.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿEÿHÿ ÿ(ÿ4ÿ6ÿ) - zapnut¡ nebo vypnut¡ p©ep¡na‡e VERIFY
+
+    vstup:    AH = 2EH
+              AL = 00H - vypnut¡ p©ep¡na‡e VERIFY
+                   01H - zapnut¡ p©ep¡na‡e VERIFY
+              DL = 00H
+
+    v˜stup:   ‘ dn˜
+
+    Funkce  2EH  umo‘¤uje  zapnout  nebo  vypnout p©ep¡na‡ VERIFY. Pokud je
+p©ep¡na‡  VERIFY  zapnut  (AL  = 01H), ‡te DOS bajty kontroln¡ho sou‡tu CRC
+(Cyclic  Redundancy  Check) pr vˆ zapisovan˜ch dat a ovˆ©uje, zda jsou data
+spr vnˆ  zaps na.  Nastaven¡  tohoto  p©ep¡na‡e  tedy  nezp–sob¡  ovˆ©ov n¡
+spr vnosti  z pisu  dat  kontroln¡m  ‡ten¡m  dat  po z pisu (a porovn n¡m s
+p–vodn¡mi  daty),  prov d¡  pouze  kontrolu  ‡itelnosti  dat pomoc¡ ovˆ©en¡
+kontroln¡ho  sou‡tu. Tento p©ep¡na‡ je vhodn‚ zapnout p©i z pisu kritick˜ch
+dat  na  disk,  v  bˆ‘n‚m provozu je vhodnˆj¨¡ jej vypnout, neboŸ zpomaluje
+prov dˆn¡ diskov˜ch operac¡.
+
+Pozn.: U verz¡ DOS 1 a 2 mus¡ b˜t DL nastaven p©ed vol n¡m funkce na 0.
+
+       S¡Ÿov‚ disky nepodporuj¡ funkci pro verifikaci dat.
+
+       K  zji¨tˆn¡  stavu  p©ep¡na‡e VERIFY pou‘ijte funkci 54H (poskytnut¡
+       nastaven¡ p©ep¡na‡e VERIFY).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ2ÿFÿHÿ ÿ(ÿ4ÿ7ÿ) - poskytnut¡ adresy diskov˜ch p©enos– (DTA)
+
+    vstup:    AH = 2FH
+
+    v˜stup:   ES:BX = adresa sou‡asnˆ nastaven‚ adresy DTA
+
+Pozn.: Pokud  nen¡  pou‘ita  funkce 1AH (nastaven¡ adresy diskov˜ch p©enos–
+       DTA),  je automaticky nastavena jako DTA vyrovn vac¡ pamˆŸ na adrese
+       80H v prefixu programov‚ho segmentu PSP a o d‚lce 128 bajt–.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ0ÿHÿ ÿ(ÿ4ÿ8ÿ) - poskytnut¡ ‡¡sla verze DOS
+
+    vstup:    AH = 30H
+
+    v˜stup:   AL = hlavn¡ ‡¡slo verze opera‡n¡ho syst‚mu DOS
+              AH = dopl¤kov‚ ‡¡slo verze opera‡n¡ho syst‚mu DOS
+
+Pozn.: DOS verze 1.x navrac¡ v AL hodnotu 00H.
+
+       Je  t©eba  si uvˆdomit, ‘e nap©. verze 2.1 je ulo‘ena jako 02H (2) a
+       0AH (10), tj. jako 2.10 a ne jako 02H a 01H (= 2.01).
+
+P©¡klad: Pokud  je  tato  funkce  vyvol na  nap©.  pod  DOS 2.11, v AL bude
+         navr cena hodnota 02H a v AH bude hodnota 0BH (= 11).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ1ÿHÿ ÿ(ÿ4ÿ9ÿ) - ukon‡en¡ procesu a jeho uchov n¡ v pamˆti
+
+    vstup:    AH = 31H
+              AL = n vratov˜ k¢d
+              DX = velikost rezidentn¡ ‡ sti (v odstavc¡ch)
+
+    v˜stup:   neexistuje n vrat
+
+    Funkce  p©eru¨¡  pr vˆ  prob¡haj¡c¡  proces, av¨ak ponech  jeho ur‡itou
+‡ st  rezidentnˆ  v  pamˆti. Funkce 31H je roz¨¡©en¡m p©eru¨en¡ DOS INT 27H
+(p©eru¨en¡  s  uchov n¡m  k¢du  programu v pamˆti); umo‘¤uje dvˆ dopl¤uj¡c¡
+funkce:  umo‘¤uje  ponechat  v  pamˆti  rezidentnˆ  v¡ce ne‘ 64K a umo‘¤uje
+navr tit nad©azen‚mu procesu n vratov˜ k¢d.
+
+Pozn.: Tato   funkce   neuvol¤uje   ‘ dnou  pamˆŸ,  kter   byla  p©em¡stˆna
+       p©eru¨en˜m procesem pomoc¡ funkce 48H (p©idˆlen¡ pamˆti).
+
+       Nad©azen˜  proces  m–‘e  obdr‘et  n vratov˜  k¢d p©eru¨en‚ho procesu
+       pomoc¡  funkce  4DH  nebo v p©¡kazov‚m souboru DOS testov n¡m pomoc¡
+       funkce ERRORLEVEL.
+
+       Otev©en‚ soubory nejsou touto funkc¡ uzav©eny.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ2ÿHÿ ÿ(ÿ5ÿ0ÿ) - rezervov no
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ3ÿHÿ ÿ(ÿ5ÿ1ÿ) - poskytnut¡ nebo nastaven¡ statutu BREAK
+
+    vstup:    AH = 33H
+              AL = 00H - poskytnut¡ statutu BREAK
+                   01H - nastaven¡ statutu BREAK
+              DL = 00H - vypnut¡ p©¡znaku BREAK (pouze p©i AL = 01H)
+                   01H - zapnut¡ p©¡znaku BREAK (pouze p©i AL = 01H)
+
+    v˜stup:   DL = 00H - BREAK je vypnut (pouze p©i AL = 00H)
+                   01H - BREAK je zapnut (pouze p©i AL = 00H)
+
+    Opera‡n¡  syst‚m  DOS verze 2.00 a pozdˆj¨¡ umo‘¤uje roz¨¡©it prov dˆn¡
+kontroly  stisku  kombinace kl ves <Ctrl>-<Break> (<Ctrl>-C) kromˆ vstup– a
+v˜stup–  na  konzolu  (tj.  funkce  01H  - 0CH) tak‚ na testov n¡ p©i v¨ech
+ostatn¡ch  vstupnˆ/v˜stupn¡ch  operac¡ch.  K  zapnut¡  kontroly  p©i  v¨ech
+vstupnˆ/v˜stupn¡ch operac¡ch slou‘¡ tato funkce 33H.
+
+Pozn.: Standardn¡  nastaven¡  kontroly <Ctrl>-<Break> (<Ctrl>-C) je vypnut˜
+       stav,  tj. kontrola se prov d¡ pouze p©i operac¡ch vstupu/v˜stupu na
+       konzolu.
+
+       Stav  p©ep¡na‡e  BREAK lze nastavovat z p©¡kazov‚ho © dku DOS pomoc¡
+       povelu BREAK ON nebo BREAK OFF.
+
+       Programy,  kter‚  pou‘¡vaj¡  vol n¡  funkc¡  06H  nebo  07H ke ‡ten¡
+       kombinace  kl ves <Ctrl>-<Break> (<Ctrl>-C) jako dat, mus¡ zajistit,
+       aby byl p©ep¡na‡ BREAK vypnut.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ4ÿHÿ ÿ(ÿ5ÿ2ÿ) - rezervov no
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ5ÿHÿ ÿ(ÿ5ÿ3ÿ) - poskytnut¡ vektoru p©eru¨en¡
+
+    vstup:    AH = 35H
+              AL = ‡¡slo p©eru¨en¡
+
+    v˜stup:   ES:BX = ukazatel na obsluhu p©eru¨en¡
+
+    Funkce navrac¡ adresu obslu‘n‚ho programu pro po‘adovan‚ p©eru¨en¡.
+
+Pozn.: Po  vol n¡ funkce 35H m–‘ete nastavit novou adresu vektoru p©eru¨en¡
+       pomoc¡  funkce  25H.  Toto  je  preferovan   cesta  ke ‡ten¡ vektoru
+       p©eru¨en¡, programy by nemˆly z¡sk vat vektor p©eru¨en¡ p©¡mo ‡ten¡m
+       tabulky vektor–.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ6ÿHÿ ÿ(ÿ5ÿ4ÿ) - poskytnut¡ voln‚ho m¡sta disku
+
+    vstup:    AH = 36H
+              DL = ‡¡slo disku (0=aktivn¡ disk, 1=A, 2=B, atd.)
+
+    v˜stup:   AX = po‡et sektor– na aloka‡n¡ blok
+                   (FFFFH = neplatn  specifikace disku)
+              BX = po‡et voln˜ch aloka‡n¡ch blok– disku
+              CX = po‡et bajt– na sektor
+              DX = celkov˜ po‡et aloka‡n¡ch blok– na disku
+
+    Funkce  navrac¡ po‡et voln˜ch aloka‡n¡ch blok– disku a jin‚ informace o
+disku podobnˆ jako funkce 1BH a 1CH se t©emi odli¨nostmi:
+
+    - navrac¡ po‡et voln˜ch blok– (nam¡sto tabulky popisova‡e m‚dia)
+    - nevrac¡ ukazatel na popisovac¡ bajt m‚dia
+    - navrac¡ chybov˜ k¢d, pokud je specifikovan˜ disk neplatn˜
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ7ÿHÿ ÿ(ÿ5ÿ5ÿ) - rezervov no
+
+    nastaven¡  oddˆlovac¡ho znaku parametr– p©¡kazu (viz povel SWITCHAR pro
+souboru CONFIG.SYS).
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ8ÿHÿ ÿ(ÿ5ÿ6ÿ) - poskytnut¡/nastaven¡ n rodnost. informac¡
+
+    vstup:    AH = 38H
+              AL = 00H - sou‡asnˆ nastaven  zemˆ (implicitn¡ zemˆ)
+                 = k¢d zemˆ (ò DOS 2.01)
+                 = FFH - k¢d zemˆ ò 255 je ulo‘en v registru BX (ò DOS3.00)
+              BX = 16-bitov˜ k¢d zemˆ (pokud je AL = FFH) (ò DOS 3.00)
+              DS:DX = ukazatel na vyrovn vac¡ pamˆŸ (32 resp. 34 bajt–)
+              DX = FFFFH pro nastaven¡ k¢du zemˆ v AL resp. BX (ò DOS 3.00)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   02H (2) - soubor nenalezen (nen¡ tabulka pro spec. zemi)
+              BX = k¢d zemˆ (pokud je zad n AL = 0)
+              napln¡ tab. na adrese DS:DX n rodnostnˆ z visl˜mi informacemi
+
+    Funkce  navrac¡  (pokud  je  v  DS:DX  ukazatel  na  vyrovn vac¡ pamˆŸ)
+n rodnostnˆ  z visl‚ informace pro implicitn¡ zemi (AL = 00H; v AL resp. BX
+p©itom  navrac¡  k¢d  zemˆ)  nebo  pro specifikovanou zemi (AL = k¢d zemˆ -
+pouze  verze  DOS  ò 2.01) nebo umo‘¤uje specifikovat novou implicitn¡ zemi
+(pokud  je  DX  =  FFFFH; v AL resp. v BX je nastaven nov˜ k¢d zemˆ - pouze
+verze  DOS  ò 3.00 - nebo je AL=FFH a k¢d zemˆ je ulo‘en v BX). Norm lnˆ je
+k¢d zemˆ nastaven v souboru CONFIG.SYS p©¡kazem COUNTRY.
+
+    Pro  k¢dy  zemˆ  vˆt¨¡  ne‘ 254 (FDH) zadejte v registru AL hodnotu FFH
+(255) a k¢d zemˆ uveƒte v registru BX (pouze verze DOS ò 3.00).
+
+    Informace  navr cen   na  adrese  DS:DX  pro  DOS  verze  3.00  a vy¨¨¡
+(34-bajtov  tabulka) m  n sleduj¡c¡ strukturu:
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   offset   ³ bajt– ³         v˜znam                                    º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º  00H ( 0)  ³   2   ³    form t data (viz n sleduj¡c¡ tabulka)          º
+º  02H ( 2)  ³   5   ³    znak mˆny (©etˆzec ASCIIZ)                     º
+º  07H ( 7)  ³   2   ³    oddˆlova‡ tis¡c– (©etˆzec ASCIIZ)              º
+º  09H ( 9)  ³   2   ³    oddˆlova‡ desetinn˜ch m¡st (©etˆzec ASCIIZ)    º
+º  0BH (11)  ³   2   ³    oddˆlova‡ data (©etˆzec ASCIIZ)                º
+º  0DH (13)  ³   2   ³    oddˆlova‡ ‡asu (©etˆzec ASCIIZ)                º
+º  0FH (15)  ³   1   ³    form t mˆny (viz d le uveden  tabulka)         º
+º  10H (16)  ³   1   ³    po‡et v˜znamn˜ch desetinn˜ch ‡¡slic v mˆnˆ     º
+º  11H (17)  ³   1   ³    form t ‡asu (bit0=0 - 12 hod; bit0=1 - 24 hod) º
+º  12H (18)  ³   4   ³    ukazatel na FAR porceduru, kter  prov d¡       º
+º            ³       ³      p©¡p. mapov n¡ znak– pro specifikovanou zemi º
+º  16H (22)  ³   2   ³    oddˆlova‡ seznamu dat (©etˆzec ASCIIZ)         º
+º  18H (24)  ³  10   ³    rezervov no                                    º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Mo‘n‚ form ty data:
+  ÉÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+  º   hodnota  ³   zemˆ   ³    form t zobrazen¡ data       º
+  ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍ¹
+  º   00H (0)  ³   USA    ³  mˆs¡c   ³   den    ³   rok    º
+  º   01H (1)  ³  Evropa  ³   den    ³  mˆs¡c   ³   rok    º
+  º   02H (2)  ³ Japonsko ³   rok    ³  mˆs¡c   ³   den    º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍ¼
+
+Hodnota polo‘ky form tu mˆny:
+  ÉÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+  º   hodnota  ³            v˜znam                                       º
+  ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+  º   00H (0)  ³ symbol mˆny p©edch z¡ hodnotu; mezi symbolem a hodnotou º
+  º            ³ nen¡ ‘ dn  mezera                                       º
+  º   01H (1)  ³ symbol mˆny n sleduje za hodnotou; mezi symbolem a      º
+  º            ³ hodnotou nen¡ ‘ dn  mezera                              º
+  º   02H (2)  ³ symbol mˆny p©edch z¡ p©ed hodnotou; mezi symbolem a    º
+  º            ³ hodnotou je jedna mezera                                º
+  º   03H (3)  ³ symbol mˆny n sleduje za hodnotou; mezi symbolem a      º
+  º            ³ hodnotou je jedna mezera                                º
+  º   04H (4)  ³ symbol mˆny nahrazuje oddˆlova‡ desetinn˜ch m¡st (pouze º
+  º            ³ DOS verze 3.2 a vy¨¨¡)                                  º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Rutina mapov n¡ znak– DOS (CaseMap), jej¡‘ adresa (jako segment:offset)
+se  navrac¡  s  n rodnostnˆ z visl˜mi informacemi, p©ev d¡ znaky s hodnotou
+80H  a‘  FFH  na  jejich  ekvivalenty velk˜ch p¡smen. K pou‘it¡ t‚to rutiny
+um¡stˆte  nejd©¡ve  mapovan˜  znak  do registru AL. Potom proveƒte vzd len‚
+vol n¡  FAR  CALL  na  tuto  rutinu. V registru AL bude navr cen velk˜ znak
+ekvivalentn¡  mapovan‚mu  znaku. Nap©. povel DOS SORT pou‘¡v  tuto rutinu k
+p©i©azen¡  k¢du "A" a "a" znak–m ƒ, „, …, †, , , ‘ a   (tyto znaky jsou v
+standardn¡ tabulce znak– IBM zobrazov ny jako n rodn¡ verze znak– A).
+
+    Informace  navr cen   na  adrese  DS:DX  pro DOS verze 2.x (32-bajtov 
+tabulka) m  n sleduj¡c¡ strukturu:
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   offset   ³ bajt– ³         v˜znam                                    º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º  00H ( 0)  ³   2   ³    form t data a ‡asu (viz n sleduj¡c¡ tabulka)   º
+º  02H ( 2)  ³   ?   ³    znak mˆny (©etˆzec ASCIIZ)                     º
+º   ?H ( ?)  ³   ?   ³    oddˆlova‡ tis¡c– (©etˆzec ASCIIZ)              º
+º   ?H ( ?)  ³   ?   ³    oddˆlova‡ desetinn˜ch m¡st (©etˆzec ASCIIZ)    º
+º   ?H ( ?)  ³   ?   ³    rezervov no (doplnˆk do 32 bajt–)              º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+   - ©etˆzce n sleduj¡ ihned za sebou
+
+Mo‘n‚ form ty data a ‡asu:
+  ÉÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+  º   hodnota  ³   zemˆ   ³  zobrazen¡ data ³     zobrazen¡ ‡asu     º
+  ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+  º   00H (0)  ³   USA    ³  mˆs¡c/den/rok  ³  hodina:minuta:sekunda º
+  º   01H (1)  ³  Evropa  ³  den/mˆs¡c/rok  ³  hodina:minuta:sekunda º
+  º   02H (2)  ³ Japonsko ³  rok:mˆs¡c:den  ³  hodina:minuta:sekunda º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+         K¢dy zem¡:
+ÉÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍ»
+º  k¢d zemˆ ³     zemˆ     ³ kl v.³  datum ³   ‡as     ³     mˆna       ³dº
+ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍØÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍ¹
+º  3DH ( 61)³Austr lie     ³      ³DD-MM-RR³13:00:00   ³   $1,000.00    ³,º
+º  20H ( 32)³Belgie        ³      ³DD/MM/RR³13:00:00   ³    1 000,00 F  ³;º
+º0352H (850)³€eskoslovensko³keybCS³DD.MM.RR³13.00.00   ³    1 000,00 K‡s³;º
+º  2DH ( 45)³D nsko        ³      ³DD/MM/RR³13.00:00   ³    1.000,00 DKR³;º
+º0166H (358)³Finsko        ³      ³DD-MM-RR³13:00:00   ³    1 000,00 MK ³;º
+º  21H ( 33)³Francie       ³keybFR³DD/MM/RR³13:00:00   ³    1 000,00 F  ³;º
+º  27H ( 39)³It lie        ³keybIT³DD/MM/RR³13:00:00   ³    1.000,Lit.  ³;º
+º03CCH (972)³Izrael        ³      ³DD/MM/RR³13:00:00   ³  ™ 1,000.00    ³,º
+º  02H (  2)³Kanada        ³      ³RR-MM-DD³13:00:00   ³    1 000,00 $  ³;º
+º0311H (785)³Middle East   ³      ³DD/MM/RR³01:00:00 PM³    1.000,000 $ ³;º
+º  31H ( 49)³Nˆmecko       ³keybGR³DD.MM.RR³13.00.00   ³  DM1.000,00    ³;º
+º  1FH ( 31)³Nizozemsko    ³      ³DD-MM-RR³13:00:00   ³   Ÿ1.000,00    ³;º
+º  2FH ( 47)³Norsko        ³      ³DD/MM/RR³13.00.00   ³ KR 1.000,00    ³;º
+º015FH (351)³Portugalsko   ³      ³DD/MM/RR³13:00:00   ³    1.000$00    ³;º
+º  22H ( 34)³›panˆlsko     ³keybSP³DD/MM/RR³13:00:00   ³    1.000,00   ³;º
+º  2CH ( 44)³Spojen‚ kr l. ³keybUK³DD-MM-RR³13:00:00   ³   œ1,000.00    ³,º
+º  01H (  1)³Spojen‚ st ty ³      ³MM-DD-RR³01:00:00 PM³   $1,000.00    ³,º
+º  2EH ( 46)³›v‚dsko       ³      ³RR-MM-DD³13.00.00   ³SEK 1.000,00    ³;º
+º  29H ( 41)³›v˜carsko     ³      ³DD.MM.RR³13.00.00   ³ Fr 1,000.00    ³,º
+ÈÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍ¼
+ d = oddˆlova‡ v˜pisu dat
+
+Pozn.: Verze opera‡n¡ho syst‚mu DOS 2.00 nemˆla tuto funkci plnˆ obsazenou,
+       poskytovala  pouze n rodnostnˆ z vislˆ informace pro implicitn¡ zemi
+       (s  omezenou  tabulkou).  Verze  DOS  2.01  ji‘  umo‘¤uje poskytnut¡
+       n rodnostn¡ch informac¡ i o jin˜ch zem¡ch. Verze ò DOS 3.00 umo‘¤uje
+       pou‘¡vat  ‡¡sla  k¢d– zem¡ vˆt¨¡ ne‘ 255 a nastavovat implicitn¡ k¢d
+       zemˆ.
+
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿ9ÿHÿ ÿ(ÿ5ÿ7ÿ) - vytvo©en¡ adres ©e (MKDIR)
+
+    vstup:    AH = 39H
+              DS:DX = ukazatel na jm‚no adres ©e k vytvo©en¡ (©et. ASCIIZ)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   03H - cesta nenalezena
+                   05H - po‘adavek odm¡tnut nebo adres © ji‘ existuje
+
+    Funkce  39H  (MKDIR)  vytv ©¡  podadres ©, jeho‘ cesta je specifikov na
+pomoc¡  ©etˆzce  ASCIIZ  na  adrese  DS:DX.  D‚lka ©etˆzce je omezena na 64
+znak–.  Pokud funkce nen¡ schopna vytvo©it adres ©, nastav¡ p©¡znak p©enosu
+CF a navr t¡ chybov˜ k¢d v registru AX.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Jm‚no adres ©e m–‘e obsahovat ozna‡en¡ disku.
+
+       Pokud nˆkter˜ z adres ©– v cestˆ neexistuje, adres © se nevytvo©¡.
+
+       Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿAÿHÿ ÿ(ÿ5ÿ8ÿ) - zru¨en¡ adres ©e (RMDIR)
+
+    vstup:    AH = 3AH
+              DS:DX = ukazatel na jm‚no adres ©e k zru¨en¡ (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   03H ( 3) - cesta nenalezena
+                   05H ( 5) - po‘adavek odm¡tnut (adres © nen¡ pr zdn˜)
+                   10H (16) - nelze zru¨it aktivn¡ adres ©
+
+    Funkce 3AH (RMDIR) ru¨¡ podadres ©, jeho‘ cesta je specifikov na pomoc¡
+©etˆzce ASCIIZ na adrese DS:DX. D‚lka ©etˆzce je omezena na 64 znak–. Pokud
+funkce  nen¡  schopna  zru¨it adres ©, nastav¡ p©¡znak p©enosu CF a navr t¡
+chybov˜ k¢d v registru AX.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿBÿHÿ ÿ(ÿ5ÿ9ÿ) - zmˆna adres ©e (CHDIR)
+
+    vstup:    AH = 3BH
+              DS:DX = ukazatel na jm‚no nov‚ho adres ©e (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   03H ( 3) - cesta nenalezena
+
+    Funkce  3BH  (CHDIR) zmˆn¡ aktivn¡ adres © na nov˜ adres ©, jeho‘ cesta
+je  specifikov na  pomoc¡  ©etˆzce ASCIIZ na adrese DS:DX. D‚lka ©etˆzce je
+omezena na 64 znak–. Pokud funkce nen¡ schopna nal‚zt nov˜ adres ©, nastav¡
+p©¡znak  p©enosu  CF a navr t¡ chybov˜ k¢d v registru AX (a adres © z–stane
+nezmˆnˆn).
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Ozna‡en¡  nov‚  cesty  m–‘e obsahovat ozna‡en¡ disku (zmˆn¡ se cesta
+       pro dan˜ disk).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿCÿHÿ ÿ(ÿ6ÿ0ÿ) - vytvo©en¡ souboru (CREAT)
+
+    vstup:    AH = 3CH
+              CX = atributy souboru
+              DS:DX = ukazatel na jm‚no nov‚ho souboru (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = identifik tor souboru (pokud nen¡ CF nastaven)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   03H ( 3) - cesta nenalezena
+                   04H ( 4) - nen¡  voln˜  ‘ dn˜ identifik tor souboru (tj.
+                              je otev©eno p©¡li¨ mnoho soubor–)
+                   05H ( 5) - po‘adavek  odm¡tnut  (soubor m  ochranu proti
+                              z pisu nebo je z kladn¡ adres © pln˜)
+
+    Funkce  3CH  otev©e soubor, jeho‘ jm‚no je specifikov no pomoc¡ ©etˆzce
+ASCIIZ  na  adrese DS:DX. Pokud soubor je¨tˆ neexistuje, vytvo©¡ jej. Pokud
+soubor  se specifikovan˜m jm‚nem ji‘ existuje, zkr t¡ jej na nulovou d‚lku,
+tj.  zru¨¡ v¨echna star  data ze souboru (!). Soubor je otev©en pro ‡ten¡ i
+z pis.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Ozna‡en¡  nov‚  cesty  m–‘e obsahovat ozna‡en¡ disku (zmˆn¡ se cesta
+       pro dan˜ disk).
+
+       Registr CX specifikuje atributy vytv ©en‚ho souboru:
+         ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+         º    CX    ³ specifikovan‚ atributy        º
+         ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+         º  00H (0) ³ norm ln¡ soubor               º
+         º  01H (1) ³ soubor pouze pro ‡ten¡ (R/O)  º
+         º  02H (2) ³ skryt˜ soubor (HID)           º
+         º  04H (4) ³ syst‚mov˜ soubor              º
+         ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+         - sou‡tem hodnot m–‘ete atributy kombinovat (bl¡‘e viz "Adres ©ov 
+           polo‘ka")
+
+       Informace m–‘e b˜t zapisov na i do souboru vytvo©en‚ho v m¢du "pouze
+       ‡ten¡".  Ov¨em  p©i  pou‘it¡  t‚to  funkce  k  otev©en¡ existuj¡c¡ho
+       souboru s nastaven˜m p©¡znakem "pouze ‡ten¡" bude generov na chyba.
+
+       Ke zmˆnˆ atribut– souboru lze pou‘¡t funkci CHMOD (43H).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿDÿHÿ ÿ(ÿ6ÿ1ÿ) - otev©en¡ souboru
+
+    vstup:    AH = 3DH
+              AL = m¢d otev©en¡
+              DS:DX = ukazatel na jm‚no souboru (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = identifik tor souboru (pokud nen¡ CF nastaven)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H ( 1) - neplatn‚ ‡¡slo funkce
+                   02H ( 2) - soubor nenalezen
+                   03H ( 3) - cesta nenalezena
+                   04H ( 4) - nen¡   voln˜   ‘ dn˜   identifik tor  souboru
+                              (p©¡li¨ mnoho otev©en˜ch soubor–)
+                   05H ( 5) - po‘adavek  odm¡tnut
+                   0CH (12) - m¢d otev©en¡ neplatn˜
+
+    Funkce  3DH  otev©e  soubor  (a  p©i©ad¡ mu identifika‡n¡ slovo), jeho‘
+jm‚no  je  specifikov no  pomoc¡  ©etˆzce ASCIIZ na adrese DS:DX s pou‘it¡m
+bajtu  "m¢d  otev©en¡"  k  ur‡en¡,  jak˜m  zp–sobem bude prov dˆn k souboru
+p©¡stup.  Funkce otev©e jak˜koliv existuj¡c¡ soubor v‡etnˆ skryt˜ch soubor–
+a nastav¡ velikost z znamu na 1úbajt.
+
+K¢dov n¡ m¢d– otev©en¡ v AL:
+ ÉÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º 7 ³ 6 ³ 5 ³ 4 ³ 3 ³ 2 ³ 1 ³ 0 ³  m¢d otev©en¡   ³       pozn mka      º
+ ÌÍÍÍØÍÍÍØÍÍÍØÍÍÍØÍÍÍØÍÍÍØÍÍÍØÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+ º . ³ . ³ . ³ . ³ . ³ A ³ A ³ A ³  m¢d p©¡stupu   ³ p©¡stup ‡ten¡/z pis º
+ º . ³ . ³ . ³ . ³ R ³ . ³ . ³ . ³  rezervov no    ³ v‘dy 0              º
+ º . ³ S ³ S ³ S ³ . ³ . ³ . ³ . ³  m¢d sd¡len¡    ³ v DOS 2 mus¡ b˜t 0  º
+ º I ³ . ³ . ³ . ³ . ³ . ³ . ³ . ³  p©¡znak pod¡lu ³ v DOS 2 mus¡ b˜t 0  º
+ ÈÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+M¢d p©¡stupu (nejni‘¨¡ t©i bity registru AL):
+ ÉÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º 2 ³ 1 ³ 0 ³ hex ³             m¢d p©¡stupu              º
+ ÌÍÍÍØÍÍÍØÍÍÍØÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+ º 0 ³ 0 ³ 0 ³  0  ³  p©¡stup pouze ke ‡ten¡ souboru       º
+ º 0 ³ 0 ³ 1 ³  1  ³  p©¡stup pouze k z pisu do souboru    º
+ º 0 ³ 1 ³ 0 ³  2  ³  p©¡stup ke ‡ten¡ i z pisu do souboru º
+ ÈÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+M¢d sd¡len¡ (bity 4, 5 a 6 registru AL) - pouze DOS 3.0 a vy¨¨¡:
+
+    Tyto  bity  ©¡d¡ zp–sob, jak˜m mohou ostatn¡ u‘ivatel‚ v s¡ti otev©¡t a
+pou‘¡vat soubor pokud jej otev©ete. Jsou povolen  n sleduj¡c¡ nastaven¡:
+
+ ÉÍÍÍÑÍÍÍÑÍÍÍÑÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º 6 ³ 5 ³ 4 ³ hex ³         m¢d sd¡len¡          º
+ ÌÍÍÍØÍÍÍØÍÍÍØÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+ º 0 ³ 0 ³ 0 ³  0  ³  kompatibiln¡ m¢d            º
+ º 0 ³ 0 ³ 1 ³  1  ³  zam¡tnut¡ m¢du ‡ten¡/z pis  º
+ º 0 ³ 1 ³ 0 ³  2  ³  zam¡tnut¡ m¢du pouze z pis  º
+ º 0 ³ 1 ³ 1 ³  3  ³  zam¡tnut¡ m¢du pouze ‡ten¡  º
+ º 1 ³ 0 ³ 0 ³  4  ³  nezam¡tnut ‘ dn˜ m¢d        º
+ ÈÍÍÍÏÍÍÍÏÍÍÍÏÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+P©¡znak pod¡lu (bit 7 registru AL) - pouze DOS 3.0 a vy¨¨¡:
+
+    P©¡znak  pod¡lu  (bit  7)  specifikuje,  zda se budou pod¡let pod©azen‚
+procesy  na  pou‘¡v n¡  tohoto  souboru.  Pokud  je  bit  7 vynulov n, maj¡
+pod©azen‚  procesy  automaticky  p©¡stup  k  tomuto souboru. Pokud je bit 7
+nastaven,  soubor  se  automaticky neovol¤uje pro pod©¡zen˜ proces. Av¨ak ,
+jako  jak˜koliv  jin˜  proces,  m–‘e  po‘adovat p©¡stup k souboru pod©¡zen˜
+proces na b zi sd¡len¡.
+
+ ÉÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º 7 ³              p©¡znak pod¡lu              º
+ ÌÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+ º 0 ³  na souboru se pod¡l¡ pod©¡zen˜ proces   º
+ º 1 ³  pod©¡zen˜ proces se na souboru nepod¡l¡ º
+ ÈÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Zp©¡stupnˆn¡ otev©en‚ho souboru pod©azen˜m proces–m:
+
+    Je-li  soubor  jednou  otev©en hlavn¡m procesem, je zp©¡stupnˆn¡ tohoto
+souboru  jin˜m  proces–m  ur‡eno  m¢dem sd¡len¡m i m¢dem p©¡stupu p–vodn¡ho
+procesu,  stejnˆ  tak  jako  m¢dem  sd¡len¡m  a  m¢dem p©¡stupu pod©azen‚ho
+procesu.
+
+    1.- Soubor  je  poprv‚  otev©en  v kompatibiln¡m m¢du sd¡len¡, pokud je
+        otev©en:
+
+         - p©es funkce pou‘¡vaj¡c¡ FCB
+         - p©es funkce vy‘aduj¡c¡ pr va vytv ©en¡ CREATE
+         - p©es volanou funkci, ve kter‚ je kompatibiln¡ m¢d specifikov n
+
+        Soubor  v  kompatibiln¡m  m¢du  m–‘e  b˜t  otev©en  jedn¡m procesem
+        libovolnˆkr t,  pokud  soubor  nen¡  dosud  otev©en  pod nˆkter˜m z
+        ostatn¡ch ‡ty© m¢d– sd¡len¡. Av¨ak pokud m  soubor nastaven atribut
+        "pouze  ‡ten¡"  a  je  v  sou‡asnosti  otev©en  v  m¢du  sd¡len¡ se
+        zam¡tnut¡m  z pisu,  m–‘e  b˜t tento soubor otev©en v kompatibiln¡m
+        m¢du s p©¡stupem ‡ten¡.
+
+    2.- Soubor je otev©en v jednom z jin˜ch m¢d– sd¡len¡.
+
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º soubor je poprv‚ otev©en v m¢du ³ m–‘e b˜t opakovanˆ otev©en v m¢du    º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º zam¡tnut¡ m¢du "‡ten¡/z pis",   ³ nem–‘e b˜t opakovanˆ otev©en         º
+º p©¡stup "pouze ‡ten¡"           ³                                      º
+º    (AL = X0010000)              ³                                      º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "‡ten¡/z pis",   ³ nem–‘e b˜t opakovanˆ otev©en         º
+º p©¡stup "pouze z pis"           ³                                      º
+º    (AL = X0010001)              ³                                      º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "‡ten¡/z pis",   ³ nem–‘e b˜t opakovanˆ otev©en         º
+º p©¡stup "‡ten¡/z pis"           ³                                      º
+º    (AL = X0010010)              ³                                      º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "z pis",         ³ zam¡tnut¡ m¢du "z pis", pouze ‡ten¡  º
+º p©¡stup "pouze ‡ten¡",          ³       (AL = X0100000)                º
+º    (AL = X0100000)              ³ nezam¡tnut ‘ dn˜ m¢d, pouze ‡ten¡    º
+º                                 ³       (AL - X1000000)                º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "z pis",         ³ zam¡tnut¡ m¢du "‡ten¡", pouze ‡ten¡  º
+º p©¡stup "pouze z pis",          ³       (AL = X0110000)                º
+º    (AL = X0100001)              ³ nezam¡tnut ‘ dn˜ m¢d, pouze ‡ten¡    º
+º                                 ³       (AL = X1000000)                º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "z pis",         ³ nezam¡tnut ‘ dn˜ m¢d, pouze ‡ten¡    º
+º p©¡stup "‡ten¡/z pis"           ³       (AL = X1000000)                º
+º    (AL = X0100010)              ³                                      º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "‡ten¡",         ³ zam¡tnut¡ m¢du "z pis", pouze z pis  º
+º p©¡stup "pouze ‡ten¡",          ³       (AL = X0100001)                º
+º    (AL = X0110000)              ³ nezam¡tnut ‘ dn˜ m¢d, pouze z pis    º
+º                                 ³       (AL - X1000001)                º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "‡ten¡",         ³ zam¡tnut¡ m¢du "‡ten¡", pouze z pis  º
+º p©¡stup "pouze z pis",          ³       (AL = X0110001)                º
+º    (AL = X0110001)              ³ nezam¡tnut ‘ dn˜ m¢d, pouze z pis    º
+º                                 ³       (AL - X1000001)                º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º zam¡tnut¡ m¢du "‡ten¡",         ³ nezam¡tnut ‘ dn˜ m¢d, pouze z pis    º
+º p©¡stup "‡ten¡/z pis"           ³       (AL = X1000001)                º
+º    (AL = X0110010)              ³                                      º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º nezam¡tnut ‘ dn˜ m¢d,           ³ zam¡tnut¡ m¢du "z pis", pouze ‡ten¡  º
+º p©¡stup "pouze ‡ten¡"           ³       (AL = X0100000)                º
+º    (AL = X1000000)              ³ zam¡tnut¡ m¢du "z pis", pouze z pis  º
+º                                 ³       (AL = X0100001)                º
+º                                 ³ zam¡tnut¡ m¢du "z pis", ‡ten¡/z pis  º
+º                                 ³       (AL = X0100010)                º
+º                                 ³ nezam¡tnut ‘ dn˜ m¢d, pouze ‡ten¡    º
+º                                 ³       (AL = X1000000)                º
+º                                 ³ nezam¡tnut ‘ dn˜ m¢d, pouze z pis    º
+º                                 ³       (AL = X1000001)                º
+º                                 ³ nezam¡tnut ‘ dn˜ m¢d, ‡ten¡/z pis    º
+º                                 ³       (AL = X1000010)                º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º nezam¡tnut ‘ dn˜ m¢d,           ³ zam¡tnut¡ m¢du "‡ten¡", pouze ‡ten¡  º
+º p©¡stup "pouze z pis"           ³       (AL = X0110000)                º
+º    (AL = X1000001)              ³ zam¡tnut¡ m¢du "‡ten¡", pouze z pis  º
+º                                 ³       (AL = X0110001)                º
+º                                 ³ zam¡tnut¡ m¢du "‡ten¡", ‡ten¡/z pis  º
+º                                 ³       (AL = X0110010)                º
+º                                 ³ nezam¡tnut ‘ dn˜ m¢d, pouze ‡ten¡    º
+º                                 ³       (AL = X1000000)                º
+º                                 ³ nezam¡tnut ‘ dn˜ m¢d, pouze z pis    º
+º                                 ³       (AL = X1000001)                º
+º                                 ³ nezam¡tnut ‘ dn˜ m¢d, ‡ten¡/z pis    º
+º                                 ³       (AL = X1000010)                º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º nezam¡tnut ‘ dn˜ m¢d,           ³ ‘ dn‚ zam¡tnut¡, pouze ‡ten¡         º
+º p©¡stup "‡ten¡/z pis"           ³       (AL = X1000000)                º
+º    (AL = X1000010)              ³ ‘ dn‚ zam¡tnut¡, pouze z pis         º
+º                                 ³       (AL = X1000001)                º
+º                                 ³ ‘ dn‚ zam¡tnut¡, ‡ten¡/z pis         º
+º                                 ³       (AL = X1000010)                º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+Pozn.: Soubory  kon‡¡c¡  dvojte‡kou  (za©¡zen¡)  nelze  vol n¡m t‚to funkce
+       otev©¡t.
+
+       Pro  m¢dy  sd¡len¡  mus¡ b˜t pro tuto funkci, aby pracovala, na‡tena
+       obsluha sd¡len¡ soubor–.
+
+       Pod©¡zen‚  procesy, kter‚ se pod¡lej¡ na souborech, se tak‚ pod¡lej¡
+       na jejich omezen¡ch sd¡len¡ a p©¡stup–.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿEÿHÿ ÿ(ÿ6ÿ2ÿ) - uzav©en¡ identifik toru souboru
+
+    vstup:    AH = 3EH
+              BX = identifik tor souboru
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   06H (6) - neplatn˜ identifik tor souboru
+
+    Funkce  3EH  vypr zdn¡  vyrovn vac¡ pamˆŸ souboru, uzav©e soubor, zru¨¡
+identifik tor souboru a ulo‘¡ informace do adres ©e.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ3ÿFÿHÿ ÿ(ÿ6ÿ3ÿ) - ‡ten¡ ze soub./za©¡z. s pou‘it¡m id. soub.
+
+    vstup:    AH = 3FH
+              BX = identifik tor souboru
+              CX = po‡et bajt–, kter‚ maj¡ b˜t p©e‡teny
+              DS:DX = adresa vyrovn vac¡ pamˆti, kam jsou data ulo‘ena
+
+    v˜stup:   AX = po‡et skute‡nˆ p©e‡ten˜ch bajt– (CF=0)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   05H (5) - po‘adavek odm¡tnut
+                   06H (6) - neplatn˜ identifik tor souboru
+
+    Funkce ‡te data ze souboru nebo za©¡zen¡, jeho‘ identifik tor je ulo‘en
+v  registru  BX,  do  pamˆti od adresy DS:DX. Data jsou ‡tena od polohy, na
+kterou  ukazuje  ukazatel  souboru.  Ukazatel  souboru  se  zv˜¨¡  o  po‡et
+p©e‡ten˜ch bajt–.
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va ‡ten¡ READ.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Pokud  nen¡ p©¡znak  p©enosu  CF   nastaven  a registr AX = 0, potom
+       ukazatel souboru byl nastaven na konec souboru.
+
+       Pokud  nen¡  p©¡znak  p©enosu CF nastaven a po‡et p©e‡ten˜ch bajt– v
+       registru  AX je men¨¡ ne‘ po‘adovan˜ po‡et bajt– (registr CX), potom
+       funkce p©i ‡ten¡ narazila na konec souboru.
+
+       Pomoc¡  funkce  42H  m–‘ete  p©ed  ‡ten¡m p©em¡stit ukazatel souboru
+       jinam, ‡¡m‘ m–‘ete ‡¡st data z kter‚hokoliv m¡sta v souboru.
+
+       Pokud je specifikov na kl vesnice, ‡te tato funkce buƒ specifikovan˜
+       po‡et bajt– nebo v¨echny bajty a‘ po p©¡¨t¡ znak CR (kl vesa Return,
+       Enter),  je-li  po‡et  men¨¡.  (pokud je po‡et specifikovan˜ch bajt–
+       alespo¤ o dvˆ vˆt¨¡ ne‘ po‡et zadan˜ch znak–, bude jako posledn¡ dva
+       znaky  navr cen  p r  CR/LF  (k¢dy  0DH,  0AH) a bude po‡¡t n za dva
+       bajt.)
+
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ0ÿHÿ ÿ(ÿ6ÿ4ÿ) - z pis do soub./za©. s pou‘it¡m ident.soub.
+
+    vstup:    AH = 40H
+              BX = identifik tor souboru
+              CX = po‡et bajt–, kter‚ maj¡ b˜t zaps ny
+              DS:DX = adresa vyrovn vac¡ pamˆti, odkud jsou data zapisov na
+
+    v˜stup:   AX = po‡et skute‡nˆ zapsan˜ch bajt– (CF=0)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   05H (5) - po‘adavek odm¡tnut
+                   06H (6) - neplatn˜ identifik tor souboru
+
+    Funkce zapisuje data z pamˆti od adresy DS:DX do souboru nebo za©¡zen¡,
+jeho‘  identifik tor  je  ulo‘en  v  registru  BX.  Data jsou zapisov na od
+polohy,  na  kterou  ukazuje  ukazatel souboru. Ukazatel souboru se zv˜¨¡ o
+po‡et zapsan˜ch bajt–.
+
+    P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va z pisu WRITE.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Pokud  se  zapln¡ disk, nen¡ navr cen ‘ dn˜ chybov˜ k¢d (tj. CF nen¡
+       nastaven)   av¨ak   je  zaps no  m‚nˆ  bajt–  ne‘  bylo  po‘adov no.
+       Kontrolujte   proto   po   n vratu  z  funkce  vznik  t‚to  situtace
+       testov n¡m,  zda  nen¡  obsah registru AX men¨¡ ne‘ po‘adovan˜ po‡et
+       bajt– v CX.
+
+       Pomoc¡  funkce  42H  m–‘ete  p©ed z pisem p©em¡stit ukazatel souboru
+       jinam, ‡¡m‘ m–‘ete zapisovat data do kter‚hokoliv m¡sta v souboru.
+
+       Soubor  m–‘ete  zkr tit tak, ‘e p©esunete ukazatel souboru na pozici
+       nov‚ho  konce  souboru  (pomoc¡ funkce 42H) a vyvol te tuto funkci s
+       nastaven˜m nulov˜m po‡tem bajt– k z pisu (CX = 0).
+
+       Pokus  o  z pis  do souboru ozna‡en‚ho jako "pouze ‡ten¡" vygeneruje
+       chybov˜ k¢d 5 "po‘adavek odm¡tnut".
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ1ÿHÿ ÿ(ÿ6ÿ5ÿ) - zru¨en¡ souboru (UNLINK)
+
+    vstup:    AH = 41H
+              DS:DX = ukazatel na jm‚no souboru (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   02H (2) - soubor nenalezen
+                   03H (3) - cesta nenalezena
+                   05H (5) - po‘adavek odm¡tnut (soubor je R/O)
+
+    Funkce   41H   zru¨¡  polo‘ku  adres ©e  pro  soubor,  jeho‘  jm‚no  je
+specifikov no  pomoc¡  ©etˆzce ASCIIZ na adrese DS:DX. Ve specifikaci cesty
+(jm‚na souboru) nelze pou‘¡t (na rozd¡l od funkce 13H) nahrazovac¡ znaky (?
+a *).
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Ke  zru¨en¡  souboru  ozna‡en‚ho  atributem  "pouze  ‡ten¡" nejd©¡ve
+       zru¨te tento atribut pomoc¡ funkce 43H.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ2ÿHÿ ÿ(ÿ6ÿ6ÿ) - p©em¡stˆn¡ ukazatele souboru (LSEEK)
+
+    vstup:    AH = 42H
+              BX = identifik tor souboru
+              CX:DX = nov˜ offset v bajtech (32-bitov‚ cel‚ ‡¡slo se znam.)
+              AL = k¢d m¢du
+                   00H (0) - p©esunut¡  ukazatele  souboru  CX:DX  bajt– od
+                             za‡ tku souboru
+                   01H (1) - p©esunut¡  ukazatele  souboru o CX:DX bajt– od
+                             sou‡asn‚ pozice
+                   02H (2) - p©esunut¡  ukazatele  souboru o CX:DX bajt– od
+                             konce souboru
+
+    v˜stup:   DX:AX = nov  pozice ukazatele souboru (32-bit.‡¡slo se znam.)
+              nebo AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - neplatn˜ k¢d m¢du
+                   06H (6) - neplatn˜ identifik tor souboru
+
+    Funkce  zmˆn¡  logickou  pozici  ukazatele  pro operace ‡ten¡/z pis pro
+specifikovan˜  soubor  zv˜¨en¡m  nebo  sn¡‘en¡m  hodnoty ukazatele souboru.
+Offset,  kter˜ se p©i‡¡t  k ukazateli souboru se p©ed v  v registrov‚m p ru
+CX:DX  jako  32-bitov‚ cel‚ ‡¡slo se znam‚nkem; v˜znamnˆj¨¡ ‡ st offsetu je
+ulo‘ena  v  registru  CX.  K¢d  m¢du,  specifikovan˜ v AL, indikuje, zda se
+offset  ulo‘en˜ v CX:DX vztahuje k za‡ tku souboru (m¢d 0), sou‡asn‚ pozici
+ukazatele souboru (m¢d 1) nebo ke konci souboru (m¢d 2).
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Nez visle  na tom, kter˜ m¢d je v AL specifikov n, pozitivn¡ hodnota
+       offsetu  v  CX:DX  zp–sob¡  v‘dy zv˜¨en¡ hodnoty ukazatele souboru a
+       negativn¡  zp–sob¡ sn¡‘en¡ hodnoty. Proto v m¢du 2 pozitivn¡ hodnota
+       offsetu CX:DX zp–sob¡ p©esunut¡ ukazatele souboru za konec souboru.
+
+       Chcete-li  p©esunout  ukazatel  na  konec souboru nebo zjistit d‚lku
+       souboru, pou‘ijte k¢d m¢du 2 a offset CX:DX = 0
+
+       Ukazatel  souboru  je mo‘n‚ p©esunout na pozici le‘¡c¡ p©ed za‡ tkem
+       souboru  nebo  za  koncem  souboru. P©esunut¡ ukazatele p©ed za‡ tek
+       souboru  sice  nezp–sob¡  hl ¨en¡  chyby,  av¨ak  bude chybn  p©¡¨t¡
+       operace ‡ten¡ nebo z pisu.
+
+       Soubor  m–‘e  b˜t  roz¨¡©en  p©esunut¡m  ukazatele  souboru za konec
+       souboru a z pisem jednoho nebo v¡ce bajt– dat na tuto novou pozici.
+
+       Soubor m–‘e b˜t zkr cen p©esunut¡m ukazatele souboru na novou pozici
+       po‘adovan‚ho  konce souboru a proveden¡m operace z pisu (funkce 40H)
+       s nastaven˜m nulov˜m po‡tem bajt– k z pisu (CX = 0).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ3ÿHÿ ÿ(ÿ6ÿ7ÿ) - poskytnut¡/nastaven¡ atrib. soub. (CHMOD)
+
+    vstup:    AH = 43H
+              AL = 00H (0) - poskytnut¡ atribut– souboru
+                   01H (1) - nastaven¡ atribut– souboru
+              CX = po‘adovan‚ atributy (pouze pokud je AL=01H - nastaven¡)
+              DS:DX = ukazatel na specifikaci souboru (©etˆzec ASCIIZ)
+
+    v˜stup:   CX = atributy souboru (pokud je AL=00H - poskytnut¡ atribut–)
+              AX = k¢d chyby (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - neplatn˜ k¢d funkce
+                   02H (2) - soubor nenalezen
+                   03H (3) - cesta nenalezena
+                   05H (5) - po‘adavek odm¡tnut
+
+    Funkce  navrac¡  nebo  nastavuje  bajt atribut– souboru specifikovan‚ho
+souboru.  K  ur‡en¡ sou‡asn˜ch atribut– ulo‘te do registru AL hodnotu 00H -
+atributy  budou  navr ceny  v  registru  CX. K nastaven¡ atribut– ulo‘te do
+registru AL hodnotu 01H a do registru CX po‘adovan‚ atributy.
+
+    Pokud  je  po‘adov na  jin  zmˆna ne‘ archivn¡ho bitu p©i pr ci v s¡ti,
+jsou po‘adov na p©¡stupov  pr va pro vytv ©en¡ (CREATE).
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Registr CX specifikuje atributy souboru t¡mto zp–sobem:
+           ÉÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+           º    CX     ³   specifikovan˜ atribut         º
+           ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+           º    00H    ³   norm ln¡ soubor               º
+           º    01H    ³   pouze ‡ten¡ souboru (R/O)     º
+           º    02H    ³   skryt˜ soubor (HID)           º
+           º    04H    ³   syst‚mov˜ soubor (SYS)        º
+           º    20H    ³   archivn¡ soubor (ARC)         º
+           ÈÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+           - sou‡tem tˆchto hodnot lze atributy kombinovat
+
+       Nastaven¡  jin˜ch  bit–  ne‘  kter‚  jsou  uvedeny vygeneruje chybu.
+       Atribut  adres ©e  nelze  zmˆnit  ,  av¨ak m–‘ete p©idat nebo zru¨it
+       ostatn¡ bity bajtu atribut– adres ©e. Sta‡¡, kdy‘ pomoc¡ t‚to funkce
+       specifikujete bajt atribut– maj¡c¡ nastaveny v¨echny po‘adovan‚ bity
+       pro adres © kromˆ bitu 4 (adres ©ov˜ bit).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿHÿ ÿ(ÿ6ÿ8ÿ) - vstupnˆ/v˜stupn¡ ovl d n¡ za©¡zen¡ (IOCTL)
+
+    vstup:    AH = 44H
+              AL = podfunkce
+              BX = identifik tor souboru nebo za©¡zen¡
+         nebo BL = ‡¡slo disku (je-li AL = 4,5: 0 = aktivn¡; 1 = A; atd.)
+              CX = po‡et bajt–, kter‚ maj¡ b˜t p©e‡teny nebo zaps ny
+              DS:DX = data nebo adresa vyrovn vac¡ pamˆti
+
+    v˜stup:   podle podfunkce
+
+    P©i pr ci v s¡ti nejsou podfunkce 4400H a 4408H podporov ny.
+
+    Funkce  44H  (IOCTL)  je  soubor  podfunkc¡ (16 podfunkc¡ v DOS 3.3, 10
+podfunkc¡  v DOS 3.0, 8 podfunkc¡ v DOS 2), kter‚ slou‘¡ k v˜mˆnˆ informac¡
+mezi  aplika‡n¡m  programem  a  za©¡zen¡m  (nebo souborem). Pouze podfunkce
+4400H,  4406H  a  4407H  jsou definov ny pro soubory. Ve v¨ech p©¡padech je
+po‘adovan  podfunkce ur‡ena obsahem registru AL:
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º    AL    ³                        podfunkce                             º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 00H ( 0) ³ poskytnut¡ informac¡ o za©¡zen¡ (navr ceno v DX)             º
+º 01H ( 1) ³ nastaven¡ informac¡ o za©¡zen¡ (z DX; DH mus¡ b˜t 0)         º
+º 02H ( 2) ³ ‡ten¡ bajt– z ©¡d¡c¡ho kan lu za©¡zen¡ do pamˆti na          º
+º          ³ adresu DS:DX (znakov‚ za©¡zen¡)                              º
+º 03H ( 3) ³ z pis bajt– z pamˆti na adrese DS:DX do ©¡d¡c¡ho             º
+º          ³ kan lu za©¡zen¡ (znakov‚ za©¡zen¡)                           º
+º 04H ( 4) ³ ‡ten¡ bajt– z ©¡d¡c¡ho kan lu za©¡zen¡ do pamˆti na          º
+º          ³ adresu DS:DX (blokov‚ za©¡zen¡)                              º
+º 05H ( 5) ³ z pis bajt– z pamˆti na adrese DS:DX do ©¡d¡c¡ho             º
+º          ³ kan lu za©¡zen¡ (blokov‚ za©¡zen¡)                           º
+º 06H ( 6) ³ poskytnut¡ vstupn¡ho statutu za©¡zen¡                        º
+º 07H ( 7) ³ poskytnut¡ v˜stupn¡ho statutu za©¡zen¡                       º
+º 08H ( 8) ³ je blokov‚ za©¡zen¡ v˜mˆnn‚ ? (ò DOS 3.0)                    º
+º 09H ( 9) ³ je logick‚ za©¡zen¡ lok ln¡ nebo d lkov‚ ? (ò DOS 3.1)       º
+º 0AH (10) ³ je identifik tor lok ln¡ nebo d lkov˜ ? (ò DOS 3.1)          º
+º 0BH (11) ³ zmˆna ‡¡ta‡e opakov n¡ sd¡len¡ (ò DOS 3.0)                   º
+º 0DH (13) ³ generov n¡ po‘adavku IOCTL pro blokov‚ za©¡zen¡ (ò DOS 3.2)  º
+º 0EH (14) ³ poskytnut¡ logick‚ho disku (ò DOS 3.2)                       º
+º 0FH (15) ³ nastaven¡ ozna‡en¡ logick‚ho disku (ò DOS 3.2)               º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Jednotliv‚  podfunkce  jsou  d le  posp ny  podrobnˆji  jako samostatn‚
+funkce 44xxH.
+
+Pozn.: Pro soubory jsou definov ny pouze podfunkce 4400H, 4406H a 4407H.
+
+       Podfunkce  4400H  a  4408H nejsou podporov ny v s¡Ÿov˜ch za©¡zen¡ch.
+       Podfunkce  440BH  vy‘aduj¡ sd¡len¡ souboru, kter‚ se na‡te do pamˆti
+       pomoc¡ povelu SHARE.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ0ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ0ÿ) - IOCTL: poskytnut¡ inf. o za©¡zen¡
+
+    vstup:    AH = 44H
+              AL = 00H
+              BX = identifik tor za©¡zen¡ nebo souboru
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+              DX = informace o za©¡zen¡
+
+    Podfunkce 4400H navrac¡ v DX informace o za©¡zen¡. Bit 7 registru DX je
+nastaven na 1, pokud je kan lem znakov‚ za©¡zen¡, a je nastaven na 0, pokud
+je kan lem blokov‚ za©¡zen¡ (diskov˜ soubor).
+
+    DX pro znakov‚ za©¡zen¡ (bit 7 registru DX = 1):
+   ÉÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+   º  bit ³                          popis                               º
+   ÌÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+   º   0  ³   nastaven, pokud je vstupn¡m za©¡zen¡m standardn¡ konzola   º
+   º   1  ³   nastaven, pokud je v˜stupn¡m za©¡zen¡m standardn¡ konzola  º
+   º   2  ³   nastaven, pokud jde o nulov‚ za©¡zen¡                      º
+   º   3  ³   nastaven, pokud jsou za©¡zen¡m hodiny                      º
+   º   4  ³   nastaven, pokud se jedn  o speci ln¡ za©¡zen¡              º
+   º   5  ³   nastaven pro bin rn¡ m¢d, nulov n pro ASCII m¢d            º
+   º   6  ³   nulov n, pokud je na vstupu konec souboru (EOF)            º
+   º   7  ³   nastaven pro indikaci, ‘e se jedn  o za©¡zen¡              º
+   º 8-13 ³   rezervov no                                                º
+   º  14  ³   nastaven, pokud je mo‘no za©¡zen¡ ovl dat ©¡d¡c¡m ©etˆzcem º
+   º      ³   p©es funkce 4402H, 4403H                                   º
+   º  15  ³   rezervov no                                                º
+   ÈÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    DX pro blokov‚ za©¡zen¡ (bit 7 registru DX = 0):
+   ÉÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+   º  bit ³                         popis                                º
+   ÌÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+   º  0-5 ³   ‡¡slo blokov‚ho za©¡zen¡ (A = 0; B = 1; atd.)              º
+   º   6  ³   nastaven, pokud bylo do kan lu zapisov no                  º
+   º   7  ³   nulov n pro indikaci, ‘e se jedn  o blokov‚ za©¡zen¡       º
+   º 8-13 ³   rezervov no                                                º
+   º  14  ³   nastaven, pokud je mo‘no za©¡zen¡ ovl dat ©¡d¡c¡m ©etˆzcem º
+   º      ³   p©es funkce 4404H a 4405H                                  º
+   º  15  ³   rezervov no                                                º
+   ÈÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Pozn.: Stav je definov n v okam‘iku vol n¡ syst‚mu. Pozdˆji, kdy‘ je ©¡zen¡
+       vr ceno ze syst‚mu, u‘ivateli vr cen˜ stav ji‘ nemus¡ p©esnˆ odr ‘et
+       skute‡n˜ okam‘it˜ stav za©¡zen¡ nebo souboru.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ1ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ1ÿ) - IOCTL: nastaven¡ inf. o za©¡zen¡
+
+    vstup:    AH = 44H
+              AL = 01H
+              BX = identifik tor za©¡zen¡ nebo souboru
+              DH = 00H
+              DL = informace o za©¡zen¡
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+
+    Podfunkce 4401H nastavuje informace o za©¡zen¡ podle obsahu reg. DX.
+
+   ÉÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+   º  bit ³                          popis                               º
+   ÌÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+   º   0  ³   nastaven, pokud je vstupn¡m za©¡zen¡m standardn¡ konzola   º
+   º   1  ³   nastaven, pokud je v˜stupn¡m za©¡zen¡m standardn¡ konzola  º
+   º   2  ³   nastaven, pokud jde o nulov‚ za©¡zen¡                      º
+   º   3  ³   nastaven, pokud jsou za©¡zen¡m hodiny                      º
+   º   4  ³   rezervov no                                                º
+   º   5  ³   nastaven pro bin rn¡ m¢d, nulov n pro ASCII m¢d            º
+   º   6  ³   nulov n, pokud je na vstupu konec souboru (EOF)            º
+   º   7  ³   nastaven pro indikaci, ‘e se jedn  o za©¡zen¡              º
+   º 8-15 ³   mus¡ b˜t 0                                                 º
+   ÈÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Pozn.: Podfunkce nen¡ podporov na pro diskov‚ soubory (blokov  za©¡zen¡).
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ2ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ2ÿ) - IOCTL: ‡ten¡ ze znakov‚ho za©¡zen¡
+
+    vstup:    AH = 44H
+              AL = 02H
+              BX = identifik tor za©¡zen¡
+              CX = po‡et bajt–, kter‚ maj¡ b˜t p©e‡teny
+              DS:DX = data nebo adresa vyrovn vac¡ pamˆti
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - za©¡zen¡ nepodporuje ©¡d¡c¡ ©etˆzce
+
+    Podfunkce  4402H  ‡te  CX  datov˜ch  bajt–  z ©¡d¡c¡ho kan lu znakov‚ho
+za©¡zen¡  buƒ  do  registru  DS:DX nebo do pamˆti od adresy DS:DX. Jak jsou
+data  ‡tena  je  definov no driverem za©¡zen¡. Data mohou b˜t ‡tena pouze v
+p©¡padˆ, ‘e za©¡zen¡ m–‘e prov dˆt ©¡d¡c¡ ©etˆzce.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ3ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ3ÿ) - IOCTL: z pis na znakov‚ za©¡zen¡
+
+    vstup:    AH = 44H
+              AL = 03H
+              BX = identifik tor za©¡zen¡
+              CX = po‡et bajt–, kter‚ maj¡ b˜t zaps ny
+              DS:DX = data nebo adresa vyrovn vac¡ pamˆti
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - za©¡zen¡ nepodporuje ©¡d¡c¡ ©etˆzce
+
+    Podfunkce  4403H zapisuje CX datov˜ch bajt– buƒ z registru DS:DX nebo z
+pamˆti  od  adresy  DS:DX na ©¡d¡c¡ kan l znakov‚ho za©¡zen¡. Jak jsou data
+zapisov na je definov no driverem za©¡zen¡. Data mohou b˜t zapisov na pouze
+v p©¡padˆ, ‘e za©¡zen¡ m–‘e prov dˆt ©¡d¡c¡ ©etˆzce.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ4ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ4ÿ) - IOCTL: ‡ten¡ z blokov‚ho za©¡zen¡
+
+    vstup:    AH = 44H
+              AL = 04H
+              BL = ‡¡slo disku (0 = aktivn¡ disk; 1 = A; 2 = B; atd.)
+              CX = po‡et bajt–, kter‚ maj¡ b˜t p©e‡teny
+              DS:DX = data nebo adresa vyrovn vac¡ pamˆti
+
+    v˜stup:   AX = po‡et p©e‡ten˜ch bajt–  (pokud je CF = 0)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - za©¡zen¡ nepodporuje ©¡d¡c¡ ©etˆzce
+                   05H (5) - disk je neplatn˜
+
+    Podfunkce  4404H  ‡te  CX  datov˜ch  bajt–  z ©¡d¡c¡ho kan lu blokov‚ho
+za©¡zen¡  buƒ  do  registru  DS:DX nebo do pamˆti od adresy DS:DX. Jak jsou
+data  ‡tena  je  definov no driverem za©¡zen¡. Data mohou b˜t ‡tena pouze v
+p©¡padˆ, ‘e za©¡zen¡ m–‘e prov dˆt ©¡d¡c¡ ©etˆzce.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ5ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ5ÿ) - IOCTL: z pis na blokov‚ za©¡zen¡
+
+    vstup:    AH = 44H
+              AL = 03H
+              BL = ‡¡slo disku (0 = aktivn¡ disk; 1 = A; 2 = B; atd.)
+              CX = po‡et bajt–, kter‚ maj¡ b˜t zaps ny
+              DS:DX = data nebo adresa vyrovn vac¡ pamˆti
+
+    v˜stup:   AX = po‡et zapsan˜ch bajt–  (pokud je CF = 0)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - za©¡zen¡ nepodporuje ©¡d¡c¡ ©etˆzce
+                   05H (5) - disk je neplatn˜
+
+    Podfunkce  4405H zapisuje CX datov˜ch bajt– buƒ z registru DS:DX nebo z
+pamˆti  od  adresy  DS:DX na ©¡d¡c¡ kan l blokov‚ho za©¡zen¡. Jak jsou data
+zapisov na je definov no driverem za©¡zen¡. Data mohou b˜t zapisov na pouze
+v p©¡padˆ, ‘e za©¡zen¡ m–‘e prov dˆt ©¡d¡c¡ ©etˆzce.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ6ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ6ÿ) - IOCTL: poskytnut¡ vstup. statutu
+
+    vstup:    AH = 44H
+              AL = 06H
+              BX = identifik tor souboru nebo za©¡zen¡
+
+    v˜stup:   AL = FFH - ne‘ je konec souboru/pokud je za©¡zen¡ p©ipraveno
+              AL = 00H - dosa‘eno konce souboru/za©¡zen¡ nen¡ p©ipraveno
+
+    Podfunkce  hl s¡  vstupn¡  statut za©¡zen¡ nebo souboru. AL navrac¡ buƒ
+hodnotu  FFH  (za©¡zen¡  p©ipraveno  nebo  nen¡  je¨tˆ  konec souboru) nebo
+hodnotu 00H (za©¡zen¡ nep©ipraveno nebo dosa‘eno konce souboru).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ7ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ7ÿ) - IOCTL: poskytnut¡ v˜stup. statutu
+
+    vstup:    AH = 44H
+              AL = 07H
+              BX = identifik tor souboru nebo za©¡zen¡
+
+    v˜stup:   AL = FFH - ne‘ je konec souboru/pokud je za©¡zen¡ p©ipraveno
+              AL = 00H - dosa‘eno konce souboru/za©¡zen¡ nen¡ p©ipraveno
+
+    Podfunkce  hl s¡  v˜stupn¡ statut za©¡zen¡ nebo souboru. AL navrac¡ buƒ
+hodnotu  FFH  (za©¡zen¡  p©ipraveno  nebo  nen¡  je¨tˆ  konec souboru) nebo
+hodnotu 00H (za©¡zen¡ nep©ipraveno nebo dosa‘eno konce souboru).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ8ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ8ÿ) - IOCTL: je za©¡zen¡ v˜mˆnn‚ ?
+
+    vstup:    AH = 44H
+              AL = 08H
+              BL = ‡¡slo disku (0=aktivn¡; 1=A; atd.)
+
+    v˜stup:   AX = 00H - za©¡zen¡ je v˜mˆnn‚
+                   01H - za©¡zen¡ je pevn‚
+                   0FH - neplatn  specifikace disku
+                   chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                        01H - je s¡Ÿov‚ za©¡zen¡
+
+    Tato  podfunkce (pouze DOS 3.0 a vy¨¨¡ verze) indikuje, zda m  za©¡zen¡
+v˜mˆnn‚  m‚dium  (jako  je  pru‘n˜  disk  nebo v˜mˆnn˜ kartov˜ pevn˜ disk).
+Hodnota  00H  registru  AX  znamen ,  ‘e  za©¡zen¡  je v˜mˆnn‚. Hodnota 01H
+registru AX znamen , ‘e jde o pevn‚ za©¡zen¡. Pokud je v BL zad na neplatn 
+specifikace disku, navrac¡ v registru AX chybov˜ k¢d 0FH.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿ9ÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ9ÿ) - IOCTL: je log. za©¡zen¡ d lkov‚ ?
+
+    vstup:    AH = 44H
+              AL = 09H
+              BL = ‡¡slo disku (0=aktivn¡; 1=A; atd.)
+
+    v˜stup:   DX = bit 12: 0 - za©¡zen¡ je lok ln¡
+                           1 - za©¡zen¡ je d lkov‚
+
+    Podfunkce  (pouze DOS 3.1 a vy¨¨¡ verze) umo‘¤uje ur‡it, zda je blokov‚
+za©¡zen¡  (specifikovan‚  v BL) p©idru‘eno k s¡Ÿov‚mu adres ©i. Pro lok ln¡
+za©¡zen¡  navrac¡ DX slovo atribut– ze z hlav¡ za©¡zen¡ s vynulovan˜m bitem
+12; pro d lkov  za©¡zen¡ navrac¡ DX toto slovo s nastaven˜m bitem 12.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿAÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ1ÿ0ÿ) - IOCTL:je ident. d lk. za©¡zen¡ ?
+
+    vstup:    AH = 44H
+              AL = 0AH
+              BX = identifik tor za©¡zen¡
+
+    v˜stup:   AX = bit 15: 0 - za©¡zen¡ je lok ln¡
+                           1 - za©¡zen¡ je d lkov‚
+
+    Podfunkce  (pouze  DOS  3.1  a  vy¨¨¡  verze)  umo‘¤uje  ur‡it,  zda je
+identifik tor  za©¡zen¡  (specifikovan˜  v  BX)  pro  lok ln¡  nebo d lkov‚
+za©¡zen¡.  Pro  lok ln¡  identifik tor navrac¡ DX slovo atribut– ze z hlav¡
+za©¡zen¡ s vynulovan˜m bitem 15; pro d lkov  za©¡zen¡ navrac¡ DX toto slovo
+s nastaven˜m bitem 15.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿBÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ1ÿ1ÿ) - IOCTL: ‡¡ta‡ opakov n¡ sd¡len¡
+
+    vstup:    AH = 44H
+              AL = 0BH
+              CX = po‡et, kolikr t bude prov dˆna smy‡ka prodlevy
+              DX = po‡et opakov n¡
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+
+    Podfunkce  (pouze  pro  DOS 3.0 a vy¨¨¡) nastavuje dva parametry, kter‚
+pou‘¡v   DOS  k pokus–m o ©e¨en¡ konflikt– p©i sd¡len¡ soubor–. Specifikuje
+v  registru  DX  po‡et opakov n¡ a v registru CX po‡et ‡asov˜ch prodlev mezi
+jednotliv˜mi  pr–chody  p©i  opakov n¡ pokus– o p©¡stup. Standardn¡ hodnota
+nastaven¡  jsou  3  opakov n¡  a  1  ‡asov   prodleva.  P©ed  pou‘it¡m t‚to
+podfunkce mus¡ b˜t na‡ten v pamˆti p©¡kaz SHARE.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿDÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ1ÿ3ÿ) - IOCTL:generov n¡ po‘adavku IOCTL
+
+    vstup:    AH = 44H
+              AL = 0DH
+              BL = ‡¡slo disku (0=aktivn¡; 1=A; atd.)
+              CH = 08H (hlavn¡ k¢d)
+              CL = vedlej¨¡ k¢d:
+                        40H - nastaven¡ parametr– za©¡zen¡
+                        60H - poskytnut¡ parametr– za©¡zen¡
+                        41H - z pis stopy na logick‚ za©¡zen¡
+                        61H - ‡ten¡ stopy z logick‚ho za©¡zen¡
+                        42H - form tov n¡ a verifikace stopy na log. za©.
+                        62H - verifikace stopy logick‚ho za©¡zen¡
+              DS:DX = ukazatel na blok parametr–
+
+    Tato  podfunkce (pouze DOS 3.2 a vy¨¨¡ verze) umo‘¤uje ©¡zen¡ blokov‚ho
+za©¡zen¡ na n¡zk‚ £rovni.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿEÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ1ÿ4ÿ) - IOCTL:poskytnut¡ logick‚ho disku
+
+    vstup:    AH = 44H
+              AL = 0EH
+              BL = ‡¡slo disku (0=aktivn¡; 1=A; atd.)
+
+    v˜stup:   AL = 00H pokud je blok. za©¡zen¡ p©i©azen pouze jeden znak
+                 = ona‡en¡ disku pou‘¡van‚ jako posledn¡ (1=A, atd.)
+              AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+
+    Podfunkce  (pouze  DOS  verze  3.2  a  vy¨¨¡)  navrac¡  ozna‡en¡  disku
+pou‘¡van‚ jako nejposlednˆj¨¡ pro blokov‚ za©¡zen¡, kter‚ m  v¡ce ne‘ jedno
+ozna‡en¡   (logick˜  disk).  Nap©¡klad  pru‘n˜  disk  v  syst‚mu  s  jednou
+mechanikou  m–‘e  b˜t  pops n buƒ jako A: nebo jako B:. Tato funkce ozn m¡,
+zda m  blokov‚ za©¡zen¡ v¡ce ne‘ jedno ozna‡en¡, a pokud tomu tak je, kter‚
+ozna‡en¡  za©¡zen¡  bylo  pou‘ito  jako  nejposlednˆj¨¡  (to umo‘¤uje nap©.
+ozn mit  u‘ivateli,  aby  vymˆnil  diskety  v mechanice, pokud je v syst‚mu
+po‘adov n p©¡stup na jinou disketu, ne‘ kter  byla dosud pou‘¡v na).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ4ÿ0ÿFÿHÿ ÿ(ÿ6ÿ8ÿ-ÿ1ÿ5ÿ) - IOCTL: nastaven¡ logick‚ho disku
+
+    vstup:    AH = 44H
+              AL = 0FH
+              BL = ‡¡slo disku (0=aktivn¡; 1=A; atd.)
+
+    v˜stup:   AL = 00H pokud je blok. za©¡zen¡ p©i©azen pouze jeden znak
+                 = nejvy¨¨¡ ona‡en¡ blokov‚ho za©¡zen¡ (1=A, atd.)
+              AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+
+    Podfunkce  (pouze  DOS  verze  3.2  a  vy¨¨¡)  nastavuje ozna‡en¡ disku
+pou‘¡van‚ jako nejposlednˆj¨¡ pro blokov‚ za©¡zen¡, kter‚ m  v¡ce ne‘ jedno
+ozna‡en¡   (logick˜  disk).  Nap©¡klad  pru‘n˜  disk  v  syst‚mu  s  jednou
+mechanikou  m–‘e  b˜t  pops n buƒ jako A: nebo jako B:. Tato funkce ozn m¡,
+zda  m   blokov‚  za©¡zen¡  v¡ce  ne‘  jedno ozna‡en¡, a pokud tomu tak je,
+nastav¡ ozna‡en¡ za©¡zen¡ jako nejposlednˆj¨¡.
+
+Pozn.: Pokud  pou‘ijete vstupnˆ/v˜stupn¡ operaci pou‘¡vaj¡c¡ ozna‡en¡ disku
+       jin‚  ne‘  nejposlednˆji  pou‘¡van‚ (u disku, kter˜ m  v¡ce mo‘nost¡
+       ozna‡en¡),  zobraz¡ DOS hl ¨en¡ "Insert diskette for..." oznamuj¡c¡,
+       ‘e  m  u‘ivatel vlo‘it novou disketu, kter  p©¡slu¨¡ jin‚ po‘adovan‚
+       logick‚  jednotce,  ne‘  s  kterou  byla  jako  s posledn¡ prov dˆna
+       diskov    operace.   Hl ¨en¡   m–‘ete  odstranit  nastaven¡m  nov‚ho
+       logick‚ho  disku  pomoc¡  t‚to  funkce  p©ed  dal¨¡ vstupnˆ/v˜stupn¡
+       operac¡.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ5ÿHÿ ÿ(ÿ6ÿ9ÿ) - zdvojen¡ identifik toru souboru (DUP)
+
+    vstup:    AH = 45H
+              BX = identifik tor souboru
+
+    v˜stup:   AX = zduplikovan˜ identifik tor souboru (pokud je CF = 0)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                        04H - nen¡   voln˜   ‘ dn˜   identifik tor  souboru
+                              (p©¡li¨ mnoho otev©en˜ch soubor–)
+                        06H - neplatn˜ identifik tor souboru
+
+    Funkce   vytvo©¡   nov˜   identifik tor   souboru   zduplikov n¡m   ji‘
+existuj¡c¡ho   identifik toru   otev©en‚ho   souboru  nebo  za©¡zen¡.  Nov˜
+identifik tor sd¡l¡ existuj¡c¡ ukazatel souboru.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       P©esunut¡  ukazatele  souboru  jednoho identifik toru souboru pomoc¡
+       READ,  WRITE  nebo  LSEEK  zp–sob¡  p©esunut¡  ukazatele  i  druh‚ho
+       identifik toru   souboru.   Av¨ak  uzav©en¡  jednoho  identifik toru
+       nezp–sob¡ uzav©en¡ jin‚ho identifik toru souboru.
+
+       Zduplikov n¡m identifik toru souboru a jeho opˆtn˜m uzav©en¡m m–‘ete
+       um¡stit  soubor  z  vyrovn vac¡  pamˆti  na  disk  a ulo‘it adres ©;
+       p–vodn¡   identifik tor  p©itom  z–st v   i  nad le  otev©en,  tak‘e
+       nemus¡te soubor znovu otev¡rat, co‘ je ‡asovˆ n ro‡n  operace.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ6ÿHÿ ÿ(ÿ7ÿ0ÿ) - nucen‚ zdvojen¡ identif. souboru (FORCDUP)
+
+    vstup:    AH = 46H
+              BX = prvn¡ identifik tor souboru
+              CX = identifik tor souboru, kter˜ m  b˜t zmˆnˆn
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                        04H - nen¡   voln˜   ‘ dn˜   identifik tor  souboru
+                              (otev©eno p©¡li¨ mnoho soubor–)
+                        06H - neplatn˜ identifik tor souboru
+
+    Funkce   zp–sob¡,   ‘e   druh˜   identifik tor  (v  CX)  bude  nastaven
+odpov¡daj¡c¡m  zp–sobem na stejn˜ soubor a stejnou pozici ukazatele souboru
+jako  prvn¡  identifik tor  (v  BX).  Oba  identifik tory  p©itom  mus¡ ji‘
+existovat. Pokud se druh˜ identifik tor vztahuje k otev©en‚mu souboru, bude
+soubor  nejd©¡ve  uzav©en  a potom teprve bude nastaven druh˜ identifik tor
+stejnˆ jako prvn¡.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       P©esunut¡  ukazatele  souboru  jednoho identifik toru souboru pomoc¡
+       READ,  WRITE  nebo  LSEEK  zp–sob¡  p©esunut¡  ukazatele  i  druh‚ho
+       identifik toru   souboru.   Av¨ak  uzav©en¡  jednoho  identifik toru
+       nezp–sob¡ uzav©en¡ jin‚ho identifik toru souboru.
+
+       Tato  funkce  je  pou‘iteln   pro p©esmˆrov n¡. Nap©. k p©esmˆrov n¡
+       standardn¡ho  v˜stupu  (p©eddefinovan‚ho  jako  identifik tor  1) na
+       soubor  um¡stˆte  do  CX  hodnotu  1  a do BX um¡stˆte identifik tor
+       souboru, na kter˜ m  b˜t p©esmˆrov n v˜stup.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ7ÿHÿ ÿ(ÿ7ÿ1ÿ) - poskytnut¡ aktivn¡ho adres ©e
+
+    vstup:    AH = 47H
+              DL = ‡¡slo disku (0=aktivn¡; 1=A; atd.)
+              DS:SI = ukazatel na 64-bajtovou vyrovn vac¡ pamˆŸ
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   0FH (15) - neplatn  specifikace disku
+
+    Funkce  navrac¡  pln‚  ozna‡en¡ cesty aktivn¡ho adres ©e kromˆ ozna‡en¡
+disku  a  inicializa‡n¡ho  znaku  lom¡tka  jako  ©etˆzec  ASCIIZ ulo‘en˜ ve
+vyrovn vac¡ pamˆti od adresy DS:SI.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Ozna‡en¡  cesty  m–‘e  b˜t  dlouh‚  a‘ 63 bajt– (bez inicializa‡n¡ho
+       znaku  lom¡tka)  plus  ukon‡uj¡c¡  nulov˜  bajt.  Pokud  je aktivn¡m
+       adres ©em  z kladn¡  adres ©  disku  (tzv. ko©enn˜ adres ©), navrac¡
+       funkce  nulov˜ ©etˆzec ASCIIZ (tzn. ‘e prvn¡ bajt vyrovn vac¡ pamˆti
+       obsahuje nulu).
+
+       V  nˆkter˜ch  verz¡ch  p©edch zej¡c¡ch  verzi DOS 3.0 mohlo ozna‡en¡
+       cesty  adres ©e  obsahovat  ‡leny  del¨¡ ne‘ 12 znak– pou‘¡van‚ jako
+       omezen¡  pro  jm‚na  soubor–. Nap©. pokud pod DOS 2.0 u‘ivatel zadal
+       p©¡kaz  "cd  \jmenoadresare\podadr" a p©itom existuje cesta adres ©e
+       "\jmenoadr\podadr",  navr t¡  tato  funkce  "\jmenoadresare\podadr".
+       Tato  cesta  je navr cena v mal˜ch p¡smenech a obsahuje p©¡li¨ mnoho
+       znak–.  DOS  3.0  a  vy¨¨¡ v‘dy vrac¡ spr vn‚ jm‚no cesty ve velk˜ch
+       p¡smenech - v tomto p©¡padˆ "JMENOADR\PODADR".
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ8ÿHÿ ÿ(ÿ7ÿ2ÿ) - p©idˆlen¡ pamˆti
+
+    vstup:    AH = 48H
+              BX = po‡et odstavc– pamˆti, kter  m  b˜t p©idˆlena
+
+    v˜stup:   AX = adresa segmentu p©idˆlen‚ pamˆti (pokud CF = 0)
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   07H (7) - ©¡d¡c¡ blok pamˆti zni‡en
+                   08H (8) - neposta‡uj¡c¡ pamˆŸ
+              BX = velikost nejdel¨¡ho voln‚ho bloku (pokud je CF = 1)
+
+    Funkce  48H dynamicky p©idˆluje pamˆŸ v n sobc¡ch po 16 bajtech (tj. po
+odstavc¡ch).  Velikost  ‡ ste‡nˆ p©idˆlen‚ pamˆti (pokud pamˆŸ nedosta‡uje)
+je  navr cena  p©i chybˆ 08H v registru BX (v odstavc¡ch). Pokud je operace
+£spˆ¨n ,  ukazuje AX:0000H na za‡ tek p©idˆlen‚ho bloku pamˆti (AX obsahuje
+adresu segmentu; offset je v‘dy 0000H).
+
+
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Pokud  nastav¡te  p©ed  vol n¡m  funkce BX=FFFFH, m–‘ete tuto funkci
+       pou‘¡t  k  zji¨tˆn¡,  jak velk  ‡ st pamˆti je voln  (je navr cena v
+       registru  BX).  To vyvol  chybu, kterou v¨ak m–‘ete ignorovat, neboŸ
+       DOS nem–‘e p©idˆlit pamˆŸ vˆt¨¡ ne‘ 640K.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿ9ÿHÿ ÿ(ÿ7ÿ3ÿ) - uvolnˆn¡ p©idˆlen‚ pamˆti
+
+    vstup:    AH = 49H
+              ES = adresa segmentu pamˆti, kter  m  b˜t uvolnˆna
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   07H (7) - ©¡d¡c¡ blok pamˆti zni‡en
+                   09H (9) - neplatn  adresa bloku pamˆti
+
+    Funkce  49H  navr t¡  do  DOS pamˆŸ, kter  byla p©idˆlena pomoc¡ funkce
+48H.  ES  ukazuje na adresu segmentu bloku, kter˜ je navracen; je to stejn 
+hodnota jako ta, kterou navr tila funkce 48H v registru AX.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿAÿHÿ ÿ(ÿ7ÿ4ÿ) - modifikace p©idˆlen¡ pamˆti (SETBLOCK)
+
+    vstup:    AH = 4AH
+              BX = nov  velikost bloku pamˆti (v odstavc¡ch)
+              ES = adresa segmentu bloku pamˆti, kter˜ je modifikov n
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   07H (7) - ©¡d¡c¡ blok pamˆti je zni‡en
+                   08H (8) - neposta‡uj¡c¡ pamˆŸ
+                   09H (9) - neplatn  adresa bloku
+
+    Funkce  umo‘¤uje  zvˆt¨it nebo zmen¨it velikost bloku pamˆti, kter˜ byl
+p©idˆlen  funkc¡  48H.  ES  obsahuje  adresu  segmentu  bloku pamˆti, jeho‘
+velikost  m   b˜t  zmˆnˆna. BX obsahuje novou velikost bloku (v odstavc¡ch,
+tj. v n sobc¡ch 16 bajt–).
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿBÿHÿ ÿ(ÿ7ÿ5ÿ) - na‡ten¡ nebo proveden¡ programu (EXEC)
+
+    vstup:    AH = 4BH
+              AL = 00H - na‡ten¡ programu a jeho start
+                   03H - na‡ten¡ programu, av¨ak nebude odstartov n
+              DS:DX = ukazatel  na  ©etˆzec  ASCIIZ  specifikuj¡c¡ ozna‡en¡
+                      cesty k podprogramu
+              ES:BX = ukazatel na blok parametr–
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H ( 1) - neplatn‚ ‡¡slo funkce
+                   02H ( 2) - soubor nenalezen
+                   03H ( 3) - cesta nenalezena
+                   05H ( 5) - po‘adavek odm¡tnut
+                   08H ( 8) - neposta‡uj¡c¡ pamˆŸ
+                   0AH (10) - neplatn‚ prost©ed¡
+                   0BH (11) - neplatn˜ form t
+
+    Funkce mˆn¡ v¨echny registry.
+
+    Funkce  4BH  umo‘¤uje  programu  zav‚st  podprogram z disku do pamˆti a
+(pokud je to po‘adov no) spustit jej. P©i zaveden¡ programu se z otcovsk‚ho
+procesu  zduplikuj¡  do  synovsk‚ho  procesu  v¨echny  otev©en‚  soubory  a
+prost©ed¡  procesu - to umo‘¤uje, aby otcovsk˜ proces p©esmˆroval podle sv‚
+pot©eby  nap©.  vstupn¡  a  v˜stupn¡ za©¡zen¡ a potom vyvolal map©. t©¡d¡c¡
+program.
+
+    Pokud  je  v  AL  zad na  hodnota  00H,  podprogram se na‡te do pamˆti,
+vytvo©¡  se  jeho prefix programov‚ho segmentu PSP a program se odstartuje.
+Vektory ukon‡en¡ a obsluhy Ctrl-Break se nastav¡ na adresu instrukce, kter 
+n sleduje za vol n¡m t‚to funkce EXEC v hlavn¡m programu, tak‘e po ukon‡en¡
+podprogramu  z  disku  se ©¡zen¡ navr t¡ do hlavn¡ho programu, jakoby ¨lo o
+vol n¡ bˆ‘n‚ho podprogramu.
+
+    Pokud  je  v  AL  zad na  hodnota  03H,  podprogram se na‡te z disku do
+pamˆti,  nevytvo©¡  se  v¨ak  prefix  programov‚ho  segmentu  PSP,  ani  se
+podprogram  automaticky  nespust¡, av¨ak hlavn¡ program m–‘e do podprogramu
+vsko‡it p©¡mo.
+
+    Do registrov‚ho p ru DS:DX ulo‘te ukazatel na ©etˆzec ASCIIZ obsahuj¡c¡
+ozna‡en¡  disku,  cesty  a  jm‚no souboru, kter˜ se m  zav‚st do pamˆti. Do
+registr–  ES:BX ulo‘te ukazatel na blok parametr–, kter‚ specifikuj¡ bli‘¨¡
+podm¡nky pro proveden¡ podprogramu. Blok parametr– m  tuto strukturu:
+
+    Pro podfunkci 00H (na‡ti a spusti):
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º  offset  ³ velikost (bajt–) ³                 popis                   º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 00H ( 0) ³        2         ³ adresa segmentu ©etˆzc– prost©ed¡       º
+º 02H ( 2) ³        4         ³ segment a offset p©¡kazov‚ho © dku      º
+º 06H ( 6) ³        4         ³ segment a offset prvn¡ho aktivn¡ho FCB  º
+º 0AH (10) ³        4         ³ segment a offset druh‚ho aktivn¡ho FCB  º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Pro podfunkci 03H (na‡ti ale nespou¨tˆj):
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º  offset  ³ velikost (bajt–) ³                 popis                   º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 00H ( 0) ³        2         ³ adresa segmentu kam bude soubor na‡ten  º
+º 02H ( 2) ³        2         ³ reloka‡n¡ faktor programu (aplikuje se  º
+º          ³                  ³     pouze pro form ty program– EXE)     º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Prost©ed¡: etˆzce  prost©ed¡,  kter‚  mus¡  b˜t  se©azeny  po  odstavc¡ch,
+           obsahuj¡  posloupnosti  ©etˆzc– ASCIIZ n sledovan‚ bajtem 00H po
+           v¨ech   ©etˆzc¡ch.   Ka‘d˜   ©etˆzec  ASCIIZ  m   typicky  formu
+           parametr=hodnota. Celkov˜ ©etˆzec prost©ed¡ mus¡ b˜t svou d‚lkou
+           men¨¡  ne‘  32K. Pokud je segment pro ©etˆzec prost©ed¡ nastaven
+           na   00H,  sd¡l¡  podprogram  prost©ed¡  programu,  kter˜  tento
+           podprogram vyvolal.
+
+           Podprogram  v‘dy  p©ij¡m   kopii  ©etˆzce prost©ed¡, tak‘e ‘ dn 
+           zmˆna  proveden  v prost©ed¡ podprogramu se neodraz¡ v prost©ed¡
+           hlavn¡ho programu.
+
+Soubory:   Pokud  je  podprogram  na‡ten  do  pamˆti  a  vykon v n, v¨echny
+           otev©en‚  identifik tory  soubor–  se  uvoln¡ pro podprogram. To
+           znamen , ‘e volaj¡c¡ program m–‘e p©esmˆrovat standardn¡ vstup a
+           v˜stup  pro  podprogram. Nejsou uvolnˆny pro podprogram pouze ty
+           identifik tory  soubor–,  kter‚ byly otev©eny s nastaven˜m bitem
+           p©¡znaku pod¡lu (bit 7 registru AL - viz funkce 3DH).
+
+PamˆŸ:     P©ed  pou‘it¡m  funkce  4BH  mus¡te  uvolnit dostatek pamˆti pro
+           na‡ten¡ podprogramu resp. pro jeho provoz (voz funkce 4AH).
+
+Varov n¡:  Tato  funkce  mˆn¡  v¨echny  registry v‡etnˆ registru z sobn¡ku.
+           Proto  p©ed  vol n¡m  podprogramu  ulo‘te  registry  SS  a SP do
+           promˆnn˜ch  (tj.  na  ur‡it   pamˆŸov   m¡sta)  uvnit©  hlavn¡ho
+           programu  a  po n vratu z podprogramu nejd©¡ve navraŸte tyto dva
+           registry a potom teprve m–‘ete opˆt pou‘¡vat z sobn¡k.
+
+Pozn.:     Funkce EXEC vol  zav dˆc¡ ‡ st COMMAND.COM k zaveden¡ programu.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿCÿHÿ ÿ(ÿ7ÿ6ÿ) - ukon‡en¡ procesu (EXIT)
+
+    vstup:    AH = 4CH
+              AL = n vratov˜ k¢d
+
+    v˜stup:   ‘ dn˜ - neexistuje n vrat
+
+    Tato  funkce  je  spr vn   metoda  ukon‡en¡  programu v DOS verze 2.0 a
+vy¨¨¡.  Funkce  uzav©e  v¨echny  soubory  a navr t¡ ©¡zen¡ zpˆt do hlavn¡ho
+(otcovsk‚ho)  procesu  (obvykle  COMMAND.COM).  P©itom  lze  v  registru AL
+specifikovat  n vratov˜  k¢d,  kter˜  slou‘¡ hlavn¡mu procesu k informaci o
+‡innosti ukon‡en‚ho procesu.
+
+Pozn.: N vratov˜  k¢d m–‘e b˜t testov n pomoc¡ funkce 4DH nebo v p©¡kazov‚m
+       souboru syst‚mu pomoc¡ p©¡kazu ERRORLEVEL.
+
+       Tato  metoda  ukon‡en¡  procesu je v˜hodnˆj¨¡ ne‘ p©eru¨en¡ INTú20H,
+       neboŸ CS nemus¡ obsahovat adresu prefixu z hlav¡ programu PSP.
+
+P©¡klad: N sleduj¡c¡ kr tk˜ program je velmi u‘ite‡nou mali‡kost¡ p©i pr ci
+         v  opera‡n¡m  syst‚mu. Umo‘¤uje vˆtvit u‘ivatelsk‚ volby v syst‚mu
+         podle zad n¡ z kl vesnice. Program ‡ek  na znak z kl vesnice (znak
+         se nezobrazuje, tato ‡innost se ponech v  na p©¡kazov‚m souboru) a
+         pokud  je  to  p¡smeno,  navr t¡ k¢d odpov¡daj¡c¡ po©adov‚mu ‡¡slu
+         p¡smene (A=0, ..., Z=25) nez visle na tom, zda jde o velk‚ ‡i mal‚
+         p¡smeno.  D le  je uveden kr tk˜ p©¡kazov˜ soubor ukazuj¡c¡ zp–sob
+         pr ce s t¡mto programem (program je zde pojmenov n PISMENO.EXE).
+
+         cyklus:   mov       ah,8
+                   int       21h            ; ‡ek n¡ na zad n¡ znaku
+                   sub       al,"A"         ; ode‡ten¡ znaku "A"
+                   jc        cyklus         ; men¨¡ ne‘ "A"
+                   cmp       al,27
+                   jl        konec          ; je platn˜ znak
+                   sub       al,32          ; korekce mal˜ch p¡smen
+                   jc        cyklus         ; nen¡ mal‚ p¡smeno
+                   cmp       al,26          ; je p¡smeno ?
+                   jg        cyklus         ; nen¡ mal‚ p¡smeno
+         konec:    mov       ah,4ch
+                   int       21h            ; ukon‡en¡ programu
+
+P©¡klad povelov‚ho souboru:
+
+         echo off
+         echo Zadejte va¨i volbu (ANO/NE)
+         :start
+         PISMENO.EXE
+         if errorlevel == 14 goto start
+         if errorlevel == 13 goto ne
+         if errorlevel == 1 goto start
+         echo ANO !
+         goto start
+         :ne
+         echo NE !
+         goto start
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿDÿHÿ ÿ(ÿ7ÿ7ÿ) - poskytnut¡ n vrat. k¢du podprocesu (WAIT)
+
+    vstup:    AH = 4DH
+
+    v˜stup:   AX = n vratov˜ k¢d
+
+    Funkce  poskytne n vratov˜ k¢d procesu, kter˜ byl ukon‡en pomoc¡ funkce
+4CH  (EXIT)  nebo funkce 31H (p©eru¨en¡ a ponech n¡ rezidentn¡m). N vratov˜
+k¢d  se  skl d   ze  dvou  ‡ st¡: AL obsahuje n vratov˜ k¢d, kter˜ nastavil
+p©eru¨en¡  proces;  AH  obsahuje zp–sob, jak˜m byl podproces ukon‡en.
+
+    Mo‘n‚ hodnoty registru AH jsou:
+   ÉÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+   º 00H (0) ³ norm ln¡ p©eru¨en¡                                       º
+   º 01H (1) ³ p©eru¨en¡ kl vesami <Ctrl>-<Break> (<Ctrl>-C)            º
+   º 02H (2) ³ p©eru¨en¡ z DOS z d–vodu kritick‚ chyby za©¡zen¡         º
+   º 03H (3) ³ p©eru¨en¡ funkc¡ 31H (p©eru¨en¡ a ponech n¡ rezidentn¡m) º
+   ÈÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿEÿHÿ ÿ(ÿ7ÿ8ÿ) - nalezen¡ 1.vyhovuj¡c¡ho soub. (FIND FIRST)
+
+    vstup:    AH = 4EH
+              CX = atributy souboru
+              DS:DX = ukazatel na specifikaci souboru (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   02H ( 2) - soubor nenalezen
+                   03H ( 3) - cesta nenalezena
+                   12H (18) - nelze nal‚zt dal¨¡ soubory
+
+    Funkce  nalezne  prvn¡  soubor,  kter˜ vyhovuje specifikaci (udan‚ jako
+©etˆzec  ASCIIZ na adrese DS:DX). Specifikace m–‘e obsahovat ozna‡en¡ disku
+a cestu, jm‚no souboru m–‘e obsahovat maskovac¡ znaky (* a ?).
+
+    Funkce  navrac¡  informace  v  43-bajtov‚  oblasti pamˆti na adrese DTA
+(adresa diskov˜ch p©enos–). Informace jsou form tovany takto:
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º  offset  ³ velikost ³             popis                                º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 00H ( 0) ³    21    ³ pou‘¡v  DOS pro funkci 4FH (nalezen¡ dal¨¡ho)    º
+º 15H (21) ³     1    ³ atributy nalezen‚ho souboru                      º
+º 16H (22) ³     2    ³ ‡as posledn¡ho z znamu souboru                   º
+º 18H (24) ³     2    ³ datum posledn¡ho z znamu souboru                 º
+º 1AH (26) ³     4    ³ velikost souboru v bajtech                       º
+º 1EH (30) ³    13    ³ jm‚no souboru a roz¨¡©en¡ jm‚na souboru (ASCIIZ) º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Jm‚no  souboru  a  roz¨¡©en¡  jm‚na  souboru  jsou hl ¨eny v konven‡n¡m
+tvaru,  s  vymazan˜mi  mezerami a s te‡kou mezi jm‚nem souboru a roz¨¡©en¡m
+jm‚na souboru. Pokud soubor neobsahuje ‘ dn‚ roz¨¡©en¡ jm‚na souboru, te‡ka
+je potla‡ena.
+
+Pozn.: Dal¨¡  vyhovuj¡c¡  soubor  m–‘ete hledat pomoc¡ funkce 4FH (nalezen¡
+       dal¨¡ho vyhovuj¡c¡ho souboru).
+
+       Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Adresu diskov˜ch p©enos– (DTA) m–‘ete nastavit pomoc¡ funkce 1AH.
+
+       Rozsah  hled n¡  m–‘ete ©¡dit zad n¡m bajtu atribut– do registru CX.
+       Pokud  je  CX  nastaven  na 00H, hled  funkce pouze norm ln¡ soubory
+       (tj.   mohou   m¡t  nastaven  pouze  atribut  "pouze  ‡ten¡"  a/nebo
+       "archivn¡").  Pokud  je v CX specifikov na nˆjak  kombinace atribut–
+       "skryt˜   soubor",  "syst‚mov˜  soubor"  nebo  "adres ©",  budou  se
+       vyhled vat   norm ln¡  soubory  a  tak‚  v¨echny  soubory  s  tˆmito
+       atributy.  Pokud  je v CX specifikov n atribut "n vˆ¨t¡ disku", bude
+       funkce  hledat  pouze  polo‘ku s atributem "n vˆ¨t¡ disku". Atributy
+       "pouze ‡ten¡" a "archivn¡" nemaj¡ vliv na hled n¡.
+
+         Struktura bajtu atribut– souboru:
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0 (  1): pouze ‡ten¡ souboru (Read-only "R/O")
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1 (  2): skryt˜ soubor (Hidden "HID")
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2 (  4): syst‚mov˜ soubor (System "SYS")
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3 (  8): n vˆ¨t¡ disku (Volume Label "VOL")
+         ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4 ( 16): adres © (Directory "DIR")
+         ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5 ( 32): archivn¡ soubor (Archive "ARC")
+         ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6 ( 64): rezervov no (mus¡ b˜t nastaven na 0)
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7 (128): rezervov no (mus¡ b˜t nastaven na 0)
+
+            - bli‘¨¡ popis atribut– viz "Adres ©ov  polo‘ka"
+
+       €as  posledn¡ho z znamu ud v  ‡as, kdy byl soubor naposledy vytvo©en
+       nebo  aktualizov n.  Hodina,  minuta  a sekunda jsou zaps ny ve dvou
+       bajtech takto:
+
+        15  14  13  12  11  10   9   8      7   6   5   4   3   2   1   0
+       ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+       ³ H ³ H ³ H ³ H ³ H ³ M ³ M ³ M ³  ³ M ³ M ³ M ³ S ³ S ³ S ³ S ³ S ³
+       ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+        ³                 ³ ³                        ³ ³                 ³
+        ÀÄ hodina (0-23) ÄÙ ÀÄÄÄÄ minuta (0-59) ÄÄÄÄÄÙ ÀÄ sekunda (0-58) Ù
+                                                      (£daj se vyn sob¡ 2*)
+
+       Datum  posledn¡ho  z znamu  ud v   den,  kdy  byl  soubor  naposledy
+       vytvo©en  nebo  aktualizov n.  Rok, mˆs¡c a den jsou zaps ny ve dvou
+       bajtech takto:
+
+        15  14  13  12  11  10   9   8      7   6   5   4   3   2   1   0
+       ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+       ³ R ³ R ³ R ³ R ³ R ³ R ³ R ³ M ³  ³ M ³ M ³ M ³ D ³ D ³ D ³ D ³ D ³
+       ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+        ³                         ³ ³                ³ ³                 ³
+        ÀÄÄÄ rok (1980 a‘ 2099) ÄÄÙ ÀÄ mˆs¡c (1-12) ÄÙ ÀÄÄÄ den (1-31) ÄÄÙ
+         (k £daji se p©i‡te 1980)
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ4ÿFÿHÿ ÿ(ÿ7ÿ9ÿ) - nalezen¡ dal¨¡ho vyhov.souboru (FIND NEXT)
+
+    vstup:    AH = 4FH
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   12H (18) - nejsou ‘ dn‚ dal¨¡ vyhovuj¡c¡ soubory
+
+    Funkce  pokra‡uje  v  hled n¡  dal¨¡ho  souboru,  kter˜ se za‡al hledat
+pomoc¡  funkce  4EH  (nalezen¡  prvn¡  vyhovuj¡c¡ho souboru). Informace pro
+hled n¡  souboru  se  p©ed  z funkce 4EH v 43-bajtov‚ polo‘ce na adrese DTA
+(adresa diskov˜ch p©enos–). Informace pro hled n¡ m  tuto strukturu:
+
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º  offset  ³ velikost ³             popis                                º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 00H ( 0) ³    21    ³ pou‘¡v  DOS pro proces nalezen¡ dal¨¡ho souboru  º
+º 15H (21) ³     1    ³ atributy nalezen‚ho souboru                      º
+º 16H (22) ³     2    ³ ‡as posledn¡ho z znamu souboru                   º
+º 18H (24) ³     2    ³ datum posledn¡ho z znamu souboru                 º
+º 1AH (26) ³     4    ³ velikost souboru v bajtech                       º
+º 1EH (30) ³    13    ³ jm‚no souboru a roz¨¡©en¡ jm‚na souboru (ASCIIZ) º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Jm‚no  souboru  a  roz¨¡©en¡  jm‚na  souboru  jsou hl ¨eny v konven‡n¡m
+tvaru,  s  vymazan˜mi  mezerami a s te‡kou mezi jm‚nem souboru a roz¨¡©en¡m
+jm‚na souboru. Pokud soubor neobsahuje ‘ dn‚ roz¨¡©en¡ jm‚na souboru, te‡ka
+je potla‡ena.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Pro  nalezen¡  prvn¡ho vyhovuj¡c¡ho souboru pou‘ijte funkci 4EH, kde
+       jsou t‚‘ podrobnˆji pops ny jednotliv‚ polo‘ky informa‡n¡ho pole.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ0ÿHÿ ÿ(ÿ8ÿ0ÿ) - rezervov no
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ1ÿHÿ ÿ(ÿ8ÿ1ÿ) - rezervov no
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ2ÿHÿ ÿ(ÿ8ÿ2ÿ) - rezervov no
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ3ÿHÿ ÿ(ÿ8ÿ3ÿ) - rezervov no
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ4ÿHÿ ÿ(ÿ8ÿ4ÿ) - poskytnut¡ informace o nastaven¡ VERIFY
+
+    vstup:    AH = 54H
+
+    v˜stup:   AL = 00H - p©ep¡na‡ VERIFY je vypnut
+                   01H - p©ep¡na‡ VERIFY je zapnut
+
+    Funkce  54H navrac¡ v registru AL informaci o sou‡asn‚m stavu nastaven¡
+syst‚mov‚ho  p©ep¡na‡e VERIFY. P©¡zak VERIFY lze nastavit pomoc¡ funkce 2EH
+nebo  pomoc¡  povelu  VERIFY  ON  nebo OFF. Pokud je p©ep¡na‡ VERIFY zapnut
+(ON), prov d¡ se p©i diskov˜ch operac¡ch ovˆ©ov n¡ zapsan˜ch dat kontroln¡m
+‡ten¡m (nikoliv v¨ak porovn n¡m se zapisovan˜mi daty).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ5ÿHÿ ÿ(ÿ8ÿ5ÿ) - rezervov no
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ6ÿHÿ ÿ(ÿ8ÿ6ÿ) - p©ejmenov n¡ souboru
+
+    vstup:    AH = 56H
+              DS:DX = ukazatel na ©etˆzec ASCIIZ obsahuj¡c¡ p–vodn¡ cestu a
+                      jm‚no souboru
+              ES:DI = ukazatel  na  ©etˆzec ASCIIZ obsahuj¡c¡ novou cestu a
+                      jm‚no souboru
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   02H ( 2) - soubor nenalezen
+                   03H ( 3) - cesta nenalezena
+                   05H ( 5) - po‘adavek odm¡tnut
+                   11H (17) - nen¡ stejn‚ za©¡zen¡
+
+    Funkce  p©ejmenuje  soubor,  p©em¡st¡ jej do jin‚ho adres ©e na stejn‚m
+disku nebo jej p©ejmenuje i p©em¡st¡.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Pokud  je  v popisu nov‚ho souboru obsa‘eno ozna‡en¡ disku, mus¡ b˜t
+       toto ozna‡en¡ shodn‚ s ozna‡en¡m disku v popisu p–vodn¡ho souboru.
+
+       Jm‚no souboru nem–‘e obsahovat maskovac¡ znaky (? a *).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ7ÿHÿ ÿ(ÿ8ÿ7ÿ) - poskytnut¡/nastaven¡ data a ‡asu souboru
+
+    vstup:    AH = 57H
+              AL = 00H - poskytnut¡ data a ‡asu souboru
+                   01H - nastaven¡ data a ‡asu souboru
+              BX = identifik tor souboru
+              CX = ‡as (pouze je-li AL = 01H - nastaven¡)
+              DX = datum (pouze je-li AL = 01H - nastaven¡)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - neplatn‚ ‡¡slo funkce v AL
+                   06H (6) - neplatn˜ identifik tor souboru
+              CX = ‡as (pouze je-li AL = 00H - poskytnut¡)
+              DX = datum (pouze je-li AL = 00H - poskytnut¡)
+
+    Funkce  navrac¡  nebo  nastavuje datum a ‡as posledn¡ho z pisu souboru,
+kter˜ byl otev©en pomoc¡ identifik toru souboru (nap©. pomoc¡ funkce 3DH).
+
+    Datum a ‡as jsou definov ny n sleduj¡c¡m zp–sobem:
+
+               DX (datum) = (rok-1980)*512 + mˆs¡c*32 + den
+
+       15  14  13  12  11  10   9   8       7   6   5   4   3   2   1   0
+      ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿   ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+      ³ R ³ R ³ R ³ R ³ R ³ R ³ R ³ M ³   ³ M ³ M ³ M ³ D ³ D ³ D ³ D ³ D ³
+      ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ   ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+       ³                         ³ ³                 ³ ³                 ³
+       ÀÄÄÄ rok (1980 a‘ 2099) ÄÄÙ ÀÄÄ mˆs¡c (1-12) ÄÙ ÀÄÄÄ den (1-31) ÄÄÙ
+      (k £daji se p©i‡te hodnota 1980)
+
+
+               CX (‡as) = hodina*2048 + minuta*32 + sekunda/2
+
+       15  14  13  12  11  10   9   8       7   6   5   4   3   2   1   0
+      ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿   ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+      ³ H ³ H ³ H ³ H ³ H ³ M ³ M ³ M ³   ³ M ³ M ³ M ³ S ³ S ³ S ³ S ³ S ³
+      ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ   ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+       ³                 ³ ³                         ³ ³                 ³
+       ÀÄ hodina (0-23) ÄÙ ÀÄÄÄÄÄ minuta (0-59) ÄÄÄÄÄÙ ÀÄ sekunda (0-58) Ù
+                                                     (£daj je vyn soben 2*)
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿ9ÿHÿ ÿ(ÿ8ÿ9ÿ) - poskytnut¡ roz¨¡©en˜ch chybov˜ch informac¡
+
+    vstup:    AH = 59H
+              BX = 0000H pro DOS 3.00 a vy¨¨¡
+
+    v˜stup:   AX = roz¨i©uj¡c¡ chybov˜ k¢d
+              BH = t©¡da chyby
+              BL = n vrh dal¨¡ akce
+              CH = um¡stˆn¡ chyby (zdroj chyby)
+
+    zni‡en‚ registry: CL, DX, SI, DI, ES a DS
+
+    Funkce  59H navrac¡ detailnˆj¨¡ diagnostick‚ informace o vznikl‚ chybˆ.
+Tato  funkce  m–‘e  b˜t  pou‘ita  zevnit© obsluhy kritick‚ chyby (p©eru¨en¡
+INTú24H),  po  vol n¡  funkce  DOS  kter   hl s¡  chybu nastaven¡m p©¡znaku
+p©enosu  CF  nebo  po  operaci  se  souborem  s  pou‘it¡m  FCB, kter  hl s¡
+n vratov˜ k¢d FFH. Tato funkce je mo‘n  pouze pro DOS 3.00 a vy¨¨¡.
+
+    V¨echny  funkce  pracuj¡c¡ s FCB (tj. chybov‚ k¢dy navracen‚ v DOS 1.x)
+navrac¡  chybov˜  k¢d  operace v registru AL - p©i bezchybn‚ funkci navr t¡
+k¢d  0,  p©i  chybˆ navr t¡ k¢d 0FFH. Ostatn¡ funkce hl s¡ chybu nastaven¡m
+p©¡znaku  p©enosu  CF  a  um¡stˆn¡m  chybov‚ho  k¢du  do  registru  AX (viz
+n sleduj¡c¡  tabulka). DOS 2.x navrac¡ chybov‚ k¢dy 01H - 12H (18). Pod DOS
+3.x  je  lep¨¡  volat  tuto  funkci 59H, pomoc¡ n¡‘ lze obdr‘et podrobnˆj¨¡
+informace o chyb ch.
+
+    Chyby  13H  (19)  a‘  1FH (31) odpov¡daj¡ chyb m 00H a‘ 0CH, kter‚ jsou
+p©ed v ny  v  registru  DI p©i vyvol n¡ p©eru¨en¡ INT 24H (obsluha kritick‚
+chyby).
+
+    Hodnoty navr cen‚ v registru AX (roz¨¡©en˜ chybov˜ k¢d):
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   K¢d    ³                       V˜znam                                 º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 00H ( 0) ³ ‘ dn  chyba                                                  º
+º 01H ( 1) ³ neplatn‚ ‡¡slo funkce                                        º
+º 02H ( 2) ³ soubor nenalezen                                             º
+º 03H ( 3) ³ cesta nenalezena                                             º
+º 04H ( 4) ³ otev©eno p©¡li¨ mnoho soubor– (nen¡ voln˜ ident.s.)          º
+º 05H ( 5) ³ po‘adavek odm¡tnut                                           º
+º 06H ( 6) ³ neplatn˜ identifik tor souboru                               º
+º 07H ( 7) ³ ©¡d¡c¡ blok pamˆti zni‡en                                    º
+º 08H ( 8) ³ neposta‡uj¡c¡ pamˆŸ                                          º
+º 09H ( 9) ³ neplatn  adresa bloku pamˆti                                 º
+º 0AH (10) ³ neplatn‚ prost©ed¡                                           º
+º 0BH (11) ³ neplatn˜ form t                                              º
+º 0CH (12) ³ neplatn˜ p©¡stupov˜ k¢d                                      º
+º 0DH (13) ³ neplatn  data                                                º
+º 0EH (14) ³ rezervov no                                                  º
+º 0FH (15) ³ neplatn  specifikace disku                                   º
+º 10H (16) ³ pokus o zru¨en¡ aktivn¡ho adres ©e                           º
+º 11H (17) ³ nen¡ stejn‚ za©¡zen¡                                         º
+º 12H (18) ³ nejsou ‘ dn‚ dal¨¡ soubory                                   º
+ÇÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º 13H (19) ³ pokus o z pis na disk chr nˆn˜ proti z pisu    INT 24H/00H   º
+º 14H (20) ³ nezn m  jednotka                               INT 24H/01H   º
+º 15H (21) ³ diskov  mechanika nen¡ p©ipravena              INT 24H/02H   º
+º 16H (22) ³ nezn m˜ povel                                  INT 24H/03H   º
+º 17H (23) ³ chyba dat disku (kontroln¡ sou‡et CRC)         INT 24H/04H   º
+º 18H (24) ³ chybn  d‚lka struktury po‘adavku               INT 24H/05H   º
+º 19H (25) ³ chyba vystaven¡ disku                          INT 24H/06H   º
+º 1AH (26) ³ nezn m˜ typ m‚dia                              INT 24H/07H   º
+º 1BH (27) ³ sektor nenalezen                               INT 24H/08H   º
+º 1CH (28) ³ v tisk rnˆ nen¡ pap¡r                          INT 24H/09H   º
+º 1DH (29) ³ operace z pisu byla chybn                      INT 24H/0AH   º
+º 1EH (30) ³ operace ‡ten¡ byla chybn                       INT 24H/0BH   º
+º 1FH (31) ³ celkov  chyba                                  INT 24H/0CH   º
+ÇÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶
+º 20H (32) ³ poru¨en¡ sd¡len¡ soubor–                                     º
+º 21H (33) ³ poru¨en¡ uzamyk n¡ soubor–                                   º
+º 22H (34) ³ neplatn  v˜mˆna disku                                        º
+º 23H (35) ³ ©¡d¡c¡ blok souboru FCB nep©¡stupn˜ (p©¡li¨ mnoho FCB)       º
+º 24H (36) ³ p©ete‡en¡ vyrovn vac¡ pamˆti pro sd¡len¡                     º
+º 25H - 31H³ rezervov no                                                  º
+º 32H (50) ³ po‘adavek pro pr ci v s¡ti nen¡ podporov n                   º
+º 33H (51) ³ vzd len˜ po‡¡ta‡ nep©ij¡m                                    º
+º 34H (52) ³ zdvojen‚ s¡Ÿov‚ jm‚no                                        º
+º 35H (53) ³ s¡Ÿov‚ jm‚no nenalezeno                                      º
+º 36H (54) ³ s¡Ÿ zanepr zdnˆna                                            º
+º 37H (55) ³ s¡Ÿov‚ za©¡zen¡ ji‘ nad le neexistuje                        º
+º 38H (56) ³ omezen¡ povelu s¡Ÿov‚ho BIOSu p©ekro‡eno                     º
+º 39H (57) ³ chyba hardware adapt‚ru pro pr ci v s¡ti                     º
+º 3AH (58) ³ nespr vn  odpovˆƒ ze s¡tˆ                                    º
+º 3BH (59) ³ neo‡ek van  chyba s¡Ÿˆ                                       º
+º 3CH (60) ³ nekompatibiln¡ adapt‚r pro d lkov‚ p©enosy                   º
+º 3DH (61) ³ tiskov  fronta pln                                           º
+º 3EH (62) ³ nen¡ dostatek voln‚ho m¡sta pro ti¨tˆn˜ soubor               º
+º 3FH (63) ³ ti¨tˆn˜ soubor byl zru¨en                                    º
+º 40H (64) ³ s¡Ÿov‚ jm‚no bylo zru¨eno                                    º
+º 41H (65) ³ po‘adavek odm¡tnut                                           º
+º 42H (66) ³ typ s¡Ÿov‚ho za©¡zen¡ nespr vn˜                              º
+º 43H (67) ³ s¡Ÿov‚ jm‚no nenalezeno                                      º
+º 44H (68) ³ p©ekro‡eno omezen¡ s¡Ÿov‚ho jm‚na                            º
+º 45H (69) ³ p©ekro‡eno omezen¡ citlivosti s¡Ÿov‚ho BIOSu                 º
+º 46H (70) ³ do‡asn  pauza                                                º
+º 47H (71) ³ po‘adavek pro pr ci v s¡ti nep©ijat                          º
+º 48H (72) ³ pauza tiskov‚ho nebo diskov‚ho p©esmˆrov n¡                  º
+º 49H - 4FH³ rezervov no                                                  º
+º 50H (80) ³ soubor ji‘ existuje                                          º
+º 51H (81) ³ rezervov no                                                  º
+º 52H (82) ³ nelze vytvo©it polo‘ku adres ©e                              º
+º 53H (83) ³ chyba - p©eru¨en¡ pro obsluhu kritick‚ chyby INT 24H         º
+º 54H (84) ³ p©¡li¨ mnoho p©esmˆrov n¡                                    º
+º 55H (85) ³ zdvojen‚ p©esmˆrov n¡                                        º
+º 56H (86) ³ neplatn‚ heslo                                               º
+º 57H (87) ³ neplatn˜ parametr                                            º
+º 58H (88) ³ chyba za©¡zen¡ pro pr ci v s¡ti                              º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Hodnoty navr cen‚ v registru BH (t©¡da chyby):
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   K¢d    ³                       V˜znam                                 º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 01H ( 1) ³ p©ekro‡eno p©esmˆrov n¡ (nejsou FCB, pamˆŸ, kan ly, ident.)  º
+º 02H ( 2) ³ do‡asn  situace; zkuste opˆt pozdˆji (nap©. uzam‡en˜ soubor) º
+º 03H ( 3) ³ probl‚my opr vnˆn¡ (mus¡te m¡t vy¨¨¡ p©¡stupov  pr va)       º
+º 04H ( 4) ³ vnit©n¡ chyba v syst‚mov‚m software (chyba v DOS)            º
+º 05H ( 5) ³ chyba hardware                                               º
+º 06H ( 6) ³ chyba syst‚mu; tj. ¨patn˜ nebo chyb¡ CONFIG.SYS              º
+º 07H ( 7) ³ chyba aplika‡n¡ho programu (chybn  informace do DOS atd.)    º
+º 08H ( 8) ³ po‘adovan˜ prvek nenalezen                                   º
+º 09H ( 9) ³ chybn˜ form t (tj. nerozpoznateln˜ disk nebo soubor)         º
+º 0AH (10) ³ prvek vnit©nˆ uzam‡en                                        º
+º 0BH (11) ³ chyba m‚dia (tj. chyba CRC, ¨patn˜ disk)                     º
+º 0CH (12) ³ prvek ji‘ existuje                                           º
+º 0DH (13) ³ jin‚ chyby (neklasifikovan‚)                                 º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Hondoty navr cen‚ v registru BL (n vrh dal¨¡ akce):
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   K¢d    ³                       V˜znam                                 º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 01H ( 1) ³ zkuste nˆkolikr t (a pak se zeptejte u‘ivatele, co d l)      º
+º 02H ( 2) ³ zkuste   opˆt  (nˆkolikr t)  po  p©est vce,  potom  zobrazte º
+º          ³ u‘ivateli nab¡dku k pokra‡ov n¡ nebo k abortov n¡ procesu    º
+º 03H ( 3) ³ po‘ dejte u‘ivatele o opraven¡ vstupu, potom opakujte        º
+º 04H ( 4) ³ © dnˆ p©eru¨te; uzav©ete soubory a potom ukon‡ete aplikaci   º
+º 05H ( 5) ³ p©¡mo p©eru¨te; nepokou¨ejte se ji‘ uzav©¡t soubory          º
+º 06H ( 6) ³ ignorujte                                                    º
+º 07H ( 7) ³ po‘ dejte  u‘ivatele,  aby  nˆco udˆlal (jako vlo‘it spr vn˜ º
+º          ³ disk) a potom operaci opakujte                               º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+    Hodnoty navr cen‚ v registru CH (um¡stˆn¡ chyby, zdroj chyby):
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   K¢d    ³                       V˜znam                                 º
+ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º 01H ( 1) ³ nezn m˜ zdroj chyby                                          º
+º 02H ( 2) ³ blokov‚ za©¡zen¡ (tj. disk)                                  º
+º 03H ( 3) ³ komunika‡n¡ s¡Ÿ                                              º
+º 04H ( 4) ³ znakov‚ za©¡zen¡, s‚riov‚ za©¡zen¡                           º
+º 05H ( 5) ³ pamˆŸ                                                        º
+ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿAÿHÿ ÿ(ÿ9ÿ0ÿ) - vytvo©en¡ jedine‡n‚ho souboru
+
+    vstup:    AH = 5AH
+              CX = atributy souboru
+              DS:DX = ukazatel na cestu kon‡¡c¡ znakem \ (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   03H (3) - cesta nenalezena
+                   05H (5) - po‘adavek odm¡tnut
+              DS:DX = ukazatel na jm‚no souboru (©etˆzec ASCIIZ)
+
+    Funkce 5AH vytvo©¡ ve specifikovan‚m adres ©i jedine‡n˜ soubor a otev©e
+jej  v  kompatibiln¡m  m¢du s p©¡stupem "‡ten¡/z pis". Tato funkce se ‡asto
+pou‘¡v  k vytvo©en¡ do‡asn˜ch soubor–, av¨ak DOS p©i ukon‡en¡ programu tyto
+soubory automaticky neru¨¡. Tato slu‘ba je mo‘n  pouze v DOS 3.0 a vy¨¨¡m.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Jm‚no cesty k adres ©i mus¡ kon‡it znakem obr cen‚ho lom¡tka "\".
+
+       Rezervujte  za  ©etˆzcem ozna‡en¡ cesty 13 bajt– tak, aby DOS mohl k
+       cestˆ p©ipojit jm‚no novˆ vytvo©en‚ho souboru.
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿBÿHÿ ÿ(ÿ9ÿ1ÿ) - vytvo©en¡ nov‚ho souboru
+
+    vstup:    AH = 5BH
+              CX = atributy souboru
+              DS:DX = ukazatel na ozna‡en¡ souboru (©etˆzec ASCIIZ)
+
+    v˜stup:   AX = identifik tor souboru
+                 = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   03H (3) - cesta nenalezena
+                   04H (4) - nen¡ voln˜ ‘ dn˜ identifik tor souboru
+                   05H (5) - po‘adavek odm¡tnut
+                   80H (128) - soubor ji‘ existuje
+
+    Tato  funkce  vytvo©¡  soubor podle specifikovan‚ho ozna‡en¡ souboru za
+podm¡nky,  ‘e  tento  soubor dosud neexistuje. Tato funkce je mo‘n  pouze v
+DOS 3.0 a vy¨¨¡m.
+
+   P©i pr ci v s¡ti vy‘aduje tato funkce p©¡stupov  pr va vytv ©en¡ CREATE.
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Tato  funkce  je identick  funkci 3CH (vytvo©en¡ souboru) v p©¡padˆ,
+       ‘e  vytv ©en˜  soubor  dosud  je¨tˆ  neexistuje.  Pokud  soubor  ji‘
+       existuje,  ohl s¡  tato  funkce  chybu,  zat¡mco  funkce 3CH v tomto
+       p©¡padˆ  zkr t¡  existuj¡c¡  soubor  na  nulovou  d‚lku  a potom jej
+       otev©e.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿCÿHÿ ÿ(ÿ9ÿ2ÿ) - zamknut¡/odemknut¡ p©¡stupu k souboru
+
+    vstup:    AH = 5CH
+              AL = 00H - uzam‡en¡ souboru
+                   01H - odemknut¡ souboru
+              BX = identifik tor souboru
+              CX = relativn¡ adresa za‡ tku oblasti (vy¨¨¡ slovo)
+              DX = relativn¡ adresa za‡ tku oblasti (ni‘¨¡ slovo)
+              SI = d‚lka oblasti (vy¨¨¡ slovo)
+              DI = d‚lka oblasti (ni‘¨¡ slovo)
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H ( 1) - neplatn˜ k¢d funkce
+                   06H ( 6) - neplatn˜ identifik tor souboru
+                   21H (33) - poru¨en¡   uzam‡en¡   souboru  (specifikovan 
+                              oblast je ji‘ uzam‡ena nebo je ji‘ odem‡ena)
+
+    Tato  funkce  se  pou‘¡v  k uzam‡en¡ nebo odem‡en¡ vybran‚ ‡ sti disku,
+‡¡m‘  zabra¤uje  nebo  umo‘¤uje  p©¡stup  k  t‚to oblasti jin˜m proces–m ve
+v¡ce£lohov‚m  re‘imu  nebo v prost©ed¡ s¡tˆ. Tato funkce je mo‘n  pouze pro
+DOS 3.00 a vy¨¨¡.
+
+Pozn.: Registry  CX  a DX spole‡nˆ (jako 4-bajtov‚ cel‚ ‡¡slo bez znam‚nka)
+       ur‡uj¡  relativn¡  adresu  (offset;  v  bajtech)  od za‡ tku souboru
+       oblasti  uvnit©  souboru,  kter   m   b˜t  uzam‡ena  nebo odemknuta;
+       registry  SI  a DI spole‡nˆ (jako 4-bajtov‚ cel‚ ‡¡slo bez znam‚nka)
+       specifikuj¡ d‚lku t‚to chr nˆn‚ oblasti.
+
+       P©eru¨en¡  procesu,  kter˜ m  otev©en‚ soubory s uzam‡en˜mi oblastmi
+       nebo  uzav©en¡  souboru s uzav©enou oblast¡ bude m¡t nedefinovateln‚
+       n sledky.  Pokud  v ¨  program  m–‘e  b˜t  p©eru¨en pomoc¡ p©eru¨en¡
+       INTú23H  nebo INTú24H, mus¡te p©ed p©eru¨en¡m programu zajistit, aby
+       v¨echny z mky byly odem‡eny.
+
+       Operace  odemknut¡  mus¡  specifikovat p©esnˆ stejnou oblast souboru
+       jako uzamykac¡ operace.
+
+       Pod©¡zen‚ procesy (tj. proces vytvo©en˜ vol n¡m funkce EXEC) nesd¡l¡
+       p©¡stup  k  oblastem  souboru,  kter‚  byly  uzam‡eny jeho otcovsk˜m
+       procesem.
+
+       Pou‘ijte tuto funkci v n sleduj¡c¡ch m¢dech souboru:
+        m¢d sd¡len¡ se zam¡tnut¡m ‡ten¡
+        m¢d sd¡len¡ bez ‘ dn‚ho zam¡tnut¡
+        m¢d sd¡len¡ se zam¡tnut¡m z pisu, soubor je otev©en pro ‡ten¡/z pis
+        m¢d sd¡len¡ se zam¡tnut¡m z pisu, soubor je otev©en pouze pro z pis
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿDÿHÿ ÿ(ÿ9ÿ3ÿ) - rezervov no
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿEÿ0ÿ0ÿHÿ ÿ(ÿ9ÿ4ÿ-ÿ0ÿ) - poskytnut¡ jm‚na za©¡zen¡
+
+    vstup:    AH = 5EH
+              AL = 00H (‡¡slo podfunkce)
+              DS:DX = ukazatel  na  vyrovn vac¡  pamˆŸ (16 bajt–), kde bude
+                      navr ceno jm‚no po‡¡ta‡e
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - program obsluhy pro pr ci v s¡ti nen¡ na‡ten
+              CH = 00H (0) - jm‚no nen¡ definov no
+                   nen¡ 00H (0) - jm‚no je definov no
+              CL = ‡¡slo jm‚na NETBIOS (doplnˆk BIOS pro pr ci v s¡ti)
+                   (pokud nen¡ CH = 0)
+              DS:DX = ukazatel na jm‚no po‡¡ta‡e (©etˆzec ASCIIZ)
+
+    V  syst‚mech vybaven˜ch prost©edky pro pr ci v s¡ti IBM PC Network nebo
+Microsoft Networks navrac¡ tato funkce jm‚no lok ln¡ho po‡¡ta‡e. Toto jm‚no
+navrac¡  jako  ©etˆzec ASCIIZ, kter˜ je doplnˆn mezerami na d‚lku 15 znak–.
+Tato  funkce  je  mo‘n   pouze  pro DOS 3.10 a vy¨¨¡ a vy‘aduje, aby bˆ‘ely
+programy IBM PC Network nebo Microsoft Networks.
+
+Pozn.: Pokud  nebylo  jm‚no  nikdy definov no, CH navrac¡ 00H a obsah CL je
+       nedefinovan˜.  V opa‡n‚m p©¡padˆ navrac¡ CL ‡¡slo jm‚na NETBIOS (tj.
+       dopl¤uj¡c¡ ‡ st k BIOS po‡¡ta‡e, kter  umo‘¤uje pr ci v s¡ti).
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿEÿ0ÿ2ÿHÿ ÿ(ÿ9ÿ4ÿ-ÿ2ÿ) - nastaven¡ inicial.©etˆzce tisk rny
+
+    vstup:    AH = 5EH
+              AL = 02H (podfunkce)
+              BX = index v˜pisu p©esmˆrov n¡
+              CX = d‚lka ©etˆzce pro nastaven¡ (maxim lnˆ 64 bajt–)
+              DS:SI = ukazatel  na vyrovn vac¡ pamˆŸ obsahuj¡c¡ ©etˆzec pro
+                      nastaven¡ tisk rny
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - program obsluhy pro pr ci v s¡ti nen¡ na‡ten
+
+    Tato  podfunkce  funkce  5EH  umo‘¤uje  jednotliv˜m  u‘ivatel–m  v s¡ti
+specifikovat  jejich  vlastn¡  ©etˆzec  pro  nastaven¡ tisk rny p©i sd¡len¡
+tisk rny.  Tento  ©etˆzec  nastaven¡  tisk rny bude vysl n na tisk rnu v‘dy
+p©ed  tiskem jednotliv˜ch soubor– u‘ivatele. Tato funkce je mo‘n  pouze pro
+DOS  3.10  a  vy¨¨¡  a  vy‘aduje,  aby  bˆ‘ely programy IBM PC Network nebo
+Microsoft Networks.
+
+D–le‘it‚: Vzhledem  k  tomu,  ‘e  hodnota  indexu p©esmˆrov n¡ se m–‘e mezi
+          dobou prohl¡‘en¡ v˜pisu p©esmˆrov n¡ a dobou ukon‡en¡ t‚to funkce
+          mˆnit,  je  vhodn‚  volat  tuto  funkci  bezprost©ednˆ za vol n¡m
+          funkce  5F02H  (poskytnut¡  polo‘ky  v˜pisu p©esmˆrov n¡). (zmˆnu
+          polo‘ky  v˜pisu  p©esmˆrov n¡  m–‘e  zp–sobit vol n¡ funkce 5F03H
+          (p©esmˆrov n¡    za©¡zen¡)    nebo    funkce    5F04H    (zru¨en¡
+          p©esmˆrov n¡).)
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Tato  funkce  je  vol na  s  indexem  v˜pisu p©esmˆrov n¡ v BX; tato
+       hodnota  indexu  m–‘e  b˜t  ur‡ena  vol n¡m funkce 5F02H (poskytnut¡
+       polo‘ky v˜pisu p©esmˆrov n¡).
+
+       Nastavovac¡ ©etˆzec nesm¡ b˜t del¨¡ ne‘ 64 bajt–.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿEÿ0ÿ3ÿHÿ ÿ(ÿ9ÿ4ÿ-ÿ3ÿ) - poskytnut¡ inic. ©etˆzce tisk rny
+
+    vstup:    AH = 5EH
+              AL = 03H (podfunkce)
+              BX = index v˜pisu p©esmˆrov n¡
+              ES:DI = ukazatel na 64-bajtovou vyrovn vac¡ pamˆŸ
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - program obsluhy pro pr ci v s¡ti nen¡ na‡ten
+
+    Tato   funkce  navrac¡  inicializa‡n¡  ©etˆzec  pro  nastaven¡  sd¡len‚
+tisk rny  lok ln¡ho u‘ivatele. Funkce je mo‘n  pouze pro DOS 3.10 a vy¨¨¡ a
+vy‘aduje, aby bˆ‘ely programy IBM PC Network nebo Microsoft Networks.
+
+D–le‘it‚: Vzhledem  k  tomu,  ‘e  hodnota  indexu p©esmˆrov n¡ se m–‘e mezi
+          dobou prohl¡‘en¡ v˜pisu p©esmˆrov n¡ a dobou ukon‡en¡ t‚to funkce
+          mˆnit,  je  vhodn‚  volat  tuto  funkci  bezprost©ednˆ za vol n¡m
+          funkce  5F02H  (poskytnut¡  polo‘ky  v˜pisu p©esmˆrov n¡). (zmˆnu
+          polo‘ky  v˜pisu  p©esmˆrov n¡  m–‘e  zp–sobit vol n¡ funkce 5F03H
+          (p©esmˆrov n¡    za©¡zen¡)    nebo    funkce    5F04H    (zru¨en¡
+          p©esmˆrov n¡).)
+
+Pozn.: Pou‘ijte  funkci 59H k z¡sk n¡ roz¨¡©en‚ho chybov‚ho k¢du (DOS 3.0 a
+       vy¨¨¡).
+
+       Tato  funkce  je  vol na  s  indexem  v˜pisu p©esmˆrov n¡ v BX; tato
+       hodnota  indexu  m–‘e  b˜t  ur‡ena  vol n¡m funkce 5F02H (poskytnut¡
+       polo‘ky v˜pisu p©esmˆrov n¡).
+
+       Nastavovac¡ ©etˆzec nesm¡ b˜t del¨¡ ne‘ 64 bajt–.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿFÿ0ÿ2ÿHÿ ÿ(ÿ9ÿ5ÿ-ÿ2ÿ) - poskytnut¡ polo‘ky v˜pisu p©esmˆr.
+
+    vstup:    AH = 5FH
+              AL = 02H
+              BX = index pro v˜pis p©esmˆrov n¡
+              DS:SI = ukazatel na 128-bajtovou vyrovn vac¡ pamˆŸ obsahuj¡c¡
+                      jm‚no lok ln¡ho za©¡zen¡
+              ES:DI = ukazatel na 128-bajtovou vyrovn vac¡ pamˆŸ obsahuj¡c¡
+                      jm‚no pro pr ci v s¡ti
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H ( 1) - program pro obsluhu pr ce v s¡ti nen¡ na‡ten
+                   12H (18) - nen¡ v¡ce soubor–
+              BH = p©¡znak stavu za©¡zen¡
+                   bit 0 = 0 - za©¡zen¡ plat¡
+                           1 - za©¡zen¡ neplat¡
+              BL = typ za©¡zen¡ (3=tisk rna; 4=mechanika disku)
+              CX = parametr ulo‘en˜ funkc¡ 5F03H
+
+    zni‡en‚ registry: DX a BP
+
+    Tato  funkce  navrac¡ polo‘ku v˜pisu p©esmˆrov n¡ v s¡ti. V˜pis samotn˜
+se  vytv ©¡  pomoc¡  podfunkce  5F03H. Funkce je mo‘n  pouze pro DOS 3.10 a
+vy¨¨¡  a  vy‘aduje,  aby  bˆ‘ely  programy  IBM  PC  Network nebo Microsoft
+Networks.
+
+    P©i  vol n¡  podfunkce  5F02H  um¡stˆte  do registru BX hodnotu indexu,
+kterou  si p©ejete ovˆ©it. V 16-bajtov‚ oblasti na kterou ukazuje p r DS:SI
+bude  navr ceno  jm‚no lok ln¡ho za©¡zen¡, jeho jm‚no pro pr ci v s¡ti bude
+navr ceno v p ru ES:DI. BL navr t¡ k¢d tyou za©¡zen¡ (3 pro tisk rnu, 4 pro
+mechaniku  disku)  a  CX  navr t¡  parametr (specifikovan˜ pomoc¡ podfunkce
+5F03H).
+
+    Pokud  chcete  z¡skat v˜pis v¨ech za©¡zen¡ pro pr ci v s¡ti, prov dˆjte
+tuto  funkci  opakovanˆ,  po‡¡naje  indexem (BX) nastaven˜m na 00H, hodnotu
+indexu  v  BX  postupnˆ zvˆt¨ujte o 1 a‘ bude registr AX hl sit chybov˜ k¢d
+12H (18).
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿFÿ0ÿ3ÿHÿ ÿ(ÿ9ÿ5ÿ-ÿ3ÿ) - p©esmˆrov n¡ za©¡zen¡
+
+    vstup:    AH = 5FH
+              AL = 03H
+              BL = typ za©¡zen¡ (3=tisk rna, 4=diskov  mechanika)
+              CX = ulo‘en˜ parametr (v¨echny hodnoty kromˆ 0 jsou rezerv.)
+              DS:SI = ukazatel na ©etˆzec ASCIIZ obsahuj¡c¡ jm‚no lok ln¡ho
+                      za©¡zen¡
+              ES:DI = ukazatel na ©etˆzec ASCIIZ obsahuj¡c¡ cestu pro pr ci
+                      v s¡ti n sledovanou ©etˆzcem ASCIIZ obsahuj¡c¡m heslo
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+                   01H (1) - program pro obsluhu pr ce v s¡ti nen¡ na‡ten
+                   03H (3) - cesta nenalezena
+                   05H (5) - po‘adavek odm¡tnut
+                   08H (8) - neposta‡uj¡c¡ pamˆŸ
+
+    Funkce  5F03H umo‘¤uje p©esmˆrovat vstup/v˜stup z lok ln¡ tisk rny nebo
+diskov‚  mechaniky  na  s¡Ÿov‚  za©¡zen¡.  M–‘ete  tak‚  ovl dat  p©¡stup k
+s¡Ÿov‚mu  za©¡zen¡  pou‘it¡m  hesla.  Funkce  je mo‘n  pouze pro DOS 3.10 a
+vy¨¨¡  a  vy‘aduje,  aby  bˆ‘ely  programy  IBM  PC  Network nebo Microsoft
+Networks.
+
+Pozn.: Volejte   tuto   funkci  s  nastaven˜m  k¢dem  typu  za©¡zen¡  v  BL
+       (3=tisk rna,  4=diskov   mechanika)  a  s  0  v CX. P r DS:SI by mˆl
+       ukazovat na jm‚no za©¡zen¡, kter‚ si p©ejete p©esmˆrovat a p r ES:DI
+       by  mˆl  ukazovat  na  ©etˆzec  ASCIIZ  ud vaj¡c¡  jm‚no  p©¡jmov‚ho
+       s¡Ÿov‚ho  za©¡zen¡.  Jm‚no  s¡Ÿov‚ho  za©¡zen¡  mus¡ b˜t n sledov no
+       druh˜m ©etˆzcem ASCIIZ specifikuj¡c¡m heslo. Heslo m–‘e b˜t dlouh‚ 0
+       a‘  8  znak–; nechcete-li specifikovat ‘ dn‚ heslo, pou‘ijte ©etˆzec
+       ASCIIZ s nulovou d‚lkou (prvn¡m bajtem je bajt 0).
+
+       Pokud  je  p©esmˆrov van˜m za©¡zen¡m tisk rna, jsou p©ijateln  jm‚na
+       PRN, LPT1, LPT2 a LPT3. Pokud je p©esmˆrov van˜m za©¡zen¡m mechanika
+       disku,  mˆl byt zdrojov˜ ©etˆzec ASCIIZ obsahovat p¡smeno ozna‡uj¡c¡
+       disk n sledovan‚ dvojte‡kou.
+
+       Zdrojov˜  ©etˆzec  m–‘e b˜t i nulov˜; v tomto p©¡padˆ se DOS pokou¨¡
+       prov‚st p©¡stup na jm‚no s¡Ÿov‚ho za©¡zen¡ se specifikovan˜m heslem.
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ5ÿFÿ0ÿ4ÿHÿ ÿ(ÿ9ÿ5ÿ-ÿ4ÿ) - zru¨en¡ p©esmˆrov n¡
+
+    vstup:    AH = 5FH
+              AL = 04H
+              DS:SI = ukazatel  na ©etˆzec ASCIIZ specifikuj¡c¡ buƒ lok ln¡
+                      za©¡zen¡,  jeho‘  p©esmˆrov n¡  m   b˜t zru¨eno, nebo
+                      jemu p©i©azen‚ jm‚no s¡Ÿov‚ho za©¡zen¢.
+
+    v˜stup:   AX = chybov˜ k¢d (pokud je CF = 1) - viz funkce DOS 59H
+
+    Tato funkce ru¨¡ d©¡ve nastaven  p©esmˆrov n¡ na s¡Ÿov  za©¡zen¡. DS:SI
+ukazuje  na  jm‚no za©¡zen¡, jeho‘ p©esmˆrov n¡ m  b˜t zru¨eno, to m–‘e b˜t
+buƒ  jm‚no  tisk rny (PRN, LPT1, LPT2 nebo LPT3), ozna‡en¡ disku nebo jm‚no
+s¡Ÿov‚ho za©¡zen¡ (v posledn¡m p©¡padˆ by mˆl b˜t ©etˆzec ASCIIZ ozna‡uj¡c¡
+jm‚no  s¡Ÿov‚ho  za©¡zen¡  n sledov n druh˜m ©etˆzcem, kter˜ obsahuje heslo
+spojen‚  s ru¨en¡m). Funkce je mo‘n  pouze pro DOS 3.10 a vy¨¨¡ a vy‘aduje,
+aby bˆ‘ely programy IBM PC Network nebo Microsoft Networks.
+
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ6ÿ0ÿHÿ ÿ(ÿ9ÿ6ÿ) - rezervov no
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ6ÿ1ÿHÿ ÿ(ÿ9ÿ7ÿ) - rezervov no
+
+
+
+
+ÿFÿuÿnÿkÿcÿeÿ ÿ6ÿ2ÿHÿ ÿ(ÿ9ÿ8ÿ) - poskytnut¡ adresy prefixu program.segmentu
+
+    vstup:    AH = 62H
+
+    v˜stup:   BX = segment prefixu programov‚ho segmentu PSP
+
+    Funkce  navrac¡  v BX adresu segmentu prefixu programov‚ho segmentu PSP
+sou‡asn‚ho procesu (tj. program, kter˜ pr vˆ prob¡h ). Tato funkce je mo‘n 
+pouze pro DOS 3.00 a vy¨¨¡.
+

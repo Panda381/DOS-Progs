@@ -1,0 +1,110 @@
+
+                                   +--------+
+                                   | SUBPAR |
+                                   +--------+
+             vícenásobné provádìní pøíkazu podle seznamu parametrù
+
+
+Syntaxe: SUBPAR  seznam  "pøíkaz"
+                   |        +----- pøíkaz k vícenásobnému provedení
+                   +-------------- jméno souboru se seznamem parametrù
+
+         V pøíkazu se za každý znak @ dosadí jeden øádek ze seznamu.
+         Platný znak @ (resp. ") se uvede jako dva znaky @@ (resp. "").
+         Výstupem je povelový soubor SUBPAR@.BAT v adresáøi programu SUBPAR.
+
+
+Program SUBPAR slouží k vícenásobnému provedení pøíkazu s náhradou symbolického
+parametru  v  pøíkazu  parametrem  ze seznamu parametrù. Jeho hlavní použití je
+pøedevším  ve  spolupráci  s programem HLEDEJ (požadovaná operace se provede se
+všemi  nalezenými  soubory)  a  s  programem DOS Manažer (požadovaná operace se
+provede s oznaèenými soubory).
+
+Program  SUBPAR  se  doporuèuje  použít  pøedevším  v  povelovém  souboru. Jako
+parametry  programu  je  nutno  uvést dva parametry. Prvním parametrem je jméno
+souboru  se  seznamem  parametrù. Jedná se o textový soubor, jeden øádek tohoto
+souboru  odpovídá  jednomu  parametru  v  pøíkazu. Druhým parametrem je pøíkaz,
+který  má  být  vícenásobnì  proveden s rùznými parametry. Pøíkaz je oznaèen na
+zaèátku  i  na  konci  znakem  dvojitých  uvozovek  ".  Oznaèení pøíkazu pomocí
+uvozovek  není ve vìtšinì pøípadù bezpodmíneènì nutné. Vyžaduje se v pøípadech,
+kdy jsou souèástí pøíkazu znaky, které by mohly být systémem intepretovány jako
+øídicí znaky (jedná se napøíklad o znaky pøesmìrování ">", "<" atd.).
+
+Uvedením  znaku  "@"  v  pøíkazu  se namísto tohoto znaku dosadí jeden øádek ze
+souboru  seznamu parametrù. Pøi výskytu více znakù "@" se namísto každého znaku
+"@"  dosadí vždy další øádek ze seznamu parametrù. Vyžaduje-li se použití znaku
+"@"  v  pøíkazu, mùže být tento znak uveden jako dva znaky "@" bezprostøednì za
+sebou.  Totéž  platí o znaku zdvojených uvozovek - aby nebyl považován za konec
+textu pøíkazu, musí být tento znak uveden též dvakrát za sebou.
+
+Výstupem  programu SUBPAR je povelový soubor SUBPAR@.BAT, vytvoøený v domovském
+adresáøi programu SUBPAR (tj. v adresáøi, ve kterém je umístìn program SUBPAR).
+U operaèního systému verze nižší než 3.00 bude tento soubor vytvoøen v aktivním
+adresáøi. Každý øádek tohoto souboru obsahuje jeden pøíkaz z parametru SUBPAR s
+nahrazenými  symbolickými  parametry.  Aby byl tento povelový soubor aktivován,
+mìl by být za pøíkazem SUBPAR v základním povelovém souboru pøíkaz pro spuštìní
+povelového souboru SUBPAR@.BAT.
+
+Má-li  být  uvedeno více pøíkazù pro jeden parametr, je možné jako pøíkaz uvést
+odkaz na pomocný povelový soubor, obsahující požadované pøíkazy (pomocí pøíkazu
+CALL).  Parametry lze povelovému souboru pøedávat pomocí systémových promìnných
+%1  až  %9.  Tato  funkce není možná pro operaèní systémy verze nižší než 3.30,
+nebo neumožòují návrat z podøízených povelových souborù zpìt.
+
+Pøíklad 1: Test integrity všech archivních souborù ZIP na disketì A:
+
+           @echo off
+           hledej a:\*.zip > seznam.lst
+           subpar seznam.lst "pkunzip -t @"
+           call subpar@.bat
+           del subpar@.bat
+           del seznam.lst
+
+   Pro operaèní systém verze nižší než 3.30:
+
+        Hlavní povelový soubor TEST.BAT:
+
+           echo off
+           hledej a:\*.zip > seznam.lst
+           subpar seznam.lst "pkunzip -t @"
+           echo test2.bat >> subpar@.bat
+           subpar@.bat
+
+        Vedlejší povelový soubor TEST2.BAT
+
+           del subpar@.bat
+           del seznam.lst
+
+Pøíklad 2: Archivace všech dnes vytvoøených souborù PAS:
+
+        Hlavní povelový soubor ARCHIV.BAT:
+
+           @echo off
+           hledej c:\*.pas /d > seznam.lst
+           subpar seznam.lst "call archiv2.bat @"
+           call subpar@.bat
+           del subpar@.bat
+           del seznam.lst
+           echo Vlozte disketu do mechaniky A:
+           wait
+           copy archiv.zip a:
+           del archiv.zip
+
+        Pomocný povelový soubor ARCHIV2.BAT:
+
+           echo Archivuji soubor %1 ...
+           pkzip archiv.zip %1
+
+
+SUBPAR  vyžaduje  k  provozu  poèítaè  IBM  PC/XT/AT  nebo  plnì kompatibilní a
+operaèní systém DOS verze minimálnì 2.00.
+
+                  +-----------------------------------------+
+                  |                  GOLEM                  |
+                  | P.O.Box 66, 756 61 Rožnov pod Radhoštìm |
+                  |          tel/fax: (0651) 54044          |
+                  +-----------------------------------------+
+                  | Tento program je souèástí programového  |
+                  |      balíku DOS Manažer verze 1.50      |
+                  +-----------------------------------------+
+

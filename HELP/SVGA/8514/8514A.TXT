@@ -1,0 +1,668 @@
+IBM 8514/A
+
+8514/A clones:
+
+ATI 38800-1 (MACH 8), 68800 (MACH 32)
+Chips&Tech 82c480
+Paradise  95c00/01
+
+
+0102h (R/W):  Setup Control Register
+bit     0  If set the adapter is enabled, if clear the card is
+           invisible to the system.
+      1-7  Reserved(0)
+
+02E8h W(R):  Display Status Register
+bit     0  SENSE is the result of a wired-OR of 3 comparators, one
+           for each of the RGB video signal.
+           By programming the RAMDAC for various values
+           and patterns and then reading the SENSE, the monitor type
+           (color, monochrome or none) can be determined.
+        1  VBLANK. Vertical Blank State
+           If Vertical Blank is active this bit is set.
+        2  HORTOG. Horizontal Toggle
+           This bit toggles every time a HSYNC pulse starts
+     3-15  Reserved(0)
+
+02E8h W(W):  Horizontal Total Register (H_TOTAL)
+bits  0-8  Horizontal Total defines the total horizontal scan line width
+           including the display, blank and sync times.
+           All horizontal timings are in "double nuggets"
+           (8 or 10 pixels depending on the state of MEM_CNTL[0]).
+           The actual value is one larger than this register.
+     9-15  Reserved(0)
+Note: this register is written at 02E8 and read at 26E8h.
+
+02EAh (R/W):  DAC Mask Register (DAC_MASK)
+bits  0-7  DAC mask. This value is anded to the pixel data before going
+           to the DAC. Set to 0FFh for normal operation.       
+Note: In VGA pass through mode writes to the VGA palette address 03C6h
+      will go to this address to allow the 8514/A to mirror palette changes.
+
+02EBh (R/W):  DAC Read Index Register (DAC_R_INDEX)
+bits  0-7  DAC Read Index. Indicates which of the 256 palette entries
+           will be read by the current sequence of I/O read operations
+           to the DAC_DATA (02EDh) register.
+Note: In VGA pass through mode writes to the VGA palette address 03C7h
+      will go to this address to allow the 8514/A to mirror palette changes.
+
+02ECh (R/W):  DAC Write Index Register (DAC_W_INDEX)
+bits  0-7  DAC Write Index. Indicates which of the 256 palette entries
+           will be written by the current sequence of I/O write operations
+           to the DAC_DATA (02EDh) register.
+Note: In VGA pass through mode writes to the VGA palette address 03C8h
+      will go to this address to allow the 8514/A to mirror palette changes.
+
+02EDh (R/W):  DAC DATA Register (DAC_DATA)
+bits  0-7  DAC Data. 
+Note: In VGA pass through mode writes to the VGA palette address 03C9h
+      will go to this address to allow the 8514/A to mirror palette changes.
+
+06E8h W(W):  Horizontal Displayed Register (H_DISP)
+bits  0-7  Number of "double nuggets"-1 displayed in a scan line.
+     8-15  Reserved(0) 
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+0AE8h W(W):  Horizontal Sync Start Register (H_Sync_STRT)
+bits  0-7  Hsync starts at (H_SYNC_STRT +1) double nugget periods.
+     8-15  Reserved(0) 
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+0EE8h W(W):  Horizontal Sync Width Register (H_SYNC_WID)
+bits  0-4  Width of the Horizontal Sync pulse in "double nuggets".
+        5  Horizontal Sync Polarity (HSYNCPOL).
+           If set the Horizontal Sync Pulse is Negative, else Positive.
+     6-15  Reserved(0)
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+12E8h W(W):  Vertical Total Register (V_TOTAL)
+bits  0-2  Vertical Total Adjust (VTADJ).
+     3-11  Vertical Total Base (VTB).
+           The Vertical Total is calculated as:
+           Vertical Total = (Scan Modulos * VTB)+VTADJ+1
+           Where the Scan Modulos is found from the DBLSCAN and
+           MEMCFG bits of the DISP_CNTL register (22E8h).
+            
+           DBLSCAN:      MEMCFG:     Scan Modulos:
+              0            0 0           2
+              0            0 1           4
+              0            1 0           6 
+              0            1 1           8
+              1            0 0           4
+              1            0 1           8
+              1            1 0          12
+              1            1 1          16 
+    12-15  Reserved(0)
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+16E8h W(W):  Vertical Displayed Register (V_DISP)
+bits  0-2  Vertical Displayed Adjust (VDADJ)
+     3-11  Vertical Displayed Base (VDB)
+           The Vertical Displayed is calculated as:
+           Vertical Displayed = (Scan Modulos * VDB)+VDADJ+1
+           Where the Scan Modulos is the same as for
+           Vertical Total in 12E8h.
+    12-15  Reserved(0)
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+1AE8h W(W):  Vertical Sync Start Register (V_SYNC_STRT)
+bits  0-2  Vertical Sync Start Adjust (VSADJ)
+     3-11  Vertical Sync Start Base (VSB)
+           The Vertical Sync Start is calculated as:
+           Vertical Sync Start = (Scan Modulos * VSB)+VSADJ+1
+           Where the Scan Modulos is the same as for
+           Vertical Total in 12E8h.
+    12-15  Reserved(0)
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+1EE8h W(W):  Vertical Sync Width Register (V_SYNC_WID)
+bits  0-4  Number of scanlines in the Vertical Sync pulse.
+        5  Vertical Sync Polarity (VSYNCPOL).
+           If set the Vertical Sync pulse is Negative, else Positive.
+     6-15  Reserved(0)
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+22E8h W(W):  Display Control Register (DISP_CNTL)
+bit     0  Odd Bank Enable (ODDBNKENAB).
+           If set use Horizontally Interleaved banks.
+           (Normal 8514/A mode).
+      1-2  Memory Configuration (MEMCFG).
+             0  NCLK     (PS8 Mode)
+             1  NCLK/2   (Normal 8514/A Mode)
+             2  NCLK/3
+             3  NCLK/4
+        3  (Double Scan) DBLSCAN. If set doublescan is enabled.
+        4  INTERLACE. Interlace if set.
+      5-6  Display Enable (DISPEN)
+              0 = No effect
+              1 = Enable Hsync, Vsync, Blank, data transfer cycles
+                  and refresh cycles.
+            2,3 = Disable Hsync, Vsync, Blank, data transfer cycles
+                  and refresh cycles.
+     7-15  Reserved(0)
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+26E8h W(R):  Horizontal Total Register (H_TOTAL)
+Note: this register is written at 02E8 and read at 26E8h.
+
+2EE8h W(R):  Subsystem Control Register (SUBSYS_CNTL)
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is written to 48E8h and read from 2EE8h.  
+
+42E8h W(R):  Subsystem Status Register (SUBSYS_STAT)
+bit   0-3  Interrupt requests. These bits show the state of internal interrupt
+           requests. An interrupt will only occur if the corresponding bit(s)
+           in SUBSYS_CNTL is set. Interrupts can only be reset by writing a 1
+           to the corresponding Interrupt Clear bit in SUBSYS_CNTL.
+             Bit 0: VBLNKFLG
+                 1: PICKFLAG
+                 2: INVALIDIO
+                 3: GPIDLE 
+      4-6  MONITORID.
+              1: IBM 8507 (1024x768) Monochrome
+              2: IBM 8514 (1024x768) Color
+              5: IBM 8503 (640x480) Monochrome
+              6: IBM 8512/13 (640x480) Color
+        7  8PLANE.  
+           (CT82c480) This bit is latched on reset from pin P4D7.
+     8-11  CHIP_REV. Chip revision number.
+    12-15  (CT82c480) CHIP_ID. 0=CT 82c480.
+
+42E8h W(W):  Subsystem Control Register (SUBSYS_CNTL)
+bit   0-3  Interrupt Reset. Write 1 to a bit to reset the interrupt.
+           Bit 0  RVBLNKFLG   Write 1 to reset Vertical Blank interrupt.
+               1  RPICKFLAG   Write 1 to reset PICK interrupt.
+               2  RINVALIDIO  Write 1 to reset Queue Overflow/Data
+                              Underflow interrupt.
+               3  RGPIDLE     Write 1 to reset GPIDLE interrupt.
+      4-7  Reserved(0)
+        8  IBLNKFLG.   If set Vertical Blank Interrupts are enabled.
+        9  IPICKFLAG.  If set PICK Interrupts are enabled.
+       10  IINVALIDIO. If set Queue Overflow/Data Underflow Interrupts are
+                       enabled.
+       11  IGPIDLE.    If set Graphics Engine Idle Interrupts are enabled.
+    12-13  CHPTEST. Used for chip testing.
+    14-15  Graphics Processor Control (GPCTRL).
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is written to 48E8h and read from 2EE8h.  
+
+46E8h W(W):  ROM Page Select Register (ROM_PAGE_SEL)
+bit   0-2  Maps a 4KB page of the onboard 32K ROM to address C7000h-C7FFFh.
+        3  VGA Enable. If set enables the VGA
+           This bit is not implemented in the 8514/A, but in the VGA
+           controller.
+        4  VGA Setup.  If set the VGA is in Setup mode.
+           This bit is not implemented in the 8514/A, but in the VGA
+           controller.
+     5-15  Reserved(0)
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+4AE8h W(W):  Advanced Function Control Register  (ADVFUNC_CNTL)
+bit     0  DISABPASSTHRU. If clear the VGA video is passed through the
+           8514/A RAMDAC, if set the 8514/A video is passed to the 8514/A
+           RAMDAC.
+        1  RSDV0. Reserved bit 0  = 1.
+        2  Clock Select (CLKSEL).
+           If set a clock of 44.900MHz is used (1024x768 interlaced)
+           if clear a clock of 25.175MHz is used (640x480).
+           The CT82c480 supports 8 clock frequencies through the
+           Extended Configuration Register EC3 (5EE8h).
+        3  RSDV1. Reserved bit 1 =0.
+     4-15  Reserved(0).
+Note: In the 8514/A this register is Writeonly,
+      In the Chips&Tech 82c480 it is Read/Write. 
+
+52E8h W(R/W):  Extended Configuration Register (EC0)           (CT82c480 only)
+bit  0-15  Reserved.
+
+56E8h W(R/W):  Extended Configuration Register (EC1)           (CT82c480 only)
+bit  0-15  Reserved.
+
+5AE8h W(R/W):  Extended Configuration Register (EC2)           (CT82c480 only)
+bit   0-2  Reserved(1)
+      3-4  ROMBASE. Latched on reset from P4D3-4.
+           Determines start address of ROM:
+                    8K ROM         32K ROM
+                  MC     ISA      MC     ISA       MC =Micro Channel  
+             0  0C8000  C6000   0D0000  D0000 
+             1  0D8000  D8000   0D8000  D8000
+             2  0C0000  C0000   0C0000  C0000
+             3  0C6000  C8000   0C8000  C8000
+        5  ROMSIZE. Latched on reset from P4D5.
+           If set the ROM is 8K, if clear the ROM is 32K.
+        6  ROMPAGING. Latched from P4D6 on reset.
+           If set the ROMPG pins are outputs, if clear they are inputs.
+        7  8 Bit planes (8BP).
+      8-9  BANKS. Number of VRAM banks.
+            0=1  bank, 1=2 banks, 2=3 banks, 3=4 banks.
+       10  If set 256Kx4 VRAMs are used, if clear 64Kx4 VRAMs.
+           Sampled from MA8 on reset.
+       11  5-Pixel Nuggets (5PN).
+           Latched from WE4/ on reset.
+           Determines whether there are 4 or 5 pixels to a nugget.
+       12  Reserved(0)
+       13  8-bit DAC Control (8BITDAC).
+           If set the RAMDAC is 8bit rather than 6bit.
+           On reset the 8BITDAC pin is sampled, then the pin
+           turns into an output driven by this bit.
+           This can be used to switch a DAC with 6/8bit ability
+           like an IMSG178 or BT478 between 6 and 8 bits.
+    14-15  Reserved(0)
+
+5EE8h W(R/W):  Extended Configuration Register (EC3)           (CT82c480 only)
+bit   0-3  Selects which registers will be read from BEE8h.
+        4  Alternate High Register Select (AHRS).
+           If set writes to video timing registers
+           will go to the Alternate-High register set.
+        5  Alternate Low Register Select (ALRS).
+           If set writes to video timing registers
+           will go to the Alternate-Low register set.
+        6  Alternate High Register Enable (AHRE).
+           If set enables the Alternate High-resolution video
+           timing register set.
+        7  Alternate Low Register Enable (ALRE).
+           If set enables the Alternate Low-resolution video
+           timing register set.
+     8-10  Clock Select 0-2 (CLKSEL0-2).
+           The CT82c480 maintains 3 different clock select register sets.
+           On set each for Alternate High, Alternate Low and normal video.
+       11  Reserved(0)
+       12  OVERRIDE. If set the normal video register set is used.
+           If clear the AHRE and ALRE determines the video register set used.
+           This bit is reset on any write to the ADVFUNC_CTRL register (4AE8h)
+    13-15  Reserved(0)
+Note: Writes to this register should be 8-bit.
+
+82E8h W(R/W):  Current Y Position Register (CUR_Y)
+bit  0-11  Y Position. Y co-ordinate of current position in pixels.
+    12-15  Reserved(0)
+
+86E8h W(R/W):  Current X Position Register (CUR_X)
+bit  0-11  X Position. X co-ordinate of current position in pixels.
+    12-15  Reserved(0).
+Note: In 5PN mode bits 11, 1 and 0 are remainder bits, 
+      bits 2-10 are the current X position modulo 5.
+
+8AE8h W(R/W):  Destination Y Position & Axial Step Constant Register
+               (DESTY_AXSTP)
+bit  0-11  During BITBLT operations this is the Y co-ordinate of the 
+           destination in pixels.
+           During Line Drawing, this is the Bresenham constant 2*dminor.
+           (dminor is the length of the line projected onto
+           the minor or dependant axis).
+       12  AXSTPSIGN. Sign bit for Axial Step Constant.
+           Should be 0 during BITBLT operations.
+    13-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. In the CT82c480
+      it is read/writable
+
+8EE8h W(R/W):  Destination X Position & Diagonal Step Constant Register
+               (DESTX_DISTP)
+bit  0-11  During BITBLT operations this is the X co-ordinate of the
+           destination in pixels.
+           During Line Drawing this is the Bresenham constant 2*dminor-
+           2*dmajor. (dminor is the length of the line projected onto
+           the minor or dependant axis, dmajor is the length of the
+           line projected onto the major or independent axis)
+       12  DGSTPSIGN. Sign bit for Diagonal Step Constant
+           (Should be set to 0 for BITBLT operations).
+    13-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. In the CT82c480
+      it is read/writable
+
+92E8h W(R/W):  Error Term Register (ERR_TERM).
+bit  0-12  Initial Error Term.
+           This register is programmed to the Bresenham initial
+           error term before a line drawing command is issued.
+    13-15  Reserved. These bits are read/writable but have no function.
+
+96E8h W(R/W):  Major Axis Pixel Count & Rectangle Width Register
+               (MAJ_AXIS_PCNT)
+bit  0-10  For BITBLT and rectangle commands this is the width of the area.
+           For Line Drawing this is the Bresenham constant dmajor.
+           Must be positive.
+    11-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is read/writable
+
+9AE8h W(R):  Graphics Processor Status Register (GP_STAT)
+bit   0-7  Queue State. 
+             00h = 8 words available - queue is empty
+             01h = 7 words available
+             03h = 6 words available
+             07h = 5 words available
+             0Fh = 4 words available
+             1Fh = 3 words available
+             3Fh = 2 words available
+             7Fh = 1 word available
+             FFh = 0 words available - queue is full
+        8  DATARDY. If set data is ready to be read from 
+           the PIX_TRANS register (E2E8h).
+        9  Graphics Processor Busy (GPBUSY)
+           If set the Graphics Processor is busy.
+    10-15  Reserved(0)
+
+9AE8h W(W):  Command Register (CMD)
+bit     0  WRTDATA. If set VRAM write operations are enabled.
+           If clear operations execute normally but no writes
+           to memory is performed.
+        1  PLANAR defines the orientation of the display bitmap.
+             0=Through plane mode, 1=Across plane mode.
+        2  If set the last pixel of a line command (CMD_LINE, SSV or
+           LINEAF) is not drawn. This is used for mixes such as XOR
+           where drawing the same pixel twice would give the wrong color.
+           For rectangle commands the effect is different depending on the
+           INC_X and INC_Y fields:
+              CMD_RECT
+                 If INC_X is set then the rightmost column is not drawn,
+                 if clear the leftmost column is not drawn.
+              CMD_RECTV1
+                 If INC_Y is set the bottom row is not drawn,
+                 if clear the top row is not drawn.
+              CMD_RECTV2
+                 No effect
+              CMD_BITBLT
+                 If INC_X set the rightmost column is not drawn,
+                 if clear the leftmost column is not drawn.
+        3  LINETYPE.
+             0: Bresenham line drawing
+                  CMD_LINE draws a line using the Bresenham algorithm as
+                  specified in the DESTY_AXSTP (8AE8h), DESTX_DIASTP (8EE8h),
+                  ERR_TERM (92E8h) and MAJ_AXIS_PCNT (96E8h) registers
+             1: Vector line draws.
+                  CMD_NOP allows drawing of Short Stroke Vectors (SSVs) by
+                  writing to the Short Stroke register (9EE8h).
+                  CMD_LINE draws a vector of length MAJ_AXIS_PCNT (96E8h)
+                  in the direction specified by LINEDIR (bits 5-7).
+        4  DRAW. If clear the current position is moved, but no pixels
+           are modified. This bit should be set when attempting read or
+           write of bitmap data.
+      5-7  LINEDIR. When a line draw command (CMD_LINE) with LINETYPE=1
+           is issued, these bits define the direction of the line
+           counter clockwise relative to the positive X-axis.
+             0 = 000 degrees
+             1 = 045 degrees
+             2 = 090 degrees
+             3 = 135 degrees
+             4 = 180 degrees
+             5 = 225 degrees
+             6 = 270 degrees
+             7 = 315 degrees
+        5  INC_X. This bit together with INC_Y determines which quadrant
+           the slope of a line lies within. They also determine the
+           orientation of rectangle draw commands.
+           If set lines are drawn in the positive X direction (left to right).
+        6  YMAJAXIS. For Bresenham line drawing commands this bit determines
+           which axis is the independent or major axis. INC_X and INC_Y
+           determines which quadrant the slope falls within. This bit further
+           defines the slope to within an octant.
+           If set Y is the major (independent) axis.
+        7  INC_Y. This bit together with INC_X determines which quadrant
+           the slope of a line lies within. They also determine the
+           orientation of rectangle draw commands.
+           If set lines are drawn in the positive Y direction (down).
+        8  (Pixel Data Enable) PCDATA.
+           If set the drawing engine waits for read/write of the PIX_TRANS
+           register (E2E8h) for each pixel during a draw operation.
+        9  16BIT. If set the PIX_TRANS register (E2E8h) is processed
+           internally as two bytes in the order specified by BYTSEQ.
+           If clear all accesses are 8bit.
+    10-11  Reserved(0)
+       12  Byte Sequence (BYTSEQ). Affects both reads and writes of
+           SHORT_STROKE (9EE8h) and PIX_TRANS (E2E8h) when 16bit=1.
+           If set take low byte first, if clear take high byte first.
+    13-15  Draw Command:
+            0 = CMD_NOP.    (Should be used for Short Stroke Vectors).
+            1 = CMD_LINE  
+            2 = CMD_RECT    (Fill rectangle in X direction)
+            3 = CMD_RECTV1  (Fill rectangle in Y direction)
+            4 = CMD_RECTV2  (Fast filled Y direction rectangle)
+            5 = CMD_LINEAF  (Outline)
+            6 = CMD_BITBLT  (Copy rectangle)
+            7 = illegal
+
+9EE8h W(R/W):  Short Stroke Vector Transfer Register (SHORT_STROKE)
+bit   0-3  Length of vector projected onto the major axis.
+           This is also the number of pixels drawn.
+        4  Must be set for pixels to be written.
+      5-7  VECDIR. The angle measured counter-clockwise from horizontal
+           right) at which the line is drawn,
+             0 = 000 degrees
+             1 = 045 degrees
+             2 = 090 degrees
+             3 = 135 degrees
+             4 = 180 degrees
+             5 = 225 degrees
+             6 = 270 degrees
+             7 = 315 degrees
+     8-15  The lower 8 bits are duplicated in the upper 8 bits so two
+           short stroke vectors can be drawn with one command.
+Note: The upper byte must be written for the SSV command to be executed.
+      Thus if a byte is written to 9EE8h another byte must be written to 
+      9EE9h before execution starts. A single 16bit write will do.
+      If only one SSV is desired the other byte can be set to 0.
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is read/writable
+
+A2E8h W(W):  Background Color Register (BKGD_COLOR)
+bit   0-7  Background Color. This is the color used for writing pixels 
+           where the Foreground Color Mix is selected and FSS=0, or the
+           Background Color Mix is selected and BSS=0.
+     8-15  Reserved(0)
+Note: During drawing commands reading this register is equivalent to
+      reading the PIX_TRANS register (E2E8h).
+      This register is writable when GPBUSY=DATARDY=0 or when PCDATA=0.
+      Otherwise during drawing commands with PCDATA=1 a write to A2E8h
+      functions as a write to the PIX_TRANS register.
+
+A6E8h W(W):  Foreground Color Register (FRGD_COLOR)
+bit   0-7  Foreground Color. This is the color used for writing pixels 
+           where the Foreground Color Mix is selected and FSS=1, or the
+           Background Color Mix is selected and BSS=1.
+     8-15  Reserved(0)
+Note: During drawing commands reading this register is equivalent to
+      reading the PIX_TRANS register (E2E8h).
+      This register is writable when GPBUSY=DATARDY=0 or when PCDATA=0.
+      Otherwise during drawing commands with PCDATA=1 a write to A6E8h
+      functions as a write to the PIX_TRANS register.
+
+AAE8h W(R/W):  Write Mask Register (WRT_MASK)
+bit   0-7  Writemask. A plane can only be modified if the corresponding
+           bit is set.
+     8-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is read/writable
+
+AEE8h W(R/W):  Read Mask Register (RD_MASK)
+bit   0-7  Read Mask affects the following commands: CMD_RECT, CMD_BITBLT
+           and reading data in Across Plane Mode.
+           Each bit set prevents the plane from being read.
+     8-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is read/writable
+
+B2E8h W(R/W):  Color Compare Register (COLOR_CMP)
+bit   0-7  This is an 8 bit color which is compared to the destination
+           data during BitBlts. The aritmetic comparison to be used
+           (<,>,=,true,false, etc..) is specified by the COLCMPO bits
+           of the PIX_CNTL register.
+           If the result of the comparison is true, the destination data
+           is left unchanged.
+     8-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is read/writable
+
+B6E8h W(R/W):  Background Mix Register (BKGD_MIX)
+bit   0-4  Background MIX (BACKMIX).
+            00  not DST
+            01  0 (false)
+            02  1 (true)
+            03  2 DST
+            04  not SRC
+            05  SRC xor DST
+            06  not (SRC xor DST)
+            07  SRC
+            08  not (SRC and DST)
+            09  (not SRC) or DST
+            0A  SRC or (not DST)
+            0B  SRC or DST
+            0C  SRC and DST
+            0D  SRC and (not DST)
+            0E  (not SRC) and DST
+            0F  not (SRC or DST)
+            10  min(SRC,DST)
+            11  DST-SRC with underflow
+            12  SRC-DST with underflow
+            13  SRC+DST with overflow
+            14  max(SRC,DST)
+            15  (DST-SRC)/2 with underflow
+            16  (SRC-DST)/2 with underflow
+            17  (SRC+DST)/2 with overflow
+            18  DST-SRC with saturate
+            19  DST-SRC with saturate
+            1A  SRC-DST with saturate
+            1B  SRC+DST with saturate
+            1C  (DST-SRC)/2 with saturate
+            1D  (DST-SRC)/2 with saturate
+            1E  (SRC-DST)/2 with saturate
+            1F  (SRC+DST)/2 with saturate
+           DST is always the destination bitmap, bit SRC has four
+           possible sources selected by the BSS bits.
+      5-6  Background Source Select (BSS)
+             0  BSS is Background Color
+             1  BSS is Foreground Color
+             2  BSS is Pixel Data from the PIX_TRANS register (E2E8h)
+             3  BSS is Bitmap Data (Source data from display buffer).
+     7-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is read/writable
+
+BAE8h W(R/W):  Foreground Mix Register (FRGD_MIX)
+bit   0-4  Foreground MIX (FOREMIX).
+           Same as BACKMIX in B6E8h.
+      5-6  Foreground Source Select (FSS)
+             0  FSS is Background Color
+             1  FSS is Foreground Color
+             2  FSS is Pixel Data from the PIX_TRANS register (E2E8h)
+             3  FSS is Bitmap Data (Source data from display buffer).
+     7-15  Reserved(0)
+Note: In the original IBM 8514/A this register is Write only. 
+      In the CT82c480 it is read/writable
+
+BEE8h W(W):  Multifunction Control Register (MULTIFUNC_CTRL)
+bit  0-11  Data. 
+    12-15  INDEX. indicates which Multifunction register 
+           will be written with the data in bits 0-11.
+Note: Several registers are placed at BEE8h. When BEE8 is written
+      the bits 12-15 selects the specific register to receive the write. 
+Note: In the original IBM 8514/A these registers are write-only.
+      The CT 82c480 allows reading the registers by writing the index
+      to bits 0-3 of the Extended Configuration Register 3 (5EE8h)
+      and then reading BEE8h. Bits 12-15 read are not valid.
+
+BEE8h index 00h W(W): Minor Axis Pixel Count Register (MIN_AXIS_PCNT).
+bit  0-10  Height of BITBLT or rectangle command.
+           Actual height is one larger.
+       11  Reserved(0)
+Note: See note above on reading BEE8h.
+
+BEE8h index 01h W(W):  Top Scissors Register (SCISSORS_T).
+bit  0-11  Minimum Y co-ordinate value for the scissors rectangle.
+Note: See note above on reading BEE8h.
+
+BEE8h index 02h W(W):  Left Scissors Registers (SCISSORS_L).
+bit  0-11  Minimum X co-ordinate value for the scissors rectangle.
+Note: See note above on reading BEE8h.
+
+BEE8h index 03h W(W):  Bottom Scissors Register (SCISSORS_B).
+bit  0-11  Maximum Y co-ordinate value for the scissors rectangle.
+Note: See note above on reading BEE8h.
+
+BEE8h index 04h W(W):  Right Scissors Register (SCISSORS_R).
+bit  0-11  Maximum X co-ordinate value for the scissors rectangle.
+Note: See note above on reading BEE8h.
+
+BEE8h index 05h W(W):  Memory Control Register (MEM_CNTL).
+bit   0-1  HORCFG. Xcoordinate divider.
+             0=4, 1=5, 2=8 and 3=10.
+           Bit 0 is set if using 5-pixel operations
+           and bit 1 is set if the VRAMs are interleaved horizontally.
+      2-3  VRTCFG.  VRAM banks.
+           If using 256KBit banks 0=2 banks and 1=4banks.
+           If using 1MBit banks 1=1 Bank, 2=2 banks and 3=4 banks.
+        4  BUFSWP. Used to select planes when in Pseude 8-plane mode.
+           If set buffer 1 (upper 4 planes) is selected.
+           If clear buffer 0 (lower 4 planes) is selected.
+     5-11  Reserved(0)
+Note: See note above on reading BEE8h.
+
+BEE8h index 08h W(W):  Fixed Pattern Low Register (PATTERN_L).
+bit   0-4  Mask low is used to select the mix on a pixel by pixel basis.
+           If MIXSEL=01 then test pattern registers are used to select
+           ForeGround or background mix. Mask Low applies to even numbered
+           nuggets (0 is leftmost on the screen).
+           A 0 selects BACKMIX and a 1 selects FOREMIX.
+           Bit 4 is pixel 0 and bit 0 is pixel 4 (if in 5PN mode).
+     5-11  Reserved(0)
+Note: See note above on reading BEE8h.
+
+BEE8h index 09h W(W):  Fixed Pattern High Register (PATTERN_H).
+bit   0-4  Mask low is used to select the mix on a pixel by pixel basis.
+           If MIXSEL=01 then test pattern registers are used to select
+           ForeGround or background mix. Mask High applies to odd numbered
+           nuggets (0 is leftmost on the screen).
+           A 0 selects BACKMIX and a 1 selects FOREMIX.
+           Bit 4 is pixel 0 and bit 0 is pixel 4 (if in 5PN mode).
+     5-11  Reserved(0)
+Note: See note above on reading BEE8h.
+
+BEE8h index 0Ah W(W):  Pixel Control Register (PIX_CNTL).
+BIT     0  Intra-Nugget Alignment (INA5PN).
+           If set BitBlt data in the internal data buffer is aligned on
+           Modulos 5 basis rather than Modulos 4.
+      1-2  PLANEMODE.
+             0  Normal Operation
+             1  Indeterminate
+             2  Fill area using RD_MASK as boundary mask.
+                Does not fill second edge of boundary;
+                Plane Mask is a mixture of RD_MASK and WRT_MASK.
+             3  Fill area using WRT_MASK as boundary mask.
+                Does fill second edge of boundary;
+                Plane Mask is WRT_MASK (although RD_MASK must be
+                non-zero for correct operation).
+      3-5  Color Comparison operation (COLCMPOP).
+           Determines the comparison performed on each pixel.
+             0  False  (always write DST)
+             1  true   (never write DST)
+             2  DST >= COLOR_CMP
+             3  DST <  COLOR_CMP
+             4  DST <> COLOR_CMP
+             5  DST =  COLOR_CMP
+             6  DST <= COLOR_CMP
+             7  DST >  COLOR_CMP
+      6-7  Mix Select (MIXSEL).
+             0  FOREMIX is always used.
+             1  PATTERN_L,PATTERN_H select mix.
+             2  Data from PIX_TRANS selects the mix (1=FOREMIX).
+             3  SRC selects mix (used for transparency during BITBLT).
+     8-11  Reserved(0)
+Note: See note above on reading BEE8h.
+
+E2E8h W(R/W):  Pixel Data Transfer Register (PIX_TRANS)
+bit  0-15  Data can be read from or written to the display buffer.
+           In through plane mode (PLANAR=0), bits 0-7 and 8-15 map onto
+           bit planes 0-7 of an individual pixel.
+           In across plane mode (PLANAR=1) bits 0-4 and 8-12 map onto pixels
+           0-4 within a nugget (1 bit per pixel).
+Note: The original IBM 8514/A should always be accessed with 16bit read/writes
+Note: The original IBM 8514/A can access this register at A2E8h and A6E8h
+      during drawing commands.

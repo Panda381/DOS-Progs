@@ -1,0 +1,72 @@
+
+
+              DCFA v 1.0 - verze s ASCII komunikací (4-bitový pøenos)
+                             nastavení pøesného èasu
+
+ Není-li nutná výzva k vyslání èasu, není potøeba vysílací signál zapojovat.
+ Program pracuje bez ohledu na vysílání výzvy
+
+ Jako parametr pøi spuštìní programu se zadává èíslo 1 až 4 = èíslo portu COM.
+
+ Komunikaèní port COM musí být nastaven na požadované pøenosové parametry.
+
+ Na portu COM postaèí pøipojit pouze pøijímací signál (a pøíp. vysílací),
+ na ostatních signálech nezáleží.
+
+ Pøi pøenosu se používají pouze nejnižší 4 bity dat, ostatní bity se ignorují.
+ Lze proto použít napø. 5-bitový pøenos nebo data transponovat (napø. OR 30h).
+
+ Program navrací návratový kód 1 pøi chybì, 0 pøi operaci OK
+ -----------------------------------------------------------------------------
+
+                            Komunikaèní protokol
++----------------------------------------+------------------------------------+
+|                 program:               |     jednotka zdroje èasu:          |
++----------------------------------------+------------------------------------+
+| vysílá na COM znaky výzvy "?",         | dokonèuje pøedešlé vysílání,       |
+| èeká na oddìlovací znak (cokoliv jiného| pøípadné požadavky výzvy ignoruje  |
+| než èíslice)                           |                                    |
++----------------------------------------+------------------------------------+
+| doèkal se oddìlovacího znaku           | vyšle oddìlovací znak (napø. "=")  |
+|                                        | jako zaèátek další zprávy          |
++----------------------------------------+------------------------------------+
+| vysílá na COM znaky výzvy "?",         | znaky výzvy bìhem vysílání         |
+| èeká na první platnou èíslici          | ignoruje                           |
++----------------------------------------+------------------------------------+
+| pøijímá zprávu - 14 èíslic             | vysílá zprávu - 14 èíslic          |
+| v poøadí RRRRMMDDhhmmss                | v poøadí RRRRMMDDhhmmss            |
+|       (RRRR=rok/MM=mìsíc/DD=den/hh=hodina/mm=minuta/ss=sekunda)             |
++-----------------------------------------------------------------------------+
+  Pøi neplatné zprávì se pokouší o nový pøenos až do doby TIME-OUT (2 sekundy)
+
+ Program vysílá znaky výzvy bìhem pøenosu neustále (pro pøípad ztráty spojení
+ uprostøed zprávy). To mùže využít jednotka zdroje èasu k aktivaci vysílání
+ jednotlivých znakù pøi pøenosu. Tento zpùsob bude nutno použít u rezidentní
+ verze programu - program bude moct pøijímat nejrychleji 18 bajtù za sekundu,
+ znaky výzvy by proto mohly být použity jako potvrzení pøipravenosti k pøíjmu
+ dalšího znaku.
+ -----------------------------------------------------------------------------
+
+              Zapojení nulového modemu (pro tuto aplikaci není
+               potøeba zapojovat signály RTS->CTS a DTR->DSR)
+
+   Canon         Canon                    Canon
+   9 pin        25 pin                   25 pin
+  +----+        +----+                   +----+
+  |  5 +-----   |  7 +-------------------+  7 |  GND   zem 0 V
+  |  2 +-----   |  3 +--------\ /--------+  3 |  RxD   pøijímaná data
+  |  3 +-----   |  2 +--------/ \--------+  2 |  TxD   vysílaná data
+  |  7 +--+     |  4 +--+             +--+  4 |  RTS   žádost vysílaèe
+  |  8 +<-+     |  5 +<-+             +->+  5 |  CTS   vysílání povoleno
+  |  6 +<-+     |  6 +<-+             +->+  6 |  DSR   pøenos povolen
+  |  4 +--+     | 20 +--+             +--+ 20 |  DTR   kanál pøipraven
+  |  9 |        | 22 |                   | 22 |  RI    výzva
+  |  1 |        |  8 |                   |  8 |  DCD   úroveò signálu
+  +----+        +----+                   +----+
+
+K testu programu nebo k pøenosu data mezi poèítaèi lze použít program
+DCFA_OUT.COM. Jako parametr lze zadat èíslo portu COM (tj. 1 až 4). Po
+svém spuštìní program neustále vysílá datum a èas na zvolený port COM,
+souèasnì vypisuje znaky pøicházející na port (pozor, znaky jsou upraveny
+"AND 0Fh" a "OR 30h"). Program lze pøerušit stiskem libovolné klávesy.
+

@@ -1,0 +1,1181 @@
+      User's Manual for High-Performance File-Compression Program
+
+                           LHARC Version 1.14a 
+                                07/15/89
+
+           Copyright (c) Haruyasu Yoshizaki (Yoshi), 1988-89
+
+                                                    Nifty Serve PFF00253
+                                                    ASCII PCS   pcs02846
+
+------------------------------------------------------------------------
+
+0. It Came to Pass One Day...
+
+   After reading "A Hard Disk Cookbook" from Shouei Press, I had a
+   strong desire to write my own archiving utility.  On the Nifty Serve
+   network, I was first exposed to Mr. Miki's Larc, which surpasses the
+   well-known PKware in compression ratios, as reported in the Forum
+   Software Debut and Review.  The next shock came when I saw Mr.
+   Okumura's LZari, which has even better compression-ratio performance.
+   I started to rewrite LZari in assembly language, trying to make it
+   run faster, but I could find hardly no good way to speed up the
+   process of un-archiving.
+
+   So, as an alternative, I used adaptive Huffman coding with an LZSS
+   encoder in order to achieve similar compression ratios with shorter
+   decompression times.  This is the idea used in LHARC.
+
+   No one can be sure of eradicating all possible bugs, yet if SPACE is
+   more valuable than TIME to you, please give this program a try.  It
+   may be slower in execution, but it achieves the tightest compression
+   ratios of any general archiver in the present "shareware" environ-
+   ment.
+
+   (Copyright reserved).
+
+
+1. How to Use It:
+
+   Just type "LHARC" to see a concise help screen of the program's
+   command structure.
+
+
+   Command-line synopsis:
+   ======================
+
+   LHARC  [<command>] [{{/|-}{<switch>[-|+|2|<option>]}}...] <archive_name>
+          [{<drive_name>:}|{<home_directory_name>\}] [<path_name> ...]
+
+   Only a single command can be specified on the command line, but a
+   group of switches can be specified together after the '/' or '-'
+   delimiter.  You may place switch(es) anywhere following the command.
+
+   Hitting 'Ctrl-Break' or 'Ctrl-C' at any time will abort  LHARC 's
+   current operation and return you to the DOS prompt.
+
+
+
+ LHARC  User's Manual                                               page 2
+
+
+
+   Terminology:
+   ============
+
+   A path name comprises a directory name and a file name:
+
+        a:\tc\include\stdio.ext
+        |<---- Path_name ---->|
+        |<Directory_>||<File_>|
+        |<-- name -->||<name >|
+
+   Both the archive name and file name(s) specified in the command line
+   can optionally include a path i.e., a drive or directory name.  If
+   LHARC becomes excessively confused by your typing, it will just stop
+   and wait for keyboard input.  Hit 'CTRL-Break' or 'CTRL-C' to escape
+   back to the prompt and then use the DOS function keys to edit and
+   reenter your command line.   LHARC will continue to answer your
+   request.
+
+
+
+ LHARC User's Manual                                               page 3
+
+
+
+   Commands:
+   =========
+
+   a (Add files to archive)
+
+      LHARC a ARCHIVE.LZH file1.ext
+
+        Adds 'file1.ext' to 'ARCHIVE.LZH'.  If 'ARCHIVE.LZH' does
+        not exist, then  LHARC  will create it.  If a file with the
+        name 'file1.ext' already exists in the archive,  LHARC  will
+        replace it with the specified file.
+
+        Including the extension '.LZH' with the archive name is
+        optional and  LHARC  will default to using it unless you
+        specify otherwise (see below under "Archive name").
+        However, you would certainly need to include the extension
+        (or just '.' for a blank extension) with any single-
+        character archive name or file name that might look like
+        one of  LHARC's commands.
+
+
+
+   u (Update files to archive)
+
+      LHARC u ARCHIVE.LZH file1.ext
+
+        Adds 'file1.ext' to 'ARCHIVE.LZH', the same as with the 'a'
+        command.  However, if 'file1.ext' already exists in the
+        archive,  LHARC  will check its time stamp and will keep the
+        newer one and ignore the older one.  (Use the /c switch to
+        tell  LHARC  to skip this time-stamp comparison.)
+
+
+   m (Move new files into archive)
+
+      LHARC m ARCHIVE.LZH file1.ext
+
+        is equivalent to
+
+      LHARC u ARCHIVE.LZH file1.ext
+     DEL file1.ext
+
+        Beware the fact that the second line is implicit.  You might
+        lose 'file1.ext' forever.
+
+   f (Freshen files in archive)
+
+      LHARC f ARCHIVE.LZH file1.ext
+
+        Replaces 'file1.ext' in 'ARCHIVE.LZH' with the newer one
+        only if a file with this name already exists in the archive.
+        Otherwise, no action is taken.  (Use the /c switch to tell
+         LHARC  to skip this time-stamp comparison.)
+
+
+
+ LHARC  User's Manual                                               page 4
+
+
+
+   e or x (EXtract files from archive)
+
+      LHARC e ARCHIVE.LZH d:\temp\
+
+        Extracts all the files from 'ARCHIVE.LZH
+        directory \temp\ on drive D:.  If the specified directory
+        does not exist, then  LHARC  will prompt you whether to create
+        it with the message "Make directory? [Y/N]".  If no home
+        directory name is specified,  LHARC  will extract all files to
+        the current directory.
+
+      LHARC e ARCHIVE.LZH file1.ext
+
+        Extracts only 'file1.ext' from 'ARCHIVE.LZH'.  If a file
+        with the name 'file1.ext' exists in the home directory,
+         LHARC  will compare their time stamps and if the existing
+        file is older, then  LHARC  will prompt you whether to
+        overwrite it.  (Use the /c switch to tell  LHARC  to skip this
+        time-stamp comparison.)
+
+      LHARC e ARCHIVE.LZS file.ext
+
+        Extracts 'file.ext' from an .LZS file archived with Larc
+        3.xx.
+
+        Note:  Larc is another popular archiver on Japanese PDS's.
+
+
+   p (disPlay files in archive)
+
+      LHARC p ARCHIVE.LZH file1.ext
+
+        Extracts 'file1.ext' from 'ARCHIVE.LZH' and redirects it to
+        standard output.
+
+      LHARC p /v ARCHIVE.LZH file1.ext
+
+        Uses the default utility LESS to format and display the
+        redirected output.   LHARC  creates a temporary file
+        '  LHARC.TMP' for viewing.  It will be deleted afterward.
+
+      LHARC p /vsee ARCHIVE.LZH file1.ext
+
+        Invokes the text formatter SEE, which then displays
+        'file1.ext' to standard output in a paged format.  Refer to
+        PC-LESS.ARC, LIST64A.ARC and SEE15.ARC.  (These should be
+        available in most BBS libraries.)
+
+
+   d (Delete files from archive)
+
+      LHARC d ARCHIVE.LZH file1.ext
+
+        Deletes 'file1.ext' from 'ARCHIVE.LZH'.
+
+
+
+
+
+
+
+
+ LHARC  User's Manual                                               page 5
+
+
+
+   l (List files in archive)
+
+      LHARC l ARCHIVE.LZH
+
+        Lists information about all the files in 'ARCHIVE.LZH':
+        name, original size, stored size, compression ratio, date
+        and time, attributes, compression type (see below under
+        "Archive File Header") and CRC check.  Each file takes one
+        line of output.  A '+' before a file name indicates that a
+        directory name is stored with the file name.  (Use the /x
+        switch to tell  LHARC  to also display these directory names.)
+
+        If you specify any file names and extensions, then only the
+        files with matching names or extensions will be listed:
+
+      LHARC l ARCHIVE.LZH *.c *.h readme.doc
+
+        Lists information on all the .C, .H and README.DOC files
+        in 'ARCHIVE.LZH'.
+
+
+   v (View list of files in archive)
+
+      LHARC v ARCHIVE.LZH
+
+        Which is equivalent to:
+
+      LHARC l /x ARCHIVE.LZH
+
+        Lists information about all the files in 'ARCHIVE.LZH',
+        except that each listing takes two lines: the first for the
+        full path name and the second for the rest of the
+        information.  The /x switch tells  LHARC  to display file
+        names extended with directory names.
+
+
+   s (make Self-extracting archive)
+
+      LHARC s ARCHIVE.LZH d:\temp\
+
+        Creates a "small" self-extracting file 'ARCHIVE.COM' (or
+        'ARCHIVE.EXE' if larger than 64K) from 'ARCHIVE.LZH' in the
+        directory \temp\ on drive D:.  If no home directory name is
+        specified, then  LHARC  will create this file in the current
+        directory.
+
+        A "small" self-extracting archive (SFX) can be as large as
+        DOS' working memory space (640K), but normally no larger
+        than about 400K for safety.  A "large" SFX, however, is
+        limited only by available disk storage (see below under
+        "Self-Extracting Archives").
+
+
+
+ LHARC  User's Manual                                               page 6
+
+
+
+      LHARC s /x ARCHIVE.LZH
+
+        Creates a "large" self-extracting file 'ARCHIVE.EXE' from
+        'ARCHIVE.LZH'.  The /x switch tells  LHARC  to use the
+        "large" (extended) SFX model. You must first have an .LZH
+        file, before you can have a Self-Extracting file.
+
+
+   t (Test integrity of archive)
+
+      LHARC  t ARCHIVE.LZH
+
+        Tests the integrity of 'ARCHIVE.LZH' by running a CRC check
+        on each file and comparing the result against the file's
+        stored CRC value.
+
+
+   (no command specified)
+
+      LHARC  ARCHIVE.LZH
+
+        Acts exactly the same as the 'l' command.  This optional
+        action is temporary.  Don't count on it in future versions.
+
+
+
+ LHARC  User's Manual                                               page 7
+
+
+
+   Switches:
+   =========
+
+   Specify switch(es) following the switch delimiter '/' or '-'.  If
+   you want to specify more than one switch, type characters
+   continuously without any intervening spaces, like "/rx-we:\work" or
+   "/cxvless".  When the 'v' and 'w' switches are used with other
+   switches, they must be specified at the end of a sequence, as shown
+   in the above examples.
+
+   You may place a '+' or '-' sign after switches, with the following
+   meanings: '+' turns the switch on and '-' turns the switch off.
+   The '2' creates a special option for the /r and /v switches (see
+   below).  If you just specify /<switch> without '+' or '-', then
+   <switch> will be toggled from 'on' to 'off' or vLHARC versa, e.g., to
+   override any switch set in an environment variable (see below).
+
+   NOTE:  Use only lowercase letters for switches.  Capital letters
+          are reserved for future use.
+
+
+     /x[-|+] (allow eXtended file names)
+
+        By default,  LHARC  stores only the file names of archived
+        files and disregards the names of the directory(s) in which
+        they reside.  This switch tells  LHARC  to extend all file
+        names with directory names and to extract archived files
+        together with their stored directory names.
+
+        Example: Suppose you are in the root directory, \ and you
+        have two files 'stat.h' and '\tc\include\sys\stat.h':
+
+      LHARC  a ARCHIVE.LZH stat.h
+
+        Adds only the file 'stat.h' from the current (root)
+        directory to 'ARCHIVE.LZH', but
+
+      LHARC  a ARCHIVE.LZH stat.h \tc\include\sys\stat.h
+
+        Will cause  LHARC  to abort with the message "Same names in
+        another path", because directory names are normally
+        disregarded when storing file names.  However,
+
+      LHARC  a /x ARCHIVE.LZH stat.h \tc\include\sys\stat.h
+
+        Adds both files to 'ARCHIVE.LZH'.  Then,
+
+      LHARC  e ARCHIVE.LZH stat.h
+
+        Extracts both 'stat.h' files to the current directory and
+        compares their time stamps and if one is newer, then  LHARC 
+        will prompt you with the message "'STAT.H': Already exists.
+        Overwrite? [Y/N]".
+
+
+
+ LHARC  User's Manual                                               page 8
+
+
+
+      LHARC  e /x ARCHIVE.LZH stat.h
+
+        Extracts both 'stat.h' files together with their directory names:
+        one to the current directory and the other to the directory
+        \tc\include\sys\.  If this directory does not exist, then  LHARC 
+        will prompt you whether to create it.
+
+        You can also use the /r switch to tell  LHARC  to archive all
+        files with the same file name by recursively searching
+        directories.  Thus,
+
+      LHARC  a /r ARCHIVE.LZH stat.h
+
+        Adds two 'stat.h' files, with path names, to 'ARCHIVE.LZH':
+        one from the root directory and the other from the directory
+        \tc\include\sys\.
+
+        The /r switch sets the /x switch simultaneously.  If you
+        don't want full path names, include /x- after specifying the
+        /r switch.
+
+      LHARC  s /x ARCHIVE.LZH
+
+        Creates the "large" (= extended) self-extracting archive
+        'ARCHIVE.EXE' from 'ARCHIVE.LZH' (see below under "Self-
+        Extracting ARCHIVEs").
+
+
+     /p[-|+] (distinguish full Path names)
+
+        By default,  LHARC  disregards directory names when extracting
+        files.  This switch tells  LHARC  to distinguish files by full
+        path name during un-archiving.
+
+        Example: Suppose your archive 'tc.LZH' contains both
+        'stat.h' and 'sys\stat.h'.  Then,
+
+      LHARC  e tc stat.h
+
+        Extracts both 'stat.h' files to the current directory and
+        the older one will be overwritten by the newer one, whereas
+
+      LHARC  e /p tc stat.h
+
+        Extracts only 'stat.h' to the current directory and ignores
+        'sys\stat.h', because its path name is not specified.
+
+        If you specify full path names without the /p switch,  LHARC 
+        will extract only those files from your archive, but
+        otherwise it will disregard stored directory names.  (If you
+        want to extend file names with directory names, use the /x
+        switch.)
+
+
+
+ LHARC  User's Manual                                               page 9
+
+
+      LHARC  e tc sys\stat.h
+
+        Extracts only 'sys\stat.h' to the current directory.
+
+
+     /c[-|+] (skip time-stamp Comparison)
+
+      LHARC  [e|f|u|x] /c ARCHIVE.LZH [file1.ext file2.ext ...]
+
+        If a file with the same name is to be created,  LHARC  will
+        default to comparing the time stamp of each pair of files,
+        and so some files will be overwritten and some just ignored.
+        This switch tells  LHARC  to overwrite any existing files with
+        extracted ones with the same name.
+
+
+     /m[-|+] (no Message for query)
+
+      LHARC  [<command>] /m ARCHIVE.LZH [file1.ext file2.ext ...]
+
+        By default, before operations that alter files or
+        directories,  LHARC  will query you with messages like
+        "Overwrite? [Y/N]".  This switch suppresses these messages
+        and tells  LHARC  to proceed as if "y" is typed in.
+
+
+     /a[-|+] (allow any Attribute of files)
+
+      LHARC  a /a ARCHIVE.LZH file1.arc
+
+        adds 'file1.arc' to 'ARCHIVE.LZH'.
+
+        By default,  LHARC  will not archive files with the hidden,
+        read-only or system attribute.  This switch tells  LHARC 
+        also to archive files with these attributes.
+
+
+     /r[-|+|2] (Recursively collect files)
+
+
+
+ LHARC  User's Manual                                              page 10
+
+
+
+      LHARC  has three modes of collecting the files to be archived:
+
+        (a) specified file(s):  /r-
+
+             LHARC  a /r- ARCHIVE.LZH file1.ext [file2.ext ...]
+
+                 Adds to 'ARCHIVE.LZH' only the specified files
+                 (default mode).
+
+        (b) across directories:  /r or /r+
+
+             LHARC  a /r ARCHIVE.LZH *.c
+
+                 Adds to 'ARCHIVE.LZH' all the files with
+                 extension .C on the current drive, starting
+                 from the current directory.   LHARC  will store
+                 all file names extended with directory names.
+                 Use this switch to archive all versions of a
+                 file or all files of a certain type.
+
+        (c) specified directory(s):  /r2
+
+             LHARC  a /r2 ARCHIVE.LZH \doc
+
+                 Adds to 'ARCHIVE.LZH' all the files in the
+                 directory specified by the path \doc and its
+                 branches, similar to the Unix -r option.  Use
+                 this switch to archive complete directories.
+
+        The /r and /r2 switches set the /x switch simultaneously.
+        You may have to toggle the /x switch off (with /x-) after
+        using /r or /r2.  The /x- switch tells  LHARC  to disregard
+        stored directory names.
+
+
+     /w[-|+|<directory_name>] (set Working directory)
+
+      LHARC  a /w[d:\temp] ARCHIVE.LZH [file1.ext file2.ext ...]
+
+        Creates all the temporary files for 'ARCHIVE.LZH' in the
+        directory \temp\ on drive D:.  If no directory name is
+        specified with this switch, then the current directory
+        becomes the working directory and all the temporary files
+        created in the process of archiving will reside in this
+        directory and be deleted afterward.
+
+     Use the /w switch when
+
+        (1) you have no room in the directory where the archive is,
+            or
+        (2) you want your work done silently and swiftly on a RAM
+            disk.
+
+
+
+ LHARC  User's Manual                                              page 11
+
+
+
+        This switch overrides the working directory that may be
+        specified in an environment variable (see below).
+
+
+     /v[-|+|2|<utility_name>] (View file by another utility)
+
+      LHARC  p /v ARCHIVE.LZH file1.ext
+
+        Extracts 'file1.ext' from 'ARCHIVE.LZH' and invokes the
+        default utility LESS for formatted display to standard
+        output.
+
+        NOTE:  LESS.COM is an utility similar to MORE.COM of
+               MS-DOS and something more, but less than the
+               "LESS" of American Unix networks.  PC-LESS.ARC,
+               LIST64A.ARC or SEE15.ARC (available from many
+               BBS sources in the U.S.A.) work as well as the
+               Japanese utility.
+
+         LHARC  first creates an un-archived file '  LHARC.TMP' and then
+        invokes the specified utility, usually a page formatter like
+        LIST.EXE or SEE.EXE.  Temporary files will normally be
+        deleted after you have viewed their output.
+
+      LHARC  p /v2 /vbrowse ARCHIVE.LZH file1.ext
+
+        Invokes BROWSE.COM for paged display of 'file1.ext' to
+        standard output, but suppresses the output of file names or
+        path names.  This special '2' option is provided for viewing
+        binary files with a dump utility.
+
+     /n[-|+] (No Indicator)
+
+        Suppress progress display oooo... in the process of
+        archiving and de-archiving.  The display is on the standard
+        error stream so that the dsiplay is on even in the process
+        of redirection.
+
+
+    /k<keyword> (Keyword for AUTOLARC.BAT)
+
+        When used together with the /x switch to make a "large"
+        self-extracting archive (SFX), this switch tells  LHARC  to
+        embed the specified keyword into the .EXE file and then to
+        turn on the AUTOLARC.BAT auto-execution feature.  That is,
+        if the SFX contains a file named 'AUTOLARC.BAT' (which can
+        consist of any sequence of batch commands), this file will
+        be executed immediately after all the files are extracted,
+        but only if the correct keyword is supplied along with the
+        SFX name.
+
+
+
+ LHARC  User's Manual                                              page 12
+
+
+
+      LHARC  s /x /kon ARCHIVE.LZH
+
+        Creates the "large" SFX 'ARCHIVE.EXE' from 'ARCHIVE.LZH'
+        and turns on auto-execution of AUTOLARC.BAT, conditional
+        upon typing the keyword "on".  Then,
+
+     C:\>ARCHIVE
+
+        Executes 'ARCHIVE.EXE' and extracts all the files, but does
+        not auto-execute AUTOLARC.BAT, whereas
+
+     C:>ARCHIVE on
+
+        Extracts all the files and immediately executes AUTOLARC.BAT.
+
+        Note:  Because DOS ignores case on the command line,
+               this keyword cannot be made case sensitive.
+
+
+     /t[-|+] (Time Stamp)
+
+        Update the time stamps of Archive to the newest file in the
+        archive, effective with switches (a,u,m,f,d).
+
+      LHARC  a /t ARCHIVE.LZH file1.ext
+
+        Will set the time stamp of ARCHIVE.LZH to that of file1.ext
+        if it has the newest time stamp in ARCHIVE.LZH, otherwise
+        ARCHIVE.LZH has the time stamp of command-line execution
+        above.
+
+
+
+ LHARC  User's Manual                                              page 13
+
+
+
+   Archive name (path name):
+   =========================
+
+   All the files archived by  LHARC  have the same format as those
+   archived by Larc, except that Larc uses the extension '.LZS'.  If you
+   specify a different extension,  LHARC  will prompt you whether to use
+   it with the message "Extension of archive is not '.LZH.' Continue
+   processing? [Y/N]".
+
+   Wildcards are valid in specified file names with the 'e', 'x', 'p',
+   'l', 'v' and 's' commands:
+
+      LHARC  e *.LZH *.c
+
+        Extracts all files with extension .C from all archives in
+        the current directory.
+
+
+   Home directory name (drive name):
+   =================================
+
+   If you specify a home directory name, then  LHARC  will refer to that
+   directory as if it is the current directory.  Specify a home
+   directory name ending with either '\' or ':'.  All files will be
+   archived without storing this directory name unless you also use the
+   /r or /x switch.
+
+   Example:  Suppose you have the following directory tree:
+
+                         |-- BIN --
+                         |
+        |-- \ --|-- TC --|-- LIB --
+                         |
+                         |-- INCLUDE --|-- SYS --|-- STAT.H
+
+   From the root directory, \,
+
+    LHARC  a /r ARCHIVE.LZH stat.h tc\include\
+
+        adds '\tc\include\sys\stat.h' to 'ARCHIVE.LZH' with the path
+        name 'sys\stat.h' from your home directory \tc\include\.
+
+
+   File name (path name):
+   ======================
+
+   The file names or path names of files to be archived must be
+   specified or else  LHARC  will assume *.* with no directory names.
+   The wildcards '*' and '?' behave exactly as in DOS.  You cannot use
+   them to specify directories except with the /r2 switch, similar to
+   the Unix -r option for cp, mv and rm.
+
+
+
+ LHARC  User's Manual                                              page 14
+
+
+
+   Switch delimiter:
+   =================
+
+   If you are currently using some other character, like '-', in place
+   of the forward slant '/' as a switch delimiter (from the undocu-
+   mented DOS Function 37H, Set/Query Switchar), then you have to use
+   your character in place of '/', like "-cx".  This makes '/' available
+   as a directory delimiter instead of '\', as in Unix convention.  (You
+   can use '-' as a switch delimiter with  LHARC  anyway.)
+
+   The above comment may not apply unless you are running MS-DOS 3.xx.
+
+
+2. Setting Switches in an Environment Variable
+
+   You may set any of  LHARC 's default switches with the environment
+   variable '  LHARC':
+
+     SET   LHARC=/we: /r2
+
+        will set drive E: as the working directory and archive all
+        files in directory mode.
+
+   You may also specify  LHARC 's working directory with the environment
+   variable 'TMP':
+
+     SET TMP=E:
+
+        but the /w switch will override this setting.
+
+
+
+ LHARC  User's Manual                                              page 15
+
+
+
+3. Self-Extracting Files
+
+    LHARC  can create a self-extracting archive (SFX), which makes file
+   transfers very easy because the recipient does not need to have
+    LHARC  itself to extract the contents.
+
+   There are two models of SFX: "small" and "large." A "small" SFX is
+   designed to fit in working memory, but a "large" SFX depends only on
+   available disk storage.  When run, each model will sign on with a
+   corresponding screen message: " LHARC 's SFX 1.14 [S or L]".
+
+   On execution, either model SFX looks first for an archived file with
+   the name '!' and displays it to the screen followed by the simple
+   message "[Y/N]", which is prompting you whether or not to extract the
+   rest of the files.  This option, called a telop, is provided for your
+   convenience; it might be used for an announcement, an invitation, a
+   cover letter for E-mail, a shipping label, an ANSI graphics screen,
+   or whatever you please.  Thus, the telop will politely reassure the
+   recipient of your SFX as to sender, contents and intentions.  To
+   make a telop, simply create a suitable ASCII file with your favorite
+   text editor and then rename it to '!' before archiving.
+
+   If you create a file with the name 'AUTOLARC.BAT' (which can consist
+   of any sequence of batch commands) and include in a "large" SFX, you
+   can optionally embed a keyword that will activate auto-execution of
+   this batch file immediately after all the files are extracted.
+   Otherwise, any AUTOLARC.BAT file will simply be harmlessly extracted
+   along with the rest of the files.
+
+   It is, of course, possible to smuggle destructive "jokes" or so-
+   called viruses into this AUTOLARC.BAT file (a "Trojan horse"). So, to
+   guard against such unscrupulous use of this powerful feature of
+    LHARC , I have provided a measure of security with the telop and the
+   keyword.
+
+   The attribute byte of all the extracted files will normally be 20h.
+   If you specify /x switch in Large SFX files, then you may restore any
+   attributes.  This feature is only for Large model.  A typical command
+   line looks like:
+
+     ARCHIVE [/kword] [/edirectory_name][/x][/a].
+
+   Note:  In MS-DOS2.xx a program has no way to know its filename
+          or pathname for its own.  So move the self-extracting
+          .EXE file on the very directory where is is going to be
+          de-archived.  Then execute.
+
+
+
+ LHARC  User's Manual                                              page 16
+
+
+
+   "Small" model:
+   ==============
+
+   A "small" SFX must fit within the size of your available memory, so
+   theoretically it can be as large as DOS' 640K workspace.  In
+   practLHARC, however, it should not be much larger than 400K, especially
+   when you distribute your program, it is not YOU who extract the file.
+   Think of people who may not have a fully memory populated machine.
+
+      LHARC  s ARCHIVE.LZH
+
+        Creates 'ARCHIVE.COM' or 'ARCHIVE.EXE', depending on the
+        size of your original archive.  Then,
+
+     C:\>ARCHIVE
+
+        Displays the telop file '!' on the screen and prompts you
+        whether to proceed to extract files, with the simple message
+        "[Y/N]" (add your own message to the end of the telop to
+        take advantage of this prompt).  The telop itself is not
+        extracted; to record it to disk, type
+
+     C:\>ARCHIVE >!
+
+
+
+ LHARC  User's Manual                                              page 17
+
+
+
+   "Large" model:
+   ==============
+
+   A "large" SFX is limited in size only by available disk storage and
+   will optionally auto-execute an AUTOLARC.BAT file immediately after
+   extracting all the files.
+
+      LHARC  s /x /kon ARCHIVE.LZH
+
+        Creates 'ARCHIVE.EXE' (the extension is always .EXE in this
+        case) and turns on auto-execution of AUTOLARC.BAT,
+        conditional upon typing the keyword "on".
+
+   Auto-execution of AUTOLARC.BAT will take place if and only if you
+   supply the keyword (case insensitive) along with the SFX name.  For
+   the above example,
+
+     C:\>ARCHIVE on
+
+       or
+
+     C:\>ARCHIVE ON
+
+        Extracts all the files and immediately executes AUTOLARC.BAT,
+        whereas:
+
+     C:\>ARCHIVE
+
+        Just extracts all the files after displaying the telop, if
+        any.
+
+        Note:  If a file with the name 'AUTOLARC.BAT' already
+               exists in the current directory, it will auto-
+               matically be overwritten.
+
+
+
+ LHARC  User's Manual                                              page 18
+
+
+
+   Destination directory(s):
+   =========================
+
+   You can use the /e switch with the SFX name to specify the
+   destination directory for all the extracted files, but only for a
+   "large" SFX:
+
+     C:\>ARCHIVE /ed:\temp
+
+        Extracts all the files in 'ARCHIVE.EXE' to the directory \
+        temp\ on drive D:.
+
+   In addition, if any directory names are stored with the file names
+   in the original archive, you can use the /x switch to extract files
+   with full path names:
+
+     C:\>ARCHIVE /ed: /x
+
+        Extracts all the files to drive D: and extends file names
+        with directory names.  If any of these directories does not
+        exist, then it will be automatically created.  Any
+        AUTOLARC.BAT file, however, is always extracted to the
+        current directory, whether you use the /x switch or not.
+
+
+
+   View Self-extracting files.
+   ===========================
+
+   From version 1.12b on, you may handle self-extracting .COM or .EXE
+   files as .LZH files with commands e, x, p, t, l, v, s.  Please use
+   full filename with extension .com or .exe.  Like:
+
+      LHARC  l ARCHIVE.exe
+
+   To take a list of files inside a self-extracting ARCHIVE.exe file.
+   Be ALERT to the danger of overwriting or creating a new file with
+   the 's' switch.  Try to keep a backup when viewing.
+
+
+
+
+ LHARC  User's Manual                                              page 19
+
+
+
+4. Archive File Header
+
+    LHARC 's header is compatible with that of Larc.  Methods of
+   archiving are two:
+
+     -lh0-   stored as it was and
+     -lh1-   compressed by LHARCuf coding.
+
+    LHARC  can also extract files stored in Larc-created archives (with
+   the extension .LZS) if they are type 4 or 5.
+
+   NOTE:  Larc is another Japanese archiver, with source code
+          published in a journal.  It is now also available in the
+          United States.  Larc, also, has a SFX self-extractor.
+          The structure of self-extracting large SFX file looks
+          like:  (SFX + "key word") archived + header + archived
+          file.
+
+
+5. Result Codes
+
+    LHARC  returns the following result codes to the parent process:
+
+        0   Normally finished.
+
+        1   Process finished with nonexistent file names ignored
+            during archiving or CRC error occurred during
+            un-archiving.
+
+        2   Process terminated by fatal error; no archive created
+            or files moved.
+
+        3   Unable to write temporary files into the archive.  Work
+            file renamed to '  LHARC.)2(' and original archive
+            deleted.  Try renaming   LHARC.)2( as your archive,
+            although it might be damaged.
+
+
+6. Temporary Files
+
+          LHARC.)1(   Original archive, renamed.
+          LHARC.)2(   Work file used to create new archive.
+          LHARC.TMP   Work file created for viewing by another utility.
+
+   If a file with one of these file names already exists in the working
+   directory, then the behavior of  LHARC  is unpredictable.
+
+
+
+ LHARC  User's Manual                                              page 20
+
+
+
+7. My Distribution Policy
+
+   Under the following conditions, you may freely copy and distribute
+   this software:
+
+   1. Under all circumstances, "Copyright by Haruyasu Yoshizaki"
+      must be attached to the copy.
+
+   2. This manual or its hardcopy should go together with the
+      software.
+
+   3. You may modify the program, but in that case, you must distri-
+      bute the complete source code for the program, including your
+      specific contributions and you must make it clear that you
+      have made such modifications.
+
+   4. You must try to distribute the latest version available.
+
+   5. I assume no warranty for any claim of damage you may sustain
+      by using this software.
+
+   6. I have no obligation to revise the program to correct any
+      fault in this software.
+
+   7. For any commercial use of this software, I add the following:
+
+      a. The entire software made incorporating this program should
+         not be copy protected in the sense that the DISKCOPY
+         program of MS-DOS makes an imperfect copy.
+
+      b. Every part of the package should print the name " LHARC " and
+         the copyright banner.
+
+      c. The distribution policy of this software should be printed
+         either in the manual, in the package or on the disk label.
+
+         Comment:  If a commercial package or a shareware
+                   product uses  LHARC  with self-extracting SFX
+                   form for the distribution, then the Copy-
+                   right statement must appear with SFX header.
+                   I consider this as a claim of  LHARC 's Banner.
+
+
+
+ LHARC  User's Manual                                              page 21
+
+
+
+8. Acknowledgments
+
+   Special gratitude to Haruhiko Okumura, who uploaded the code for
+   LZari to PC-VAN on which my LHARCuf coding is based; and to Kazuhiko
+   Miki, the author of Larc I, who re-posted LZari on Nifty Serve.  To
+   all who contributed reviews, comments and bug reports, I express my
+   thanks.
+
+   Thanks also to Prof. Kenjirou Okubo who has spent much of his own
+   time in reviewing the English manual and resources in distributing
+    LHARC  into the United States.
+
+   The .EXE file for  LHARC  is nearly 2K smaller owing to use of
+   pcs27162 by S. Takanami.  I honor this utility and thank him for
+   letting me use it to prepare  LHARC .
+
+   I have made so many revisions to  LHARC , yet I do not think I can
+   ever expel all the bugs dwelling inside.  I would appreciate any
+   comments and bug reports.  Please route them to me via the SDR
+   Forum on Nifty Serve or salon.pds of ASCII Net.  In the United
+   States, CompuServe subscribers can contact me through Kenjirou
+   Okubo 74100,2565 or on GEnie via 'K.OKUBO'.
+
+
+9. References
+
+   1) Labo, A.P., A Hard Disk Cookbook:  Shouei Press (1987).
+
+   2) Kurita, T., Huffman coding, bit:  Jewelry Box of Computing 43,
+      vol. 20, no. 7, pp. 100-101 (1988).
+
+   3) Miki, K., Documentation for Larc:  LARC.MAN.
+
+
+
+ LHARC  User's Manual                                              page 22
+
+
+
+10. History of Revisions
+
+v1.14a (mostly cosmetic reasons for new Version)
+    1. Released due to unauthorised 1.14 'ICE' version being about.
+    2. Modified the '.' and the 'o' , to 'þ' and '' for the graph
+       when LHARCing, & DeLHARCing.
+
+v1.13c
+    1. Following Mr.Okumura's sugestion, a check is now made for
+       the size of extractable files being added.
+    2. Check size of the specified directory for extraction.
+    3. In using temporary files,  LHARC  checks the size of available
+       area and in case of shortage, restore in old archives.
+
+v1.13b
+    1. /t switch to update even if no transaction is made.
+    2.  LHARC  accepts self-extracting .COM &.EXE files like .LZH
+       files in e, x, p, t, l and s commands.
+    3. Bugs in B: D: drive specification removed.
+
+v1.13a
+    1. New /t switch added
+    2. Display redirected to standard error stream.
+    3. Bugs fixed in large SFX model.
+    4. /a switch in large SFX model.
+    5. Some trial t let a program know its path_name and own name.
+    6. Some mixed dislay when a file_name contains '$'.
+    7. User's Manual rewritten to reflect changes since v1.00.
+
+v1.12b
+    1. Fixed bug in auto-execution of AUTOLARC.BAT after self-
+       extraction.
+
+v1.12
+    1. Added 't' command.
+    2. Changed screen display to show new commands and switches.
+    3. Fixed bug in CRC error check with archived file of zero
+       length.
+    4. Revisions to self-extracting archives:
+       - "large" and "small" SFXs
+       - telop file '!'
+       - /k switch for security against Trojan horses
+
+v1.01
+    1. Minor touchups to help screen and program messages.
+    2. User's Manual rewritten for clarity and intelligibility.
+
+v1.00
+    1. Mode without work file added.
+    2. /r switch forces /x switch on simultaneously.
+
+v0.07c
+    1. Removed bug in detecting memory shortage.
+    2. Compacted self-extraction program.
+
+v0.07a
+    1. Vers. 0.05-0.07 break down heap areas.  Corrected.
+    2. Now accepts any directory name with any attributes.
+
+
+
+ LHARC  User's Manual                                              page 23
+
+
+
+v0.07
+    1. Prohibited actions to a write-protected archive.
+    2. 'm' command now removes files made by older versions.
+    3. Error-handling routine revised in dealing with wildcards for
+       archive names.
+    4. No command specified is now interpreted as 'l' command
+       specified.
+    5. Error level 1 returned when CRC checking detects an error
+       during un-archiving.
+    6. Program now halts when self-extraction process meets an
+       error.
+    7. Bug fixed in CRC checking when a directory name is met in
+       the un-archiving process.
+
+v0.06b
+    1. Removed possibility of a damaged cluster appearing in failing
+       to re-create (= freshen) an archived file.
+    2. Removed '+' bug in redirecting output with 'p' command.
+
+v0.06
+    1. If a file transaction fails with 'u', 'm' or 'f' command,
+        LHARC  will leave the archive as it was.
+    2. File attributes were sometimes misunderstood by 'f' command.
+       This possibility eliminated.
+
+v0.05
+
+    1. CRC checks extended to self-extracting archives.
+    2. Completely recursive modes made possible for 'a,u,m' commands.
+    3. Meets requirements of APPEND.EXE of MS-DOS version 3.3.
+    4. '\' no longer needed at end of working directory name with /w
+       switch.
+
+v0.04
+    1. Support for environment variable 'TMP'.
+
+    2. " LHARC  p /v a.LZH a_file" used to delete 'a_file' in case of
+       an error.  Bug fixed.
+    3. Added check for a file with the same name in making a self-
+       extracting archive.
+    4. In a self-extracting archive, if a file with the same name
+       of larger size existed, then  LHARC  kept the difference when
+       it was overwritten by one of smaller size.  This bug removed.
+
+v0.03
+    1. Environment variable '  LHARC' sets some of the switches.
+    2. Made it possible to specify '+', '-' with switches.
+    3. /v switch included.
+    4. Wildcards can now be used for archive names with 'e,x,p,l,v,s'
+       commands.
+    5. Home directory names had some interactions with Kanji-code.
+       Fixed.
+    6. Fixed header-file bugs of self-extracting .EXE files.
+
+
+
+ LHARC  User's Manual                                              page 24
+
+
+
+v0.02
+    1. Support for 'm' command.
+    2. Larc 3.xx compatibility.  Type 4, 5 .LZS files are un-
+       archived.
+    3. Accommodation to systems with different switch characters.
+    4. Minor bugs fixed with 'e' command.
+    5. Revised format for 'l' command.
+
+v0.01
+    1. Support for self-extracting archives.
+    2. 'p' command added.
+    3. /c switch applies to more combinations of commands and
+       switches.
+    4. Error handling revised.
+    5. Bug fixed in 'l' command.
+    6. New algorithm introduced in sorting path names.
+
+
+
+11. Comments
+
+ a. Some other algorithms I have in mind.
+
+    With some specific files, the compression ratios are not as good as
+    with PKware's PKZIP.  For such files, I may use LZSS compression
+    with correlated arithmetic compression.  This is an effective
+    method and my experiments show that the ratios are no less than
+    PKware's.  Yet it takes too much time in both the archiving and
+    un-archiving processes, with much higher memory consumption.
+    Consequently, I intend to keep working on the algorithm.
+
+    Naturally, I am ready to receive any comments and I continue to
+    experiment.
+
+                                  - end -
+                                                                                         

@@ -1,0 +1,5077 @@
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-2.  A high-level implementation of Bresenham's algorithm.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 6-2 */
+
+Line( x1, y1, x2, y2, n )       /* for lines with slope between -1 and 1 */
+int     x1,y1;
+int     x2,y2;                  /* endpoints */
+int     n;                      /* pixel value */
+{
+        int     d,dx,dy;
+        int     Aincr,Bincr,yincr;
+        int     x,y;
+
+        if (x1 > x2)                        /* force x1 < x2 */
+        {
+          Swap( &x1, &x2 );
+          Swap( &y1, &y2 );
+        }
+
+        if (y2 > y1)                        /* determine increment for y */
+          yincr = 1;
+        else
+          yincr = -1;
+
+        dx = x2 - x1;                       /* initialize constants */
+        dy = abs( y2-y1 );
+        d = 2 * dy - dx;
+
+        Aincr = 2 * (dy - dx);
+        Bincr = 2 * dy;
+
+        x = x1;                             /* initial x and y */
+        y = y1;
+
+        SetPixel( x, y, n );                /* set pixel at (x1,y1) */
+
+        for (x=x1+1; x<=x2; x++)            /* do from x1+1 to x2 */
+        {
+          if (d >= 0)
+          {
+            y += yincr;                     /* set pixel A */
+            d += Aincr;
+          }
+          else                              /* set pixel B */
+            d += Bincr;
+
+          SetPixel( x, y, n );
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+        }
+}
+
+
+Swap( pa, pb )
+int     *pa,*pb;
+{
+        int     t;
+
+        t = *pa;
+        *pa = *pb;
+        *pb = t;
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-3.  A routine that draws horizontal lines.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 6-3 */
+
+FilledRectangle( x1, y1, x2, y2, n )
+int     x1,y1;                  /* upper left corner */
+int     x2,y2;                  /* lower right corner */
+int     n;                      /* pixel value */
+{
+        int     y;
+
+        for (y=y1; y<=y2; y++)          /* draw rectangle as a set of */
+          Line( x1, y, x2, y, n );      /*  adjacent horizontal lines */
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-4.  A line-drawing routine for CGA 640-by-200 2-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 6-4'
+                NAME    Line06
+                PAGE    55,132
+
+;
+; Name:         Line06
+;
+; Function:     Draw a line in 640x200 2-color mode
+;
+; Caller:       Microsoft C:
+
+;
+;                       void Line06(x1,y1,x2,y2,n);
+;
+;                       int x1,y1,x2,y2;        /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx1           EQU     word ptr [bp+4] ; stack frame addressing
+ARGy1           EQU     word ptr [bp+6]
+ARGx2           EQU     word ptr [bp+8]
+ARGy2           EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+VARleafincr     EQU     word ptr [bp-6]
+VARincr1        EQU     word ptr [bp-8]
+VARincr2        EQU     word ptr [bp-10]
+VARroutine      EQU     word ptr [bp-12]
+
+ByteOffsetShift EQU     3               ; used to convert pixels to byte 
+                                        ;  offset
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr06:near
+
+                PUBLIC  _Line06
+_Line06         PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,8            ; stack space for local variables
+                push    si
+                push    di
+
+                mov     si,2000h        ; increment for video buffer 
+                                        ;  interleave
+                mov     di,80-2000h     ; increment from last to first 
+                                        ;  interleave
+
+                mov     cx,ARGx2
+                sub     cx,ARGx1        ; CX := x2 - x1
+                jz      VertLine06      ; jump if vertical line
+
+; force x1 < x2
+
+                jns     L01             ; jump if x2 > x1
+
+                neg     cx              ; CX := x1 - x2
+
+                mov     bx,ARGx2        ; exchange x1 and x2
+                xchg    bx,ARGx1
+                mov     ARGx2,bx
+
+                mov     bx,ARGy2        ; exchange y1 and y2
+                xchg    bx,ARGy1
+                mov     ARGy2,bx
+
+; calculate dy = ABS(y2-y1)
+
+L01:            mov     bx,ARGy2
+                sub     bx,ARGy1        ; BX := y2 - y1
+                jnz     L02
+
+                jmp     HorizLine06     ; jump if horizontal line
+
+L02:            jns     L03
+
+                neg     bx              ; BX := y1 - y2
+                neg     si              ; negate increments for buffer 
+                                        ;  interleave
+                neg     di
+                xchg    si,di           ; exchange increments
+
+; select appropriate routine for slope of line
+
+L03:            mov     VARleafincr,di  ; save increment for buffer 
+                                        ;  interleave
+
+                mov     VARroutine,offset LoSlopeLine06
+                cmp     bx,cx
+                jle     L04             ; jump if dy <= dx (slope <= 1)
+                mov     VARroutine,offset HiSlopeLine06
+                xchg    bx,cx           ; exchange dy and dx
+
+; calculate initial decision variable and increments
+
+L04:            shl     bx,1            ; BX := 2 * dy
+                mov     VARincr1,bx     ; incr1 := 2 * dy
+                sub     bx,cx
+                mov     di,bx           ; DI := d = 2 * dy - dx
+                sub     bx,cx
+                mov     VARincr2,bx     ; incr2 := 2 * (dy - dx)
+
+; calculate first pixel address
+
+                push    cx              ; preserve this register
+                mov     ax,ARGy1        ; AX := y
+                mov     bx,ARGx1        ; BX := x
+                call    PixelAddr06     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     al,ARGn         ; AL := unshifted pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+
+                mov     dx,ax           ; DH := bit mask
+                                        ; DL := pixel value
+                not     dh              ; DH := inverse bit mask
+
+                pop     cx              ; restore this register
+                inc     cx              ; CX := # of pixels to draw
+
+                test    bx,2000h        ; set zero flag if BX in 1st 
+                                        ;  interleave
+                jz      L05
+                xchg    si,VARleafincr  ; exchange increment values if 1st 
+                                        ;  pixel lies in 1st interleave
+
+L05:            jmp     VARroutine      ; jump to appropriate routine for 
+                                        ;  slope
+
+
+; routine for vertical lines
+
+VertLine06:     mov     ax,ARGy1        ; AX := y1
+                mov     bx,ARGy2        ; BX := y2
+                mov     cx,bx
+                sub     cx,ax           ; CX := dy
+                jge     L31             ; jump if dy >= 0
+
+                neg     cx              ; force dy >= 0
+                mov     ax,bx           ; AX := y2
+
+L31:            inc     cx              ; CX := # of pixels to draw
+                mov     bx,ARGx1        ; BX := x
+                push    cx              ; preserve this register
+                call    PixelAddr06     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     al,ARGn         ; AL := pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+                not     ah              ; AH := inverse bit mask
+                pop     cx              ; restore this register
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+                test    bx,si           ; set zero flag if BX in 1st 
+                                        ;  interleave
+                jz      L32
+
+                xchg    si,di           ; exchange increment values if 1st 
+                                        ;  pixel lies in 1st interleave
+
+L32:            test    al,al
+                jz      L34             ; jump if pixel value = 0
+
+L33:            or      es:[bx],al      ; set pixel values in buffer
+                add     bx,si           ; increment to next portion of 
+                                        ;  interleave
+                xchg    si,di           ; toggle between increment values
+                loop    L33             ; loop down the line
+                jmp     short L35
+
+L34:            and     es:[bx],ah      ; reset pixel values in buffer
+                add     bx,si           ; increment to next portion of 
+                                        ;  interleave
+                xchg    si,di           ; toggle between increment values
+                loop    L34
+
+L35:            jmp     Lexit
+
+
+; routine for horizontal lines (slope = 0)
+
+HorizLine06:    mov     ax,ARGy1
+                mov     bx,ARGx1
+                call    PixelAddr06     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     di,bx           ; ES:DI -> buffer
+
+                mov     dh,ah
+                not     dh              ; DH := unshifted bit mask for
+                                        ;        leftmost byte
+                mov     dl,0FFh         ; DL := unshifted bit mask for
+                                        ;        rightmost byte
+
+                shl     dh,cl           ; DH := reverse bit mask for first 
+                                        ;        byte
+                not     dh              ; DH := bit mask for first byte
+
+                mov     cx,ARGx2
+                and     cl,7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;        left
+                shl     dl,cl           ; DL := bit mask for last byte
+
+; determine byte offset of first and last pixel in the line
+
+                mov     ax,ARGx2        ; AX := x2
+                mov     bx,ARGx1        ; BX := x1
+
+                mov     cl,ByteOffsetShift     ; number of bits to shift to
+                                               ;  convert pixels to bytes
+
+                shr     ax,cl           ; AX := byte offset of x2
+                shr     bx,cl           ; BX := byte offset of x1
+                mov     cx,ax
+                sub     cx,bx           ; CX := (# bytes in line) - 1
+
+; propagate pixel value throughout one byte
+
+                mov     bx,offset DGROUP:PropagatedPixel
+                mov     al,ARGn         ; AL := pixel value
+                xlat
+
+; set pixels in leftmost byte of the line
+
+                or      dh,dh
+                js      L43             ; jump if byte-aligned (x1 is 
+                                        ;  leftmost pixel in byte)
+                or      cx,cx
+                jnz     L42             ; jump if more than one byte in the 
+                                        ;  line
+
+                and     dl,dh           ; bit mask for the line
+                jmp     short L44
+
+L42:            mov     ah,al
+                and     ah,dh           ; AH := masked pixel bits
+                not     dh              ; DH := reverse bit mask for 1st 
+                                        ;        byte
+                and     es:[di],dh      ; zero masked pixels in buffer
+                or      es:[di],ah      ; update masked pixels in buffer
+                inc     di
+                dec     cx
+
+; use a fast 8086 machine instruction to draw the remainder of the line
+
+L43:            rep     stosb           ; update all pixels in the line
+
+; set pixels in the rightmost byte of the line
+
+L44:            and     al,dl           ; AL := masked pixels for last byte
+                not     dl
+                and     es:[di],dl      ; zero masked pixels in buffer
+                or      es:[di],al      ; update masked pixels in buffer
+
+                jmp     Lexit
+
+
+; routine for dy <= dx (slope <= 1)     ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+LoSlopeLine06:
+
+L10:            mov     ah,es:[bx]      ; AH := byte from video buffer
+
+L11:            and     ah,dh           ; zero pixel value at current bit 
+                                        ;  offset
+                or      ah,dl           ; set pixel value in byte
+
+                ror     dl,1            ; rotate pixel value
+                ror     dh,1            ; rotate bit mask
+                jnc     L14             ; jump if bit mask rotated to
+                                        ;  leftmost pixel position
+
+; bit mask not shifted out
+
+                or      di,di           ; test sign of d
+                jns     L12             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L11
+
+                mov     es:[bx],ah      ; store remaining pixels in buffer
+                jmp     short Lexit
+
+L12:            add     di,VARincr2     ; d := d + incr2
+                mov     es:[bx],ah      ; update buffer
+
+                add     bx,si           ; increment y
+                xchg    si,VARleafincr  ; exchange interleave increment 
+                                        ;  values
+                loop    L10
+                jmp     short Lexit
+
+; bit mask shifted out
+
+L14:            mov     es:[bx],ah      ; update buffer
+                inc     bx              ; BX := offset of next byte
+
+                or      di,di           ; test sign of d
+                jns     L15             ; jump if non-negative
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L10
+                jmp     short Lexit
+
+L15:            add     di,VARincr2     ; d := d + incr2
+
+                add     bx,si           ; increment y
+                xchg    si,VARleafincr
+
+                loop    L10
+                jmp     short Lexit
+
+
+; routine for dy > dx (slope > 1)       ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+HiSlopeLine06:
+
+L21:            and     es:[bx],dh      ; zero pixel value in video buffer
+                or      es:[bx],dl      ; set pixel value in byte
+
+                add     bx,si           ; increment y
+                xchg    si,VARleafincr  ; exchange interleave increment 
+                                        ;  values
+
+L22:            or      di,di           ; test sign of d
+                jns     L23             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L21
+
+                jmp     short Lexit
+
+
+L23:            add     di,VARincr2     ; d := d + incr2
+
+                ror     dl,1            ; rotate pixel value
+                ror     dh,1            ; rotate bit mask
+                cmc                     ; cf set if bit mask not rotated to
+                                        ;  leftmost pixel position
+
+                adc     bx,0            ; BX := offset of next byte
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+                loop    L21
+
+
+Lexit:          pop     di              ; restore registers and return
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_Line06         ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+PropagatedPixel DB      00000000b       ; 0
+                DB      11111111b       ; 1
+
+_DATA           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-5.  A line-drawing routine for CGA 320-by-200 4-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 6-5'
+                NAME    Line04
+                PAGE    55,132
+
+;
+; Name:         Line04
+;
+; Function:     Draw a line in 320x200 4-color mode
+;
+; Caller:       Microsoft C:
+;
+;                       void Line04(x1,y1,x2,y2,n);
+;
+;                       int x1,y1,x2,y2;        /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx1           EQU     word ptr [bp+4] ; stack frame addressing
+ARGy1           EQU     word ptr [bp+6]
+ARGx2           EQU     word ptr [bp+8]
+ARGy2           EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+VARleafincr     EQU     word ptr [bp-6]
+VARincr1        EQU     word ptr [bp-8]
+VARincr2        EQU     word ptr [bp-10]
+VARroutine      EQU     word ptr [bp-12]
+
+ByteOffsetShift EQU     2               ; used to convert pixels to byte 
+                                        ;  offset
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr04:near
+
+                PUBLIC  _Line04
+_Line04         PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,8            ; stack space for local variables
+                push    si
+                push    di
+
+                mov     si,2000h        ; increment for video buffer 
+                                        ;  interleave
+                mov     di,80-2000h     ; increment from last to first 
+                                        ;  interleave
+
+                mov     cx,ARGx2
+                sub     cx,ARGx1        ; CX := x2 - x1
+                jz      VertLine04      ; jump if vertical line
+
+; force x1 < x2
+
+                jns     L01             ; jump if x2 > x1
+
+                neg     cx              ; CX := x1 - x2
+
+                mov     bx,ARGx2        ; exchange x1 and x2
+                xchg    bx,ARGx1
+                mov     ARGx2,bx
+
+                mov     bx,ARGy2        ; exchange y1 and y2
+                xchg    bx,ARGy1
+                mov     ARGy2,bx
+
+; calculate dy = ABS(y2-y1)
+
+L01:            mov     bx,ARGy2
+                sub     bx,ARGy1        ; BX := y2 - y1
+                jnz     L02
+
+                jmp     HorizLine04     ; jump if horizontal line
+
+L02:            jns     L03
+
+                neg     bx              ; BX := y1 - y2
+                neg     si              ; negate increments for buffer 
+                                        ;  interleave
+                neg     di
+                xchg    si,di           ; exchange increments
+
+; select appropriate routine for slope of line
+
+L03:            mov     VARleafincr,di  ; save increment for buffer 
+                                        ;  interleave
+
+                mov     VARroutine,offset LoSlopeLine04
+                cmp     bx,cx
+                jle     L04             ; jump if dy <= dx (slope <= 1)
+                mov     VARroutine,offset HiSlopeLine04
+                xchg    bx,cx           ; exchange dy and dx
+
+; calculate initial decision variable and increments
+
+L04:            shl     bx,1            ; BX := 2 * dy
+                mov     VARincr1,bx     ; incr1 := 2 * dy
+                sub     bx,cx
+                mov     di,bx           ; DI := d = 2 * dy - dx
+                sub     bx,cx
+                mov     VARincr2,bx     ; incr2 := 2 * (dy - dx)
+
+; calculate first pixel address
+
+                push    cx              ; preserve this register
+                mov     ax,ARGy1        ; AX := y
+                mov     bx,ARGx1        ; BX := x
+                call    PixelAddr04     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     al,ARGn         ; AL := unshifted pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+
+                mov     dx,ax           ; DH := bit mask
+
+                                        ; DL := pixel value
+                not     dh              ; DH := inverse bit mask
+
+                pop     cx              ; restore this register
+                inc     cx              ; CX := # of pixels to draw
+
+                test    bx,2000h        ; set zero flag if BX in 1st 
+                                        ;  interleave
+                jz      L05
+
+                xchg    si,VARleafincr  ; exchange increment values if 1st 
+                                        ;  pixel
+                                        ;  lies in 1st interleave
+
+L05:            jmp     VARroutine      ; jump to appropriate routine for 
+                                        ;  slope
+
+; routine for vertical lines
+
+VertLine04:     mov     ax,ARGy1        ; AX := y1
+                mov     bx,ARGy2        ; BX := y2
+                mov     cx,bx
+                sub     cx,ax           ; CX := dy
+                jge     L31             ; jump if dy >= 0
+
+                neg     cx              ; force dy >= 0
+                mov     ax,bx           ; AX := y2
+
+L31:            inc     cx              ; CX := # of pixels to draw
+                mov     bx,ARGx1        ; BX := x
+                push    cx              ; preserve this register
+                call    PixelAddr04     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     al,ARGn         ; AL := pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+                not     ah              ; AH := inverse bit mask
+                pop     cx              ; restore this register
+
+                test    bx,si           ; set zero flag if BX in 1st 
+                                        ;  interleave
+                jz      L32
+
+                xchg    si,di           ; exchange increment values if 1st 
+                                        ;  pixel lies
+                                        ;  in 1st interleave
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+L32:            and     es:[bx],ah      ; zero pixel in buffer
+                or      es:[bx],al      ; set pixel value in buffer
+
+                add     bx,si           ; increment to next portion of 
+                                        ;  interleave
+                xchg    si,di           ; toggle between increment values
+
+                loop    L32
+
+                jmp     Lexit
+
+
+; routine for horizontal lines (slope = 0)
+
+HorizLine04:    mov     ax,ARGy1
+                mov     bx,ARGx1
+                call    PixelAddr04     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     di,bx           ; ES:DI -> buffer
+
+                mov     dh,ah
+                not     dh              ; DH := unshifted bit mask for 
+                                        ;        leftmost byte
+                mov     dl,0FFh         ; DL := unshifted bit mask for
+                                        ;        rightmost byte
+
+                shl     dh,cl           ; DH := reverse bit mask for first 
+                                        ;        byte
+                not     dh              ; DH := bit mask for first byte
+
+                mov     cx,ARGx2
+                and     cl,3
+                xor     cl,3
+                shl     cl,1            ; CL := number of bits to shift 
+                                        ;        left
+                shl     dl,cl           ; DL := bit mask for last byte
+
+; determine byte offset of first and last pixel in the line
+
+                mov     ax,ARGx2        ; AX := x2
+                mov     bx,ARGx1        ; BX := x1
+
+                mov     cl,ByteOffsetShift      ; number of bits to shift 
+                                                ;  to convert pixels to 
+                                                ;  bytes
+
+                shr     ax,cl           ; AX := byte offset of x2
+                shr     bx,cl           ; BX := byte offset of x1
+                mov     cx,ax
+                sub     cx,bx           ; CX := (# bytes in line) - 1
+
+; propagate pixel value throughout one byte
+
+                mov     bx,offset DGROUP:PropagatedPixel
+                mov     al,ARGn         ; AL := pixel value
+                xlat                    ; AL := propagated pixel value
+
+; set pixels in leftmost byte of the line
+
+                or      dh,dh
+                js      L43             ; jump if byte-aligned (x1 is 
+                                        ;  leftmost pixel in byte)
+                or      cx,cx
+                jnz     L42             ; jump if more than one byte in 
+                                        ;  the line
+
+                and     dl,dh           ; bit mask for the line
+                jmp     short L44
+
+L42:            mov     ah,al
+                and     ah,dh           ; AH := masked pixel bits
+                not     dh              ; DH := reverse bit mask for 
+                                        ;        1st byte
+                and     es:[di],dh      ; zero masked pixels in buffer
+                or      es:[di],ah      ; update masked pixels in buffer
+                inc     di
+                dec     cx
+
+; use a fast 8086 machine instruction to draw the remainder of the line
+
+L43:            rep     stosb           ; update all pixels in the line
+
+; set pixels in the rightmost byte of the line
+
+L44:            and     al,dl           ; AL := masked pixels for last byte
+                not     dl
+                and     es:[di],dl      ; zero masked pixels in buffer
+                or      es:[di],al      ; update masked pixels in buffer
+
+                jmp     Lexit
+
+; routine for dy <= dx (slope <= 1)     ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+LoSlopeLine04:
+
+L10:            mov     ah,es:[bx]      ; AH := byte from video buffer
+
+L11:            and     ah,dh           ; zero pixel value at current bit 
+                                        ;  offset
+                or      ah,dl           ; set pixel value in byte
+
+                ror     dl,1            ; rotate pixel value
+                ror     dl,1
+                ror     dh,1            ; rotate bit mask
+                ror     dh,1
+                jnc     L14             ; jump if bit mask rotated to
+                                        ;  leftmost pixel position
+
+; bit mask not shifted out
+
+                or      di,di           ; test sign of d
+                jns     L12             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L11
+
+                mov     es:[bx],ah      ; store remaining pixels in buffer
+                jmp     short Lexit
+
+L12:            add     di,VARincr2     ; d := d + incr2
+                mov     es:[bx],ah      ; update buffer
+
+                add     bx,si           ; increment y
+                xchg    si,VARleafincr  ; exchange interleave increment 
+                                        ;  values
+
+                loop    L10
+                jmp     short Lexit
+
+; bit mask shifted out
+
+L14:            mov     es:[bx],ah      ; update buffer
+                inc     bx              ; BX := offset of next byte
+
+                or      di,di           ; test sign of d
+                jns     L15             ; jump if non-negative
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L10
+                jmp     short Lexit
+
+
+L15:            add     di,VARincr2     ; d := d + incr2
+
+                add     bx,si           ; increment y
+                xchg    si,VARleafincr
+
+                loop    L10
+                jmp     short Lexit
+
+
+; routine for dy > dx (slope > 1)       ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+HiSlopeLine04:
+
+L21:            and     es:[bx],dh      ; zero pixel value in video buffer
+                or      es:[bx],dl      ; set pixel value in byte
+
+                add     bx,si           ; increment y
+                xchg    si,VARleafincr  ; exchange interleave increment 
+                                        ;  values
+
+L22:            or      di,di           ; test sign of d
+                jns     L23             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L21
+
+                jmp     short Lexit
+
+
+L23:            add     di,VARincr2     ; d := d + incr2
+
+                ror     dl,1            ; rotate pixel value
+                ror     dl,1
+                ror     dh,1            ; rotate bit mask
+                ror     dh,1
+                cmc                     ; cf set if bit mask not rotated to
+                                        ;  leftmost pixel position
+
+                adc     bx,0            ; BX := offset of next byte
+
+                loop    L21
+
+
+Lexit:          pop     di              ; restore registers and return
+                pop     si
+                mov     sp,bp
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                pop     bp
+                ret
+
+_Line04         ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+PropagatedPixel DB      00000000b       ; 0
+                DB      01010101b       ; 1
+                DB      10101010b       ; 2
+                DB      11111111b       ; 3
+
+_DATA           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-6.  A line-drawing routine for Hercules monochrome graphics mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 6-6'
+                NAME    LineHGC
+                PAGE    55,132
+
+;
+; Name:         LineHGC
+;
+; Function:     Draw a line in HGC or HGC+ 720x348 graphics
+;
+; Caller:       Microsoft C:
+;
+;                       void LineHGC(x1,y1,x2,y2,n);
+;
+;                       int x1,y1,x2,y2;        /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx1           EQU     word ptr [bp+4] ; stack frame addressing
+ARGy1           EQU     word ptr [bp+6]
+ARGx2           EQU     word ptr [bp+8]
+ARGy2           EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+VARleafincr     EQU     word ptr [bp-6]
+VARincr1        EQU     word ptr [bp-8]
+VARincr2        EQU     word ptr [bp-10]
+VARroutine      EQU     word ptr [bp-12]
+
+ByteOffsetShift EQU     3               ; used to convert pixels to byte 
+                                        ;  offset
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddrHGC:near
+
+                PUBLIC  _LineHGC
+_LineHGC        PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,8            ; stack space for local variables
+                push    si
+                push    di
+
+                mov     si,2000h        ; increment for video buffer 
+                                        ;  interleave
+                mov     di,90-8000h     ; increment from last to first 
+                                        ;  interleave
+
+                mov     cx,ARGx2
+                sub     cx,ARGx1        ; CX := x2 - x1
+                jz      VertLineHGC     ; jump if vertical line
+
+; force x1 < x2
+
+                jns     L01             ; jump if x2 > x1
+
+                neg     cx              ; CX := x1 - x2
+
+                mov     bx,ARGx2        ; exchange x1 and x2
+                xchg    bx,ARGx1
+                mov     ARGx2,bx
+
+                mov     bx,ARGy2        ; exchange y1 and y2
+                xchg    bx,ARGy1
+                mov     ARGy2,bx
+
+; calculate dy = ABS(y2-y1)
+
+L01:            mov     bx,ARGy2
+                sub     bx,ARGy1        ; BX := y2 - y1
+                jz      HorizLineHGC    ; jump if horizontal line
+
+                jns     L03
+
+                neg     bx              ; BX := y1 - y2
+                neg     si              ; negate increments for buffer 
+                                        ;  interleave
+                neg     di
+
+; select appropriate routine for slope of line
+
+L03:            mov     VARleafincr,di  ; save increment for buffer 
+                                        ;  interleave
+
+                mov     VARroutine,offset LoSlopeLineHGC
+                cmp     bx,cx
+                jle     L04             ; jump if dy <= dx (slope <= 1)
+                mov     VARroutine,offset HiSlopeLineHGC
+                xchg    bx,cx           ; exchange dy and dx
+
+; calculate initial decision variable and increments
+
+L04:            shl     bx,1            ; BX := 2 * dy
+                mov     VARincr1,bx     ; incr1 := 2 * dy
+                sub     bx,cx
+                mov     di,bx           ; DI := d = 2 * dy - dx
+                sub     bx,cx
+                mov     VARincr2,bx     ; incr2 := 2 * (dy - dx)
+
+; calculate first pixel address
+
+                push    cx              ; preserve this register
+                mov     ax,ARGy1        ; AX := y
+                mov     bx,ARGx1        ; BX := x
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     al,ARGn         ; AL := unshifted pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+
+                mov     dx,ax           ; DH := bit mask
+                                        ; DL := pixel value
+                not     dh              ; DH := inverse bit mask
+
+                pop     cx              ; restore this register
+                inc     cx              ; CX := # of pixels to draw
+
+                jmp     VARroutine      ; jump to appropriate routine for 
+                                        ;  slope
+
+; routine for vertical lines
+
+VertLineHGC:    mov     ax,ARGy1        ; AX := y1
+                mov     bx,ARGy2        ; BX := y2
+                mov     cx,bx
+                sub     cx,ax           ; CX := dy
+                jge     L31             ; jump if dy >= 0
+
+                neg     cx              ; force dy >= 0
+                mov     ax,bx           ; AX := y2
+
+L31:            inc     cx              ; CX := # of pixels to draw
+                mov     bx,ARGx1        ; BX := x
+                push    cx              ; preserve this register
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     al,ARGn         ; AL := pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+                not     ah              ; AH := inverse bit mask
+                pop     cx              ; restore this register
+
+; draw the line
+                test    al,al
+                jz      L34             ; jump if pixel value is zero
+
+L32:            or      es:[bx],al      ; set pixel values in buffer
+
+                add     bx,si           ; increment to next portion of 
+                                        ;  interleave
+                jns     L33
+                add     bx,di           ; increment to first portion of 
+                                        ;  interleave
+L33:            loop    L32
+                jmp     short L36
+
+L34:            and     es:[bx],ah      ; reset pixel values in buffer
+
+                add     bx,si           ; increment to next portion of 
+                                        ;  interleave
+                jns     L35
+                add     bx,di           ; increment to first portion of 
+                                        ;  interleave
+L35:            loop    L34
+
+L36:            jmp     Lexit
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+
+; routine for horizontal lines (slope = 0)
+
+HorizLineHGC:   mov     ax,ARGy1
+                mov     bx,ARGx1
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     di,bx           ; ES:DI -> buffer
+                mov     dh,ah
+                not     dh              ; DH := unshifted bit mask for 
+                                        ;        leftmost byte
+                mov     dl,0FFh         ; DL := unshifted bit mask for
+                                        ;        rightmost byte
+                shl     dh,cl           ; DH := reverse bit mask for first 
+                                        ;        byte
+                not     dh              ; DH := bit mask for first byte
+
+                mov     cx,ARGx2
+                and     cl,7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;        left
+                shl     dl,cl           ; DL := bit mask for last byte
+
+; determine byte offset of first and last pixel in the line
+
+                mov     ax,ARGx2        ; AX := x2
+                mov     bx,ARGx1        ; BX := x1
+
+                mov     cl,ByteOffsetShift      ; number of bits to shift 
+                                                ;  to convert pixels to 
+                                                ;  bytes
+
+                shr     ax,cl           ; AX := byte offset of x2
+                shr     bx,cl           ; BX := byte offset of x1
+                mov     cx,ax
+                sub     cx,bx           ; CX := (# bytes in line) - 1
+
+; propagate pixel value throughout one byte
+
+                mov     bx,offset DGROUP:PropagatedPixel
+                mov     al,ARGn         ; AL := pixel value
+                xlat                    ; AL := propagated pixel value
+
+; set pixels in leftmost byte of the line
+
+                or      dh,dh
+                js      L43             ; jump if byte-aligned (x1 is 
+                                        ;  leftmost
+                                        ;  pixel in byte)
+                or      cx,cx
+                jnz     L42             ; jump if more than one byte in the 
+                                        ;  line
+
+                and     dl,dh           ; bit mask for the line
+                jmp     short L44
+
+L42:            mov     ah,al
+                and     ah,dh           ; AH := masked pixel bits
+                not     dh              ; DH := reverse bit mask for 1st 
+                                        ;        byte
+                and     es:[di],dh      ; zero masked pixels in buffer
+                or      es:[di],ah      ; update masked pixels in buffer
+                inc     di
+                dec     cx
+
+; use a fast 8086 machine instruction to draw the remainder of the line
+
+L43:            rep     stosb           ; update all pixels in the line
+
+; set pixels in the rightmost byte of the line
+
+L44:            and     al,dl           ; AL := masked pixels for last byte
+                not     dl
+                and     es:[di],dl      ; zero masked pixels in buffer
+                or      es:[di],al      ; update masked pixels in buffer
+
+                jmp     Lexit
+
+; routine for dy <= dx (slope <= 1)     ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+LoSlopeLineHGC: 
+
+L10:            mov     ah,es:[bx]      ; AH := byte from video buffer
+
+L11:            and     ah,dh           ; zero pixel value at current bit 
+                                        ;  offset
+                or      ah,dl           ; set pixel value in byte
+
+                ror     dl,1            ; rotate pixel value
+                ror     dh,1            ; rotate bit mask
+                jnc     L14             ; jump if bit mask rotated to
+                                        ;  leftmost pixel position
+
+; bit mask not shifted out
+
+                or      di,di           ; test sign of d
+                jns     L12             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L11
+
+                mov     es:[bx],ah      ; store remaining pixels in buffer
+                jmp     short Lexit
+
+L12:            add     di,VARincr2     ; d := d + incr2
+                mov     es:[bx],ah      ; update buffer
+
+                add     bx,si           ; increment y
+                jns     L13             ; jump if not in last interleave
+
+                add     bx,VARleafincr  ; increment into next interleave
+
+L13:            loop    L10
+                jmp     short Lexit
+
+; bit mask shifted out
+
+L14:            mov     es:[bx],ah      ; update buffer
+                inc     bx              ; BX := offset of next byte
+
+                or      di,di           ; test sign of d
+                jns     L15             ; jump if non-negative
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L10
+                jmp     short Lexit
+
+L15:            add     di,VARincr2     ; d := d + incr2
+
+                add     bx,si           ; increment y
+                jns     L16             ; jump if not in last interleave
+
+                add     bx,VARleafincr  ; increment into next interleave
+
+L16:            loop    L10             ; loop until all pixels are set
+                jmp     short Lexit
+
+
+; routine for dy > dx (slope > 1)       ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+HiSlopeLineHGC:
+
+L21:            and     es:[bx],dh      ; zero pixel value in video buffer
+                or      es:[bx],dl      ; set pixel value in byte
+
+                add     bx,si           ; increment y
+                jns     L22             ; jump if not in last interleave
+
+                add     bx,VARleafincr  ; increment into next interleave
+
+L22:            or      di,di
+                jns     L23             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L21
+                jmp     short Lexit
+
+
+L23:            add     di,VARincr2     ; d := d + incr2
+
+                ror     dl,1            ; rotate pixel value
+                ror     dh,1            ; rotate bit mask
+                cmc                     ; cf set if bit mask not rotated to
+                                        ;  leftmost pixel position
+                adc     bx,0            ; BX := offset of next byte
+
+                loop    L21
+
+
+Lexit:          pop     di              ; restore registers and return
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_LineHGC        ENDP
+
+_TEXT           ENDS
+
+_DATA           SEGMENT word public 'DATA'
+
+PropagatedPixel DB      00000000b       ; 0
+                DB      11111111b       ; 1
+
+_DATA           ENDS
+
+                END
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-7.  A line-drawing routine for native EGA graphics modes.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 6-7'
+                NAME    Line10
+                PAGE    55,132
+
+;
+; Name:         Line10
+;
+; Function:     Draw a line in the following EGA and VGA graphics modes:
+;                       200-line 16-color modes
+;                       350-line modes
+;                       640x480 16-color
+;
+; Caller:       Microsoft C:
+;
+;                       void Line10(x1,y1,x2,y2,n);
+;
+;                       int x1,y1,x2,y2;        /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx1           EQU     word ptr [bp+4] ; stack frame addressing
+ARGy1           EQU     word ptr [bp+6]
+ARGx2           EQU     word ptr [bp+8]
+ARGy2           EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+VARvertincr     EQU     word ptr [bp-6]
+VARincr1        EQU     word ptr [bp-8]
+VARincr2        EQU     word ptr [bp-10]
+VARroutine      EQU     word ptr [bp-12]
+
+ByteOffsetShift EQU     3               ; used to convert pixels to byte 
+                                        ;  offset
+BytesPerLine    EQU     80
+RMWbits         EQU     0               ; value for Data Rotate/Func Select 
+                                        ;  reg
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _Line10
+_Line10         PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,8            ; stack space for local variables
+                push    si
+                push    di
+
+; configure the Graphics Controller
+
+                mov     dx,3CEh         ; DX := Graphics Controller port 
+                                        ;        addr
+
+                mov     ah,ARGn         ; AH := pixel value
+                xor     al,al           ; AL := Set/Reset Register number
+                out     dx,ax
+
+                mov     ax,0F01h        ; AH := 1111b (bit plane mask for
+                                        ;  Enable Set/Reset)
+                out     dx,ax           ; AL := Enable Set/Reset Register #
+
+                mov     ah,RMWbits      ; bits 3 and 4 of AH := function
+                mov     al,3            ; AL := Data Rotate/Func Select 
+                                        ;        reg #
+                out     dx,ax
+
+; check for vertical line
+
+                mov     si,BytesPerLine ; increment for video buffer
+
+                mov     cx,ARGx2
+                sub     cx,ARGx1        ; CX := x2 - x1
+                jz      VertLine10      ; jump if vertical line
+
+; force x1 < x2
+
+                jns     L01             ; jump if x2 > x1
+
+                neg     cx              ; CX := x1 - x2
+
+                mov     bx,ARGx2        ; exchange x1 and x2
+                xchg    bx,ARGx1
+                mov     ARGx2,bx
+
+                mov     bx,ARGy2        ; exchange y1 and y2
+                xchg    bx,ARGy1
+                mov     ARGy2,bx
+
+; calculate dy = ABS(y2-y1)
+
+L01:            mov     bx,ARGy2
+                sub     bx,ARGy1        ; BX := y2 - y1
+                jz      HorizLine10     ; jump if horizontal line
+
+                jns     L03             ; jump if slope is positive
+
+                neg     bx              ; BX := y1 - y2
+                neg     si              ; negate increment for buffer 
+                                        ;  interleave
+
+; select appropriate routine for slope of line
+
+L03:            mov     VARvertincr,si  ; save vertical increment
+
+                mov     VARroutine,offset LoSlopeLine10
+                cmp     bx,cx
+                jle     L04             ; jump if dy <= dx (slope <= 1)
+                mov     VARroutine,offset HiSlopeLine10
+                xchg    bx,cx           ; exchange dy and dx
+
+; calculate initial decision variable and increments
+
+L04:            shl     bx,1            ; BX := 2 * dy
+                mov     VARincr1,bx     ; incr1 := 2 * dy
+                sub     bx,cx
+                mov     si,bx           ; SI := d = 2 * dy - dx
+                sub     bx,cx
+                mov     VARincr2,bx     ; incr2 := 2 * (dy - dx)
+
+; calculate first pixel address
+
+                push    cx              ; preserve this register
+                mov     ax,ARGy1        ; AX := y
+                mov     bx,ARGx1        ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     di,bx           ; ES:DI -> buffer
+                shl     ah,cl           ; AH := bit mask in proper position
+                mov     bl,ah           ; AH,BL := bit mask
+                mov     al,8            ; AL := Bit Mask Register number
+
+                pop     cx              ; restore this register
+                inc     cx              ; CX := # of pixels to draw
+
+                jmp     VARroutine      ; jump to appropriate routine for 
+                                        ;  slope
+
+; routine for vertical lines
+
+VertLine10:     mov     ax,ARGy1        ; AX := y1
+                mov     bx,ARGy2        ; BX := y2
+                mov     cx,bx
+                sub     cx,ax           ; CX := dy
+                jge     L31             ; jump if dy >= 0
+
+                neg     cx              ; force dy >= 0
+                mov     ax,bx           ; AX := y2
+
+L31:            inc     cx              ; CX := # of pixels to draw
+                mov     bx,ARGx1        ; BX := x
+                push    cx              ; preserve this register
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+; set up Graphics Controller
+
+                shl     ah,cl           ; AH := bit mask in proper position
+                mov     al,8            ; AL := Bit Mask reg number
+                out     dx,ax
+
+                pop     cx              ; restore this register
+
+; draw the line
+
+L32:            or      es:[bx],al      ; set pixel
+                add     bx,si           ; increment to next line
+                loop    L32
+
+                jmp     Lexit
+
+
+; routine for horizontal lines (slope = 0)
+
+HorizLine10:
+                push    ds              ; preserve DS
+
+                mov     ax,ARGy1
+                mov     bx,ARGx1
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     di,bx           ; ES:DI -> buffer
+                mov     dh,ah           ; DH := unshifted bit mask for 
+                                        ;        leftmost byte
+                not     dh
+                shl     dh,cl           ; DH := reverse bit mask for first 
+                                                 byte
+                not     dh              ; DH := bit mask for first byte
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+                mov     cx,ARGx2
+                and     cl,7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;        left
+                mov     dl,0FFh         ; DL := unshifted bit mask for
+                                        ;        rightmost byte
+                shl     dl,cl           ; DL := bit mask for last byte
+
+; determine byte offset of first and last pixel in the line
+
+                mov     ax,ARGx2        ; AX := x2
+                mov     bx,ARGx1        ; BX := x1
+
+                mov     cl,ByteOffsetShift      ; number of bits to shift 
+                                                ;  to convert pixels to 
+                                                ;  bytes
+
+                shr     ax,cl           ; AX := byte offset of x2
+                shr     bx,cl           ; BX := byte offset of x1
+                mov     cx,ax
+                sub     cx,bx           ; CX := (# bytes in line) - 1
+
+; get Graphics Controller port address into DX
+
+                mov     bx,dx           ; BH := bit mask for first byte
+                                        ; BL := bit mask for last byte
+                mov     dx,3CEh         ; DX := Graphics Controller port
+                mov     al,8            ; AL := Bit Mask Register number
+
+; make video buffer addressable through DS:SI
+
+                push    es
+                pop     ds
+                mov     si,di           ; DS:SI -> video buffer
+
+; set pixels in leftmost byte of the line
+
+                or      bh,bh
+                js      L43             ; jump if byte-aligned (x1 is 
+                                        ;  leftmost pixel in byte)
+                or      cx,cx
+                jnz     L42             ; jump if more than one byte in the 
+                                        ;  line
+
+                and     bl,bh           ; BL := bit mask for the line
+                jmp     short L44
+
+L42:            mov     ah,bh           ; AH := bit mask for 1st byte
+                out     dx,ax           ; update Graphics Controller
+
+                movsb                   ; update bit planes
+                dec     cx
+
+; use a fast 8086 machine instruction to draw the remainder of the line
+
+L43:            mov     ah,11111111b    ; AH := bit mask
+                out     dx,ax           ; update Bit Mask Register
+                rep     movsb           ; update all pixels in the line
+
+; set pixels in the rightmost byte of the line
+
+L44:            mov     ah,bl           ; AH := bit mask for last byte
+                out     dx,ax           ; update Graphics Controller
+
+                movsb                   ; update bit planes
+
+                pop     ds              ; restore DS
+                jmp     short Lexit
+
+; routine for dy >= dx (slope <= 1)     ; ES:DI -> video buffer
+                                        ; AL = Bit Mask Register number
+                                        ; BL = bit mask for 1st pixel
+                                        ; CX = # pixels to draw
+                                        ; DX = Graphics Controller port 
+                                        ;       addr
+                                        ; SI = decision variable
+LoSlopeLine10:
+
+L10:            mov     ah,bl           ; AH := bit mask for next pixel
+
+L11:            or      ah,bl           ; mask current pixel position
+                ror     bl,1            ; rotate pixel value
+                jc      L14             ; jump if bit mask rotated to
+                                        ;  leftmost pixel position
+
+; bit mask not shifted out
+
+                or      si,si           ; test sign of d
+                jns     L12             ; jump if d >= 0
+
+                add     si,VARincr1     ; d := d + incr1
+                loop    L11
+
+                out     dx,ax           ; update Bit Mask Register
+                or      es:[di],al      ; set remaining pixel(s)
+                jmp     short Lexit
+
+L12:            add     si,VARincr2     ; d := d + incr2
+                out     dx,ax           ; update Bit Mask Register
+
+                or      es:[di],al      ; update bit planes
+
+                add     di,VARvertincr  ; increment y
+                loop    L10
+                jmp     short Lexit
+
+; bit mask shifted out
+
+L14:            out     dx,ax           ; update Bit Mask Register ...
+
+                or      es:[di],al      ; update bit planes
+                inc     di              ; increment x
+
+                or      si,si           ; test sign of d
+                jns     L15             ; jump if non-negative
+
+                add     si,VARincr1     ; d := d + incr1
+                loop    L10 
+                jmp     short Lexit
+
+L15:            add     si,VARincr2     ; d := d + incr2
+                add     di,VARvertincr  ; vertical increment
+                loop    L10
+                jmp     short Lexit
+
+; routine for dy > dx (slope > 1)       ; ES:DI -> video buffer
+                                        ; AH = bit mask for 1st pixel
+                                        ; AL = Bit Mask Register number
+                                        ; CX = # pixels to draw
+                                        ; DX = Graphics Controller port 
+                                        ;       addr
+                                        ; SI = decision variable
+HiSlopeLine10:
+                mov     bx,VARvertincr  ; BX := y-increment
+
+L21:            out     dx,ax           ; update Bit Mask Register
+                or      es:[di],al      ; update bit planes
+
+                add     di,bx           ; increment y
+
+L22:            or      si,si           ; test sign of d
+                jns     L23             ; jump if d >= 0
+
+                add     si,VARincr1     ; d := d + incr1
+                loop    L21
+                jmp     short Lexit
+
+
+L23:            add     si,VARincr2     ; d := d + incr2
+
+                ror     ah,1            ; rotate bit mask
+                adc     di,0            ; increment DI if when mask rotated 
+                                        ;  to leftmost pixel position
+
+                loop    L21
+
+
+; restore default Graphics Controller state and return to caller
+
+Lexit:          xor     ax,ax           ; AH := 0, AL := 0
+                out     dx,ax           ; restore Set/Reset Register
+
+                inc     ax              ; AH := 0, AL := 1
+                out     dx,ax           ; restore Enable Set/Reset Register
+
+                mov     al,3            ; AH := 0, AL := 3
+                out     dx,ax           ; AL := Data Rotate/Func Select 
+                                        ;        reg #
+
+                mov     ax,0FF08h       ; AH := 11111111b, AL := 8
+                out     dx,ax           ; restore Bit Mask Register
+
+                pop     di              ; restore registers and return
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_Line10         ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-8.  A line-drawing routine for MCGA and VGA 640-by-480
+              2-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 6-8'
+                NAME    Line11
+                PAGE    55,132
+
+;
+; Name:         Line11
+;
+; Function:     Draw a line in 640x480 2-color mode (MCGA, VGA)
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+;
+; Caller:       Microsoft C:
+;
+;                       void Line11(x1,y1,x2,y2,n);
+;
+
+;                       int x1,y1,x2,y2;        /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx1           EQU     word ptr [bp+4] ; stack frame addressing
+ARGy1           EQU     word ptr [bp+6]
+ARGx2           EQU     word ptr [bp+8]
+ARGy2           EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+VARincr1        EQU     word ptr [bp-6]
+VARincr2        EQU     word ptr [bp-8]
+VARroutine      EQU     word ptr [bp-10]
+
+BytesPerLine    EQU     80              ; bytes in one row of pixels
+ByteOffsetShift EQU     3               ; used to convert pixels to byte
+                                        ;  offset
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _Line11
+_Line11         PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,6            ; stack space for local variables
+                push    si
+                push    di
+
+; check for vertical line
+
+                mov     si,BytesPerLine ; SI := initial y-increment
+
+                mov     cx,ARGx2
+                sub     cx,ARGx1        ; CX := x2 - x1
+                jz      VertLine11      ; jump if vertical line
+
+; force x1 < x2
+
+                jns     L01             ; jump if x2 > x1
+
+                neg     cx              ; CX := x1 - x2
+
+                mov     bx,ARGx2        ; exchange x1 and x2
+                xchg    bx,ARGx1
+                mov     ARGx2,bx
+
+                mov     bx,ARGy2        ; exchange y1 and y2
+                xchg    bx,ARGy1
+                mov     ARGy2,bx
+
+; calculate dy = ABS(y2-y1)
+
+L01:            mov     bx,ARGy2
+                sub     bx,ARGy1        ; BX := y2 - y1
+                jnz     L02
+
+                jmp     HorizLine11     ; jump if horizontal line
+
+L02:            jns     L03
+                neg     bx              ; BX := y1 - y2
+                neg     si              ; negate y-increment
+
+; select appropriate routine for slope of line
+
+L03:            mov     VARroutine,offset LoSlopeLine11
+                cmp     bx,cx
+                jle     L04             ; jump if dy <= dx (slope <= 1)
+                mov     VARroutine,offset HiSlopeLine11
+                xchg    bx,cx           ; exchange dy and dx
+
+; calculate initial decision variable and increments
+
+L04:            shl     bx,1            ; BX := 2 * dy
+                mov     VARincr1,bx     ; incr1 := 2 * dy
+                sub     bx,cx
+                mov     di,bx           ; DI := d = 2 * dy - dx
+                sub     bx,cx
+                mov     VARincr2,bx     ; incr2 := 2 * (dy - dx)
+
+; calculate first pixel address
+
+                push    cx              ; preserve this register
+                mov     ax,ARGy1        ; AX := y
+                mov     bx,ARGx1        ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     al,ARGn         ; AL := unshifted pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+
+                mov     dx,ax           ; DH := bit mask
+                                        ; DL := pixel value
+                not     dh              ; DH := inverse bit mask
+
+                pop     cx              ; restore this register
+                inc     cx              ; CX := # of pixels to draw
+
+                jmp     VARroutine      ; jump to appropriate routine for 
+                                        ;  slope
+
+; routine for vertical lines
+
+VertLine11:     mov     ax,ARGy1        ; AX := y1
+                mov     bx,ARGy2        ; BX := y2
+                mov     cx,bx
+                sub     cx,ax           ; CX := dy
+                jge     L31             ; jump if dy >= 0
+
+                neg     cx              ; force dy >= 0
+                mov     ax,bx           ; AX := y2
+
+L31:            inc     cx              ; CX := # of pixels to draw
+                mov     bx,ARGx1        ; BX := x
+                push    cx              ; preserve this register
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     al,ARGn         ; AL := pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;        position
+                not     ah              ; AH := inverse bit mask
+                pop     cx              ; restore this register
+
+; draw the line
+
+                test    al,al
+                jz      L33             ; jump if pixel value = 0
+
+L32:            or      es:[bx],al      ; set pixel values in buffer
+                add     bx,si
+                loop    L32
+                jmp     short L34
+
+L33:            and     es:[bx],ah      ; reset pixel values in buffer
+                add     bx,si
+                loop    L33
+
+L34:            jmp     Lexit
+
+
+; routine for horizontal lines (slope = 0)
+
+HorizLine11:    mov     ax,ARGy1
+                mov     bx,ARGx1
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     di,bx           ; ES:DI -> buffer
+
+                mov     dh,ah
+                not     dh              ; DH := unshifted bit mask for 
+                                        ;        leftmost byte
+                mov     dl,0FFh         ; DL := unshifted bit mask for
+                                        ;        rightmost byte
+
+                shl     dh,cl           ; DH := reverse bit mask for first 
+                                        ;        byte
+                not     dh              ; DH := bit mask for first byte
+
+                mov     cx,ARGx2
+                and     cl,7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;        left
+                shl     dl,cl           ; DL := bit mask for last byte
+
+; determine byte offset of first and last pixel in the line
+
+                mov     ax,ARGx2        ; AX := x2
+                mov     bx,ARGx1        ; BX := x1
+
+                mov     cl,ByteOffsetShift      ; number of bits to shift 
+                                                ;  to convert pixels to 
+                                                ;  bytes 
+
+                shr     ax,cl           ; AX := byte offset of x2
+                shr     bx,cl           ; BX := byte offset of x1
+                mov     cx,ax
+                sub     cx,bx           ; CX := (# bytes in line) - 1
+
+; propagate pixel value throughout one byte
+
+                mov     bx,offset DGROUP:PropagatedPixel
+                mov     al,ARGn         ; AL := pixel value
+                xlat
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+; set pixels in leftmost byte of the line
+
+                or      dh,dh
+                js      L43             ; jump if byte-aligned (x1 is 
+                                        ;  leftmost
+                                        ;  pixel in byte)
+                or      cx,cx
+                jnz     L42             ; jump if more than one byte in the 
+                                        ;  line
+
+                and     dl,dh           ; bit mask for the line
+                jmp     short L44
+
+L42:            mov     ah,al
+                and     ah,dh           ; AH := masked pixel bits
+                not     dh              ; DH := reverse bit mask for 1st 
+                                        ;        byte
+                and     es:[di],dh      ; zero masked pixels in buffer
+                or      es:[di],ah      ; update masked pixels in buffer
+                inc     di
+                dec     cx
+
+; use a fast 8086 machine instruction to draw the remainder of the line
+
+L43:            rep     stosb           ; update all pixels in the line
+
+; set pixels in the rightmost byte of the line
+
+L44:            and     al,dl           ; AL := masked pixels for last byte
+                not     dl
+                and     es:[di],dl      ; zero masked pixels in buffer
+                or      es:[di],al      ; update masked pixels in buffer
+
+                jmp     Lexit
+
+
+; routine for dy <= dx (slope <= 1)     ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = bytes per pixel row
+                                        ; DI = decision variable
+
+LoSlopeLine11:
+
+L10:            mov     ah,es:[bx]      ; AH := byte from video buffer
+
+L11:            and     ah,dh           ; zero pixel value at current bit 
+                                        ;  offset
+                or      ah,dl           ; set pixel value in byte
+
+                ror     dl,1            ; rotate pixel value
+                ror     dh,1            ; rotate bit mask
+                jnc     L14             ; jump if bit mask rotated to
+                                        ;  leftmost pixel position
+
+; bit mask not shifted out
+
+                or      di,di           ; test sign of d
+                jns     L12             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L11
+
+                mov     es:[bx],ah      ; store remaining pixels in buffer
+                jmp     short Lexit
+
+L12:            add     di,VARincr2     ; d := d + incr2
+                mov     es:[bx],ah      ; update buffer
+
+                add     bx,si           ; increment y
+                loop    L10
+                jmp     short Lexit
+
+; bit mask shifted out
+
+L14:            mov     es:[bx],ah      ; update buffer
+                inc     bx              ; BX := offset of next byte
+
+                or      di,di           ; test sign of d
+                jns     L15             ; jump if non-negative
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L10
+                jmp     short Lexit
+
+L15:            add     di,VARincr2     ; d := d + incr2
+
+                add     bx,si           ; increment y
+                loop    L10
+                jmp     short Lexit
+
+; routine for dy > dx (slope > 1)       ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = inverse bit mask
+                                        ; DL = pixel value in proper 
+                                        ;       position
+                                        ; SI = bytes per pixel row
+                                        ; DI = decision variable
+HiSlopeLine11:
+
+L21:            and     es:[bx],dh      ; zero pixel value in video buffer
+                or      es:[bx],dl      ; set pixel value in byte
+
+                add     bx,si           ; increment y
+
+L22:            or      di,di           ; test sign of d
+                jns     L23             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L21
+
+                jmp     short Lexit
+
+
+L23:            add     di,VARincr2     ; d := d + incr2
+
+                ror     dl,1            ; rotate pixel value
+                ror     dh,1            ; rotate bit mask
+                cmc                     ; cf set if bit mask not rotated to
+                                        ;  leftmost pixel position
+
+                adc     bx,0            ; BX := offset of next byte
+
+                loop    L21
+
+
+Lexit:          pop     di              ; restore caller registers and 
+                                        ;  return
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_Line11         ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+PropagatedPixel DB      00000000b       ; 0
+                DB      11111111b       ; 1
+
+_DATA           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-9.  A Line-drawing routine for MCGA and VGA 320-by-200
+              256-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 6-9'
+                NAME    Line13
+                PAGE    55,132
+
+;
+; Name:         Line13
+;
+; Function:     Draw a line in MCGA/VGA 320x200 256-color mode
+;
+
+; Caller:       Microsoft C:
+;
+;                       void Line13(x1,y1,x2,y2,n);
+;
+;                       int x1,y1,x2,y2;        /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx1           EQU     word ptr [bp+4] ; stack frame addressing
+ARGy1           EQU     word ptr [bp+6]
+ARGx2           EQU     word ptr [bp+8]
+ARGy2           EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+VARincr1        EQU     word ptr [bp-6]
+VARincr2        EQU     word ptr [bp-8]
+VARroutine      EQU     word ptr [bp-10]
+
+BytesPerLine    EQU     320
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr13:near
+
+                PUBLIC  _Line13
+_Line13         PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,6            ; stack space for local variables
+                push    si
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                push    di
+
+; check for vertical line
+
+                mov     si,BytesPerLine ; initial y-increment
+
+                mov     cx,ARGx2
+                sub     cx,ARGx1        ; CX := x2 - x1
+                jz      VertLine13      ; jump if vertical line
+
+; force x1 < x2
+
+                jns     L01             ; jump if x2 > x1
+
+                neg     cx              ; CX := x1 - x2
+                
+                mov     bx,ARGx2        ; exchange x1 and x2
+                xchg    bx,ARGx1
+                mov     ARGx2,bx
+
+                mov     bx,ARGy2        ; exchange y1 and y2
+
+                xchg    bx,ARGy1
+                mov     ARGy2,bx
+
+
+; calculate dy = ABS(y2-y1)
+
+L01:            mov     bx,ARGy2
+                sub     bx,ARGy1        ; BX := y2 - y1
+                jz      HorizLine13     ; jump if horizontal line
+
+                jns     L03             ; jump if slope is positive
+
+                neg     bx              ; BX := y1 - y2
+                neg     si              ; negate y-increment
+
+; select appropriate routine for slope of line
+
+L03:            push    si              ; preserve y-increment
+
+                mov     VARroutine,offset LoSlopeLine13
+                cmp     bx,cx
+                jle     L04             ; jump if dy <= dx (slope <= 1)
+                mov     VARroutine,offset HiSlopeLine13
+                xchg    bx,cx           ; exchange dy and dx
+
+; calculate initial decision variable and increments
+
+L04:            shl     bx,1            ; BX := 2 * dy
+                mov     VARincr1,bx     ; incr1 := 2 * dy
+                sub     bx,cx
+                mov     si,bx           ; SI := d = 2 * dy - dx
+
+                sub     bx,cx
+                mov     VARincr2,bx     ; incr2 := 2 * (dy - dx)
+
+; calculate first pixel address
+
+                push    cx              ; preserve this register
+                mov     ax,ARGy1        ; AX := y
+                mov     bx,ARGx1        ; BX := x
+                call    PixelAddr13     ; ES:BX -> buffer
+
+                mov     di,bx           ; ES:DI -> buffer
+
+                pop     cx              ; restore this register
+                inc     cx              ; CX := # of pixels to draw
+
+                pop     bx              ; BX := y-increment
+                jmp     VARroutine      ; jump to appropriate routine for 
+                                        ;  slope
+
+
+; routine for vertical lines
+
+VertLine13:     mov     ax,ARGy1        ; AX := y1
+                mov     bx,ARGy2        ; BX := y2
+                mov     cx,bx
+                sub     cx,ax           ; CX := dy
+                jge     L31             ; jump if dy >= 0
+
+                neg     cx              ; force dy >= 0
+                mov     ax,bx           ; AX := y2
+
+L31:            inc     cx              ; CX := # of pixels to draw
+                mov     bx,ARGx1        ; BX := x
+                push    cx              ; preserve this register
+                call    PixelAddr13     ; ES:BX -> video buffer
+                pop     cx
+
+                mov     di,bx           ; ES:DI -> video buffer
+                dec     si              ; SI := bytes/line - 1
+
+                mov     al,ARGn         ; AL := pixel value
+
+L32:            stosb                   ; set pixel value in buffer
+                add     di,si           ; increment to next line
+                loop    L32
+
+                jmp     Lexit
+
+
+; routine for horizontal lines (slope = 0)
+
+HorizLine13:
+                push    cx              ; preserve CX
+                mov     ax,ARGy1
+                mov     bx,ARGx1
+                call    PixelAddr13     ; ES:BX -> video buffer
+                mov     di,bx           ; ES:DI -> buffer
+
+                pop     cx
+                inc     cx              ; CX := number of pixels to draw
+
+                mov     al,ARGn         ; AL := pixel value
+
+                rep     stosb           ; update the video buffer
+
+                jmp     short Lexit
+
+
+; routine for dy <= dx (slope <= 1)     ; ES:DI -> video buffer
+                                        ; BX = y-increment
+                                        ; CX = # pixels to draw
+                                        ; SI = decision variable
+LoSlopeLine13:
+
+                mov     al,ARGn         ; AL := pixel value
+
+L11:            stosb                   ; store pixel, increment x
+
+                or      si,si           ; test sign of d
+                jns     L12             ; jump if d >= 0
+
+                add     si,VARincr1     ; d := d + incr1
+                loop    L11
+                jmp     short Lexit
+
+L12:            add     si,VARincr2     ; d := d + incr2
+                add     di,bx           ; increment y
+                loop    L11
+                jmp     short Lexit
+
+
+; routine for dy > dx (slope > 1)       ; ES:DI -> video buffer
+                                        ; BX = y-increment
+                                        ; CX = # pixels to draw
+                                        ; SI = decision variable
+HiSlopeLine13:
+                mov     al,ARGn         ; AL := pixel value
+
+L21:            stosb                   ; update next pixel, increment x
+
+                add     di,bx           ; increment y
+
+L22:            or      si,si           ; test sign of d
+                jns     L23             ; jump if d >= 0
+
+                add     si,VARincr1     ; d := d + incr1
+                dec     di              ; decrement x (already incremented
+                                        ;  by stosb)
+                loop    L21
+                jmp     short Lexit
+
+
+L23:            add     si,VARincr2     ; d := d + incr2
+                loop    L21
+
+
+Lexit:          pop     di              ; restore registers and return
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_Line13         ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-10.  A line-drawing routine for the InColor Card's 720-by-348
+               16-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 6-10'
+                NAME    LineInC
+                PAGE    55,132
+
+;
+; Name:         LineInC
+;
+; Function:     Draw a line in Hercules InColor 720x348 16-color mode
+;
+; Caller:       Microsoft C:
+;
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+;                       void LineInC(x1,y1,x2,y2,n);
+;
+;                       int x1,y1,x2,y2;        /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx1           EQU     word ptr [bp+4] ; stack frame addressing
+ARGy1           EQU     word ptr [bp+6]
+ARGx2           EQU     word ptr [bp+8]
+ARGy2           EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+VARleafincr     EQU     word ptr [bp-6]
+VARincr1        EQU     word ptr [bp-8]
+VARincr2        EQU     word ptr [bp-10]
+VARroutine      EQU     word ptr [bp-12]
+
+ByteOffsetShift EQU     3               ; used to convert pixels to byte 
+                                        ;  offset
+DefaultRWColor  EQU     0Fh             ; default value for R/W Color 
+                                        ;  register
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddrHGC:near
+
+                PUBLIC  _LineInC
+_LineInC        PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,8            ; stack space for local variables
+                push    si
+                push    di
+
+                mov     si,2000h        ; increment for video buffer 
+                                        ;  interleave
+                mov     di,90-8000h     ; increment from last to first 
+                                        ;  interleave
+
+; set up InColor control registers
+
+                mov     dx,3B4h         ; DX := CRTC I/O port
+                mov     ax,5F19h        ; AH bit 6 := 1 (Mask Polarity)
+                                        ; AH bits 5-4 := 1 (Write Mode)
+                                        ; AH bits 3-0 := "don't care" bits
+                                        ; AL := R/W Control Register number
+                out     dx,ax           ; set R/W Control Register
+
+                inc     ax              ; AL := 1Ah (R/W Color Reg number)
+                mov     ah,ARGn         ; AH := foreground value
+                out     dx,ax           ; set R/W color register
+
+
+                mov     cx,ARGx2
+                sub     cx,ARGx1        ; CX := x2 - x1
+                jz      VertLineInC     ; jump if vertical line
+
+; force x1 < x2
+
+                jns     L01             ; jump if x2 > x1
+
+                neg     cx              ; CX := x1 - x2
+
+                mov     bx,ARGx2        ; exchange x1 and x2
+                xchg    bx,ARGx1
+                mov     ARGx2,bx
+
+                mov     bx,ARGy2        ; exchange y1 and y2
+                xchg    bx,ARGy1
+                mov     ARGy2,bx
+
+; calculate dy = ABS(y2-y1)
+
+L01:            mov     bx,ARGy2
+                sub     bx,ARGy1        ; BX := y2 - y1
+                jz      HorizLineInC    ; jump if horizontal line
+
+                jns     L03
+
+                neg     bx              ; BX := y1 - y2
+                neg     si              ; negate increments for buffer 
+                                        ;  interleave
+                neg     di
+
+; select appropriate routine for slope of line
+
+L03:            mov     VARleafincr,di  ; save increment for buffer 
+                                        ;  interleave
+
+                mov     VARroutine,offset LoSlopeLineInC
+                cmp     bx,cx
+                jle     L04             ; jump if dy <= dx (slope <= 1)
+                mov     VARroutine,offset HiSlopeLineInC
+                xchg    bx,cx           ; exchange dy and dx
+
+; calculate initial decision variable and increments
+
+L04:            shl     bx,1            ; BX := 2 * dy
+                mov     VARincr1,bx     ; incr1 := 2 * dy
+                sub     bx,cx
+                mov     di,bx           ; DI := d = 2 * dy - dx
+                sub     bx,cx
+                mov     VARincr2,bx     ; incr2 := 2 * (dy - dx)
+
+; calculate first pixel address
+
+                push    cx              ; preserve this register
+                mov     ax,ARGy1        ; AX := y
+                mov     bx,ARGx1        ; BX := x
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                shl     ah,cl
+                mov     dh,ah           ; DH := bit mask in proper position
+
+                pop     cx              ; restore this register
+                inc     cx              ; CX := # of pixels to draw
+
+                jmp     VARroutine      ; jump to appropriate routine for 
+                                        ;  slope
+
+
+; routine for vertical lines
+
+VertLineInC:    mov     ax,ARGy1        ; AX := y1
+                mov     bx,ARGy2        ; BX := y2
+                mov     cx,bx
+                sub     cx,ax           ; CX := dy
+                jge     L31             ; jump if dy >= 0
+
+                neg     cx              ; force dy >= 0
+                mov     ax,bx           ; AX := y2
+
+L31:            inc     cx              ; CX := # of pixels to draw
+                mov     bx,ARGx1        ; BX := x
+                push    cx              ; preserve this register
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                shl     ah,cl           ; AH := bit mask in proper position
+                pop     cx              ; restore this register
+
+L32:            or      es:[bx],ah      ; update pixel in buffer
+
+                add     bx,si           ; increment to next portion of 
+                                        ;  interleave
+                jns     L33
+
+                add     bx,di           ; increment to first portion of 
+                                        ;  interleave
+
+L33:            loop    L32
+
+                jmp     Lexit
+
+; routine for horizontal lines (slope = 0)
+
+HorizLineInC:   mov     ax,ARGy1
+                mov     bx,ARGx1
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> video buffer
+                                        ; CL := # bits to shift left
+                mov     di,bx           ; ES:DI -> buffer
+                mov     dh,ah
+                not     dh              ; DH := unshifted bit mask for 
+                                        ;        leftmost byte
+                mov     dl,0FFh         ; DL := unshifted bit mask for
+                                        ;        rightmost byte
+
+                shl     dh,cl           ; DH := reverse bit mask for first 
+                                        ;        byte
+                not     dh              ; DH := bit mask for first byte
+                mov     cx,ARGx2
+                and     cl,7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;        left
+                shl     dl,cl           ; DL := bit mask for last byte
+
+; determine byte offset of first and last pixel in the line
+
+                mov     ax,ARGx2        ; AX := x2
+                mov     bx,ARGx1        ; BX := x1
+
+                mov     cl,ByteOffsetShift      ; number of bits to shift 
+                                                ;  to convert pixels to 
+                                                ;  bytes
+
+                shr     ax,cl           ; AX := byte offset of x2
+                shr     bx,cl           ; BX := byte offset of x1
+                mov     cx,ax
+                sub     cx,bx           ; CX := (# bytes in line) - 1
+
+; set pixels in leftmost byte of the line
+
+                or      dh,dh
+                js      L43             ; jump if byte-aligned (x1 is 
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                                        ;  leftmost pixel in byte)
+                or      cx,cx
+                jnz     L42             ; jump if more than one byte in the 
+                                        ;  line
+
+                and     dl,dh           ; bit mask for the line
+                jmp     short L44
+
+L42:            or      es:[di],dh      ; update masked pixels in buffer
+                inc     di
+                dec     cx
+
+; use a fast 8086 machine instruction to draw the remainder of the line
+
+L43:            mov     al,0FFh         ; 8-pixel bit mask
+                rep     stosb           ; update all pixels in the line
+
+; set pixels in the rightmost byte of the line
+
+L44:            or      es:[di],dl      ; update masked pixels in buffer
+                jmp     Lexit
+
+; routine for dy <= dx (slope <= 1)     ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = bit mask
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+LoSlopeLineInC: 
+
+L10:            mov     ah,es:[bx]      ; latch bit planes
+                                        ; AH := 0 because all planes
+                                        ;  are "don't care"
+
+L11:            or      ah,dh           ; set pixel value in byte
+
+                ror     dh,1            ; rotate bit mask
+                jc      L14             ; jump if bit mask rotated to
+                                        ;  leftmost pixel position
+
+; bit mask not shifted out
+
+                or      di,di           ; test sign of d
+                jns     L12             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L11
+
+                mov     es:[bx],ah      ; store remaining pixels in buffer
+                jmp     short Lexit
+
+L12:            add     di,VARincr2     ; d := d + incr2
+                mov     es:[bx],ah      ; update buffer
+
+                add     bx,si           ; increment y
+                jns     L13             ; jump if not in last interleave
+
+                add     bx,VARleafincr  ; increment into next interleave
+
+L13:            loop    L10
+                jmp     short Lexit
+
+; bit mask shifted out
+
+L14:            mov     es:[bx],ah      ; update buffer
+                inc     bx              ; BX := offset of next byte
+
+                or      di,di           ; test sign of d
+                jns     L15             ; jump if non-negative
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L10
+                jmp     short Lexit
+
+L15:            add     di,VARincr2     ; d := d + incr2
+
+                add     bx,si           ; increment y
+                jns     L16             ; jump if not in last interleave
+
+                add     bx,VARleafincr  ; increment into next interleave
+
+L16:            loop    L10             ; loop until all pixels are set
+                jmp     short Lexit
+
+
+; routine for dy > dx (slope > 1)       ; ES:BX -> video buffer
+                                        ; CX = # pixels to draw
+                                        ; DH = bit mask
+                                        ; SI = buffer interleave increment
+                                        ; DI = decision variable
+HiSlopeLineInC:
+
+L21:            or      es:[bx],dh      ; set pixel value in video buffer
+
+                add     bx,si           ; increment y
+                jns     L22             ; jump if not in last interleave
+
+                add     bx,VARleafincr  ; increment into next interleave
+
+L22:            or      di,di
+                jns     L23             ; jump if d >= 0
+
+                add     di,VARincr1     ; d := d + incr1
+                loop    L21
+                jmp     short Lexit
+
+
+L23:            add     di,VARincr2     ; d := d + incr2
+
+                ror     dh,1            ; rotate bit mask
+                adc     bx,0            ; BX := offset of next byte 
+                                        ;  (incremented if bit mask rotated 
+                                        ;  to leftmost pixel position)
+
+                loop    L21
+                jmp     short Lexit
+
+
+Lexit:          mov     dx,3B4h         ; DX := CRTC I/O port
+                mov     ax,0F18h
+                out     dx,ax           ; restore default Plane Mask value
+
+                mov     ax,4019h        ; restore default R/W Control value
+                out     dx,ax
+
+                inc     ax              ; restore default R/W Color value
+                mov     ah,DefaultRWColor
+                out     dx,ax
+
+                pop     di              ; restore registers and return
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_LineInC        ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 6-11.  An implementation of the Sutherland-Cohen clipping
+               algorithm.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 6-11 */
+
+struct  EndpointStruct          /* endpoints for clipped line */
+{
+  int   x1,y1;
+  int   x2,y2;
+};
+
+struct  RegionStruct            /* rectangular clipping region */
+{
+  int   Xul;
+  int   Yul;
+  int   Xlr;
+  int   Ylr;
+};
+
+
+union OutcodeUnion      /* outcodes are represented as bit fields */
+{
+  struct
+  {
+    unsigned code0 : 1;         /* x < Xul */
+    unsigned code1 : 1;         /* y < Yul */
+    unsigned code2 : 1;         /* x > Xlr */
+    unsigned code3 : 1;         /* y > Ylr */
+  }
+        ocs;
+
+  int   outcodes;
+};
+
+
+#define X1      ep->x1
+#define Y1      ep->y1
+#define X2      ep->x2
+#define Y2      ep->y2
+#define XUL     r->Xul
+#define YUL     r->Yul
+#define XLR     r->Xlr
+#define YLR     r->Ylr
+
+
+Clip(ep,r)
+struct  EndpointStruct  *ep;
+struct  RegionStruct    *r;
+{
+        union OutcodeUnion      ocu1,ocu2;
+        int     Inside;
+        int     Outside;
+
+
+        /* initialize 4-bit codes */
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+        SetOutcodes( &ocu1, r, X1, Y1 );        /* initial 4-bit codes */
+        SetOutcodes( &ocu2, r, X2, Y2 );
+
+        Inside  = ((ocu1.outcodes | ocu2.outcodes) == 0);
+        Outside = ((ocu1.outcodes & ocu2.outcodes) != 0);
+
+        while (!Outside && !Inside)
+        {
+          if (ocu1.outcodes==0)     /* swap endpoints if necessary so */
+          {                         /*  that (x1,y1) needs to be clipped */
+            Swap( &X1, &X2 );
+            Swap( &Y1, &Y2 );
+            Swap( &ocu1, &ocu2 );
+          }
+
+
+          if (ocu1.ocs.code0)                   /* clip left */
+          {
+            Y1 += (long)(Y2-Y1)*(XUL-X1)/(X2-X1);
+            X1 = XUL;
+          }
+
+          else if (ocu1.ocs.code1)              /* clip above */
+          {
+            X1 += (long)(X2-X1)*(YUL-Y1)/(Y2-Y1);
+            Y1 = YUL;
+          }
+
+          else if (ocu1.ocs.code2)              /* clip right */
+          {
+            Y1 += (long)(Y2-Y1)*(XLR-X1)/(X2-X1);
+            X1 = XLR;
+          }
+
+          else if (ocu1.ocs.code3)              /* clip below */
+          {
+            X1 += (long)(X2-X1)*(YLR-Y1)/(Y2-Y1);
+            Y1 = YLR;
+          }
+
+          SetOutcodes( &ocu1, r, X1, Y1 );      /* update for (x1,y1) */
+
+          Inside  = ((ocu1.outcodes | ocu2.outcodes) == 0); /* update  */
+          Outside = ((ocu1.outcodes & ocu2.outcodes) != 0); /*  4-bit  */
+                                                            /*   codes  */ 
+        }
+
+        return( Inside );
+}
+
+
+SetOutcodes( u, r, x, y )
+union OutcodeUnion      *u;
+struct RegionStruct     *r;
+int     x,y;
+{
+        u->outcodes = 0;
+        u->ocs.code0 = (x < XUL);
+        u->ocs.code1 = (y < YUL);
+        u->ocs.code2 = (x > XLR);
+        u->ocs.code3 = (y > YLR);
+}
+
+
+Swap( pa, pb )
+int     *pa,*pb;
+{
+        int     t;
+
+        t = *pa;
+        *pa = *pb;
+        *pb = t;
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 7-1.  Drawing an ellipse using the equation of the ellipse.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 7-1 */
+
+Ellipse( xc, yc, a0, b0 )       /* using equation of ellipse */
+int     xc,yc;                  /* center of ellipse */
+int     a0,b0;                  /* major and minor axes */
+{
+
+        double  x = 0;
+        double  y = b0;
+        double  Bsquared = (double)b0 * (double)b0;
+        double  Asquared = (double)a0 * (double)a0;
+        double  sqrt();
+
+        do                      /* do while dy/dx >= -1 */
+        {
+          y = sqrt( Bsquared - ((Bsquared/Asquared) * x * x) );
+          Set4Pixels( (int)x, (int)y, xc, yc, PixelValue );
+          ++x;
+        }
+        while ( (x <= a0) && (Bsquared*x > Asquared*y) );
+
+        while (y >= 0)          /* do while dy/dx < -1 */
+        {
+          x = sqrt( Asquared - ((Asquared/Bsquared) * y*y) );
+          Set4Pixels( (int)x, (int)y, xc, yc, PixelValue );
+          --y;
+        }
+}
+
+Set4Pixels( x, y, xc, yc, n )   /* set pixels in 4 quadrants by symmetry */
+int     x,y;
+int     xc,yc;
+int     n;
+{
+        SPFunc(xc+x, yc+y, n);
+        SPFunc(xc-x, yc+y, n);
+        SPFunc(xc+x, yc-y, n);
+        SPFunc(xc-x, yc-y, n);
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 7-2.  A high-level implementation of the midpoint algorithm.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 7-2 */
+
+Ellipse( xc, yc, a0, b0 )
+int     xc,yc;                  /* center of ellipse */
+int     a0,b0;                  /* semiaxes */
+
+{
+        int     x = 0;
+        int     y = b0;
+
+        long    a = a0;                         /* use 32-bit precision */
+        long    b = b0;
+
+        long    Asquared = a * a;               /* initialize values */
+                                                /*  outside */
+        long    TwoAsquared = 2 * Asquared;     /*  of loops */
+        long    Bsquared = b * b;
+        long    TwoBsquared = 2 * Bsquared;
+
+        long    d;
+        long    dx,dy;
+
+
+        d = Bsquared - Asquared*b + Asquared/4L;
+        dx = 0;
+        dy = TwoAsquared * b;
+
+        while (dx<dy)
+        {
+          Set4Pixels( x, y, xc, yc, PixelValue );
+
+          if (d > 0L)
+          {
+            --y;
+            dy -= TwoAsquared;
+            d -= dy;
+          }
+
+          ++x;
+          dx += TwoBsquared;
+          d += Bsquared + dx;
+        }
+
+
+        d += (3L*(Asquared-Bsquared)/2L - (dx+dy)) / 2L;
+
+        while (y>=0)
+        {
+          Set4Pixels( x, y, xc, yc, PixelValue );
+
+          if (d < 0L)
+          {
+            ++x;
+            dx += TwoBsquared;
+            d += dx;
+          }
+
+          --y;
+          dy -= TwoAsquared;
+          d += Asquared - dy;
+        }
+}
+
+Set4Pixels( x, y, xc, yc, n )       /* set pixels by symmetry in 4 */
+                                    /*  quadrants */
+int     x,y;
+int     xc,yc;
+int     n;
+{
+        SetPixel( xc+x, yc+y, n );
+        SetPixel( xc-x, yc+y, n );
+        SetPixel( xc+x, yc-y, n );
+        SetPixel( xc-x, yc-y, n );
+}
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 7-3.  A modified version of Set4Pixels that avoids updating
+              the same pixel twice.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 7-3 */
+
+Set4Pixels( x, y, xc, yc, n )   /* avoids setting the same pixel twice */
+int     x,y;
+int     xc,yc;
+int     n;
+{
+        if (x!=0)
+        {
+          SetPixel( xc+x, yc+y, n );
+          SetPixel( xc-x, yc+y, n );
+          if (y!=0)
+          {
+            SetPixel( xc+x, yc-y, n );
+            SetPixel( xc-x, yc-y, n );
+          }
+        }
+        else
+        {
+          SetPixel( xc, yc+y, n );
+          if (y!=0)
+            SetPixel( xc, yc-y, n );
+        }
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 7-4.  An assembly-language implementation of the midpoint
+              algorithm.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 7-4'
+                NAME    Ellipse10
+                PAGE    55,132
+
+;
+; Name:         Ellipse10
+;
+; Function:     Draw an ellipse in native EGA/VGA graphics modes.
+;
+; Caller:       Microsoft C:
+;
+;                       void Ellipse10(xc,yc,a,b,n);
+;
+;                       int xc,yc;              /* center of ellipse */
+;
+;                       int a,b;                /* major and minor axes */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGxc           EQU     word ptr [bp+4] ; stack frame addressing
+ARGyc           EQU     word ptr [bp+6]
+ARGa            EQU     word ptr [bp+8]
+ARGb            EQU     word ptr [bp+10]
+ARGn            EQU     byte ptr [bp+12]
+
+ULAddr          EQU     word ptr [bp-6]
+URAddr          EQU     word ptr [bp-8]
+LLAddr          EQU     word ptr [bp-10]
+LRAddr          EQU     word ptr [bp-12]
+LMask           EQU     byte ptr [bp-14]
+RMask           EQU     byte ptr [bp-16]
+
+VARd            EQU     word ptr [bp-20]
+VARdx           EQU     word ptr [bp-24]
+VARdy           EQU     word ptr [bp-28]
+Asquared        EQU     word ptr [bp-32]
+Bsquared        EQU     word ptr [bp-36]
+TwoAsquared     EQU     word ptr [bp-40]
+TwoBsquared     EQU     word ptr [bp-44]
+
+RMWbits         EQU     00h             ; read-modify-write bits
+BytesPerLine    EQU     80
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _Ellipse10
+_Ellipse10      PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,40           ; reserve local stack space
+                push    si
+                push    di
+                
+; set Graphics Controller Mode register
+
+                mov     dx,3CEh         ; DX := Graphics Controller I/O 
+                                        ;        port
+                mov     ax,0005h        ; AL := Mode register number
+                                        ; AH := Write Mode 0 (bits 0,1)
+                out     dx,ax           ;        Read Mode 0 (bit 4)
+
+; set Data Rotate/Function Select register
+
+                mov     ah,RMWbits      ; AH := Read-Modify-Write bits
+                mov     al,3            ; AL := Data Rotate/Function Select 
+                                        ;        reg
+                out     dx,ax
+
+; set Set/Reset and Enable Set/Reset registers
+
+                mov     ah,ARGn         ; AH := pixel value
+                mov     al,0            ; AL := Set/Reset reg number
+                out     dx,ax
+
+                mov     ax,0F01h        ; AH := value for Enable Set/Reset 
+                                        ;        (all bit planes enabled)
+                out     dx,ax           ; AL := Enable Set/Reset reg number
+
+; initial constants
+
+                mov     ax,ARGa
+                mul     ax
+                mov     Asquared,ax
+                mov     Asquared+2,dx   ; a^2
+                shl     ax,1
+                rcl     dx,1
+                mov     TwoAsquared,ax
+                mov     TwoAsquared+2,dx ; 2 * a^2
+
+                mov     ax,ARGb
+                mul     ax
+                mov     Bsquared,ax
+                mov     Bsquared+2,dx   ; b^2
+                shl     ax,1
+                rcl     dx,1
+                mov     TwoBsquared,ax
+                mov     TwoBsquared+2,dx ; 2 * b^2
+;
+; plot pixels from (0,b) until dy/dx = -1
+;
+
+; initial buffer address and bit mask
+
+                mov     ax,BytesPerLine ; AX := video buffer line length
+                mul     ARGb            ; AX := relative byte offset of b
+                mov     si,ax
+                mov     di,ax
+
+                mov     ax,ARGyc        ; AX := yc
+                mov     bx,ARGxc        ; BX := xc
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+                mov     ah,1
+                shl     ah,cl           ; AH := bit mask for first pixel
+                mov     LMask,ah
+                mov     RMask,ah
+
+                add     si,bx           ; SI := offset of (0,b)
+                mov     ULAddr,si
+                mov     URAddr,si
+                sub     bx,di           ; AX := offset of (0,-b)
+                mov     LLAddr,bx
+                mov     LRAddr,bx
+
+; initial decision variables
+
+                xor     ax,ax
+                mov     VARdx,ax
+                mov     VARdx+2,ax      ; dx = 0
+
+                mov     ax,TwoAsquared
+                mov     dx,TwoAsquared+2
+                mov     cx,ARGb
+                call    LongMultiply    ; perform 32-bit by 16-bit multiply
+                mov     VARdy,ax
+                mov     VARdy+2,dx      ; dy = TwoAsquared * b
+
+                mov     ax,Asquared
+                mov     dx,Asquared+2   ; DX:AX = Asquared
+                sar     dx,1
+                rcr     ax,1
+                sar     dx,1
+                rcr     ax,1            ; DX:AX = Asquared/4
+
+                add     ax,Bsquared
+                adc     dx,Bsquared+2   ; DX:AX = Bsquared + Asquared/4
+                mov     VARd,ax
+                mov     VARd+2,dx
+
+                mov     ax,Asquared
+                mov     dx,Asquared+2
+                mov     cx,ARGb
+                call    LongMultiply    ; DX:AX = Asquared*b
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                sub     VARd,ax
+                sbb     VARd+2,dx       ; d = Bsquared - Asquared*b + 
+                                        ;      Asquared/4
+
+; loop until dy/dx >= -1
+
+                mov     bx,ARGb         ; BX := initial y-coordinate
+
+                xor     cx,cx           ; CH := 0 (initial y-increment)
+                                        ; CL := 0 (initial x-increment)
+L10:            mov     ax,VARdx
+                mov     dx,VARdx+2
+                sub     ax,VARdy
+                sbb     dx,VARdy+2
+                jns     L20             ; jump if dx>=dy
+
+                call    Set4Pixels
+
+                mov     cx,1            ; CH := 0 (y-increment)
+                                        ; CL := 1 (x-increment)
+                cmp     VARd+2,0
+                js      L11             ; jump if d < 0
+
+                mov     ch,1            ; increment in y direction
+                dec     bx              ; decrement current y-coordinate
+
+                mov     ax,VARdy
+                mov     dx,VARdy+2
+                sub     ax,TwoAsquared
+                sbb     dx,TwoAsquared+2 ; DX:AX := dy - TwoAsquared
+                mov     VARdy,ax
+                mov     VARdy+2,dx      ; dy -= TwoAsquared
+
+                sub     VARd,ax
+                sbb     VARd+2,dx       ; d -= dy
+
+L11:            mov     ax,VARdx
+                mov     dx,VARdx+2
+                add     ax,TwoBsquared
+                adc     dx,TwoBsquared+2 ; DX:AX := dx + TwoBsquared
+                mov     VARdx,ax
+                mov     VARdx+2,dx      ; dx += TwoBsquared
+
+                add     ax,Bsquared
+                adc     dx,Bsquared+2   ; DX:AX := dx + Bsquared
+                add     VARd,ax
+                adc     VARd+2,dx       ; d += dx + Bsquared
+
+                jmp     L10
+;
+; plot pixels from current (x,y) until y < 0
+;
+
+; initial buffer address and bit mask
+
+L20:            push    bx              ; preserve current y-coordinate
+                push    cx              ; preserve x- and y-increments
+
+                mov     ax,Asquared
+                mov     dx,Asquared+2
+                sub     ax,Bsquared
+                sbb     dx,Bsquared+2   ; DX:AX := Asquared-Bsquared
+
+                mov     bx,ax
+                mov     cx,dx           ; CX:BX := (Asquared-Bsquared)
+
+                sar     dx,1
+                rcr     ax,1            ; DX:AX := (Asquared-Bsquared)/2
+                add     ax,bx
+                adc     dx,cx           ; DX:AX := 3*(Asquared-Bsquared)/2
+
+                sub     ax,VARdx
+                sbb     dx,VARdx+2
+                sub     ax,VARdy
+                sbb     dx,VARdy+2      ; DX:AX := 3*(Asquared-Bsquared)/2 
+                                        ;           - (dx+dy)
+
+                sar     dx,1
+                rcr     ax,1            ; DX:AX :=
+                                        ;  ( 3*(Asquared-Bsquared)/2 - 
+                                        ;  (dx+dy) )/2
+                add     VARd,ax
+                adc     VARd+2,dx       ; update d
+
+; loop until y < 0
+
+                pop     cx              ; CH,CL := y- and x-increments
+                pop     bx              ; BX := y
+
+L21:            call    Set4Pixels
+
+                mov     cx,100h         ; CH := 1 (y-increment)
+                                        ; CL := 0 (x-increment)
+
+                cmp     VARd+2,0
+                jns     L22             ; jump if d >= 0
+
+                mov     cl,1            ; increment in x direction
+
+                mov     ax,VARdx
+                mov     dx,VARdx+2
+                add     ax,TwoBsquared
+                adc     dx,TwoBsquared+2 ; DX:AX := dx + TwoBsquared
+                mov     VARdx,ax
+                mov     VARdx+2,dx      ; dx += TwoBsquared
+
+                add     VARd,ax
+                adc     VARd+2,dx       ; d += dx
+
+L22:            mov     ax,VARdy
+                mov     dx,VARdy+2
+                sub     ax,TwoAsquared
+                sbb     dx,TwoAsquared+2 ; DX:AX := dy - TwoAsquared
+                mov     VARdy,ax
+                mov     VARdy+2,dx      ; dy -= TwoAsquared
+
+                sub     ax,Asquared
+                sbb     dx,Asquared+2   ; DX:AX := dy - Asquared
+                sub     VARd,ax
+                sbb     VARd+2,dx       ; d += Asquared - dy
+
+                dec     bx              ; decrement y
+                jns     L21             ; loop if y >= 0
+
+; restore default Graphics Controller registers
+
+Lexit:          mov     ax,0FF08h       ; default Bit Mask
+                mov     dx,3CEh
+                out     dx,ax
+
+                mov     ax,0003         ; default Function Select
+                out     dx,ax
+
+                mov     ax,0001         ; default Enable Set/Reset
+                out     dx,ax
+
+                pop     di
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_Ellipse10      ENDP
+
+
+Set4Pixels      PROC    near            ; Call with:    CH := y-increment
+                                        ;                      (0, -1)
+                                        ;               CL := x-increment
+                                        ;                      (0, 1)
+
+                push    ax              ; preserve these regs
+                push    bx
+                push    dx
+
+                mov     dx,3CEh         ; DX := Graphics Controller port
+
+                xor     bx,bx           ; BX := 0
+                test    ch,ch
+                jz      L30             ; jump if y-increment = 0
+
+                mov     bx,BytesPerLine ; BX := positive increment
+                neg     bx              ; BX := negative increment
+
+L30:            mov     al,8            ; AL := Bit Mask reg number
+
+; pixels at (xc-x,yc+y) and (xc-x,yc-y)
+
+                xor     si,si           ; SI := 0
+                mov     ah,LMask
+
+                rol     ah,cl           ; AH := bit mask rotated 
+                                        ;        horizontally
+                rcl     si,1            ; SI := 1 if bit mask rotated 
+                                        ;        around
+                neg     si              ; SI := 0 or -1
+
+                mov     di,si           ; SI,DI := left horizontal 
+                                        ;           increment
+
+                add     si,ULAddr       ; SI := upper left addr + horiz 
+                                        ;        incr
+                add     si,bx           ; SI := new upper left addr
+                add     di,LLAddr
+                sub     di,bx           ; DI := new lower left addr
+
+                mov     LMask,ah        ; update these variables
+                mov     ULAddr,si
+                mov     LLAddr,di
+
+                out     dx,ax           ; update Bit Mask register
+
+                mov     ch,es:[si]      ; update upper left pixel
+                mov     es:[si],ch
+                mov     ch,es:[di]      ; update lower left pixel
+                mov     es:[di],ch
+
+
+; pixels at (xc+x,yc+y) and (xc+x,yc-y)
+
+                xor     si,si           ; SI := 0
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                mov     ah,RMask
+
+                ror     ah,cl           ; AH := bit mask rotated 
+                                        ;        horizontally
+                rcl     si,1            ; SI := 1 if bit mask rotated 
+                                        ;        around
+
+                mov     di,si           ; SI,DI := right horizontal 
+                                        ;           increment
+
+                add     si,URAddr       ; SI := upper right addr + horiz 
+                                        ;        incr
+                add     si,bx           ; SI := new upper right addr
+                add     di,LRAddr
+                sub     di,bx           ; DI := new lower right addr
+
+                mov     RMask,ah        ; update these variables
+                mov     URAddr,si
+                mov     LRAddr,di
+
+                out     dx,ax           ; update Bit Mask register
+
+                mov     ch,es:[si]      ; update upper right pixel
+                mov     es:[si],ch
+                mov     ch,es:[di]      ; update lower right pixel
+                mov     es:[di],ch
+
+                pop     dx              ; restore these regs
+                pop     bx
+                pop     ax
+                ret
+
+Set4Pixels      ENDP
+
+
+LongMultiply    PROC    near            ; Caller:   DX = u1 (hi-order word
+                                        ;                 of 32-bit number)
+                                        ;           AX = u2 (lo-order word)
+                                        ;           CX = v1 (16-bit number)
+                                        ; Returns:  DX:AX = 32-bit result)
+
+                push    ax              ; preserve u2
+                mov     ax,dx           ; AX := u1 
+                mul     cx              ; AX := hi-order word of result
+                xchg    ax,cx           ; AX := v1, CX := hi-order word
+                pop     dx              ; DX := u2
+                mul     dx              ; AX := lo-order word of result
+                                        ; DX := carry
+                add     dx,cx           ; CX := hi-order word of result
+                ret
+
+LongMultiply    ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 7-5.  Using pixel coordinate scaling to display a circle in
+              640-by-350 16-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 7-5 */
+
+Circle10( xc, yc, xr, yr, n)         /* circles in 640x350 16-color mode */
+int     xc,yc;          /* center of circle */
+int     xr,yr;          /* point on circumference */
+int     n;              /* pixel value */
+{
+        double  x,y;
+        double  sqrt();
+        double  Scale10 = 1.37;         /* pixel scaling factor */
+        int     a,b;
+
+        x = xr - xc;                    /* translate center of ellipse */
+        y = (yr - yc) * Scale10;        /*  to origin */
+
+        
+        a = sqrt( x*x + y*y );          /* compute major and minor axes */
+        b = a / Scale10;
+
+        Ellipse10( xc, yc, a, b, n);    /* draw it */
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 8-1.  Filling a rectangle with horizontal lines.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 8-1 */
+
+FilledRectangle( x1, y1, x2, y2, n )
+int     x1,y1;                  /* upper left corner */
+int     x2,y2;                  /* lower right corner */
+int     n;                      /* pixel value */
+{
+        int     y;
+
+        for (y = y1; y< = y2; y++)      /* draw rectangle as a set of */
+          Line( x1, y, x2, y, n );      /*  adjacent horizontal lines */
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 8-2.  A simple recursive region fill.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 8-2 */
+
+int     FillValue;      /* value of pixels in filled region */
+int     BorderValue;    /* value of pixels in border */
+
+PixelFill( x, y )
+int     x,y;
+{
+        int     v;      
+
+        v = ReadPixel( x, y );
+        if ( (v!=FillValue) && (v!=BorderValue) )
+        {
+          SetPixel( x, y, FillValue );
+
+          PixelFill( x-1, y );
+          PixelFill( x+1, y );
+          PixelFill( x, y-1 );
+          PixelFill( x, y+1 );
+        }
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 8-3.  A line-adjacency fill routine.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 8-3 */
+
+#define UP      -1
+#define DOWN    1
+
+
+LineAdjFill( SeedX, SeedY, D, PrevXL, PrevXR )
+int     SeedX,SeedY;           /* seed for current row of pixels */
+int     D;                     /* direction searched to find current row */
+int     PrevXL,PrevXR;         /* endpoints of previous row of pixels */
+{
+        int     x,y;
+        int     xl,xr;
+        int     v;
+
+        y = SeedY;             /* initialize to seed coordinates */
+        xl = SeedX;
+        xr = SeedX;
+
+        ScanLeft( &xl, &y );   /* determine endpoints of seed line */
+                               /*  segment */
+        ScanRight( &xr, &y );
+
+        Line( xl, y, xr, y, FillValue );     /* fill line with FillValue */
+
+/* find and fill adjacent line segments in same direction */
+
+        for (x = xl; x <= xr; x++)    /* inspect adjacent rows of pixels */
+        {
+          v = ReadPixel( x, y+D );
+          if ( (v != BorderValue) && (v != FillValue) )
+            x = LineAdjFill( x, y+D, D, xl, xr );
+        }
+
+/* find and fill adjacent line segments in opposite direction */
+
+        for (x = xl; x < PrevXL; x++)
+        {
+          v = ReadPixel( x, y-D );
+          if ( (v != BorderValue) && (v != FillValue) )
+            x = LineAdjFill( x, y-D, -D, xl, xr );
+        }
+
+        for (x = PrevXR; x < xr; x++)
+        {
+          v = ReadPixel( x, y-D );
+          if ( (v != BorderValue) && (v != FillValue) )
+            x = LineAdjFill( x, y-D, -D, xl, xr );
+        }
+
+        return( xr );
+}
+
+ScanLeft( x, y )
+int     *x,*y;
+{
+        int     v;
+
+        do
+        {
+          --(*x);                       /* move left one pixel */
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+          v = ReadPixel( *x, *y );      /* determine its value */
+        }
+        while ( (v != BorderValue) && (v != FillValue) );
+
+        ++(*x);         /* x-coordinate of leftmost pixel in row */
+}
+
+ScanRight( x, y )
+int     *x,*y;
+{
+        int     v;
+
+        do
+        {
+          ++(*x);                       /* move right one pixel */
+          v = ReadPixel( *x, *y );      /* determine its value */
+        }
+        while ( (v != BorderValue) && (v != FillValue) );
+
+        --(*x);         /* x-coordinate of rightmost pixel in row */
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 8-4.  A region fill routine that traces a region's border.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+/* Listing 8-4 */
+
+#define BLOCKED         1
+#define UNBLOCKED       2
+#define TRUE            1
+#define FALSE           0
+
+struct  BPstruct                        /* table of border pixels */
+{
+        int     x,y;
+        int     flag;
+}
+        BP[3000];                       /* (increase if necessary) */
+
+int     BPstart;                        /* start of table */
+int     BPend = 0;                      /* first empty cell in table */
+int     FillValue;                      /* value of pixels in filled */
+                                        /*  region */
+int     BorderValue;                    /* value of pixels in border */
+
+
+BorderFill( x, y )
+int     x,y;
+{
+        do                              /* do until entire table is */ 
+                                        /*  scanned */
+        {
+          TraceBorder( x, y );          /* trace border starting at x,y */
+          SortBP( BP );                 /* sort the border pixel table */
+          ScanRegion( &x, &y );         /* look for holes in the */
+                                        /*  interior */
+        }
+        while (BPstart < BPend);
+
+        FillRegion();                   /* use the table to fill the 
+                                         /* interior */
+}
+
+ScanRegion( x, y )
+int     *x,*y;
+{
+        int     i = BPstart;
+        int     xr;
+
+        while (i < BPend)
+        {
+          if (BP[i].flag == BLOCKED)    /* skip pixel if blocked */
+            ++i;
+
+          else
+          if (BP[i].y != BP[i+1].y)     /* skip pixel if last in line */
+            ++i;
+
+          else
+          {                             /* if at least one pixel to */
+                                        /*  fill ... */
+            if (BP[i].x < BP[i+1].x-1)  /* scan the line */
+            {
+              xr = ScanRight( BP[i].x+1, BP[i].y );
+
+              if (xr<BP[i+1].x)         /* if a border pixel is */
+                                        /*  found ... */
+              {
+                *x = xr;                /* return its x,y coordinates */
+                *y = BP[i].y;
+
+                break;
+              }
+            }
+
+            i += 2;                     /* advance past this pair of */
+                                        /*  pixels */
+          }
+        }
+
+        BPstart = i;
+}
+
+SortBP()                        /* uses Microsoft C library quicksort */
+                                /*  routine */
+{
+        int     CompareBP();
+
+        qsort( BP+BPstart, BPend-BPstart,
+               sizeof(struct BPstruct), CompareBP );
+}
+
+CompareBP( arg1, arg2 )         /* returns -1 if arg1<arg2, 1 if */
+                                /*  arg1>arg2 */
+struct  BPstruct  *arg1,*arg2;
+{
+        int     i;
+
+        i = arg1->y - arg2->y;          /* sort by y-coordinate */
+        if (i != 0)
+          return( (i < 0) ? -1 : 1 );   /* (return -1 if i<0, 1 if i>0) */
+
+        i = arg1->x - arg2->x;          /* sort by x-coordinate */
+        if (i != 0)
+          return( (i < 0) ? -1 : 1 );
+
+        i = arg1->flag - arg2->flag;    /* sort by flag */
+          return( (i < 0) ? -1 : 1 );
+}
+
+FillRegion()
+{
+        int     i;
+
+
+        for(i = 0; i < BPend;)
+        {
+          if (BP[i].flag == BLOCKED)    /* skip pixel if blocked */
+            ++i;
+
+          else
+          if (BP[i].y != BP[i+1].y)     /* skip pixel if last in line */
+            ++i;
+
+          else
+          {                             /* if at least one pixel to */
+                                        /*  fill ... */
+            if (BP[i].x < BP[i+1].x-1)  /* draw a line */
+              Line( BP[i].x+1, BP[i].y, BP[i+1].x-1,
+                    BP[i+1].y, FillValue );
+
+            i += 2;
+          }
+        }
+}
+
+/* border tracing routine */
+
+struct  BPstruct CurrentPixel;
+int     D;                              /* current search direction */
+int     PrevD;                          /* previous search direction */
+int     PrevV;                          /* previous vertical direction */
+
+TraceBorder( StartX, StartY )
+int     StartX,StartY;
+{
+        int     NextFound;              /* flags */
+        int     Done;
+
+/* initialize */
+
+        CurrentPixel.x = StartX;
+        CurrentPixel.y = StartY;
+
+        D = 6;                          /* current search direction */
+        PrevD = 8;                      /* previous search direction */
+        PrevV = 2;                      /* most recent vertical */
+                                        /*  direction */
+
+/* loop around the border until returned to the starting pixel */
+
+        do
+        {
+          NextFound = FindNextPixel();
+          Done =
+           (CurrentPixel.x == StartX) && (CurrentPixel.y == StartY);
+        }
+        while (NextFound && !Done);
+
+/* if only one pixel in border, add it twice to the table */
+
+        if (!NextFound)                        /* pixel has no neighbors */
+        {
+          AppendBPList( StartX, StartY, UNBLOCKED );
+          AppendBPList( StartX, StartY, UNBLOCKED );
+        }
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+/* if last search direction was upward, add the starting pixel to the */
+/*  table */
+
+        else
+        if ( (PrevD <= 3) && (PrevD >= 1) )
+          AppendBPList( StartX, StartY, UNBLOCKED );
+}
+
+FindNextPixel()
+{
+        int     i;
+        int     flag;
+
+
+        for (i = -1; i <= 5; i++)
+        {
+          flag = FindBP( (D+i) & 7 );   /* search for next border pixel */
+
+          if (flag)                     /* flag is TRUE if found */
+          {
+            D = (D+i) & 6;              /* (D+i) MOD 2 */
+            break;                      /* exit from loop */
+          }
+        }
+
+        return( flag );
+}
+
+FindBP( d )
+int     d;                      /* direction to search for next border */
+                                /*  pixel */
+{
+        int     x,y;
+
+        x = CurrentPixel.x;
+        y = CurrentPixel.y;
+
+        NextXY( &x, &y, d );            /* get x,y of pixel in direction */
+                                        /*  d */
+
+        if ( BorderValue == ReadPixel( x, y ) )
+        {
+          AddBPList( d );               /* add pixel at x,y to table */
+          CurrentPixel.x = x;           /* pixel at x,y becomes current */
+                                        /*  pixel */
+          CurrentPixel.y = y;
+          return( TRUE );
+        }
+
+        else
+          return( FALSE );
+}
+
+NextXY( x, y, Direction )
+int     *x,*y;
+int     Direction;
+{
+        switch( Direction )             /*   3 2 1   */
+        {                               /*   4   0   */
+          case 1:                       /*   5 6 7   */
+          case 2:
+          case 3:
+                *y -= 1;                /* up */
+                break;
+          case 5:
+          case 6:
+          case 7:
+                *y += 1;                /* down */
+                break;
+        }
+
+        switch(Direction)
+        {
+          case 3:
+          case 4:
+          case 5:
+                *x -= 1;                /* left */
+                break;
+          case 1:
+          case 0:
+          case 7:
+                *x += 1;                /* right */
+                break;
+        }
+}
+
+AddBPList( d )
+int     d;
+{
+        if (d == PrevD)
+          SameDirection();
+
+        else
+        {
+          DifferentDirection( d );
+          PrevV = PrevD;                /* new previous vertical */
+                                        /*  direction */
+        }
+
+        PrevD = d;                      /* new previous search direction */
+}
+
+SameDirection()
+{
+        if (PrevD == 0)                 /* moving right ... */
+          BP[BPend-1].flag = BLOCKED;   /* block previous pixel */
+
+        else
+        if (PrevD != 4)                 /* if not moving horizontally */
+          AppendBPList( CurrentPixel.x, CurrentPixel.y, UNBLOCKED );
+}
+
+DifferentDirection( d )
+int     d;
+{
+
+/* previously moving left */
+
+        if (PrevD == 4)
+        {
+          if (PrevV == 5)               /* if from above ... */
+            BP[BPend-1].flag = BLOCKED; /* block rightmost in line */
+
+          AppendBPList( CurrentPixel.x, CurrentPixel.y, BLOCKED );
+        }
+
+/* previously moving right */
+
+        else
+        if (PrevD == 0)                 /* previously moving right ... */
+        {
+          BP[BPend-1].flag = BLOCKED;   /* block rightmost in line */
+
+          if (d == 7)                   /* if line started from above */
+            AppendBPList( CurrentPixel.x, CurrentPixel.y, BLOCKED );
+          else
+            AppendBPList( CurrentPixel.x, CurrentPixel.y, UNBLOCKED );
+        }
+
+/* previously moving in some vertical direction */
+
+        else
+        {
+          AppendBPList( CurrentPixel.x, CurrentPixel.y, UNBLOCKED );
+
+/* add pixel twice if local vertical maximum or minimum */
+
+          if ( ( (d>=1) && (d<=3) ) && ( (PrevD >= 5) && (PrevD <= 7) ) ||
+               ( (d>=5) && (d<=7) ) && ( (PrevD >= 1) && (PrevD <= 3) ) )
+            AppendBPList( CurrentPixel.x, CurrentPixel.y, UNBLOCKED );
+        }
+}
+
+AppendBPList( p, q, f )
+int     p,q;                    /* pixel x,y coordinates */
+int     f;                      /* flag */
+{
+        BP[BPend].x = p;
+        BP[BPend].y = q;
+        BP[BPend].flag = f;
+
+        ++BPend;                /* increment past last entry in table */
+}
+
+/* routine to scan a line for a border pixel */
+
+int     Xmax;                   /* largest valid pixel x-coordinate */
+
+ScanRight( x, y )
+int     x,y;
+{
+        while ( ReadPixel( x, y ) != BorderValue )
+        {
+          ++x;                          /* increment x */
+          if (x == Xmax)                /* if end of line in buffer ... */
+            break;                      /* exit from the loop */
+        }
+
+        return( x );
+}
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 8-5.  An assembly-language version of ScanRight().
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 8-5'
+                NAME    ScanRight10
+                PAGE    55,132
+
+;
+; Name:         ScanRight10
+;
+; Function:     Scan for a pixel of a given value in 16-color EGA/VGA 
+;                graphics
+;
+; Caller:       Microsoft C:
+;
+;                       int ScanRight10(x,y);
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+;
+;                       int x,y;                      /* starting pixel */
+;
+;                       extern  int BorderValue;      /* value of border */ 
+                                                      /*  pixel */
+;
+;               Returns the x-coordinate of the rightmost border pixel.
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+ByteOffsetShift EQU     3               ; used to convert pixels to byte 
+                                        ;  offset
+BytesPerLine    EQU     80              ; 80 for most 16-color graphics 
+                                        ;  modes (40 for 320x200 16-color)
+
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _ScanRight10
+_ScanRight10    PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    di
+                push    si
+
+; calculate pixel address of (0,y)
+
+                mov     ax,ARGy         ; AX := y
+                xor     bx,bx           ; BX := 0
+                call    PixelAddr10     ; ES:BX -> buffer
+                mov     di,bx           ; ES:DI -> buffer
+
+; calculate offset of x in row
+
+                mov     ax,ARGx
+                mov     si,ax           ; SI,AX := x
+                mov     cl,ByteOffsetShift
+                shr     si,cl           ; SI := offset of x in row y
+                add     di,si           ; DI := offset of x in buffer
+
+; calculate a bit mask for the first byte to scan
+
+                mov     cl,al
+                and     cl,7            ; CL := x & 7
+                mov     ch,0FFh
+                shr     ch,cl           ; CH := bit mask for first scanned 
+                                        ;        byte
+
+; configure the Graphics Controller
+
+                mov     dx,3CEh         ; DX := Graphics Controller port 
+                                        ;        addr
+
+                mov     ah,_BorderValue ; AH := pixel value for Color 
+                                        ;        Compare reg
+                mov     al,2            ; AL := Color Compare Reg number
+                out     dx,ax
+
+                mov     ax,805h         ; AH := 00001000b (Read Mode 1)
+                out     dx,ax           ; AL := Mode reg number
+
+                mov     ax,0F07h        ; AH := 00001111b (Color Compare 
+                                        ;        reg value)
+                out     dx,ax           ; AL := Color Compare reg number
+
+; inspect the first byte for border pixels
+
+                mov     al,es:[di]      ; AL := nonzero bits corresponding 
+                                        ;        to border pixels
+                inc     di              ; ES:DI -> next byte to scan
+                and     al,ch           ; apply bit mask
+                jnz     L01             ; jump if border pixel(s) found
+
+; scan remainder of line for border pixels
+
+                mov     cx,BytesPerLine
+                sub     cx,si           ; CX := BytesPerLine - (byte offset 
+                                        ;        of starting pixel)
+                dec     cx              ; CX := # of bytes to scan
+
+                repe    scasb           ; scan until nonzero byte read; 
+                                        ;  i.e., border pixel(s) found
+
+; compute x value of border pixel
+
+                mov     al,es:[di-1]    ; AL := last byte compared
+
+L01:            sub     di,bx           ; DI := offset of byte past the one 
+                                        ;        which contains a border 
+                                        ;        pixel
+                mov     cl,ByteOffsetShift
+                shl     di,cl           ; DI := x-coordinate of 1st pixel 
+                                        ;        in byte
+
+                mov     cx,8            ; CX := loop limit
+
+L02:            shl     al,1            ; isolate first border pixel
+                jc      L03
+
+                loop    L02
+
+L03:            sub     di,cx           ; DI := x-coordinate of border 
+                                        ;        pixel
+
+; restore default Graphics Controller state and return to caller
+
+                mov     ax,2            ; AH := 0 (default Color Compare 
+                                        ;        value)
+                out     dx,ax           ; restore Color Compare reg
+
+                mov     al,5            ; AH := 0, AL := 5
+                out     dx,ax           ; restore Mode reg
+
+                mov     ax,di           ; AX := return value
+
+                pop     si              ; restore caller registers and 
+                                        ;  return
+                pop     di
+                mov     sp,bp
+
+                pop     bp
+                ret
+
+_ScanRight10    ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+                EXTRN   _BorderValue:byte
+
+_DATA           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 9-1.  A routine that rotates an 8-by-8 character definition by
+              90 degrees.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+        mov     si,seg OldCharDef
+        mov     ds,si
+        mov     si,offset OldCharDef    ; DS:SI -> old character definition
+
+        mov     di,seg NewCharDef
+        mov     es,di
+        mov     di,offset NewCharDef    ; ES:DI -> new character definition
+
+        mov     bx,1            ; BH := 0
+                                ; BL := bit mask
+
+L01:    push    si              ; preserve SI
+        mov     cx,8            ; CX := number of bits in each byte
+
+L02:    lodsb                   ; AL := next byte in old
+                                ;  character definition
+        and     al,bl           ; mask one bit
+        cmp     bh,al           ; set carry flag if mask bit
+                                ;  is nonzero
+
+        rcl     ah,1            ; rotate bit into AH
+        loop    L02             ; loop across old character definition
+
+        mov     al,ah
+        stosb                   ; store next byte in new
+                                ;  character definition
+        pop     si              ; DS:SI -> start of old
+                                ;  character definition
+        shl     bl,1            ; BL := new bit mask
+        jnz     L01             ; loop until bit mask is
+                                ;   shifted out of BL
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 9-2.  A software character generator for 640-by-200 2-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 9-2'
+                NAME    DisplayChar06
+                PAGE    55,132
+
+;
+; Name:         DisplayChar06
+;
+; Function:     Display a character in 640x200 2-color mode
+;
+; Caller:       Microsoft C:
+;
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+;                       void DisplayChar06(c,x,y,fgd,bkgd);
+;
+;                       int c;                  /* character code */
+;
+;                       int x,y;                /* upper left pixel */
+;
+;                       int fgd,bkgd;           /* foreground and */
+;                                               /*  background pixel */
+;                                               /*  values */
+;
+
+ARGc            EQU     word ptr [bp+4] ; stack frame addressing
+ARGx            EQU     word ptr [bp+6]
+ARGy            EQU     word ptr [bp+8]
+ARGfgd          EQU     byte ptr [bp+10]
+ARGbkgd         EQU     byte ptr [bp+12]
+
+VARmask         EQU              [bp-8]
+VARtoggle       EQU              [bp-10]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr06:near
+
+                PUBLIC  _DisplayChar06
+_DisplayChar06  PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,4            ; stack space for local variables
+                push    di
+                push    si
+                push    ds
+
+; set up foreground pixel toggle mask
+
+                mov     ah,ARGfgd       ; AH := 0 or 1 (foreground pixel 
+                                        ;        value)
+                ror     ah,1            ; high-order bit of AH := 0 or 1
+                cwd                     ; propagate high-order bit 
+                                        ;  through DX
+                not     dx              ; DX :=     0 if foreground = 1
+                                        ;    or FFFFh if foreground = 0
+                mov     VARtoggle,dx
+
+; calculate first pixel address
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr06     ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                xor     cl,7            ; CL := # bits to rotate right
+
+                mov     ax,0FF00h
+                ror     ax,cl           ; AX := bit mask in proper position
+                mov     VARmask,ax
+
+; set up video buffer addressing
+
+                mov     dx,2000h        ; increment for video buffer 
+                                        ;  interleave
+                mov     di,80-2000h     ; increment from last to first 
+                                        ;  interleave
+
+                test    bx,2000h        ; set zero flag if BX in 1st 
+                                        ;  interleave
+                jz      L01
+
+                xchg    di,dx           ; exchange increment values if 1st 
+                                        ;  pixel lies in 1st interleave
+
+; set up character definition table addressing
+
+L01:            push    bx              ; preserve buffer address
+
+                mov     ax,40h
+                mov     ds,ax           ; DS := segment of BIOS Video
+                                        ;        Display Data area
+                mov     ch,ds:[85h]     ; CH := POINTS (pixel rows in 
+                                        ;        character)
+
+                xor     ax,ax
+                mov     ds,ax           ; DS := absolute zero
+
+                mov     ax,ARGc         ; AL := character code
+                cmp     al,80h
+                jae     L02
+
+                mov     bx,43h*4        ; DS:BX -> int 43h vector if char 
+                                        ;  < 80h
+                jmp     short L03
+
+L02:            mov     bx,1Fh*4        ; DS:BX -> int 1Fh vector if char 
+                                        ;  >= 80h
+                sub     al,80h          ; put character code in range of 
+                                        ;  table 
+
+L03:            lds     si,ds:[bx]      ; DS:SI -> start of character table
+                mul     ch              ; AX := offset into char def table
+                                        ;  (POINTS * char code)
+                add     si,ax           ; SI := addr of char def
+
+                pop     bx              ; restore buffer address
+
+                test    cl,cl           ; test # bits to rotate
+                jnz     L20             ; jump if character is not byte- 
+                                        ;  aligned
+
+
+; routine for byte-aligned characters
+
+                mov     ah,VARtoggle    ; AH := foreground toggle mask
+                xchg    ch,cl           ; CX := POINTS
+
+L10:            lodsb                   ; AL := bit pattern for next 
+                                        ;        pixel row
+                xor     al,ah           ; toggle pixels if foreground = 0
+                mov     es:[bx],al      ; store pixels in buffer
+
+                add     bx,dx           ; BX := next row in buffer
+                xchg    di,dx           ; swap buffer increments
+                loop    L10
+                jmp     short Lexit
+
+
+; routine for non-byte-aligned characters
+
+L20:            mov     ax,VARmask
+                and     es:[bx],ax      ; mask character pixels in buffer
+
+                xor     ah,ah
+                lodsb                   ; AX := bit pattern for next 
+                                        ;        pixel row
+                xor     al,VARtoggle    ; toggle pixels if foreground = 0
+
+                ror     ax,cl           ; rotate pixels into position
+                or      es:[bx],ax      ; store pixels in buffer
+
+                add     bx,dx           ; BX := next row in buffer
+                xchg    di,dx           ; swap buffer increments
+                dec     ch
+                jnz     L20
+
+Lexit:          pop     ds              ; restore caller registers and 
+                                        ;  return
+                pop     si
+                pop     di
+                mov     sp,bp
+                pop     bp
+                ret
+
+_DisplayChar06  ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 9-3.  A software character generator for 320-by-200 4-color mode. 
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 9-3'
+                NAME    DisplayChar04
+                PAGE    55,132
+
+;
+; Name:         DisplayChar04
+;
+; Function:     Display a character in 320x200 4-color graphics mode
+;
+; Caller:       Microsoft C:
+;
+;                       void DisplayChar04(c,x,y,fgd,bkgd);
+;
+;                       int c;                  /* character code */
+;
+;                       int x,y;                /* upper left pixel */
+;
+;                       int fgd,bkgd;           /* foreground and */
+;                                               /*  background pixel */
+;                                               /*  values */
+;
+
+ARGc            EQU     word ptr [bp+4] ; stack frame addressing
+ARGx            EQU     word ptr [bp+6]
+ARGy            EQU     word ptr [bp+8]
+ARGfgd          EQU              [bp+10]
+ARGbkgd         EQU              [bp+12]
+
+VARshift        EQU     word ptr [bp-8]
+VARincr         EQU     word ptr [bp-10]
+
+
+DGROUP          GROUP   _DATA
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr04:near
+
+                PUBLIC  _DisplayChar04
+_DisplayChar04  PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,4            ; stack space for local variables
+                push    di
+                push    si
+                push    ds
+
+; propagate pixel values
+
+                mov     bx,offset DGROUP:PropagatedPixel
+                mov     al,ARGfgd
+                xlat                    ; propagate foreground pixel value
+                mov     ah,al
+                mov     ARGfgd,ax
+                mov     al,ARGbkgd
+                xlat                    ; propagate background pixel value
+                mov     ah,al
+                mov     ARGbkgd,ax
+
+; calculate first pixel address
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr04     ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+                                        ;        to mask pixel
+                mov     ch,0FCh
+                shl     ch,cl           ; CH := bit mask for right side 
+                                        ;        of char
+
+                xor     cl,6            ; CL := 6 - CL (# bits to rotate
+                                        ;        char into position)
+                mov     VARshift,cx
+
+; set up video buffer addressing
+
+                mov     di,2000h        ; increment for video buffer 
+                                        ;  interleave
+                mov     VARincr,80-2000h ; increment from last to first 
+                                         ;  interleave
+
+                test    bx,2000h        ; set zero flag if BX in 1st 
+                                        ;  interleave
+                jz      L01
+                xchg    VARincr,di      ; exchange increment values if 1st 
+                                        ;  pixel lies in 1st interleave
+
+; set up character definition table addressing
+
+L01:            push    bx              ; preserve buffer address
+
+                mov     ax,40h
+                mov     ds,ax           ; DS := segment of BIOS Video
+                                        ;        Display Data area
+                mov     ch,ds:[85h]     ; CH := POINTS (pixel rows in 
+                                        ;        character)
+
+                xor     ax,ax
+                mov     ds,ax           ; DS := absolute zero
+
+                mov     ax,ARGc         ; AL := character code
+                cmp     al,80h
+                jae     L02
+
+                mov     bx,43h*4        ; DS:BX -> int 43h vector if char 
+                                        ;  < 80h
+                jmp     short L03
+
+L02:            mov     bx,1Fh*4        ; DS:BX -> int 1Fh vector if char 
+                                        ;  >= 80h
+                sub     al,80h          ; put character code in range of 
+                                        ;  table 
+
+L03:            lds     si,ds:[bx]      ; DS:SI -> start of character table
+                mul     ch              ; AX := offset into char def table
+                                        ;        (POINTS * char code)
+                add     si,ax           ; SI := addr of char def
+
+                pop     bx              ; restore buffer address
+
+                xchg    ch,cl           ; CH := # bits to rotate
+                                        ; CL := POINTS
+
+                test    ch,ch           ; test # bits to rotate
+                jnz     L20             ; jump if character is not byte- 
+                                        ;  aligned
+
+
+; routine for byte-aligned characters
+
+L10:            lodsb                   ; AL := bit pattern for next pixel 
+                                        ;        row
+                xor     dx,dx           ; DX := initial value for doubled 
+                                        ;        bits
+                mov     ah,8            ; AH := # of bits in pattern
+
+L11:            shr     al,1            ; cf := lo-order bit of AL
+                rcr     dx,1            ; hi-order bit of CX := cf
+                sar     dx,1            ; double hi-order bit of DX
+                dec     ah              ; loop 8 times
+                jnz     L11
+
+                mov     ax,dx           ; AX,DX := doubled bit pattern
+                and     ax,ARGfgd       ; AX := foreground pixels
+                not     dx
+                and     dx,ARGbkgd      ; DX := background pixels
+
+                or      ax,dx           ; AX := eight pixels
+                xchg    ah,al           ; put bytes in proper order
+                mov     es:[bx],ax      ; update video buffer
+
+                add     bx,di           ; BX := next row in buffer
+                xchg    di,VARincr      ; swap buffer increments
+
+                loop    L10
+                jmp     short Lexit
+
+
+; routine for non-byte-aligned characters
+
+L20:            xor     ch,ch           ; CX := POINTS
+
+L21:            push    cx              ; preserve CX
+
+                mov     cx,VARshift     ; CH := mask for right side of char
+                                        ; CL := # bits to rotate
+
+                lodsb                   ; AL := bit pattern for next pixel 
+                                        ;        row
+                xor     dx,dx           ; DX := initial value for doubled 
+                                        ;        bits
+                mov     ah,8            ; AH := # of bits in pattern
+
+L22:            shr     al,1            ; DX := double bits in AL
+                rcr     dx,1            ;  (same as above)
+
+                sar     dx,1
+                dec     ah
+                jnz     L22
+
+                xchg    dh,dl           ; DH := bits for right half of char
+                                        ; DL := bits for left half of char
+                mov     ax,dx
+                and     ax,ARGfgd       ; AX := foreground pixels
+                not     dx
+                and     dx,ARGbkgd      ; DX := background pixels
+
+                or      dx,ax           ; DX := eight pixels
+                ror     dx,cl           ; DH := left and right side pixels
+                                        ; DL := middle pixels
+                mov     al,ch
+                xor     ah,ah           ; AX := mask for left and middle
+                                        ;        bytes of char
+                and     es:[bx],ax      ; zero pixels in video buffer
+
+                not     ax
+                and     ax,dx
+                or      es:[bx],ax      ; update pixels in left and middle 
+                                        ;  bytes
+
+                mov     al,ch           ; AL := mask for right-hand byte
+                not     al
+                and     es:[bx+2],al    ; mask pixels in right-hand byte in 
+                                        ;  buffer
+                and     ch,dl
+                or      es:[bx+2],ch    ; update pixels in right-hand byte
+
+                add     bx,di           ; BX := next row in buffer
+                xchg    di,VARincr      ; swap buffer increments
+
+                pop     cx              ; restore CX
+                loop    L21
+
+Lexit:          pop     ds              ; restore caller registers and 
+                                        ;  return
+                pop     si
+                pop     di
+                mov     sp,bp
+                pop     bp
+                ret
+
+_DisplayChar04  ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+PropagatedPixel DB      00000000b       ; 0
+                DB      01010101b       ; 1
+                DB      10101010b       ; 2
+                DB      11111111b       ; 3
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+_DATA           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 9-4.  A software character generator for Hercules monochrome
+              graphics mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 9-4'
+                NAME    DisplayCharHGC
+                PAGE    55,132
+
+;
+; Name:         DisplayCharHGC
+;
+; Function:     Display a character in Hercules 720x348 monochrome 
+;                graphics mode
+;
+; Caller:       Microsoft C:
+;
+;                       void DisplayCharHGC(c,x,y,fgd,bkgd);
+;
+;                       int c;                  /* character code */
+;
+;                       int x,y;                /* upper left pixel */
+;
+;                       int fgd,bkgd;           /* foreground and */
+;                                               /*  background pixel */
+;                                               /*  values */
+;
+
+ARGc            EQU     word ptr [bp+4] ; stack frame addressing
+ARGx            EQU     word ptr [bp+6]
+ARGy            EQU     word ptr [bp+8]
+ARGfgd          EQU     byte ptr [bp+10]
+ARGbkgd         EQU     byte ptr [bp+12]
+
+VARmask         EQU              [bp-8]
+VARtoggle       EQU              [bp-10]
+VAR9bits        EQU     byte ptr [bp-12]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddrHGC:near
+
+                PUBLIC  _DisplayCharHGC
+_DisplayCharHGC PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,6            ; stack space for local variables
+                push    di
+                push    si
+                push    ds
+
+; calculate first pixel address
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddrHGC    ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                xor     cl,7            ; CL := # bits to rotate right
+
+; set up 8- or 9-bit mask
+
+                mov     ax,40h
+                mov     ds,ax           ; DS := segment of BIOS Video
+                                        ;        Display Data area
+
+                mov     ax,0FF00h       ; AX := 8-bit mask
+                mov     VAR9bits,0      ; zero this flag
+
+                cmp     byte ptr ds:[4Ah],90    ; does CRT_COLS = 90?
+                je      L01             ; jump if characters are 8 
+                                        ;  pixels wide
+
+                mov     ah,7Fh          ; AX := 9-bit mask
+                cmp     ARGc,0C0h
+                jb      L01             ; jump if character code ...
+
+                cmp     ARGc,0DFh
+                ja      L01             ; ... outside of range 0C0-0DFh
+
+                inc     VAR9bits        ; set flag to extend to 9 bits
+
+L01:            ror     ax,cl           ; AX := bit mask in proper position
+                mov     VARmask,ax
+
+; set up foreground pixel toggle mask
+
+                mov     ah,ARGfgd       ; AH := 0 or 1 (foreground pixel 
+                                        ;        value)
+                ror     ah,1            ; high-order bit of AH := 0 or 1
+
+                cwd                     ; propagate high-order bit 
+                                        ;  through DX
+                not     dx              ; DX :=     0 if foreground = 1
+                                        ;    or FFFFh if foreground = 0
+                mov     ax,VARmask
+                not     ax
+                and     dx,ax           ; zero unused bits of toggle mask 
+                                        ;  in DX
+                mov     VARtoggle,dx
+
+; set up character definition table addressing
+
+                push    bx              ; preserve buffer address
+
+                mov     ch,ds:[85h]     ; CH := POINTS (pixel rows in 
+                                        ;        character)
+
+                xor     ax,ax
+                mov     ds,ax           ; DS := absolute zero
+
+                mov     ax,ARGc         ; AL := character code
+                cmp     al,80h
+                jae     L02
+
+                mov     bx,43h*4        ; DS:BX -> int 43h vector if char 
+                                        ;  < 80h
+                jmp     short L03
+
+L02:            mov     bx,1Fh*4        ; DS:BX -> int 1Fh vector if char 
+                                        ;  >= 80h
+                sub     al,80h          ; put character code in range of 
+                                        ;  table 
+
+L03:            lds     si,ds:[bx]      ; DS:SI -> start of character table
+                mul     ch              ; AX := offset into char def table
+                                        ;        (POINTS * char code)
+                add     si,ax           ; SI := addr of char def
+
+                pop     bx              ; restore buffer address
+
+; mask and set pixels in the video buffer
+
+L20:            mov     ax,VARmask
+                and     es:[bx],ax      ; mask character pixels in buffer
+
+                xor     ah,ah
+                lodsb                   ; AX := bit pattern for next pixel 
+                                        ;        row
+                cmp     VAR9bits,0
+                je      L21             ; jump if character is 8 pixels 
+                                        ;  wide
+
+                ror     ax,1            ; copy lo-order bit of AX into ...
+                rcl     al,1            ;  hi-order bit
+
+L21:            ror     ax,cl           ; rotate pixels into position
+                xor     ax,VARtoggle    ; toggle pixels if foreground = 0
+                or      es:[bx],ax      ; store pixels in buffer
+                add     bx,2000h        ; increment to next portion of 
+                                        ;  interleave
+                jns     L22
+                add     bx,90-8000h     ; increment to first portion of 
+                                        ;  interleave
+
+L22:            dec     ch
+                jnz     L20
+
+Lexit:          pop     ds              ; restore caller registers and 
+                                        ;  return
+                pop     si
+                pop     di
+                mov     sp,bp
+                pop     bp
+                ret
+
+_DisplayCharHGC ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 9-5.  A character generator for MCGA and VGA 320-by-200
+              256-color mode.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 9-5'
+                NAME    DisplayChar13
+                PAGE    55,132
+
+;
+; Name:         DisplayChar13
+;
+; Function:     Display a character in MCGA/VGA 320x200 256-color mode
+;
+; Caller:       Microsoft C:
+;
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+;                       void DisplayChar13(c,x,y,fgd,bkgd);
+;
+;                       int c;                  /* character code */
+;
+
+;                       int x,y;                /* upper left pixel */
+;
+;                       int fgd,bkgd;           /* foreground and */
+;                                               /*  background pixel */
+;                                               /*  values */
+;
+
+ARGc            EQU     word ptr [bp+4] ; stack frame addressing
+ARGx            EQU     word ptr [bp+6]
+ARGy            EQU     word ptr [bp+8]
+ARGfgd          EQU     byte ptr [bp+10]
+ARGbkgd         EQU     byte ptr [bp+12]
+
+BytesPerLine    EQU     320
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr13:near
+
+                PUBLIC  _DisplayChar13
+_DisplayChar13  PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    di
+                push    si
+                push    ds
+
+; calculate first pixel address
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr13     ; ES:BX -> buffer
+                mov     di,bx           ; ES:DI -> buffer
+
+; set up character definition table addressing
+
+                mov     ax,40h
+                mov     ds,ax           ; DS := segment of BIOS Video
+                                        ;        Display Data area
+                mov     cx,ds:[85h]     ; CX := POINTS (pixel rows in 
+                                        ;        character)
+
+                xor     ax,ax
+                mov     ds,ax           ; DS := absolute zero
+
+                mov     ax,ARGc         ; AL := character code
+                mov     bx,43h*4        ; DS:BX -> int 43h vector if
+                                        ;  char < 80h
+                lds     si,ds:[bx]      ; DS:SI -> start of character table
+                mul     cl              ; AX := offset into char def table
+                                        ;        (POINTS * char code)
+                add     si,ax           ; SI := addr of char def
+
+; store the character in the video buffer
+
+                mov     bl,ARGfgd       ; BL := foreground pixel value
+                mov     bh,ARGbkgd      ; BH := background pixel value
+
+L10:            push    cx              ; preserve CX across loop
+                mov     cx,8            ; CX := character width in pixels
+                lodsb
+                mov     ah,al           ; AH := bit pattern for next pixel 
+                                        ;        row
+
+L11:            mov     al,bl           ; AL := foreground pixel value
+                shl     ah,1            ; carry flag := high-order bit
+                jc      L12             ; jump if bit pattern specifies a
+                                        ;  foreground pixel (bit = 1)
+                mov     al,bh           ; AL := background pixel value
+
+L12:            stosb                   ; update one pixel in the buffer
+                loop    L11
+
+                add     di,BytesPerLine-8 ; increment buffer address to
+                                          ;  next row of pixels
+                pop     cx
+                loop    L10             ; loop down character
+
+                pop     ds              ; restore caller registers and 
+                                        ;  return
+                pop     si
+                pop     di
+                mov     sp,bp
+                pop     bp
+                ret
+
+_DisplayChar13  ENDP
+
+_TEXT           ENDS
+                END
+
+
+
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+Listing 9-6.  A software character generator for native EGA and VGA
+              graphics modes.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+                TITLE   'Listing 9-6'
+                NAME    DisplayChar10
+                PAGE    55,132
+
+;
+; Name:         DisplayChar10
+;
+
+; Function:     Display a character in native EGA and VGA graphics modes
+;
+; Caller:       Microsoft C:
+;
+;                       void DisplayChar10(c,x,y,fgd,bkgd);
+;
+;                       int c;                  /* character code */
+;
+;                       int x,y;                /* upper left pixel */
+;
+;                       int fgd,bkgd;           /* foreground and */
+;                                               /*  background pixel */
+;                                               /*  values */
+;
+
+ARGc            EQU     word ptr [bp+4] ; stack frame addressing
+ARGx            EQU     word ptr [bp+6]
+ARGy            EQU     word ptr [bp+8]
+ARGfgd          EQU     byte ptr [bp+10]
+ARGbkgd         EQU     byte ptr [bp+12]
+
+VARshift        EQU              [bp-8]
+
+BytesPerLine    =       80              ; (or 40 in 320x200 16-color mode)
+RMWbits         =       18h             ; Read-Modify-Write bits
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _DisplayChar10
+_DisplayChar10  PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                sub     sp,2            ; stack space for local variable
+                push    di
+                push    si
+                push    ds
+
+; calculate first pixel address
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; ES:BX -> buffer
+                                        ; CL := # bits to shift left to 
+                                        ;        mask pixel
+                inc     cx
+                and     cl,7            ; CL := # bits to shift to mask 
+                                        ;        char
+
+                mov     ch,0FFh
+                shl     ch,cl           ; CH := bit mask for right side of 
+                                        ;        char
+                mov     VARshift,cx
+
+                push    es              ; preserve video buffer segment
+                mov     si,bx           ; SI := video buffer offset
+
+; set up character definition table addressing
+
+                mov     ax,40h
+                mov     ds,ax           ; DS := segment of BIOS Video
+                                        ;        Display Data area
+                mov     cx,ds:[85h]     ; CX := POINTS (pixel rows in 
+                                        ;        character)
+
+                xor     ax,ax
+                mov     ds,ax           ; DS := absolute zero
+
+                mov     ax,ARGc         ; AL := character code
+                mov     bx,43h*4        ; DS:BX -> int 43h vector
+                les     di,ds:[bx]      ; ES:DI -> start of character table
+                mul     cl              ; AX := offset into char def table
+                                        ;        (POINTS * char code)
+                add     di,ax           ; DI := addr of char def
+
+                pop     ds              ; DS:SI -> video buffer
+
+; set up Graphics Controller registers
+
+                mov     dx,3CEh         ; Graphics Controller address 
+                                        ;  reg port
+
+                mov     ax,0A05h        ; AL :=  Mode register number
+                                        ; AH :=  Write Mode 2 (bits 0-1)
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                                        ;         Read Mode 1 (bit 4)
+                out     dx,ax
+
+                mov     ah,RMWbits      ; AH := Read-Modify-Write bits
+                mov     al,3            ; AL := Data Rotate/Function 
+                                        ;        Select reg
+                out     dx,ax
+
+                mov     ax,0007         ; AH := Color Don't Care bits
+                                        ; AL := Color Don't Care reg number
+                out     dx,ax           ; "don't care" for all bit planes
+
+; select output routine depending on whether character is byte-aligned
+
+                mov     bl,ARGfgd       ; BL := foreground pixel value
+                mov     bh,ARGbkgd      ; BH := background pixel value
+
+                cmp     byte ptr VARshift,0   ; test # bits to shift
+                jne     L20             ; jump if character is not byte- 
+                                        ;  aligned
+
+
+; routine for byte-aligned characters
+
+                mov     al,8            ; AL := Bit Mask register number 
+
+L10:            mov     ah,es:[di]      ; AH := pattern for next row of 
+                                        ;        pixels
+                out     dx,ax           ; update Bit Mask register
+                and     [si],bl         ; update foreground pixels
+
+                not     ah
+                out     dx,ax
+                and     [si],bh         ; update background pixels
+
+                inc     di              ; ES:DI -> next byte in char def 
+                                        ;  table
+                add     si,BytesPerLine ; increment to next line in video 
+                                        ;  buffer
+                loop    L10
+                jmp     short Lexit
+
+
+; routine for non-byte-aligned characters
+
+L20:            push    cx              ; preserve loop counter
+                mov     cx,VARshift     ; CH := mask for left side of 
+                                        ;        character
+                                        ; CL := # bits to shift left
+; left side of character
+
+                mov     al,es:[di]      ; AL := bits for next row of pixels
+                xor     ah,ah
+                shl     ax,cl           ; AH := bits for left side of char
+
+                                        ; AL := bits for right side of char
+                push    ax              ; save bits for right side on stack
+                mov     al,8            ; AL := Bit Mask Register number
+                out     dx,ax           ; set bit mask for foreground 
+                                        ;  pixels
+
+                and     [si],bl         ; update foreground pixels
+
+                not     ch              ; CH := mask for left side of char
+                xor     ah,ch           ; AH := bits for background pixels
+                out     dx,ax           ; set bit mask
+
+                and     [si],bh         ; update background pixels
+
+; right side of character
+
+                pop     ax
+                mov     ah,al           ; AH := bits for right side of char
+                mov     al,8
+                out     dx,ax           ; set bit mask
+
+                inc     si              ; DS:SI -> right side of char in 
+                                        ;  buffer
+
+                and     [si],bl         ; update foreground pixels
+
+                not     ch              ; CH := mask for right side of char
+                xor     ah,ch           ; AH := bits for background pixels
+                out     dx,ax           ; set bit mask
+
+                and     [si],bh         ; update background pixels
+
+; increment to next row of pixels in character
+
+                inc     di              ; ES:DI -> next byte in char def 
+                                        ;  table
+                dec     si
+                add     si,BytesPerLine ; DS:SI -> next line in video 
+                                        ;  buffer
+
+                pop     cx
+                loop    L20
+
+; restore default Graphics Controller registers
+
+Lexit:          mov     ax,0FF08h       ; default Bit Mask
+                out     dx,ax
+
+                mov     ax,0005         ; default Mode register
+                out     dx,ax
+
+                mov     ax,0003         ; default Data Rotate/Function 
+                                        ;  Select
+                out     dx,ax
+
+                mov     ax,0F07h        ; default Color Don't Care
+                out     dx,ax
+
+                pop     ds              ; restore caller registers and 
+                                        ;  return
+                pop     si
+                pop     di
+                mov     sp,bp
+                pop     bp
+                ret
+
+_DisplayChar10  ENDP
+
+_TEXT           ENDS
+                END
+

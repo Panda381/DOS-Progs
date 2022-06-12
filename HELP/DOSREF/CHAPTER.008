@@ -1,0 +1,1608 @@
+
+       **  Programmer's Technical Reference for MSDOS and the IBM PC **
+                USA copyright TXG 392-616  ALL RIGHTS RESERVED
+     ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´ DOSREF (tm) ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+                     ISBN 1-878830-02-3 (disk-based text)
+                    Copyright (c) 1987, 1994 Dave Williams
+                        ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+                        ³ Shareware Version, 01/20/94 ³
+                        ³  Please Register Your Copy  ³
+                        ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+                           C H A P T E R   E I G H T
+
+
+                             DOS DISK INFORMATION
+
+
+                                C O N T E N T S
+
+The DOS Area .......................................................... 8**1
+The Boot Record ....................................................... 8**2
+DOS File Allocation Table (FAT) ....................................... 8**3
+        Media Descriptor Byte ......................................... 8**4
+        12 Bit FATs ................................................... 8**5
+        16 Bit FATs ................................................... 8**6
+DOS Disk Directory .................................................... 8**8
+The Data Area ......................................................... 8**9
+Floppy Disk Types ..................................................... 8**10
+Hard Disk Layout ...................................................... 8**11
+System Initialization ................................................. 8**12
+Boot Record/Partition Table ........................................... 8**13
+Hard Disk Technical Information ....................................... 8**14
+Determining Hard Disk File Allocation ................................. 8**15
+BIOS Disk Functions ................................................... 8**16
+        00h  Reset
+        01h  Get Status
+        02h  Read Sectors
+        03h  Write Sectors
+        04h  Verify
+        05h  Format Track (floppy disk)
+        06h  Hard Disk - format track
+        07h  Hard Disk - format drive
+        08h  Read Drive Parameters
+        09h  Initialize Two Fixed Disk Base Tables
+        0Ah  Read Long (Hard disk)
+        0Bh  Write Long (Hard disk)
+        0Ch  Seek To Cylinder
+        0Dh  Alternate Hard Disk Reset
+        0Eh  Read Sector Buffer
+        0Fh  Write sector buffer
+        10h  Test For Drive Ready
+        11h  Recalibrate Drive
+        12h  Controller RAM Diagnostic
+        13h  Controller Drive Diagnostic
+        14h  Controller Internal Diagnostic
+        15h  Get Disk Type
+        16h  Get Disk Change Status (diskette)
+        17h  Set Disk Type for Format (diskette)
+        18h  Set Media Type For Format (diskette)
+        19h  Park Hard Disk Heads
+        1Ah  ESDI Hard Disk - Low Level Format
+        1Bh  ESDI Hard Disk - Get Manufacturing Header
+        1Ch  ESDI Hard Disk - Get Configuration
+
+
+
+
+THE DOS AREAÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ 8**1
+
+ All disks and diskettes formatted by DOS are created with a sector size of 512
+bytes. The DOS area (entire area for a diskette, DOS partition for hard disks)
+is formatted as follows:
+
+        ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        ³                       D O S   A R E A                      ³
+        ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³ partition table          - variable size (hard disk only)  ³
+        ³ boot record              - 1 sector                        ³
+        ³ first copy of the FAT    - variable size                   ³
+        ³ second copy of the FAT   - same size as first copy         ³
+        ³ root directory           - variable size                   ³
+        ³ data area                - variable depending on disk size ³
+        ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+The following sections describe each of the allocated areas:
+
+
+
+THE BOOT RECORDÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ 8**2
+
+ The boot record resides on track 0, sector 1, side 0 of every diskette
+formatted by the DOS FORMAT program. For hard disks the boot record resides on
+the first sector of the DOS partition. It is put on all disks to provide an
+error message if you try to start up with a nonsystem disk in drive A:. If the
+disk is a system disk, the boot record contains a JMP instruction pointing to
+the first byte of the operating system.
+
+ If the device is IBM compatible the first sector of the first FAT must be
+located at the same sector for all disk types. This is because the FAT sector
+is read before the disk type is actually determined.
+
+ The information relating to the BPB for a particular media is kept in the 
+disk's boot sector.  The format of the boot sector is:
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³                        D O S   B O O T   R E C O R D                         ³
+ÃÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³00h³3 bytes³  JMP to executable code. For DOS 2.x, 3 byte near jump (0E9h).   ³
+³   ³       ³  For DOS 3.x, 2 byte near jump (0EBh) followed by a NOP (90h)    ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³03h³8 bytes³  optional OEM name and version  (such as IBM 2.1)                ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³0Bh³2 bytes³  bytes per sector                                                ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³0Dh³ byte  ³     ³  sectors per allocation unit (must be a power of 2)        ³
+ÃÄÄÄÅÄÄÄÄÄÄÄ´     ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³0Eh³2 bytes³  B  ³  reserved sectors (starting at logical sector 0)           ³
+³   ³       ³     ³  01 for 1.x-3.31, 02 for 4.0+                              ³
+ÃÄÄÄÅÄÄÄÄÄÄÄ´     ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³10h³ byte  ³     ³  number of FATs                                            ³
+ÃÄÄÄÅÄÄÄÄÄÄÄ´     ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³11h³2 bytes³     ³  maximum number of root directory entries                  ³
+ÃÄÄÄÅÄÄÄÄÄÄÄ´  P  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³13h³2 bytes³     ³  number of sectors in logical image (total number of       ³
+³   ³       ³     ³  sectors in media, including boot sector directories, etc.)³
+³   ³       ³     ³  If logical disk size is geater than 32Mb, this value is 0 ³
+³   ³       ³     ³  and the actual size is reported at offset 26h (DOS 4.0+)  ³
+ÃÄÄÄÅÄÄÄÄÄÄÄ´     ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³15h³ byte  ³  B  ³  media descriptor byte                                     ³
+ÃÄÄÄÅÄÄÄÄÄÄÄ´     ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³16h³2 bytes³     ³  number of sectors occupied by a single FAT                ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³18h³2 bytes³  sectors per track                                               ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³1Ah³2 bytes³  number of heads                                                 ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³1Ch³2 bytes³  # of hidden sectors  (sectors before this volume) (1st part)    ³
+ÀÄÄÄÁÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+            ³                EXTENDED BOOT RECORD (DOS 4.0+)                   ³
+ÚÄÄÄÂÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³1Eh³2 bytes³  # of hidden sectors  (sectors before this volume) (2nd part)    ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³20h³4 bytes³  # sectors in this disk (see offset 13h, if 0)                   ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³24h³2 bytes³  physical drive number (max 2 for DOS 4, max 8 for DOS 5)        ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³26h³ byte  ³  extended boot record signature  (29h)                           ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³27h³4 bytes³  volume serial number (assigned with a random function)          ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³2Bh³11 byte³  volume label                                                    ³
+ÃÄÄÄÅÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³36h³7 bytes³  file system ID   (FAT12   ), (FAT16   ) etc.     ("reserved")   ³
+ÀÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+ The three words at the end return information about the media. The number of
+heads is useful for supporting different multihead drives that have the same
+storage capacity but a different number of surfaces. The number of hidden
+sectors is useful for drive partitioning schemes.
+
+ DOS 3.2 uses a table called the BIOS Parameter Block (BPB) to determine if a
+disk has a valid File Allocation Table. The BPB is located in the first sector
+of a floppy disk. Although the BPB is supposed to be on every formatted floppy
+disk, some earlier versions of DOS did not create a BPB and instead assumed that
+the FAT begins at the second sector of the disk and that the first FAT byte
+(Media Descriptor Byte) describes the disk format.
+ DOS 3.2 reads in the whole of the BPB and tries to use it - although strangely
+enough, it seems as if DOS is prepared to cope with a BPB that is more or less
+totally blank (it seems to ignore the descriptor byte and treat it as a DSDD
+9-sector disk).
+ DOS 3.2 determines if a disk has a valid boot sector by examining the first
+byte of logical sector 0. If that byte it a jump instruction 0E9h, DOS 3.2
+assumes the rest of the sector is a valid boot sector with a BPB. If the first
+byte is not 0E9h DOS 3.2 behaves like previous versions, assumes the boot sector
+is invalid and uses the first byte of the FAT to determine the media type.
+ If the first byte on the disk happens to be 0E9h, but the disk does not have a
+BPB, DOS 3.2 will return a disk error message.
+ The real problems occur if some of the BPB data is valid and some isn't.
+Apparently some OEMs have assumed that DOS would continue to ignore the
+formatting data on the disk, and have failed to write much there during FORMAT
+except the media descriptor byte (or, worse, have allowed random junk to be
+written there). While this error is understandable, and perhaps even
+forgiveable, it remains their problem, not IBM's, since the BPB area has always
+been documented as containing the format information that IBM DOS 3.2 now
+requires to be there.
+
+ When the BPB problems first became evident with DOS 3.2 a number of reports
+circulated claiming DOS looked for the letters "IBM" in the OEM ID field. This 
+was incorrect. IBM DOS 4.0 *did* check for the letters "IBM" and would refuse
+to recognize hard drives formatted under MSDOS 4.0. IBM corrected this with
+their 4.01 revision.
+
+
+
+THE DOS FILE ALLOCATION TABLE (FAT)ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ 8**3
+
+ The File Allocation Table, or FAT, has three main purposes:
+        1) to mark bad sectors on the media
+        2) to determine which sectors are free for use
+        3) to determine the physical location(s) of a file on the media.
+
+ DOS uses one of two schemes for defining the File Allocation Table:
+        1) a 12-bit FAT, for DOS 1.x, 2.x, all floppies, and small hard disks
+        2) a 16-bit FAT, for DOS 3.x+ hard disks from 16.8 to 32Mb
+
+ This section explains how DOS uses the FAT to convert the clusters of a file
+into logical sector numbers. It is recommended that system utilities use the
+DOS handle calls rather than interpreting the FAT, particularly since
+aftermarket disk partitioning or formatting software may have been used.
+
+ The FAT is used by DOS to allocate disk space for files, one cluster at a time.
+In DOS 4.0, clusters are referred to as "allocation units." It means the same
+things; the smallest logical portion of a drive.
+
+ The FAT consists of a 12 bit entry (1.5 bytes) for each cluster on the disk or
+a 16 bit (2 bytes) entry when a hard disk has more than 20740 sectors as is the
+case with fixed disks larger than 10Mb.
+
+ The first two FAT entries map a portion of the directory; these FAT entries
+contain indicators of the size and format of the disk. The FAT can be in a 12
+or 16 bit format. DOS determines whether a disk has a 12 or 16 bit FAT by
+looking at the total number of allocation units on a disk. For all diskettes
+and hard disks with DOS partitions less than 20,740 sectors, the FAT uses a 12
+bit value to map a cluster. For larger partitions, DOS uses a 16 bit value.
+
+ The second, third, and fourth bit applicable for 16 bit FAT bytes always
+contains 0FFFFh. The first byte is used as follows:
+
+
+Media Descriptor Byte ................................................. 8**4
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³                 M E D I A    D E S C R I P T O R    B Y T E                  ³
+ÃÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³hex value ³              meaning             ³         normally used          ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    00    ³ hard disk                        ³ 3.3+ extended DOS partition    ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    ED    ³ double sided  9 sector 80 track  ³ Tandy 2000 720k         (5¬)   ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    F0    ³ double sided  18 sector diskette ³ PS/2 1.44 meg DSHD             ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    F8    ³ hard disk                        ³ bootable hard disk at C:800    ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    F8    ³ 720k floppy, 9 sector 80 track   ³ Sanyo 55x, DS-DOS 2.11  (5¬)   ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    F9    ³ double sided  15 sector diskette ³ AT 1.2 meg DSHD                ³
+³          ³ double sided  9  sector diskette ³ Convertible 720k DSQD          ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    FA    ³ IBM Displaywriter System disk    ³ 287k                           ³
+³          ³ Kodak "4 meg"  (Pelican)         ³ 4.4 meg                 (5¬)   ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    FB    ³ IBM Displaywriter System disk    ³ 1 meg                   (5¬)   ³
+³          ³ Kodak "6 meg"  (Pelican)         ³ 5.5 meg                 (5¬)   ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    FC    ³ single sided  9  sector diskette ³ DOS 2.0, 180k SSDD      (5¬)   ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    FD    ³ double sided  9  sector diskette ³ DOS 2.0, 360k DSDD      (5¬)   ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    FF    ³ double sided 36  sector diskette ³ Practidisk 2.88mb DSED  (3«)   ³
+³          ³ single sided  8  sector diskette ³ DOS 1.0, 160k SSDD      (5¬)   ³
+³          ³ double sided  8  sector diskette ³ DOS 1.1, 320k SSDD      (5¬)   ³
+³          ³ hard disk                        ³ Sanyo 55x with DS-DOS 2.11     ³
+ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+³for 8 inch diskettes: ³
+ÃÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³    FD    ³ double sided  26 sector diskette ³ IBM 3740 format DSSD           ³
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³    FE    ³ single sided  26 sector diskette ³ IBM 3740 format SSSD           ³
+³          ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³          ³ double sided  8  sector diskette ³ IBM 3740 format DSDD           ³
+ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+
+The third FAT entry begins mapping the data area (cluster 002).
+
+NOTE: These values are provided as a reference. Therefore, programs should not
+      make use of these values.
+
+ Each entry contains three hexadecimal characters for 12-bit FATs or four for
+16-bit FATs.
+
+The possible entries are:
+
+   12-bit   |   16-bit
+            |
+      000h  |        0000h   if the cluster is unused and available
+
+      0FF7h |        0FFF7h  bad cluster (if not part of the allocation chain)
+            |
+0FF0h-0FF7h | 0FFF0h-0FFF7h  to indicate reserved clusters
+            |
+0FF8h-0FFFh | 0FFF8h-0FFFFh  to indicate the last cluster of a file (EOF)
+            |
+       xxxH |         xxxxH  any other hexadecimal numbers are the cluster
+            |                number of the next cluster in the file. The
+            |                cluster number is the first cluster in the file
+            |                that is kept in the file's directory entry.
+
+ The file allocation table always occupies the sector or sectors immediately
+following the boot record. If the FAT is larger than 1 sector, the sectors
+occupy consecutive sector numbers. Two copies of the FAT are written, one
+following the other, for integrity. The FAT is read into one of the DOS buffers
+whenever needed (open, allocate more space, etc).
+
+
+
+12 Bit File Allocation Table .......................................... 8**5
+
+Obtain the starting cluster of the file from the directory entry.
+
+Now, to locate each subsequent sector of the file:
+
+1. Multiply the cluster number just used by 1.5 (each FAT entry is 1.5
+   bytes long).
+2. The whole part of the product is offset into the FAT, pointing to the entry
+   that maps the cluster just used. That entry contains the cluster number of
+   the next cluster in the file.
+3. Use a MOV instruction to move the word at the calculated FAT into a register.
+4. If the last cluster used was an even number, keep the low order 12 bits of
+   the register, otherwise, keep the high order 12 bits.
+5. If the resultant 12 bits are (0FF8h-0FFFh) no more clusters are in the file.
+   Otherwise, the next 12 bits contain the cluster number of the next cluster in
+   the file.
+
+  To convert the cluster to a logical sector number (relative sector, such as
+that used by int 25h and 26h and DEBUG):
+
+1. Subtract 2 from the cluster number
+2. Multiply the result by the number of sectors per cluster.
+3. Add the logical sector number of the beginning of the data area.
+
+12-bit FAT if DOS partition is smaller than 32,680 sectors (16.340 MB).
+
+
+
+16 Bit File Allocation Table .......................................... 8**6
+
+ Obtain the starting cluster of the file from the directory entry. Now to
+locate each subsequent cluster of the file:
+
+1.  Multiply the cluster number used by 2 (each FAT entry is 2 bytes long).
+2.  Use the MOV word instruction to move the word at the calculated FAT offset
+    into a register.
+3.  If the resultant 16 bits are (0FF8h-0FFFFh) no more clusters are in the
+    file. Otherwise, the 16 bits contain the cluster number of the next cluster
+    in the file.
+
+
+
+
+DOS Disk Directory .................................................... 8**8
+
+ The FORMAT command initially builds the root directory for all disks. Its
+location (logical sector number) and the maximum number of entries are
+available through the device driver interfaces.
+
+ Since directories other than the root directory are actually files, there is
+no limit to the number of entries that they may contain.
+
+ All directory entries are 32 bytes long, and are in the following format:
+ÚÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³offset ³  size   ³                  DISK DIRECTORY ENTRY
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  00h  ³ 8 bytes ³ Filename
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ The first byte of the filename indicates the file status.
+³       ³ The file status byte may contain the following values:
+³       ÃÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³  00h ³ Directory entry has never been used. This is used to limit
+³       ³      ³ the length of directory searches, for performance reasons.
+³       ³  05h ³ Indicates that the first character of the filename actually
+³       ³      ³ has an 0EDh character.
+³       ³ 0E5h ³ Filename has been used but the file has been erased.
+³       ³  2Eh ³ This entry is for a directory. If the second byte is also
+³       ³      ³ 2Eh, the cluster field contains the cluster number of this
+³       ³      ³ directory's parent directory. (0000h if the parent directory
+³       ³      ³ is the root directory). Otherwise, bytes 00h-0Ah are all
+³       ³      ³ spaces and the cluster field contains the cluster number of
+³       ³      ³ the directory.
+³       ÃÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ Any other character is the first character of a filename. Filenames
+³       ³ are left-aligned and if necessary padded with blanks.
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  08h  ³ 3 bytes ³ Filename extension if any
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ Three characters, left-aligned and padded with blanks if necessary.
+³       ³ If there is no file extension, this field contains all blanks
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  0Bh  ³ 1 byte  ³ File attributes
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³          The attribute byte is mapped as follows:
+³       ÃÄÄÄÄÄÂÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ hex ³bit³                    meaning
+³       ÃÄÄÄÄÄÅÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ 00h ³   ³ (no bits set) normal; can be read or written without
+³       ³     ³   ³ restriction
+³       ³ 01h ³ 0 ³ file is marked read-only. An attempt to open the file for
+³       ³     ³   ³ output using int 21h/fn 3Dh will fail and an error code
+³       ³     ³   ³ will be returned. This value can be used with other values
+³       ³     ³   ³ below.
+³       ³ 02h ³ 1 ³ indicates a hidden file. The file is excluded from normal
+³       ³     ³   ³ directory searches.
+³       ³ 04h ³ 2 ³ indicates a system file. The file is excluded from normal
+³       ³     ³   ³ directory searches.
+³       ³ 08h ³ 3 ³ indicates that the entry contains the volume label in the
+³       ³     ³   ³ first 11 bytes. The entry has no other usable information
+³       ³     ³   ³ and may exist only in the root directory.
+³       ³ 10h ³ 4 ³ indicates that the file is a subdirectory
+³       ³ 20h ³ 5 ³ indicates an archive bit. This bit is set to on whenever
+³       ³     ³   ³ the file is written to and closed. Used by BACKUP and
+³       ³     ³   ³ RESTORE.
+³       ³     ³ 6 ³ reserved, set to 0
+³       ³     ³ 7 ³ reserved, set to 0
+³       ÃÄÄÄÄÄÁÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ note 1) Bits 6 and 7 may be used in OS/2.
+³       ³ note 2) Attributes 08h and 10h cannot be changed using int21/43h.
+³       ³ note 3) The system files IBMBIO.COM and IBMDOS.COM (or customized
+³       ³         equivalent) are marked as read-only, hidden, and system
+³       ³         files. Files can be marked hidden when they are created.
+³       ³ note 4) Read-only, hidden, system and archive attributes may be
+³       ³         changed with int21h/fn43h.
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  0Ch  ³ 10 bytes³ Reserved by DOS; value unknown
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  16h  ³ 2 bytes ³ File timestamp
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ These bytes contain the time when the file was created or last
+³       ³  updated. The time is mapped in the bits as follows:
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³       ³         B Y T E   16h         ³         B Y T E   17h         ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ F   E   D   C   B   A   9   8 ³ 7   6   5   4   3   2   1   0 ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ H   H   H   H   H ³ M   M   M   M   M   M ³ D   D   D   D   D ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ binary # hrs 0-23 ³ binary # minutes 0-59 ³ bin. # 2-sec incr ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+³       ³ note: The time is stored with the least significant byte first.
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  18h  ³ 2 bytes ³ File datestamp
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ This area contains the date when the file was created or last
+³       ³ updated. The mm/dd/yy are mapped in the bits as follows:
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³       ³         B Y T E   18h         ³         B Y T E   19h         ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ F   E   D   C   B   A   9   8 ³ 7   6   5   4   3   2   1   0 ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ Y   Y   Y   Y   Y   Y   Y ³ M   M   M   M ³ D   D   D   D   D ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³     0-119 (1980-2099)     ³     1-12      ³       1-31        ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+³       ³ note: The date is stored with the least significant byte first.
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  1Ah  ³ 2 bytes ³ First file cluster number
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ * (reserved in DOS 2, documented in DOS 3+)
+³       ³ This area contains the starting cluster number of the first cluster
+³       ³ in the file. The first cluster for data space on all fixed disks and
+³       ³ floppy disks is always cluster 002. The cluster number is stored
+³       ³ with the least significant byte first.
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  1Ch  ³ 4 bytes ³ File size
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³       ³ This area contains the file size in bytes. The first word contains
+³       ³ the low order part of the size. Both words are stored with the least
+³       ³ significant byte first.
+ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+
+The Data Area ......................................................... 8**9
+
+ Allocation of space for a file (in the data area) is done only when needed
+(it is not preallocated). The space is allocated one cluser (unit allocation)
+at a time. A cluster is always one or more consecutive sector numbers, and all
+of the clusters in a file are "chained" together in the FAT.
+
+ The clusters are arranged on disk to minimize head movement for multisided
+media. All of the space on a track (or cylinder) is allocated before moving
+on to the next track. This is accomplished by using the sequential sector
+numbers on the lowest-numbered head, then all the sector numbers on the next
+head, and so on until all sectors of all heads of the track are used. Then the
+next sector used will be sector 1 of head 0 on the next track.
+
+ An interesting innovation that was introduced in MS-DOS 3.0: disk space that
+is freed by erasing a file is not re-used immediately, unlike earlier versions
+of DOS. Instead, free space is obtained from the area not yet used during the
+current session, until all of it is used up. Only then will space that is freed
+during the current session be re-used.
+
+ This feature minimizes fragmentation of files, since never-before-used space
+is always contiguous. However, once any space has been freed by deleting a file,
+that advantage vanishes at the next system boot. The feature also greatly
+simplifies un-erasing files, provided that the need to do an un-erase is found
+during the same session and also provided that the file occupies contiguous
+clusters.
+
+ However, when one is using programs which make extensive use of temporary
+files, each of which may be created and erased many times during a session,
+the feature becomes a nuisance; it forces the permanent files to move farther
+and farther into the inner tracks of the disk, thus increasing rather than
+decreasing the amount of fragmentation which occurs.
+
+ The feature is implemented in DOS by means of a single 16-bit "last cluster
+used" (LCU) pointer for each physical disk drive; this pointer is a part of
+the physical drive table maintained by DOS. At boot time, the LCU pointer is
+zeroed. Each time another cluster is obtained from the free-space pool (the
+FAT), its number is written into the LCU pointer. Each time a fresh cluster
+is required, the FAT is searched to locate a free one; in older versions of
+DOS this search always began at Cluster 0000, but in 3.x it begins at the
+cluster pointed to by the LCU pointer.
+
+ For hard disks, the size of the file allocation table and directory are
+determined when FORMAT initializes it and are based on the size of the DOS
+partition.
+
+
+
+Floppy Disk Types ..................................................... 8**10
+
+The following tables give the specifications for floppy disk formats:
+
+IBM PC-DOS disk formats:
+                 # of      FAT size   DIR     total
+                 sides    (sectors)(entries) sectors
+                   ³  sectors  ³  DIR  ³ sectors³
+                   ³  /track   ³sectors³/cluster³
+                   ³     ³     ³   ³   ³   ³    ³
+ÚÄÄÄÄÄÂÄÄÂÄÄÄÄÄÄÄÂÄÁÄÂÄÄÄÁÄÄÄÂÄÁÄÂÄÁÄÂÄÁÄÂÄÁÄÂÄÄÁÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³ 160k³5¬³DOS 1.0³ 1 ³ 8 (40)³ 1 ³ 4 ³ 64³ 1 ³ 320³Original PC-0, 16k mbd
+³ 320k³5¬³DOS 1.1³ 2 ³ 8 (40)³ 1 ³ 7 ³112³ 2 ³ 360³PC-1, 64k mbd
+³ 180k³5¬³DOS 2.0³ 1 ³ 9 (40)³ 2 ³ 4 ³ 64³ 1 ³ 640³PC-2, 256k mbd
+³ 360k³5¬³DOS 2.0³ 2 ³ 9 (40)³ 2 ³ 7 ³112³ 2 ³ 720³PC/XT
+³ 1.2M³5¬³DOS 3.0³ 2 ³15 (80)³ 7 ³14 ³224³ 1 ³2400³PC/AT, PC/RT, XT/286
+³ 720k³3«³DOS 3.2³ 2 ³ 9 (80)³ 3 ³ 7 ³112³ 2 ³1440³Convertible, PS/2 25+
+³1.44M³3«³DOS 3.3³ 2 ³18 (80)³ 9 ³14 ³224³ 1 ³2880³PS/2 50+
+ÀÄÄÄÄÄÁÄÄÁÄÄÄÄÄÄÄÁÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+various MS-DOS disk formats:
+ÚÄÄÄÄÄÂÄÄÂÄÄÄÄÄÄÄÂÄÁÄÂÄÄÄÁÄÄÄÂÄÁÄÂÄÁÄÂÄÁÄÂÄÁÄÂÄÄÁÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³ 200k³5¬³  *    ³ 1 ³10 (40)³   ³   ³   ³   ³    ³
+³ 400k³5¬³  * ** ³ 2 ³10 (40)³   ³   ³   ³   ³    ³
+³ 800k³5¬³  *    ³ 2 ³10 (80)³   ³   ³   ³   ³    ³
+³ 720k³2 ³       ³   ³       ³   ³   ³   ³   ³    ³Zenith SuperSport 2-inch
+³ 720k³5¬³DOS2.11³ 2 ³ 9 (80)³ 3 ³ 7 ³112³ 2 ³1440³Tandy 2000 (discontinued)
+³2.88M³3«³       ³ 2 ³36 (80)³   ³   ³   ³   ³5760³Practidisk 2.88mb floppy
+³2720k³5¬³  ***  ³ 2 ³17(192)³ 8 ³   ³272³ 4 ³5440³Pelican (Kodak 3.3Mb)(disc.)
+³5570k³5¬³  ***  ³ 2 ³17(384)³ 8 ³   ³272³ 4 ³10880Pelican (Kodak 6.6Mb)(disc.)
+ÀÄÄÄÄÄÁÄÄÁÄÄÄÄÄÄÄÁÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+*   Michtron DS-DOS 2.11 Plus and one version of MS-DOS 3.11 (vendor unknown)
+**  TallTree JFormat program
+*** Pelican driver source calls for 2 sectors/cluster, Norton Utils reports 4.
+ÚÄÄÄÄÄÂÄÄÂÄÄÄÄÄÄÄÂÄÁÄÂÄÄÄÁÄÄÄÂÄÁÄÂÄÁÄÂÄÁÄÂÄÁÄÂÄÄÁÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³ 400k³5¬³DOS2.11³ 1 ³10 (80)³   ³   ³   ³   ³ 800³DEC Rainbow  SS/HD   (disc.)
+³ 720k³5¬³DOS2.11³ 2 ³variable number of sectors  ³Victor 9000 PC   (discont'd)
+ÀÄÄÄÄÄÁÄÄÁÄÄÄÄÄÄÄÁÄÄÄ´per track, more sectors on  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+                     ³outer tracks than inner     ³
+                     ³tracks. Special DSDD drive. ³
+                     ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+ Some oddball DOS versions specify "zero" heads in their data area. HP's
+single-sided disk format (16 256-byte sectors/track, model unknown) uses a
+zero-based parameter for the number of heads. Without special device driver
+software to "fix" this, these disks are basically unusable by normal DOS.
+
+ A couple of people have reported that the IBM "Gearbox" industrial PC uses
+an 800k 3.5 inch floppy with 10 sectors and 80 tracks. I've been unable to
+confirm this.
+
+ Files in the data area are not necessarily written sequentially. The data area
+space is allocated one cluster at a time, skipping over clusters already
+allocated. The first free cluster found is the next cluster allocated,
+regardless of its physical location on the disk. This permits the most efficient
+utilization of disk space because clusters freed by erasing files can be
+allocated for new files. Refer back to the description of the DOS FAT in this
+chapter for more information.
+
+        SSDD    single sided, double density     (160-180k)     5¬
+        DSDD    double sided, double density     (320-360k)     5¬
+        DSQD    double sided, quad density       (720k)         5¬, 3«, 2
+        DSHD    double sided, high density       (1.2-1.44M)    5¬, 3«
+        DSED    double sided, extra high density (2.88M)        3«
+
+ Much of the trouble with AT 1.2 meg drives has been through the inadverdent
+use of quad density disks in the high density drives. The high density disks
+use a higher-coercivity media than the quads, and quads are not completely
+reliable as 1.2Mb. Make sure you have the correct disk for your application.
+
+
+ROTATION SPEEDS:
+
+        720k,   3«"    (unknown)  note: Zenith has discontinued 2" floppies
+
+        720k,   3«"    300 RPM
+        1.44Mb, 3«"    300 RPM
+
+        360k,   5¬"    300 RPM
+        720k,   5¬"    300 RPM
+        1.2mb,  5¬"    360 RPM   (even when reading 360k diskettes)
+
+        all      8"    360 RPM
+
+ The Victor 9000's 5¬" floppies could vary their rotational speed as required. 
+This allowed them to put 720k on a standard 360k floppy, using a constant 
+density throughout.
+
+ The Central Point CopyIIPC Option Board emulates the Macintosh GCR recording 
+format by varying the data rate instead of the rotational speed.
+
+ 
+
+
+HARD DISK LAYOUT ...................................................... 8**11
+
+ The DOS hard disk routines perform the following services:
+
+1) Allow multiple operating systems to be installed on the hard disk at the
+   same time.
+
+2) Allow a user-selected operating system to be started from the hard disk.
+
+   I) In order to share the hard disk among operating systems, the disk may be
+      logically divided into 1 to 4 partitions. The space within a given
+      partition is contiguous, and can be dedicated to a specific operating
+      system. Each operating system may "own" only one partition in DOS versions
+      2.0 through 3.2. DOS 3.3 introduced the "Extended DOS Partition" which
+      allows multiple DOS partitions on the same hard disk. FDISK (or a
+      similar program from other DOS vendors) utility allows the user to select
+      the number, type, and size of each partition. The partition information is
+      kept in a partition table that is embedded in the master hard disk boot
+      record on the first sector of the disk. The format of this table varies
+      from version to version of DOS.
+
+  II) An operating system must consider its partition to be the entire disk,
+      and must ensure that its functions and utilities do not access other
+      partitions on the disk.
+
+ III) Each partition may contain a boot record on its first sector, and any
+      other programs or data that you choose, including a different operating
+      system. For example, the DOS FORMAT command may be used to format and
+      place a copy of DOS in the DOS partition in the same manner that a
+      diskette is formatted. You can use FDISK to designate a partition as
+      "active" (bootable). The master hard disk boot record causes that
+      partition's boot record to receive control when the system is
+      initialized. Additional disk partitions could be FORTH, UNIX, Pick,
+      CP/M-86, OS/2 HPFS, Concurrent DOS, Xenix, or the UCSD p-System.
+
+
+
+SYSTEM INITIALIZATION ................................................. 8**12
+
+The boot sequence is as follows:
+
+1. System initialization first attempts to load an operating system from
+   diskette drive A. If the drive is not ready or a read error occurs, it then
+   attempts to read a master hard disk boot record on the first sector of the
+   first hard disk in the system. If unsuccessful, or if no hard disk is
+   present, it invokes ROM BASIC in an IBM PC or displays a disk error
+   message on most compatibles.
+
+2. If initialization is successful, the master hard disk boot record is given
+   control and it examines the partition table embedded within it. If one of
+   the entries indicates an active (bootable) partition, its boot record is
+   read from the partition's first sector and given control.
+
+3. If none of the partitions is bootable, ROM BASIC is invoked on an IBM PC or
+    a disk error on most compatibles.
+
+4. If any of the boot indicators are invalid, or if more than one indicator is
+   marked as bootable, the message "INVALID PARTITION TABLE "is displayed and
+   the system stops.
+
+5. If the partition's boot record cannot be successfully read within five
+   retries due to read errors, the message "ERROR LOADING OPERATING SYSTEM"
+   appears and the system stops.
+
+6. If the partition's boot record does not contain a valid "signature", the
+   message "MISSING OPERATING SYSTEM" appears, and the system stops.
+
+NOTE: When changing the size or location of any partition, you must ensure that
+      all existing data on the disk has been backed up. The partitioning program
+      will destroy the data on the disk.
+
+ System programmers designing a utility to initialize/manage a hard disk must
+provide the following functions at a minimum:
+
+1. Write the master disk boot record/partition table to the disk's first
+   sector to initialize it.
+
+2. Perform partitioning of the disk - that is, create or update the partition
+   table information (all fields for the partition) when the user wishes
+   to create a partition. This may be limited to creating a partition for only
+   one type of operating system, but must allow repartitoning the entire disk,
+   or adding a partition without interfering with existing partitions (user's
+   choice).
+
+3. Provide a means for marking a user-specified partition as bootable and
+   resetting the bootable indicator bytes for all other partitions at the same
+   time.
+
+4. Such utilities should not change or move any partition information that
+   belongs to another operating system.
+
+
+
+
+BOOT RECORD/PARTITION TABLE ........................................... 8**13
+
+ A boot record must be written on the first sector of all hard disks, and
+must contain the following:
+
+1. Code to load and give control to the boot record for one of four possible
+   operating systems.
+
+2. A partition table at the end of the boot record. Each table entry is 16
+   bytes long, and contains the starting and ending cylinder, sector, and head
+   for each of four possible partitions, as well as the number of sectors
+   preceding the partition and the number of sectors occupied by the partition.
+   The "boot indicator" byte is used by the boot record to determine if one of
+   the partitions contains a loadable operating system. FDISK initialization
+   utilities mark a user-selected partition as "bootable" by placing a value
+   of 80h in the corresponding partition's boot indicator (setting all other
+   partitions' indicators to 0 at the same time). The presence of the 80h tells
+   the standard boot routine to load the sector whose location is contained in
+   the following three bytes. That sector is the actual boot record for the
+   selected operating system, and it is responsible for the remainder of the
+   system's loading process (as it is from the diskette). All boot records are
+   loaded at absolute address 0:7C00.
+
+The partition table with its offsets into the boot record is:
+ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³  Offset  ³  Offset  ³  Offset  ³        ³
+³from Start³from Start³from Start³  Size  ³ Description
+³ of Disk  ³ of Entry ³ of Disk  ³        ³                                   
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³          ³    00h   ³   0BEh   ³ 1 byte ³ boot indicator
+³          ³    01h   ³   0BFh   ³ 1 byte ³ beginning head
+³   1BEh   ³    02h   ³   0C0h   ³ 1 byte ³ beginning sector
+³ (part 1) ³    03h   ³   0C1h   ³ 1 byte ³ beginning cylinder
+³ 16 bytes ³    04h   ³   0C2h   ³ 1 byte ³ system indicator
+³          ³    05h   ³   0C3h   ³ 1 byte ³ ending head
+³          ³    06h   ³   0C4h   ³ 1 byte ³ ending sector
+³          ³    07h   ³   0C5h   ³ 1 byte ³ ending cylinder
+³          ³    08h   ³   0C6h   ³ 4 bytes³ relative (starting) sector       
+³          ³    0Ch   ³   0DAh   ³ 4 bytes³ number of sectors       
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³          ³    00h   ³   0DEh   ³ 1 byte ³ boot indicator
+³          ³    01h   ³   0DFh   ³ 1 byte ³ beginning head
+³   1CEh   ³    02h   ³   0E0h   ³ 1 byte ³ beginning sector
+³ (part 2) ³    03h   ³   0E1h   ³ 1 byte ³ beginning cylinder
+³ 16 bytes ³    04h   ³   0E2h   ³ 1 byte ³ system indicator
+³          ³    05h   ³   0E3h   ³ 1 byte ³ ending head
+³          ³    06h   ³   0E4h   ³ 1 byte ³ ending sector
+³          ³    07h   ³   0E5h   ³ 1 byte ³ ending cylinder
+³          ³    08h   ³   0E6h   ³ 4 bytes³ relative (starting) sector       
+³          ³    0Ch   ³   0EAh   ³ 4 bytes³ number of sectors       
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³          ³    00h   ³   0FEh   ³ 1 byte ³ boot indicator
+³          ³    01h   ³   0FFh   ³ 1 byte ³ beginning head
+³   1DEh   ³    02h   ³   0100h  ³ 1 byte ³ beginning sector
+³ (part 3) ³    03h   ³   0101h  ³ 1 byte ³ beginning cylinder
+³ 16 bytes ³    04h   ³   0102h  ³ 1 byte ³ system indicator
+³          ³    05h   ³   0103h  ³ 1 byte ³ ending head
+³          ³    06h   ³   0104h  ³ 1 byte ³ ending sector
+³          ³    07h   ³   0105h  ³ 1 byte ³ ending cylinder
+³          ³    08h   ³   0106h  ³ 4 bytes³ relative (starting) sector       
+³          ³    0Ch   ³   010Ah  ³ 4 bytes³ number of sectors       
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³          ³    00h   ³   010Eh  ³ 1 byte ³ boot indicator
+³          ³    01h   ³   011Fh  ³ 1 byte ³ beginning head
+³   1EEh   ³    02h   ³   0110h  ³ 1 byte ³ beginning sector
+³ (part 4) ³    03h   ³   0111h  ³ 1 byte ³ beginning cylinder
+³ 16 bytes ³    04h   ³   0112h  ³ 1 byte ³ system indicator
+³          ³    05h   ³   0113h  ³ 1 byte ³ ending head
+³          ³    06h   ³   0114h  ³ 1 byte ³ ending sector
+³          ³    07h   ³   0115h  ³ 1 byte ³ ending cylinder
+³          ³    08h   ³   0116h  ³ 4 bytes³ relative (starting) sector       
+³          ³    0Ch   ³   011Ah  ³ 4 bytes³ number of sectors       
+ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+³   1FEh   ³                     ³ 2 bytes³ 055AAh signature
+ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+ Boot indicator (boot ind): The boot indicator byte must contain 0 for a non-
+bootable partition or 80h for a bootable partition. Only one partition can be
+marked as bootable at a time.
+
+ System Indicator (sys ind): The sys ind field contains an indicator of the
+operating system that "owns" the partition. IBM PC-DOS can only "own" one
+partition, though some versions of MSDOS allow all four partitions to be used
+by DOS.
+
+ The system indicators are:
+
+        ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        ³                 System Indicator  (sys ind)                 ³
+        ÃÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  00h  ³  unknown or no partition defined                    ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  01h  ³  DOS 12 bit FAT  (DOS 2.x all and 3.x+ under 16 Mb) ³
+        ³       ³                  less than 4086 clusters            ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  02h  ³  Xenix                                              ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  03h  ³  Xenix                                              ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  04h  ³  DOS 16 bit FAT  (DOS 3.0+. Not recognized by 2.x)  ³
+        ³       ³                  less than 65,536 sectors           ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  05h  ³  extended DOS partition, some 3.2 and all 3.3+      ³
+        ³       ³  (pointer to further partition table)               ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  06h  ³  Compaq DOS 3.31, DOS 4.0+ partitions over 32 megs  ³
+        ³       ³  Digital Research DRDOS 3.4, 3.41 over 32 megs      ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  06h  ³  PC-MOS/386 partitions over 32 megs (NOT compatible ³
+        ³       ³  with the DR, Compaq, and MSDOS big partitions!     ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  07h  ³  OS/2 High Performance File System                  ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  051h ³  Ontrack Disk Manager "read/write" partitions       ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  0DBh ³  DRI Concurrent DOS              (>32mb partitions?)³
+        ³       ³  DRI Concurrent CP/M?                               ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  0E4h ³  Speedstor, small partitions (?) (under 1024cyl?)   ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  0F2h ³  2nd DOS partition, some OEM customized DOS 3.2     ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  0F4h ³  Speedstor, large partitions (?)                    ³
+        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+        ³  0FEh ³  Speedstor, partitions >1024 cylinders              ³
+        ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+ There are ID bytes for proprietary formatting schemes. Some manufacturers
+(such as Zenith, Wyse, and Tandon) diddle with these system bytes to implement
+more than one DOS partition per disk.
+
+note 1) Xenix doesn't like extended DOS partitions a'la DOS 3.3, limiting you
+        to a DOS partition of 32Mb. Xenix doesn't recognize DOS 4.0x at all,
+        so to use it you need to boot from a floppy. Early versions of OS/2
+        also have this problem.
+    2)  I have found one source listing Minix partitions as "40" and some
+        Unix partitions as "63".  I don't know if these are decimal or
+        hexadecimal figures.
+
+ Cylinder (CYL) and Sector (S): The 1 byte fields labelled CYL contain the low
+order 8 bits of the cylinder number - the high order 2 bits are in the high
+order 2 bits of the sector (S) field. This corresponds with the ROM BIOS
+interrupt 13h (disk I/O) requirements, to allow for a 10 bit cylinder number.
+
+ The fields are ordered in such a manner that only two MOV instructions are
+required to properly set up the DX and CX registers for a ROM BIOS call to
+load the appropriate boot record (hard disk booting is only possible from the
+first hard disk in the system, where a BIOS drive number of 80h corresponds
+to the boot indicator byte).
+
+ All partitions are allocated in cylinder multiples and begin on sector 1,
+head 0, with the exception that the partition that is allocated at the beginning
+of the disk starts at sector 2, to account for the hard disk's master boot
+record.
+
+ Relative (starting) Sector: The number of sectors preceding each partition
+on the disk is kept in this 4 byte field. This value is determined by counting
+the sectors beginning with cylinder 0, sector 1, head 0 of the disk, and
+incrementing the sector, head, and then track values up to the beginning of
+the partition. This, if the disk has 17 sectors per track and 4 heads, and the
+second partition begins at cylinder 1, sector 1, head 0, then the partition's
+starting relative sector is 68 (decimal) - there were 17 sectors on each of 4
+heads on 1 track allocated ahead of it. The field is stored with the least
+significant word first.
+
+ Number of sectors (#sects): The number of sectors allocated to the partition
+is kept in the "# of sects" field. This is a 4 byte field stored least
+significant word first.
+
+ Signature: The last 2 bytes of the boot record (55AAh) are used as a signature
+to identify a valid boot record. Both this record and the partition boot record
+are required to contain the signature at offset 1FEh.
+
+
+
+HARD DISK TECHNICAL INFORMATION ....................................... 8**14
+
+ Western Digital's hard disk installation manuals make the claim that MSDOS
+can support only 2 hard drives. This is entirely false, and their purpose for
+making the claim is unclear. DOS merely performs a function call pointed at
+the hard disk driver, which is normally in one of three locations; a ROM at
+absolute address C:800, the main BIOS ROM if the machine is an AT, or a device
+driver installed through the CONFIG.SYS file. Two hard disk controller cards
+can normally not reside in the same machine due to lack of interrupt
+arbitration. Perstor's ARLL controller and some cards marketed by Novell can
+coexist with other controllers. Perstor's technical department has had four
+controllers and eight hard disks in the same IBM XT functioning concurrently.
+
+ A valid hard disk has a boot record arranged in the following manner:
+
+        db      drive           ; 0 or 80h  (80h marks a bootable, active
+                                             partition)
+        db      head1           ; starting head
+        dw      trksec1         ; starting track/sector (CX value for INT 13)
+        db      system          ; SYS IND ID from table above
+        db      head2           ; ending head
+        dw      trksec2         ; ending track/sector
+        dd      sector1         ; absolute # of starting sector
+        dd      sector2         ; absolute # of last sector
+
+ The master disk boot record invokes ROM BASIC if no indicator byte reflects a
+bootable system.
+
+ When a partition's boot record is given control, it is passed its partition
+table entry address in the DS:SI registers.
+
+
+
+DETERMINING HARD DISK ALLOCATION ...................................... 8**15
+
+DOS determines disk allocation using the following formula:
+
+                                         D * BPD
+                            TS - RS -  ÄÄÄÄÄÄÄÄÄÄÄ
+                                           BPS
+                      SPF = ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+                                        BPS * SPC
+                                 CF + ÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+                                           BPC
+where:
+
+     TS      Total number of sectors on the disk
+     RS      The number of sectors at the beginning of the disk that are
+             reserved for the boot record. DOS normally reserves 1 sector.
+     D       The number of directory entries in the root directory.
+     BPD     The number of bytes per directory entry. This is always 32.
+     BPS     The number of bytes per logical sector. Typically 512, but you can
+             specify a different number with VDISK.
+     CF      The number of FATS per disk. Usually 2. VDISK is 1.
+     SPF     The number of sectors per FAT. Maximum 64.
+     SPC     The number of sectors per allocation unit (cluster).
+     BPC     The number of bytes per FAT entry. BPC is 1.5 for 12 bit FATs.
+             2 for 16 bit FATS.
+
+
+To calculate the minimum partition size that will force a 16-bit FAT:
+
+        CYL = (max clusters * 8)/(HEADS * SPT)
+
+where:
+     CYL           number of cylinders on the disk
+     max clusters  4092 (maximum number of clusters for a 12 bit FAT)
+     HEADS         number of heads on the hard disk
+     SPT           sectors per track  (normally 17 on MFM)
+
+
+ DOS 2.0 through 3.3 limit partition sizes to 32 megabytes. The limit arises
+from the fact that DOS does things by sector number, and each sector is stored
+as a word. So the largest sector number DOS can count to is 64k. As each
+sector is 512 bytes long, 64k * .5k = 32Mb. The easiest way for an aftermarket
+disk handler to break the 32Mb barrier is probably to increase the sector size
+- with 2k sectors, maximum partiton size increases to 128Mb. However, the BIOS
+boot routines and IBMBIO.COM are hardwired for 512 byte sectors, so you won't
+be able to boot from a drive with oversize sectors. That's why Disk Manager
+formats a small boot partition by default.
+
+ DOS 2.x uses a "first fit" algorithm when allocating file space on the hard
+disk. Each time an application requests disk space, it will scan from the
+beginning of the FAT until it finds a contiguous peice of storage large enough
+for the file.
+
+ DOS 3.x+ keeps a pointer into the disk space, and begins its search from the
+point it last left off. This pointer is lost when the system is rebooted.
+This is called the "next fit" algorithm. It is faster than the first fit and
+helps minimize fragmentation.
+
+ In either case, if the FCB function calls are used instead of the handle
+function calls, the file will be broken into pieces starting with the first
+available space on the disk.
+
+
+
+
+BIOS Disk Routines .................................................... 8**16
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³Interrupt 13h  Disk I/O - access the disk drives (floppy and hard disk)      ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+(0:004Ch)    1) These calls do not try rereading disk if an error is returned.
+             2) In the IBM OS/2 Tech Ref Volume 1, page 7-33, under "DOS
+                Environment Software Interrupt Support", it lists:
+                13h  disk/diskette     for non-removable media only, these
+                                       functions are supported:
+                                       01h     read status
+                                       02h     read sectors
+                                       0Ah     read long
+                                       15h     read DASD (disk) type
+             3) On hard disk systems these calls may be vectored through the
+                int 40h hard disk BIOS.
+
+
+Function 00h    Reset - reset the disk controller chip
+entry   AH      00h
+        DL      drive (if bit 7 is set both hard disks and floppy disks reset)
+                00h-7Fh  floppy disk
+                80h-0FFh hard disk
+return  AH      status (see 01h below)
+note 1) Forces controller chip to recalibrate read/write heads.
+     2) Some systems (Sanyo 55x, Columbia MPC) this resets all drives.
+     3) This function should be called after a failed floppy disk Read, Write,
+        Verify, or Format request before retrying the operation.
+     4) If called with DL >= 80h (i.e., selecting a hard drive), the floppy
+        controller and then the hard disk controller are reset.
+     5) Function 0Dh allows the hard disk controller to be reset without
+        affecting the floppy controller.
+
+
+Function 01h    Get Status of Disk System
+entry   AH      01h
+        DL      drive (hard disk if bit 7 set)
+                00h-7Fh  floppy disk
+                80h-0FFh hard disk
+return  AH      00h
+        AL      status of most recent disk operation
+                00h     successful completion, no errors
+                01h     bad command
+                02h     address mark not found
+                03h     tried to write on write-protected disk    (floppy only)
+                04h     sector not found
+                05h     reset failed                                (hard disk)
+                06h     diskette removed or changed               (floppy only)
+                07h     bad parameter table                         (hard disk)
+                08h     DMA overrun                               (floppy only)
+                09h     attempt to DMA across 64K boundary
+                0Ah     bad sector detected                         (hard disk)
+                0Bh     bad track detected                          (hard disk)
+                0Ch     unsupported track or media type not found (floppy disk)
+                0Dh     invalid number of sectors on format         (hard disk)
+                0Eh     control data address mark detected          (hard disk)
+                0Fh     DMA arbitration level out of range          (hard disk)
+                10h     uncorrectable CRC/EEC on read
+                11h     ECC corrected data error                    (hard disk)
+                20h     controller failure
+                40h     seek failed
+                80h     timeout
+                0AAh    drive not ready                             (hard disk)
+                0BBh    undefined error                             (hard disk)
+                0CCh    write fault                                 (hard disk)
+                0E0h    status error                                (hard disk)
+                0FFh    sense operation failed                      (hard disk)
+note 1) For hard disks, error code 11h (ECC data error) indicates that a
+        recoverable error was detected during a preceding int 13h fn 02h
+        (Read Sector) call.
+
+
+Function 02h    Read Sectors - read one or more sectors from diskette
+entry   AH      02h
+        AL      number of sectors to read
+        BX      address of buffer (ES=segment)
+        CH      track (cylinder) number (0-39 or 0-79 for floppies)
+                (for hard disk, bits 8,9 in high bits of CL)
+        CL      sector number (1 to 18, not value checked)
+        DH      head number (0 or 1)
+        DL      drive (0=A, 1=B, etc.) (bit 7=0)  (drive 0-7)
+                00h-7Fh   floppy disk
+                80h-FF0h  hard disk
+        ES:BX   address to store/fetch data  (buffer to fill)
+       [0000:0078]  dword pointer to diskette parameters
+return  CF      clear   successful
+                        AL      number of sectors transferred
+                set     error
+                        AH      status  (00h, 02h, 03h, 04h, 08h, 09h, 10h,
+                                         0Ah, 20h, 40h, 80h)
+note 1) Number of sectors begins with 1, not 0.
+     2) Trying to read zero sectors is considered a programming error; results
+        are not defined.
+     3) For hard disks, the upper 2 bits of the 10-bit cylinder number are
+        placed in the upper 2 bits of register CL.
+     4) For hard disks, error code 11h indicates that a read error occurred
+        that was corrected by the ECC algorithm; in this case, AL contains the
+        burst length. The data read is good within the limits of the ECC code.
+        If a multisector transfer was requested, the operation was terminated
+        after the sector containing the read error.
+     5) For floppy drives, an error may result from the drive motor being off
+        at the time of the request. The BIOS does not automatically wait for
+        the drive to come up to speed before attempting the read operation. The
+        calling program should reset the floppy disk system with function 00h
+        and retry the operation three times before assuming that the error
+        results from some other cause.
+
+
+Function 03h    Write Sectors - write from memory to disk
+entry   AH      03h
+        AL      number of sectors to write (1-8)
+        CH      track number (for hard disk, bits 8,9 in high bits of CL)
+        CL      beginning sector number
+                (if hard disk, high two bits are high bits of track #)
+        DH      head number  (head 0=0)
+        DL      drive number (0-7)
+                00h-7Fh   floppy disk
+                80h-FF0h  hard disk
+        ES:BX   address of buffer for data
+return  CF      clear   success
+                        AL      number of sectors written
+                set     error
+                        AH      status (see 01h above)
+note 1) Number of sectors begins with 1, not 0.
+     2) Trying to write zero sectors is considered a programming error; results
+        are not defined.
+     3) For hard disks, the upper 2 bits of the 10-bit cylinder number are
+        placed in the upper 2 bits of register CL.
+     4) For floppy drives, an error may result from the drive motor being off
+        at the time of the request. The BIOS does not automatically wait for
+        the drive to come up to speed before attempting the read operation. The
+        calling program should reset the floppy disk system with function 00h
+        and retry the operation three times before assuming that the error
+        results from some other cause.
+
+
+Function 04h    Verify - verify that a write operation was successful
+entry   AH      04h
+        AL      number of sectors to verify (1-8)
+        CH      track number  (for hard disk, bits 8,9 in high bits of CL)
+        CL      beginning sector number
+        DH      head number
+        DL      drive number (0-7)
+        DL      drive number (0-7)
+                00h-7Fh   floppy disk
+                80h-FF0h  hard disk
+        ES:BX   address of buffer for data
+return  CF      set on error
+                AH      status (see 01h above)
+        AL      number of sectors verified
+note 1) With IBM PC, XT, and AT with ROM BIOS earlier than 11/15/85, ES:BX
+        should point to a valid buffer.
+     2) For hard disks, the upper 2 bits of the 10-bit cylinder number are
+        placed in the upper 2 bits of register CL.
+     3) This function can be used to test whether a readable media is in a
+        floppy drive. An error may result from the drive motor being off at the
+        time of the request since the BIOS does not automatically wait for the
+        drive to come up to speed before attempting the verify operation. The
+        requesting program should reset the floppy disk system with function
+        00h and retry the operation three times before assuming that a readable
+        disk is not present.
+
+
+Function 05h    Format Track - write sector ID bytes for 1 track (floppy disk)
+entry   AH      05h
+        AL      number of sectors to create on this track
+                interleave (for XT hard disk only)
+        CH      track (or cylinder) number (bits 8,9 in high bits of CL)
+        CL      sector number
+        DH      head number (0, 1)
+        DL      drive number (0-3)
+                00h-7Fh   floppy disk
+                80h-0FFh  hard disk
+        ES:BX   pointer to 4-byte address field (C-H-R-N) (except XT hard disk)
+                byte 1 = (C) cylinder or track
+                byte 2 = (H) head
+                byte 3 = (R) sector
+                byte 4 = (N) bytes/sector (0 = 128, 1 = 256, 2 = 512, 3 = 1024)
+return  CF      set if error occurred
+                AH      status code (see 01h above)
+note 1) Not valid for ESDI hard disks on PS/2.
+     2) For floppy disks, the number of sectors per track is taken from the
+        BIOS floppy disk parameter table whose address is stored in the vector
+        for int 1Eh.
+     3) When this function is used for floppies on ATs or the PS/2, it should
+        be preceded by a call to int 13h/fn 17h to select the type of media to
+        format.
+     4) For hard disks, the upper 2 bits of the 10-bit cylinder number are
+        placed in the upper 2 bits of CL.
+     5) On the XT/286, AT, and PS/2 hard disks, ES:BX points to a 512-byte
+        buffer containing byte pairs for each physical disk sector as follows:
+        Byte  Contents
+        0       00h     good sector
+                80h     bad sector
+        1       sector number
+        For example, to format a track with 17 sectors and an interleave of
+        two, ES:BX would point to the following 34-byte array at the beginning
+        of a 512-byte buffer:
+        db      00h, 01h, 00h, 0Ah, 00h, 02h, 00h, 0Bh, 00h, 03h, 00h, 0Ch
+        db      00h, 04h, 00h, 0Dh, 00h, 05h, 00h, 0Eh, 00h, 06h, 00h, 0Fh
+        db      00h, 07h, 00h, 10h, 00h, 08h, 00h, 11h, 00h, 09h
+
+
+Function 06h    Hard Disk - format track and set bad sector flags
+                                                     (PC2, PC-XT, and Portable)
+entry   AH      06h
+        AL      interleave value (XT only)
+        CH      cylinder number (bits 8,9 in high bits of CL)
+        CL      sector number
+        DH      head
+        DL      drive (80h-0FFh for hard disk)
+        ES:BX   512 byte format buffer
+                the first 2*(sectors/track) bytes contain f,n for each sector
+                f       00h     good sector
+                        80h     bad sector
+                n       sector number
+return  CF      error
+                AH      status code (see 01h above)
+
+
+Function 07h    Hard Disk - format the drive starting at the desired track
+                                                      (PC2, PC-XT and Portable)
+entry   AH      07h
+        AL      interleave value (XT only) (01h-10h)
+        CH      cylinder number (bits 8,9 in high bits of CL) (00h-03FFh)
+        CL      sector number
+        DH      head number (0-7)
+        DL      drive number (80h-0FFh, 80h=C, 81h=D,...)
+        ES:BX   format buffer, size = 512 bytes
+                the first 2*(sectors/track) bytes contain f,n for each sector
+                f       00h     good sector
+                        80h     bad sector
+                n       sector number
+return  CF      set on error
+        AH      status code (see 01h above)
+note    Award AT BIOS routines are extended to handle more than 1024 cylinders.
+        AL      number of sectors
+        CH      cylinder numberm low 8 bits
+        CL      sector number bits 0-5, bits 6-7 are high 2 cylinder bits
+        DH      head number (bits 0-5) bits 6-7 are extended high cyls (>1024)
+        DL      drive number (0-1 for diskette, 80h-81h for hard disk)
+        ES:BX   transfer address
+
+
+Function 08h    Read Drive Parameters                          (except PC, Jr)
+entry   AH      08h
+        DL      drive number
+                00h-7Fh   floppy disk
+                80h-0FFh  hard disk
+return  CF      set on error
+                AH      status code (see above)
+        BL      drive type  (AT/PS2 floppies only)
+                01h     if 360 Kb, 40 track, 5¬"
+                02h     if 1.2 Mb, 80 track, 5¬"
+                03h     if 720 Kb, 80 track, 3«"
+                04h     if 1.44 Mb, 80 track, 3«"
+        CH      low 8 bits of maximum useable value for cylinder number
+        CL bits 6-7     high-order 2 bits of maximum cylinder number
+                0-5     maximum sector number
+        DH      maximum usable value for head number
+        DL      number of consecutive acknowledging drives (0-2)
+        ES:DI   pointer to drive parameter table
+note 1) On the PC and PC/XT, this function is supported on hard disks only.
+     2) The Columbia MPC supports functions 6-14 for its hard disk. It returns
+        drive information, same as int 13 function 8, except that the BL and
+        ES:DI values are omitted and AL <- burst length.
+
+
+Function 09h    Initialize Two Fixed Disk Base Tables    (XT, AT, XT/286, PS/2)
+                (install nonstandard drive)
+entry   AH      09h
+        DL      80h-0FFh  hard disk number
+return  CF      set on error
+                AH      status code (see 01h above)
+                For PC, XT hard disks, the disk parameter block format is:
+                00h-01h maximum number of cylinders
+                02h     maximum number of heads
+                03h-04h starting reduced write current cylinder
+                05h-06h starting write precompensation cylinder
+                07h     maximum ECC burst length
+                08h     drive options
+                   bits 7       1       disable disk access retries
+                        6       1       disable ECC retries
+                        3-5     set to 0
+                        0-2     drive option
+                09h     standard timeout value
+                0Ah     timeout value for format drive
+                0Bh     timeout value for check drive
+                0Ch-0Fh reserved
+
+                For AT and PS/2 hard disks:
+                00h-01h maximum number of cylinders
+                02h     maximum number of heads
+                03h-04h reserved
+                05h-06h starting write precompensation cylinder
+                07h     maximum ECC burst length
+                08h     drive options byte
+                   bits 6-7     nonzero (10, 01, or 11) if retries disabled
+                        5       1       if manufacturer's defect map present at
+                                        maximum cylinder + 1
+                        4       not used
+                        3       1       if more than 8 heads
+                        0-2     not used
+                09h-0Bh reserved
+                0Ch-0Dh landing zone cylinder
+                0Eh     sectors per track
+                0Fh     reserved
+note 1) For the XT, int 41h must point to the Disk Parameter Block.
+     2) For the AT and PS/2, int 41h points to table for drive 0 and int 46h
+        points to table for drive 1.
+     3) Initializes the hard disk controller for subsequent I/O operations
+        using the values found in the BIOS disk parameter block(s).
+     4) This function is supported on hard disks only.
+
+
+Function 0Ah    Read Long   (Hard disk)                 (XT, AT, XT/286, PS/2)
+entry   AH      0Ah
+        CH      cylinder number (bits 8,9 in high bits of CL)
+        CL      sector number (upper 2 bits of cyl # in upper 2 bits of CL)
+        DH      head number
+        DL      drive ID  (80h-0FFh hard disk)
+        ES:BX   pointer to buffer to fill
+return  CF      set on error
+                AH      status code (see 01h above)
+        AL      number of sectors actually transferred
+note 1) A "long" sector includes a 4 byte EEC (Extended Error Correction) code.
+     2) Used for diagnostics only on PS/2 systems.
+     3) This function is supported on fixed disks only.
+     4) Unlike the normal Read Sector (02h) function, ECC errors are not
+        automatically corrected. Multisector transfers are terminated after any
+        sector with a read error.
+
+
+Function 0Bh    Write Long                              (XT, AT, XT/286, PS/2)
+entry   AH      0Bh
+        AL      number of sectors
+        CH      cylinder (bits 8,9 in high bits of CL)
+        CL      sector number
+        DH      head number
+        DL      drive ID  (80h-0FFh hard disk)
+        ES:BX   pointer to buffer containing data
+return  CF      set on error
+                AH      status code (see 01h above)
+        AL      number of sectors actually transferred
+note 1) A "long" sector includes a 4 byte EEC (Extended Error Correction) code.
+     2) Used for diagnostics only on PS/2 systems.
+     3) Valid for hard disks only.
+
+
+Function 0Ch    Seek To Cylinder                        (except PC, PCjr)
+entry   AH      0Ch
+        CH      lower 8 bits of cylinder
+        CL      upper 2 bits of cylinder in bits 6-7
+        DH      head number
+        DL      drive number (0 or 1)  (80h-0FFh for hard disk)
+return  CF      set on error
+                AH      status code (see 01h above)
+note 1) Positions heads over a particular cylinder, but does not move any data.
+     2) This function is supported on hard disks only.
+     3) The upper 2 bits of the 10-bit cylinder number are placed in the upper
+        2 bits of CL.
+     4) The Read Sector, Read Sector Long, Write Sector, and Write Sector Long
+        functions include an implied seek operation and need not be preceded by
+        an explicit call to this function.
+
+
+Function 0Dh    Alternate Hard Disk Reset                    (except PC, PCjr)
+entry   AH      0Dh
+        DL      hard drive number (80h-0FFh hard disk)
+return  CF      set on error
+                AH      status code (see 01h above)
+note 1) Not for PS/2 ESDI hard disks.
+     2) Resets the hard disk controller, recalibrates attached drives (moves
+        the read/write arm to cylinder 0), and prepares for subsequent disk I/O.
+     3) This function is for hard disks only. It differs from fn 00h by not
+        resetting the floppy disk controller.
+
+
+Function 0Eh    Read Sector Buffer                         (XT, Portable, PS/2)
+entry   AH      0Eh
+        ES:BX   pointer to buffer
+return  CF      set on error
+                AH      status code (see 01h above)
+        AL      number of sectors actually transferred
+note 1) Transfers controller's sector buffer. No data is read from the drive.
+     2) Used for diagnostics only on PS/2 systems.
+     3) This fn is supported by the XT's hard disk adapter only. It is "not
+        defined" for hard disk adapters on the AT or PS/2.
+
+
+Function 0Fh    Write sector buffer                          (XT, Portable)
+entry   AH      0Fh
+        ES:BX   pointer to buffer
+return  CF      set if error
+                AH      status code (see 01h above)
+        AL      number of sectors actually transferred
+note 1) Should be called before formatting to initialize the controller's
+        sector buffer.
+     2) Used for diagnostics only on PS/2 systems.
+     3) Transfers data from system RAM to the hard disk adapter's internal
+        sector buffer.
+     4) No data is written to the physical disk drive.
+     5) This fn is for the XT hard disk controller only. It is "not defined"
+        for AT or PS/2 controllers.
+
+
+Function 10h    Test For Drive Ready                  (XT, AT, XT/286, PS/2)
+entry   AH      10h
+        DL      hard drive number 0 or 1 (80h-0FFh)
+return  CF      set on error
+                AH      status code (see 01h above)
+note 1) Tests whether the specified hard disk drive is operational and returns
+        the drive's status.
+     2) This function is supported on hard disks only.
+     3) Perstor and Novell controllers allow more than one controller. Does
+        not work for multiple Perstor controllers. (reports first two drives
+        only).
+     4) Does not work with network drives.
+
+
+Function 11h    Recalibrate Drive                      (XT, AT, XT/286, PS/2)
+entry   AH      11h
+        DL      hard drive number (80h-0FFh hard disk)
+return  CF      set on error
+                AH      status code (see 01h above)
+note 1) Causes the HD controller to recalibrate itself for the specified drive,
+        positioning the read/arm to cylinder 0, and returns the drive's status.
+     2) This function is for hard disks only.
+
+
+Function 12h    Controller RAM Diagnostics                (XT, Portable, PS/2)
+entry   AH      12h
+return  CF      set on error
+                AH      status code (see fn 01h above)
+note 1) Used for diagnostics only on PS/2 systems.
+     2) Makes the hard disk controller carry out a built-in diagnostic test on
+        its internal sector buffer.
+
+
+Function 13h    Controller Drive Diagnostic               (XT, Portable, PS/2)
+entry   AH      13h
+return  CF      set on error
+                AH      status code (see 01h above)
+note 1) Used for diagnostics only on PS/2 systems.
+     2) Causes HD controller to run internal diagnostic tests of the attached
+        drive, indicating whether the test was passed by the returned status.
+     3) This function is supported on XT HDs only.
+
+
+Function 14h    Controller Internal Diagnostic               (AT, XT/286)
+entry   AH      14h
+return  CF      set on error
+        AH      status code (see 01h above)
+note 1) OEM is Western Digital 1003-WA2 hard/floppy combination controller
+        in AT and XT/286.
+     2) Used for diagnostics only in PS/2 systems.
+     3) Causes HD controller to do a built-in diagnostic self-test, indicating
+        whether the test was passed by the returned status.
+     4) This function is supported on hard disks only.
+
+
+Function 15h    Get Disk Type                                (except PC and XT)
+entry   AH      15h
+        DL      drive ID
+                00h-7Fh   floppy disk
+                80h-0FFh  fixed disk
+return  CF      set on error
+                AH      error code (see 01h above)
+        AH      disk type
+                00h     no drive is present
+                01h     diskette, no change detection present
+                02h     diskette, change detection present
+                03h     hard disk
+                        CX:DX   number of 512-byte sectors
+note 1) Returns a code indicating the type of disk referenced by the specified
+        drive code.
+     2) This function is not supported on the PC or XT.
+
+
+Function 16h    Get Disk Change Status (diskette)      (except PC, XT, & Jr)
+entry   AH      16h
+        DL      drive to check
+return  CF      set on error
+        AH      disk change status
+                00h     no disk change
+                01h     disk changed
+        DL      drive that had disk change (00h-07Fh floppy disk)
+note    Returns the status of the change line, indicating whether the disk in
+        the drive may have been replaced since the last disk access. If this
+        function returns with CF set, the disk has not necessarily been
+        changed; the change line can be activated by simply unlocking and
+        relocking the disk drive door without removing the floppy disk.
+
+
+Function 17h    Set Disk Type for Format (diskette)          (except PC and XT)
+entry   AH      17h
+        AL      00h     not used
+                01h     160, 180, 320, or 360Kb diskette in 360kb drive
+                02h     360Kb diskette in 1.2Mb drive
+                03h     1.2Mb diskette in 1.2Mb drive
+                04h     720Kb diskette in 720Kb drive
+        DL      drive number (0-7)
+return  CF      set on error
+        AH      status of operation (see 01h above)
+note 1) This function is probably enhanced for the PS/2 series to detect
+        1.44 in 1.44 and 720k in 1.44.
+     2) This function is not supported for floppy disks on the PC or XT.
+     3) If the change line is active for the specified drive, it is reset.
+     4) The BIOS sets the data rate for the specified drive and media type.
+        The rate is 250k/sec for double-density media and 500k/sec for high
+        density media. The proper hardware is required.
+
+
+Function 18h    Set Media Type For Format  (diskette)   (AT, XT2, XT/286, PS/2)
+entry   AH      18h
+        CH      lower 8 bits of number of tracks
+        CL      high 2 bits of number of tracks (6,7) sectors per track
+                (bits 0-5)
+        DL      drive number (0-7)
+return  CF      clear   no errors
+        AH      00h      if requested combination supported
+                01h      if function not available
+                0Ch      if not suppported or drive type unknown
+                80h      if there is no media in the drive
+        ES:DI   pointer to 11-byte disk parameter table for media type
+        CF      set     error code (see 01h above)
+note 1) A floppy disk must be present in the drive.
+     2) This function should be called prior to formatting a disk with Int 13h
+        Fn 05h so the BIOS can set the correct data rate for the media.
+     3) If the change line is active for the specified drive, it is reset.
+
+
+Function 19h    Park Hard Disk Heads                         (PS/2)
+entry   AH      19h
+        DL      drive number (80h-0FFh)
+return  CF      set on error
+                AH      error code (see fn 01h)
+note    This function is defined for PS/2 fixed disks only.
+
+
+Function 1Ah    ESDI Hard Disk - Low Level Format                      (PS/2)
+entry   AH      1Ah
+        AL      Relative Block Address (RBA) defect table count
+                00h     no errors on disk
+                01h+    number of disk errors
+        CL      format modifiers byte
+           bits 0       ignore primary defect map
+                1       ignore secondary defect map
+                2       update secondary defect map
+                3       perform extended surface analysis
+                4       generate periodic interrupt after each cylinder format
+                5       reserved - must be 0
+                6       reserved - must be 0
+                7       reserved - must be 0
+        DL      drive  (80h-0FFh)
+        ES:BX   pointer to RBA defect table
+return  CF      set on error
+                AH      error code (see fn 01h above)
+note 1) Initializes disk sector and track address fields on a drive attached
+        to the IBM "ESDI Fixed Disk Drive Adapter/A."
+     2) If periodic interrupt selected, int 15h/fn 0Fh is called after each
+        cylinder is formatted
+     3) If bit 4 of CL is set, Int 15h, AH=0Fh, AL=phase code after each
+        cylinder is formatted or analyzed. The phase code is defined as:
+        0       reserved
+        1       surface analysis
+        2       formatting
+     4) If bit 2 of CL is set, the drive's secondary defect map is updated to
+        reflect errors found during surface analysis. If both bit 2 and bit 1
+        are set, the secondary defect map is replaced.
+     5) For an extended surface analysis, the disk should first be formatted by
+        calling this function with bit 3 cleared and then analyzed by calling
+        this function with bit 3 set.
+
+
+Function 1Bh    ESDI Hard Disk - Get Manufacturing Header       (PS/2)
+entry   AH      1Bh
+        AL      number of record
+        DL      drive
+        ES:BX   pointer to buffer for manufacturing header (defect list)
+return  CF      set on error
+        AH      status
+note    Manufacturing header format (Defect Map Record format) can be found
+        in the "IBM 70Mb, 115Mb Fixed Disk Drives Technical Reference."
+
+
+Function 1Ch    ESDI Hard Disk - Get Configuration                  (PS/2)
+entry   AH      1Ch
+        AL      0Ah     Get Device Configuration
+                        DL      drive
+                        ES:BX   pointer to buffer for device configuration
+                                (drive physical parameter)
+                0Bh     Get Adapter Configuration
+                        ES:BX   pointer to buffer for adapter configuration
+                0Ch     Get POS Information
+                        ES:BX   pointer to POS information
+                0Dh     unknown
+                0Eh     Translate RBA to ABA
+                        CH      low 8 bits of cylinder number
+                        CL      sector number, high two bits of cylinder number
+                                in bits 6 and 7
+                        DH      head number
+                        DL      drive number
+                        ES:BX   pointer to ABA number
+
+return  CF      set on error
+                AH      status (see 01h)
+note 1) Device configuration format can be found in IBM ESDI Fixed Disk Drive
+        Adapter/A Technical Reference.
+     2) ABA (absolute block address) format can be found in IBM ESDI Adapter
+        Technical Reference by using its Device Configuration Status Block.
+
+
+Function 1Dh    IBMCACHE.SYS                                (PS/2 50+)
+entry   AH      1Dh
+other parameters unknown
+note    IBMCACHE.SYS comes on the setup disk for MCA-bus PS/2 machines.
+
+
+Function 20h    Western Digital HD SuperBIOS
+entry   AH      20h
+other parameters unknown
+note    SuperBIOS may be purchased separately from Western Digital and added
+        to standard HD controllers. SuperBIOS contains additional setup
+        tables and parameters.
+

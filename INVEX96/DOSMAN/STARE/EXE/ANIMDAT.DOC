@@ -1,0 +1,279 @@
+               Animdat 1.1         Todd Sankey
+
+1.0  Notice
+
+This software is provided as is with no implicit guarantee, blah
+blah...
+
+In short, its free so use it if you want to. I ask nothing in
+return except that you notify me if you find anything wrong or
+have any suggested changes. If you feel an overwhelming need to
+alleviate the stark nature of my coffers, then any contributions
+will be gladly accepted and in return I will notify you of all
+future releases.
+
+
+     Versions
+
+1.1 : July 22, 1992
+Frank van der Hulst added % (mod) operator and ported it to a
+Sparcstation. I included his gcc make file.
+
+I added gate variables at his suggestion.
+
+I added the ability to compile with long scene names. The generated
+files are named "root_filename_nnn.dat" where nnn is the scene number.
+This is not the default however as for DOS machines it could exceed
+the 8 character limit on file names.
+
+I improved(?) the documentation after several complaints.
+(What do you mean you don't understand, you've got the source
+code!)
+
+1.0 : July 2, 1992
+ Original release.
+
+
+2.0  Usage guide
+
+Animdat allows you to create several files from a template
+file and a variable definition file. I use it for creating
+animation sequences from a template .DAT file for rendering using
+DKBTrace, so I will describe it in this context.
+
+Basically Animdat allows you to place variables inside any file.
+There are two main classes of variables supported: replacement
+variables and gate variables. Variables are identified by a name
+which must start with an alphabetic character, can be up to 256
+characters in length, and are case sensitive.
+
+Variable definitions in the .VAR file must be one definition per
+line (although blank lines are permissible) and must
+not exceed the maximum line length of 256 characters.
+
+Animdat reads and parses the variable definition (.VAR) file and
+then processes the template (.DAT) file to create the new files
+(scene files).
+
+
+2.1       Defining Variables
+
+Variables are defined in the .VAR file. Definitions come in
+three flavours: mathematical, file name, and string.
+
+2.1.1               Mathematical Variables
+
+A mathematical variable is one whose definition is a correct,
+mathematical expression using standard algebraic notation.
+The expression can include any legal operators, constant values,
+and variable names.
+
+The definition of a mathematical variable appears like:
+
+var_name = mathematical expression[, initial value]
+
+The comma and initial value are optional parameters which give
+the variable a predefined value. This allows a variable to be
+defined in terms of itself either directly or indirectly.
+
+eg.
+var_one = var_one + 1.0, 1.0
+
+This will create a variable called var_one which will start off
+with a value of 1.0 and will increment by 1 for every file
+generated.
+
+When ANIMDAT encounters a mathematical variable in the .DAT file,
+the variable is evaluated and its value (as a double precision
+floating point) is placed in the scene file.
+
+The supported operators are, in decreasing precedence:
+
+     unary -, +, sin, cos, tan, asin, acos, atan, log, exp, rnd
+     ^ (exponentiation)
+     *, /, % (modulo)
+     binary +, -
+     <, >, <=, >=, =
+
+Precedence can be overridden by using parentheses.
+
+Comparison operators (<, >, <=, >=, =) evaluate to a numerical
+1.0 if the condition is true and 0.0 if the condition is false.
+So they can be used to produce "multi-definition" variables.
+
+eg.
+scene = scene + 1.0, 0.0
+function = (scene < 10.5) * (1.0)  +  (scene>10.5) * (2.0)
+
+Here function will have the value 1.0 for the first 10 scenes and
+the value 2.0 for all subsequent scenes.
+In evaluating mathematical variables, ANIMDAT first checks if the
+variable is dependent on any other variables. If it is, these
+variables are updated and evaluated first.
+
+
+2.1.2               Filename Variables
+
+Filename variables allow a variable to get its value from another
+file. For example, if the values desired are beyond the
+capabilities of ANIMDAT's built in functions, they can be
+generated externally and placed in another file. Then define the
+variable as:
+
+var-name2 = #filename
+
+Every time the variable is evaluated, the file named is searched
+for the next numerical value. The variable then takes on that
+value. Filename variables can be used in the definition of
+mathematical variables.
+
+The named file must contain at least one value for each file
+generated. If it does not, its value is undetermined after
+running out of values.
+
+
+2.1.3               String Variables
+
+String variables replace the variable name in the template file
+with a literal string. Their value can not change from one scene
+file to the next, so it has only limited use. A string variable
+can not be used in the definition of any other variable.
+
+A string variable is defined as:
+
+var-name3 = "literal string"
+
+
+2.2       Using Variables
+
+
+Variables are used in the template (.DAT) file. Currently
+variables can be used in 2 main ways: replacement and gating.
+
+2.2.1               Using a Variable as a Replacement Variable
+
+Replacement variables are placed in the template (.DAT) file as
+@variable_name@. They are identified by the '@' character.
+
+In creating the scene files, the variable name
+in the .DAT file is replaced by its definition from the .VAR
+file after evaluating the variable. The evaluation depends on
+how it is defined: mathematical, file name, or string.
+
+eg.
+ - In the .VAR file -
+scene = scene + 1.0, 0
+
+ - In the .DAT template file -
+This is scene @scene@.
+
+This will produce files where in each file @scene@ will be replaced
+by the number of the generated file.
+
+
+
+2.2.2               Using a Variable as a Gate Variable
+
+Gate variables are used to conditionally include a block of text
+in the template file. They appear in the template file as:
+
+&variable_name
+:
+block of text
+&
+
+The block is started with the '&' character. Immediately
+following this with no white space in between is a variable name.
+The variable is evaluated and if its value is less than or equal
+to 0.0 then the block is NOT included in the generated file. If
+its value is greater than 0.0, the block is included in the
+generated file.
+
+The variable is defined in the .VAR file identically to a
+mathematical variable or a filename variable.
+
+eg.
+ - in the .VAR file -
+scene = scene + 1.0, 0.0
+gate_var = scene < 10.5
+
+ - in the .DAT file -
+&gate_var
+  some stuff
+&
+
+The block will be included in the first 10 files generated and in
+none of the subsequent files.
+
+The block must be terminated by a trailing '&' character. This
+terminator must be followed by at least 1 white space character.
+
+Blocks can be nested.
+
+
+
+2.3       Predefined Variables
+
+ANIMDAT includes three predefined variables: num_scenes,
+cur_scene, and x.
+
+
+num_scenes appears in the .VAR file and is used to define the
+number of files to be generated. Its definition is
+
+num_scenes = constant_value
+
+Where constant_value is any real number. Since fractional
+files are impossible, the value is truncated to the nearest lower
+integer. This definition must appear somewhere in the .VAR file
+or else an error will occur.
+
+cur_scene does not appear in the .VAR file but is simply a
+variable provided by ANIMDAT. Its definition is equivalent to:
+
+cur_scene = cur_scene + 1.0, 0.0
+
+so that it goes from 1 to num_scenes, incrementing by 1 for each
+generated file.
+
+x is a general-purpose variable that increases monatonically from
+0 to 1. Its equivalent definition is:
+
+x = cur_scene/num_scenes
+
+
+2.4       Comments
+Comments are allowed in the .VAR file like so: 
+
+{ comment }.
+
+The parser then interprets the comment as a space.
+
+
+2.5       The Command Line
+
+The command line for ANIMDAT is:
+
+animdat root_filename
+
+ANIMDAT then looks for "root_filename.dat" as the template file,
+and "root_filename.var" as the variable definition file.
+
+2.6       Examples
+
+Enclosed are two files: bball.var and bball.dat. Running:
+
+ animdat bball
+
+will produce 26 dat files (scene001.dat to scene026.dat) which when
+rendered and joined produce a realistic and mathematically
+accurate animation of a bouncing ball.
+
+
+3.0  The Author
+
+The author can be reached at:
+ sankey@unixg.ubc.ca
+
+                    Yours truly,
+                    Todd Sankey.

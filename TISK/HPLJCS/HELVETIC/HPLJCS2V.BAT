@@ -1,0 +1,3 @@
+@echo off
+echo Cekejte, probiha instalace fontu 1/20 VYSOKE pro tiskarnu...
+copy /b hpljcs2v.bin prn > nul

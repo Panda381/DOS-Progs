@@ -1,0 +1,107 @@
+Weitek
+
+  W5086
+  W5186    512K
+  W5286    1MB
+
+  Power 9000    Max 2MB. Not VGA compatible, but VGA chip can be added.
+  Power 9100    '94 version of 9000 with VGA part built in. can handle 4MB.
+
+
+
+
+W5x86:
+
+3C4h index  5  (W):  Control Register 0
+
+3C4h index  6  (W):  Control Register 1
+
+3C4h index 11h (R/W):  Misc
+bit   5  Clear to enable extensions
+      6  Clear to enable bank addressing
+Note to update this register first the it must be read and the value rewritten
+     twice, then the changed value can be written
+
+3C4h index 12h (R/W):  Output Control
+bit 5-6  3 for 640x480, 1 for 800x600, 0 else
+
+3C4h index 13h (R/W):  Memory Base
+bit 0-3  Base Memory address
+
+3CDh (R/W):  Bank Register
+bit 0-3  Write Bank
+    4-7  Read bank
+
+3CEh index 0Ch (W):  Extended Graphics
+bit   1  Clock select bit 2 (Bits 0-1 are in 3C2h/Ch bits 2-3).
+
+3CEh index 0Dh (R/W):
+bit 3-4  Display Start Address bit 16-17
+
+3d4h index 19h (R/W):  Interlace
+
+3d4h index 1Ah (R/W):  Serial Start High
+
+3d4h index 1Bh (R/W):  Serial Start Low
+
+3d4h index 1Ch (R/W):  Serial Offset
+
+
+ID Weitek VGA:
+
+  old:=rdinx(SEQ,$11);
+  outp(SEQ+1,old);
+  outp(SEQ+1,old);
+  outp(SEQ+1,inp(SEQ+1) or $20);
+  if not testinx(SEQ,$12) then
+  begin
+    x:=rdinx(SEQ,$11);
+    outp(SEQ+1,old);
+    outp(SEQ+1,old);
+    outp(SEQ+1,inp(SEQ+1) and $DF);
+    if testinx(SEQ,$12) and tstrg($3CD,$FF) then
+    begin
+      _Weitek chip_
+    end;
+  end;
+  wrinx(SEQ,$11,old);
+
+
+Video Modes:
+
+0054h  T   132   43
+0055h  T   132   25
+0056h  T   132   43  4color
+0057h  T   132   25  4color
+0058h  G   800  600   16c  PL4
+0059h  G   800  600   16c  PL4
+005Ch  G   800  600  256c  P8
+005Dh  G  1024  768   16c  PL4
+005Eh  G  1024  768  256c  P8
+005Fh  G   640  480  256c  P8
+0064h  T   132   60
+0065h  T   132   50
+0066h  T   132   60   4c
+0067h  T   132   50   4c
+0068h  T    80   60
+006Ah  G   800  600   16c  PL4
+006Ch  G   640  480  32Kc  P15
+006Dh  G   800  600  32Kc  P15
+006Eh  G   640  480  64Kc  P16
+006Fh  G   800  600  64Kc  P16
+
+
+
+Power 9000:
+
+3CDh (R/W):  Bank Register:
+bit 0-4  Bank number
+      5  Set if addressing Video Memory, clear if addressing the memory mapped
+         registers.
+Note: 10h maps the memory mapped registers at A000h, 20h-3Fh maps the 
+      Video Memory at A000h
+
+
+4386-9h  DAC
+8386-9h  DAC
+C386-9h  DAC

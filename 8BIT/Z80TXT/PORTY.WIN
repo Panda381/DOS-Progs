@@ -1,0 +1,326 @@
+
+
+
+                                P O R T Y   Z 8 0
+
+CPU-CTC (U 857)
+
+bit 0 = 0 - vektor pøerušení:
+                bit 0 = 0
+                bit 1 a bit 2 = adresa kanálu
+                bit 3 až bit 7 = adresa vektoru
+
+
+Øídicí slovo kanálu (zápis):
+
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|INT|MOD|DIV|FLA|STR|KON|SET| 1 |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |   bit:
+  |   |   |   |   |   |   |   +--> 0: oznaèení øídicího slova kanálu
+  |   |   |   |   |   |   |
+  |   |   |   |   |   |   +------> 1: 0=èítaè neovlivnìn; 1=zastavení èítaèe
+  |   |   |   |   |   |
+  |   |   |   |   |   +----------> 2: 0=není èas.konst.; 1=následuje èas.konst.
+  |   |   |   |   |
+  |   |   |   |   +--------------> 3: 0=start dalším strojovým cyklem
+  |   |   |   |                       1=start vnìjším signálem
+  |   |   |   |
+  |   |   |   +------------------> 4: 0=negativní hrana; 1=pozitivní hrana
+  |   |   |
+  |   |   +----------------------> 5: 0=pøeddìliè 1/16; 1=pøeddìliè 1/256
+  |   |
+  |   +--------------------------> 6: 0=èasovaè; 1=èítaè
+  |
+  +------------------------------> 7: 0=pøerušení zakázáno; 1=pøeruš. povoleno
+
+ètení: aktuální obsah èítaèe/èasovaèe
+
+
+CPU-PIO (U 855)
+
+bit 0 = 0: vektor pøerušení
+
+
+bit 0 = 1: øízení portu
+
+nastavení módu:
+ 7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|M1 |M0 | x | x | 1 | 1 | 1 | 1 |
++-+-+-+-+---+---+---+---+---+---+
+  |   | +---+
+  |   | |mód|
++-+-+-+-+---+-----------------------------------------------------------------+
+| 0 | 0 | 0 |   bajtový výstup                                                |
+| 0 | 1 | 1 |   bajtový vstup                                                 |
+| 1 | 0 | 2 |   bajtový vstup/výstup (pouze kanál A)                          |
+| 1 | 1 | 3 |   bitový vstup/výstup (následuje bajt definice 1=vstup/0=výstup)|
++---+---+---+-----------------------------------------------------------------+
+
+øízení pøerušení:
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|INT|AND|HIG|MAS| 0 | 1 | 1 | 1 |
++-+-+-+-+-+-+-+-+---+---+---+---+
+  |   |   |   |                  bit
+  |   |   |   +-----------------> 4: 1=následuje bajt masky (0=bit se projeví)
+  |   |   |
+  |   |   +---------------------> 5: 1=pøerušení zpùsobí úroveò HIGH bitu ("1")
+  |   |
+  |   +-------------------------> 6: 1=provádí se AND mezi bity; 0=OR mezi bity
+  |
+  +-----------------------------> 7: 1=pøerušení povoleno; 0=zákaz pøerušení
+
+
+zkrácené øízení pøerušení:
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|INT| x | x | x | 0 | 0 | 1 | 1 |
++-+-+---+---+---+---+---+---+---+
+  |                              bit
+  +-----------------------------> 7: 1=pøerušení povoleno; 0=zákaz pøerušení
+
+
+
+
+
+CPU-SIO (U 856)
+
+
+zápis:
+
+WR0: nastavení registru a reset stavù SIO
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   |  volba registru:
+  |   |   |   |   |   0   0   0    registr 0
+  |   |   |   |   |   0   0   1    registr 1
+  |   |   |   |   |   0   1   0    registr 2
+  |   |   |   |   |   0   1   1    registr 3
+  |   |   |   |   |   1   0   0    registr 4
+  |   |   |   |   |   1   0   1    registr 5
+  |   |   |   |   |   1   1   0    registr 6
+  |   |   |   |   |   1   1   1    registr 7
+  |   |   |   |   |
+  |   |   |   |   |
+  |   |   0   0   0   nulový povel
+  |   |   0   0   1   pøerušení vysílání
+  |   |   0   1   0   reset pøerušení od externího statutu kanálu
+  |   |   0   1   1   reset kanálu
+  |   |   1   0   0   uvolnìní INT pro následující pøijatý znak
+  |   |   1   0   1   reset vysílání - INT pending
+  |   |   1   1   0   reset chyby
+  |   |   1   1   1   RETI (pouze kanál A)
+  |   |
+  |   |
+  0   0   nulový kód
+  0   1   reset bufferu CRC pøijímaèe
+  1   0   reset generátoru CRC vysílaèe
+  1   1   reset CRC/stavové buòky SYNC v RR0
+
+
+WR1: Nastavení zpùsobu pøerušení a funkce WAIT/READY
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   1=uvolnìní pøerušení vnìjším stavem
+  |   |   |   |   |   |   |
+  |   |   |   |   |   |   1=uvolnìní pøerušení vysílaèem
+  |   |   |   |   |   |
+  |   |   |   |   |   1=statut ovlivòuje vektor pøerušení (pouze kanál B)
+  |   |   |   |   |
+  |   |   |   0   0  zákaz pøerušení od pøijímaèe
+  |   |   |   0   1  pøerušení od pøijímaèe pouze prvním znakem nebo chybou
+  |   |   |   1   0  pøerušení každým pøijatým znakem (parita ovlivní vektor)
+  |   |   |   1   1  pøerušení každým pøijatým znakem (parita neovlivní vektor)
+  |   |   |
+  |   |   0=WAIT/READY pøi zaplnìní vysílaèe
+  |   |   1=WAIT/READY pøi prázdném pøijímaèi
+  |   |
+  |   0=funkce WAIT
+  |   1=funkce READY
+  |
+  uvolnìní WAIT/READY
+
+
+WR2: Vektor pøerušení (pouze kanál B)
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|V7 |V6 |V5 |V4 |V3 |V2 |V1 | 0 |
++---+---+---+---+-+-+-+-+-+-+---+
+                  |   |   |
+                  0   0   0  kanál B: vysílací buffer je prázdný
+                  0   0   1  kanál B: zmìna externího stavu
+                  0   1   0  kanál B: je pøipraven pøijatý znak
+                  0   1   1  kanál B: zvláštní podmínky pøíjmu
+                  1   0   0  kanál A: vysílací buffer je prázdný
+                  1   0   1  kanál A: zmìna externího stavu
+                  1   1   0  kanál A: je pøipraven pøijatý znak
+                  1   1   1  kanál A: zvláštní podmínky pøíjmu
+                (V1 až V3 jsou ovlivnìni stavem pouze je-li D2(WR1)=0)
+
+
+
+
+
+
+
+
+WR3: Nastavení parametrù pøijímaèe
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   uvolnìní pøijímaèe
+  |   |   |   |   |   |   |
+  |   |   |   |   |   |   blokování pøíjmu synchronizaèního znaku 16H
+  |   |   |   |   |   |
+  |   |   |   |   |   pracovní režim hledání adresy SDLC
+  |   |   |   |   |
+  |   |   |   |   uvolnìní CRC pøijímaèe
+  |   |   |   |
+  |   |   |   zahájení hledací fáze (HUNT-phase)
+  |   |   |
+  |   |   uvolnìní dálkové obsluhy (Auto Enables) - ovládání signály CTS a DCD
+  |   |
+  0   0   pøijímaè: 5 bitù na znak
+  0   1   pøijímaè: 7 bitù na znak
+  1   0   pøijímaè: 6 bitù na znak
+  1   1   pøijímaè: 8 bitù na znak
+
+
+WR4: Nastavení režimu pøijímaèe a vysílaèe
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   pøenos s paritou
+  |   |   |   |   |   |   |
+  |   |   |   |   |   |   0=lichá parita; 1=sudá parita
+  |   |   |   |   |   |
+  |   |   |   |   0   0  synchronní pracovní režim
+  |   |   |   |   0   1  1 stop-bit     -+
+  |   |   |   |   1   0  1 1/2 stop-bit  +- asynchronní pracovní režim
+  |   |   |   |   1   1  2 stop-bity    -+
+  |   |   |   |
+  |   |   0   0  monosynchronní mód (8-bitový synchronizaèní znak) -+  volby
+  |   |   0   1  bisynchronní mód (16-bitový synchronizaèní znak)   +-  pro
+  |   |   1   0  mód SDLC=hledání adresy (návìští 01111110=7eh)     | synchronní
+  |   |   1   1  mód s externí synchronizací                       -+  provoz
+  |   |
+  0   0  dìlení taktu TxC a RxC 1/1
+  0   1  dìlení taktu TxC a RxC 1/16
+  1   0  dìlení taktu TxC a RxC 1/32
+  1   1  dìlení taktu TxC a RxC 1/64
+
+
+WR5: Nastavení parametrù vysílaèe
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   uvolnìní CRC vysílaèe
+  |   |   |   |   |   |   |
+  |   |   |   |   |   |   požadavek k vysílání (RTS)
+  |   |   |   |   |   |
+  |   |   |   |   |   0=mód SDLC-CRC (hledání adresy); 1=mód CRC-16
+  |   |   |   |   |
+  |   |   |   |   uvolnìní vysílaèe
+  |   |   |   |
+  |   |   |   pøerušení vysílání
+  |   |   |
+  |   0   0  vysílaè: 5 bitù na znak
+  |   0   1  vysílaè: 7 bitù na znak
+  |   1   0  vysílaè: 6 bitù na znak
+  |   1   1  vysílaè: 8 bitù na znak
+  |
+  vysílání v provozu (DTR)
+
+
+WR6: vysílací synch.bajt (MONO-SYNC), 1.synch.bajt (BI-SYNC), adresa pro SDLC
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+
+WR7: pøijím. synch.bajt (MONO-SYNC), 2.synch.bajt (BI-SINC), návìští SDLC (7Eh)
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+
+ètení:
+
+RR0: Stavové informace vnitøního stavu SIO
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   v pøijímacím bufferu pøipraven znak
+  |   |   |   |   |   |   |
+  |   |   |   |   |   |   pøerušení probíhá
+  |   |   |   |   |   |
+  |   |   |   |   |   vysílací buffer prázdný
+  |   |   |   |   |
+  |   |   |   |   DCD
+  |   |   |   |
+  |   |   |   SYNC/HUNT
+  |   |   |
+  |   |   CTS
+  |   |
+  |   vyslání znaku CRC resp. SYNC
+  |
+  pøerušení
+
+
+RR1: stavové bity zvláštních pøíjmových podmínek
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   vysílaè prázdný
+  |   |   |   |   |   |   |
+  |   |   |   |   0   0   0
+  |   |   |   |   0   0   1
+  |   |   |   |   0   1   0
+  |   |   |   |   0   1   1
+  |   |   |   |   1   0   0
+  |   |   |   |   1   0   1
+  |   |   |   |   1   1   0
+  |   |   |   |   1   1   1
+  |   |   |   |
+  |   |   |   chyba parity
+  |   |   |
+  |   |   chyba pøeteèení pøijímaèe
+  |   |
+  |   chyba rámu CRC
+  |
+  konec rámu (SDLC)
+
+
+RR2: vektor pøerušení (V1 až V3 jsou ovlivnìni stavem pouze je-li D2(WR1)=0)
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+|V7 |V6 |V5 |V4 |V3 |V2 |V1 | 0 |
++---+---+---+---+-+-+-+-+-+-+---+
+                  |   |   |
+                  0   0   0  kanál B: vysílací buffer je prázdný
+                  0   0   1  kanál B: zmìna externího stavu
+                  0   1   0  kanál B: je pøipraven pøijatý znak
+                  0   1   1  kanál B: zvláštní podmínky pøíjmu
+                  1   0   0  kanál A: vysílací buffer je prázdný
+                  1   0   1  kanál A: zmìna externího stavu
+                  1   1   0  kanál A: je pøipraven pøijatý znak
+                  1   1   1  kanál A: zvláštní podmínky pøíjmu
+

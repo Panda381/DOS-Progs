@@ -1,0 +1,539 @@
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³                                                                              ³
+³                      The Ad Lib Music Synthesizer Card                       ³
+³                                                                              ³
+³                      P R O G R A M M I N G   G U I D E                       ³
+³                                                                              ³
+³                                                                              ³
+³                            Written by Tero T”tt”                             ³
+³                                                                              ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+
+        CHAPTER 1: DESCRIPTION OF THE SYNTHESIZER               1
+
+                Operators                                       1
+                Operating Modes                                 1
+                Melodic and Percussive Mode                     2
+
+        CHAPTER 2: PROGRAMMING THE SYNTHESIZER                  3
+
+                Card location in I/O channel                    3
+                Card addresses                                  3
+
+        CHAPTER 3: ALMSC REGISTER MAP                           4
+
+                Status Register                                 4
+                Write registers                                 4
+                Operator offsets                                4
+                Channel formation                               5
+
+        CHAPTER 4: ALMSC REGISTER REFERENCE                     6
+
+                Status Register                                 6
+                Registers 01h - 04h                             6
+                Registers 08h - 55h                             7
+                Registers 60h - BDh                             8
+                Registers C0h - F5h                             9
+
+        APPENDIX A: INSTRUMENT BANK (.BNK) FILE STRUCTURE       10
+
+        APPENDIX B: NOTE FREQUENCIES                            11
+
+
+
+
+
+
+
+
+DISCLAIMER:     IN NO EVENT WILL I BE LIABLE TO YOU FOR ANY DAMAGES, INCLUDING
+                ANY LOST OF PROFITS, LOST SAVINGS OR OTHER INCIDENTIAL OR
+                CONSEQUENTIAL DAMAGES ARISING OUT OF YOUR USE OR INABILITY TO
+                USE THIS MANUAL, OR FOR ANY OTHER CLAIM BY ANY OTHER PARTY.
+
+TRADEMARKS:     Ad Lib is registered trademark of Ad Lib Inc.
+
+COPYRIGHT:      This manual can be distributed freely if not modified.
+
+
+                        DESCRIPTION OF THE SYNTHESIZER                       (1)
+                        ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+Ad Lib Synthesizer is made up of oscillators and envelope generators. An
+oscillator, an envelope generator, and a level controller are linked together
+to form an "operator":
+
+     ÚÄÄÄÄÄÄÄÄÄÄÄÄ¿  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     ³ Oscillator ÃÄ>³ Envelope Generator ÃÄ>³ Level Controller ÃÄÄ> OUTPUT
+     ÀÄÄÄÄÄÄÄÄÄÄÄÄÙ  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+The Ad Lib Music Synthesizer card (ALMSC) contains 18 operators which are
+generally grouped into pairs in order to produce instrumental sounds. The
+operators can be combined in three different ways:
+
+        * FM synthesis uses two operators in series. The first operator,
+          the modulator, modulates the second operator, the carrier, via
+          its modulation data input.
+
+
+                                ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+                Frequency       ³  Operator   ³  ³  Operator   ³
+                Modulation      ³     1.      ÃÄ>³     2.      ÃÄ> SPEAKER
+                synthesis       ³ (Modulator) ³  ³  (Carrier)  ³
+                                ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+        * Additive synthesis uses two operators in parallel, adding both
+          outputs together. This method of synthesis is not as interesting
+          as FM synthesis, but it can generate good organ-type sounds.
+
+
+                                ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+                                ³  Operator   ³
+                                ³     1.      ÃÄÄ¿
+                                ³             ³  ³
+                Additive        ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ³
+                synthesis                        ÃÄ> SPEAKER
+                                ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ³
+                                ³  Operator   ³  ³
+                                ³     2.      ÃÄÄÙ
+                                ³             ³
+                                ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+        * Composite sine wave synthesis (CSW) may be used to generate speech
+          or other related sounds by playing all 9 voices simultaneously. When
+          using this method, the card cannot generate any other sounds. This
+          mode is not explained here, because other methods have proved to
+          provide better quality speech.
+
+
+The ALMSC produces either 9 melodic sounds or 6 melodic sounds and 5         (2)
+percussion instruments. For the 9 melodic sounds, the operators are
+grouped in pairs. For the percussion mode, the opearators are arranged
+as follows:
+
+        * 6 melodic instruments (12 operators)
+        * 1 Bass Drum (2 operators)
+        * 1 Snare Drum (1 operator)
+        * 1 Tom-Tom (1 operator)
+        * 1 Cymbal (1 operator)
+        * 1 Hi-Hat (1 operator)
+
+        Because ALMSC has only 9 registers for frequency information (one for
+        each melodic channel), Cymbal and Hi-Hat pitches are fixed.
+
+
+In percussion mode, a white noise generator is used to create rhythm sounds.
+This white noise generator uses voices 7 and 8 (Snare Drum and Tom-Tom)
+frequency information (Block, Frequency Number, Multiplication), and the proper
+phase output. Various rhythm sounds are produced by combining this output signal
+with white noise. The result is then sent to the operators. Best ratio for the
+two frequencies is 3:1 (Snare Drum frequency = 3 * Tom-Tom frequency). Finally,
+envelope information is multiplied with the wave table output. As the envelope
+is set for one operator which corresponds to a single rhythm instrument, the
+values are set in the parameter registers in the same manner as for melodic
+instruments.
+
+
+
+
+                        PROGRAMMING THE SYNTHESIZER                          (3)
+                        ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+The ALMSC may be located at four different addresses:
+
+        218h , 288h , 318h , 388h
+
+
+The port address is currently hard-wired to 388h, but jumpers may be added in
+the future, so you should take into account the possibility of using different
+addresses when programming. Later on this manual, I will refer only to the
+address 388h.
+
+The card decodes two addresses:
+
+        388h  -  Index register (write), Status register (read)
+        389h  -  Data register (write only)
+
+
+The index register is used to select the register address, and then data is
+written to data register. Status register returns the state of two timers on
+the card.
+
+Because of the nature of the card, you must wait 3.3 æsec after a register
+select write, and 23 æsec after a data write. Best way to handle this is to read
+ALMSC status register in loop, because bus speed is always the same regardless
+of processor speed. 6 reads after register select write and 36 reads after data
+write should do the job.
+
+
+                        ALMSC REGISTER MAP:                                  (4)
+                        ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+Status Register (388h):
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³   D7       D6       D5       D4       D3       D2       D1       D0   ³
+ÃÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄ´
+³IRQFlag ³ T1Flag ³ T2Flag ³                                            ³
+ÀÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+Write Registers (389h):
+ÚÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ REG ³   D7       D6       D5       D4       D3       D2       D1       D0   ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄ´
+³ 01  ³                 ³WSEnable³               Test Register                ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 02  ³                  Timer 1 Count (80 æsec resolution)                   ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 03  ³                  Timer 2 Count (320 æsec resolution)                  ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ´
+³ 04  ³IRQReset³ T1Mask ³ T2Mask ³                          ³T2 Start³T1 Start³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄ´
+³ 08  ³  CSW   ³NOTE-SEL³                                                     ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³20-35³Tremolo ³Vibrato ³Sustain ³  KSR   ³  Frequency Multiplication Factor  ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³40-55³ Key Scale Level ³                    Output Level                     ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³60-75³            Attack Rate            ³            Decay Rate             ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³80-95³           Sustain Level           ³           Release Rate            ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³A0-A8³                  Frequency Number  ( Lower 8 bits )                   ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³B0-B8³                 ³ KEY-ON ³       Block Number       ³ F-Num (hi bits) ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ´
+³ BD  ³Trem Dep³Vibr Dep³PercMode³ BD On  ³ SD On  ³ TT On  ³ CY On  ³ HH On  ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄ´
+³C0-C8³                                   ³FeedBack Modulation Factor³Additive³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄ´
+³E0-F5³                                                     ³ Waveform Select ³
+ÀÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+For some of the parameters, there is one register per output channel. For those
+parameters, channel number can be used as an offset into the map. For many
+parameters, there is one register per operator. However, there are holes in the
+address map so that in this case, the operator number CANNOT be used as an
+offset. The operator offsets for those registers are (in hex form):
+
+ÚÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ OPR ³ 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18 ³
+ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ OFS ³ 00  01  02  03  04  05  08  09  0A  0B  0C  0D  10  11  12  13  14  15 ³
+ÀÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+The next two tables illustrates which operators together form a channel:     (5)
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³              M E L O D I C   M O D E              ³
+ÃÄÄÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄ´
+³ CHAN ³ 0  ³ 1  ³ 2  ³ 3  ³ 4  ³ 5  ³ 6  ³ 7  ³ 8  ³
+ÃÄÄÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ´
+³ OPR1 ³ 1  ³ 2  ³ 3  ³ 7  ³ 8  ³ 9  ³ 13 ³ 14 ³ 15 ³
+³ OPR2 ³ 4  ³ 5  ³ 6  ³ 10 ³ 11 ³ 12 ³ 16 ³ 17 ³ 18 ³
+ÀÄÄÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÙ
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³                P E R C U S S I O N   M O D E                ³
+ÃÄÄÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄ´
+³ CHAN ³ 0  ³ 1  ³ 2  ³ 3  ³ 4  ³ 5  ³ BD ³ SD ³ TT ³ CY ³ HH ³
+ÃÄÄÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ´
+³ OPR1 ³ 1  ³ 2  ³ 3  ³ 7  ³ 8  ³ 9  ³ 13 ³ 17 ³ 15 ³ 18 ³ 14 ³
+³ OPR2 ³ 4  ³ 5  ³ 6  ³ 10 ³ 11 ³ 12 ³ 16 ³    ³    ³    ³    ³
+ÀÄÄÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÙ
+
+
+
+
+                       ALMSC REGISTER REFERENCE:                             (6)
+                       ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+Status Register:
+
+        D7      IRQ Flag. Set if D5 and/or D6 are/is set.
+        D6      Timer 1 Flag. Set when the preset time in Timer 1 has elapsed.
+        D5      Timer 2 Flag. Set when the preset time in Timer 2 has elapsed.
+
+        Timer interrupts are not wired, but the timers can be used to detect
+        the presence of the card as follows:
+
+                1.      Reset T1 and T2: write 60h to register 4.
+                2.      Reset the IRQ: write 80h to register 4.
+                3.      Read status register: read at 388h. Save the result.
+                4.      Set timer 1 to FFh: write FFh to register 2.
+                5.      Unmask and start timer 1: write 21h to register 4.
+                6.      Wait in a delay loop for at least 80 æsec.
+                7.      Read status register: read at 388h. Save the result.
+                8.      Reset T1,T2 and IRQ as in steps 1 and 2.
+                9.      Test the results of the two reads: the first should
+                        be 0, the second should be C0h. If either is incorrect,
+                        then the ALMSC is not presents.
+                        NOTE1: You should AND the result bytes with E0h because
+                               the unused bits are undefined.
+                        NOTE2: This testing method doesn't work in SoundBlaster.
+
+
+01: Test Register / WSE:
+
+        D5      Waveform Select Enable. If clear, all channels will use normal
+                sine wave. If set, register E0-F5 (WS) contents will be used.
+        D4-D0   Test Register, must be reset to zero before any operation.
+
+
+02: Timer 1 Count:
+
+        Upward 8 bit counter with a resolution of 80 æsec. If an overflow
+        occurs, the status register bit is set, and the preset value is
+        loaded into the timer again.
+
+
+03: Timer 2 Count:
+
+        Same as Timer 1, but with a resolution of 320 æsec.
+
+
+04: IRQ-Reset / Mask / Start:
+
+        D7      IRQ-Reset. Resets timer and IRQ flags in status register.
+                All other bits are ignored when this bit is set.
+        D6      Timer 1 Mask. If 1, status register is not affected in overflow.
+        D5      Timer 2 Mask. Same as above.
+        D1      Timer 2 Start. Timer on/off.
+        D0      Timer 1 Start. Same as above.
+
+
+08: CSW / NOTE-SEL:                                                          (7)
+
+        D7      Composite sine wave mode on/off.
+        D6      NOTE-SEL. Controls the split point of the keyboard. When 0, the
+                keyboard split is the second bit from the bit 8 of the F-Number.
+                When 1, the MSb of the F-Number is used.
+
+
+20-35: Tremolo / Vibrato / Sustain / KSR / Frequency Multiplication Factor:
+
+        D7      Tremolo (Amplitude vibrato) on/off.
+        D6      Frequency vibrato on/off.
+        D5      Sound Sustaining. When 1, operator's frequency will be held at
+                its sustain level until a KEY-OFF is done.
+        D4      Envelope scaling (KSR) on/off. When 1, higher notes are shorter
+                than lower notes.
+        D3-D0   Frequency Multiplication Factor (MULTI):
+
+                        ÚÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ¿
+                        ³ MULTI ³ Factor ³
+                        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄ´
+                        ³   0   ³    «   ³
+                        ³   1   ³    1   ³
+                        ³   2   ³    2   ³
+                        ³   3   ³    3   ³
+                        ³   4   ³    4   ³
+                        ³   5   ³    5   ³
+                        ³   6   ³    6   ³
+                        ³   7   ³    7   ³
+                        ³   8   ³    8   ³
+                        ³   9   ³    9   ³
+                        ³  10   ³   10   ³
+                        ³  11   ³   10   ³
+                        ³  12   ³   12   ³
+                        ³  13   ³   12   ³
+                        ³  14   ³   15   ³
+                        ³  15   ³   15   ³
+                        ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÙ
+
+40-55: Key Scale Level / Output Level:
+
+        D7-D6   Key Scale Level. Attenuates output level towards higher pitch:
+
+                        ÚÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+                        ³ KSL ³ Attenuation ³
+                        ÃÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+                        ³  0  ³ -           ³
+                        ³  1  ³ 1.5 dB/oct  ³
+                        ³  2  ³ 3.0 dB/oct  ³
+                        ³  3  ³ 6.0 dB/oct  ³
+                        ÀÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+        D5-D0   Output Level. Attenuates the operators output level. In additive
+                synthesis, varying the output level of any operator varies the
+                volume of its corresponding channel. In FM synthesis, varying
+                the output level of the carrier varies the volume of the channel.
+                Varying the output of then modulator will change the frequency
+                spectrum produced by the carrier.
+
+
+60-75: Attack Rate / Decay Rate:                                             (8)
+
+        D7-D4   Attack Rate. Determines the rising time for the sound. The
+                higher the value, the faster the attack.
+        D3-D0   Decay Rate. Determines the diminishing time for the sound.
+                The higher the value, the shorter the decay.
+
+
+80-95: Sustain Level / Release Rate:
+
+        D7-D4   Sustain Level. Determines the point at which the sound ceases
+                to decay and chages to a sound having a constant level. The
+                sustain level is expressed as a fraction of the maximum level.
+                Note that the Sustain-bit in the register 20-35 must be set for
+                this to have an effect.
+        D3-D0   Release Rate. Determines the rate at which the sound disappears
+                after KEY-OFF. The higher the value, the shorter the release.
+
+
+A0-A8: Frequency Number:
+
+        Determines the pitch of the note. Highest bits of F-Number are stored
+        in the register below.
+
+
+B0-B8: Key On / Block Number / F-Num(hi bits):
+
+        D5      KEY-ON. When 1, channels output is enabled.
+        D4-D2   Block Number. Roughly determines the octave.
+        D1-D0   Frequency Number. 2 highest bits of the above register.
+
+        The following formula is used to determine F-Number and Block:
+
+                F-Num = Music Frequency * 2^(20-Block) / 49716 Hz
+
+
+BD: Trem Dep / Vibr Dep / PercMode / BD/SD/TT/CY/HH On:
+
+        D7      Tremolo (Amplitude Vibrato) Depth. 0 = 1.0dB, 1 = 4.8dB.
+        D6      Frequency Vibrato Depth. 0 = 7 cents, 1 = 14 cents.
+                A "cent" is 1/100 of a semi-tone.
+        D5      Percussion Mode. 0 = Melodic Mode, 1 = Percussion Mode.
+        D4      BD On. KEY-ON of the Bass Drum channel.
+        D3      SD On. KEY-ON of the Snare Drum channel.
+        D2      TT On. KEY-ON of the Tom-Tom channel.
+        D1      CY On. KEY-ON of the Cymbal channel.
+        D0      HH On. KEY-ON of the Hi-Hat channel.
+
+
+C0-C8: FeedBack Modulation Factor / Additive:                                (9)
+
+        D3-D1   FeedBack Modulation Factor:
+
+                        ÚÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ¿
+                        ³ MULTI ³ Factor ³
+                        ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄ´
+                        ³   0   ³   0    ³
+                        ³   1   ³  ã/16  ³
+                        ³   2   ³  ã/8   ³
+                        ³   3   ³  ã/4   ³
+                        ³   4   ³  ã/2   ³
+                        ³   5   ³   ã    ³
+                        ³   6   ³  2ùã   ³
+                        ³   7   ³  4ùã   ³
+                        ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÙ
+
+        D0      Additive. 1 = Additive synthesis, 0 = Frequency Modulation
+
+
+E0-F5: Waveform Select:
+
+        D7-D2   Not used
+        D1-D0   WaveForm Select (WS):
+
+                        ÚÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄ¿
+                        ³ WS ³ WaveForm   ³
+                        ÃÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄ´
+                        ³ 00 ³ Sine       ³
+                        ³ 01 ³ Half-Sine  ³
+                        ³ 10 ³ Abs-Sine   ³
+                        ³ 11 ³ Pulse-Sine ³
+                        ÀÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+                APPENDIX A: INSTRUMENT BANK (.BNK) FILE STRUCTURE           (10)
+                ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+Field   Size    Type            Description
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+                                HEADER SECTION
+1       1       byte            file version, major
+2       1       byte            file version, minor
+3       6       byte            signature: "ADLIB-"
+4       2       integer         number of list entries used
+5       2       integer         total number of list entries in file
+6       4       longint         absolute offset in file of start of name list
+7       4       longint         absolute offset in file of start of data
+8       8       byte            pad (set to zero)
+
+                                INSTRUMENT NAME SECTION RECORD
+1       2       integer         index into data section
+2       1       byte            flag: 0 if record used, else 1
+3       9       byte            instrument name (max 8 chars + NULL)
+
+                                DATA SECTION RECORD
+1       1       byte            mode (0=melodic,1=percussion)
+2       1       byte            voice number (if percussion mode)
+
+modulator (operator 0) parameters:
+3       1       byte            key scale level
+4       1       byte            frequency multiplier
+5       1       byte            feedback modulation factor
+6       1       byte            attack rate
+7       1       byte            sustain level
+8       1       byte            sound sustaining
+9       1       byte            dacay rate
+10      1       byte            release rate
+11      1       byte            output level
+12      1       byte            amplitude vibrato (tremolo)
+13      1       byte            frequency vibrato
+14      1       byte            envelope scaling
+15      1       byte            0=FM synthesis, 1=additive synthesis
+
+carrier (operator 1) parameters (for melodic channels and bassdrum only):
+3       1       byte            key scale level
+4       1       byte            frequency multiplier
+5       1       byte            feedback modulation factor
+6       1       byte            attack rate
+7       1       byte            sustain level
+8       1       byte            sound sustaining
+9       1       byte            dacay rate
+10      1       byte            release rate
+11      1       byte            output level
+12      1       byte            amplitude vibrato (tremolo)
+13      1       byte            frequency vibrato
+14      1       byte            envelope scaling
+15      1       byte            unused
+
+29      1       byte            waveform for modulator
+30      1       byte            waveform for carrier
+
+                        APPENDIX B: NOTE FREQUENCIES                        (11)
+                        ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+The following table contains frequencies in Hertz for the notes in octaves
+1 to 8. Middle C is in octave 5.
+
+ÚÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ¿
+³ NOTE ³   1    ³   2    ³   3    ³   4    ³   5    ³   6    ³   7    ³   8    ³
+ÃÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄ´
+³  C   ³ 16.352 ³ 32.703 ³ 65.406 ³ 130.81 ³*261.63*³ 523.25 ³ 1046.5 ³ 2093.0 ³
+³  C#  ³ 17.324 ³ 34.648 ³ 69.295 ³ 138.59 ³ 277.18 ³ 554.37 ³ 1108.7 ³ 2217.5 ³
+³  D   ³ 18.354 ³ 36.708 ³ 73.416 ³ 146.83 ³ 293.66 ³ 587.33 ³ 1174.7 ³ 2349.3 ³
+³  D#  ³ 19.445 ³ 38.890 ³ 77.781 ³ 155.56 ³ 311.13 ³ 622.25 ³ 1244.5 ³ 2489.0 ³
+³  E   ³ 20.601 ³ 41.203 ³ 82.406 ³ 164.81 ³ 329.63 ³ 659.26 ³ 1318.5 ³ 2637.0 ³
+³  F   ³ 21.826 ³ 43.653 ³ 87.307 ³ 174.61 ³ 349.23 ³ 698.46 ³ 1396.9 ³ 2793.8 ³
+³  F#  ³ 23.124 ³ 46.249 ³ 92.499 ³ 184.99 ³ 369.99 ³ 739.99 ³ 1480.0 ³ 2960.0 ³
+³  G   ³ 24.499 ³ 48.999 ³ 97.998 ³ 195.99 ³ 391.99 ³ 783.99 ³ 1568.0 ³ 3136.0 ³
+³  G#  ³ 25.956 ³ 51.913 ³ 103.82 ³ 207.65 ³ 415.31 ³ 830.61 ³ 1661.2 ³ 3322.4 ³
+³  A   ³ 27.500 ³ 55.000 ³ 110.00 ³ 220.00 ³ 440.00 ³ 880.00 ³ 1760.0 ³ 3520.0 ³
+³  A#  ³ 29.135 ³ 58.270 ³ 116.54 ³ 233.08 ³ 466.16 ³ 932.32 ³ 1864.7 ³ 3729.3 ³
+³  B   ³ 30.867 ³ 61.735 ³ 123.47 ³ 246.94 ³ 493.88 ³ 987.77 ³ 1975.5 ³ 3951.1 ³
+ÀÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÙ
+

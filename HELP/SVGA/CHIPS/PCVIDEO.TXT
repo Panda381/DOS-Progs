@@ -1,0 +1,198 @@
+Chips&Tech PC Video Video Windowing Controller
+
+82c9001A
+
+The CT 82c9001 is used for framegrabbers like the Video Blaster.
+
+
+
+index 00h (R/W): I/O Address Register
+bit  1-7  These bits determine the lower 8 bits of the address the card
+          responds at. If CS/ is low on RESET this register is initialised to
+          0D6h. If CD/ is high on RESET the register is loaded with the value
+          on the databus during the first write to the chip.
+
+index 01h (R/W): Memory Access Register
+bit    4  If set the VRAM Write Mask is enabled.
+
+index 06h (R/W): Linear Memory Base Address Register
+bit  0-3  Starting Address of the linear in 1MB units.
+
+index 07h (R/W): Data Mask Register, Luminance Data
+bit  0-7  A set bit enables the corresponding bits in each byte of the
+          Luminance data to be modified during data acquisition.
+
+index 08h (R/W): Data Mask Register, Chrominance Data
+bit  0-7  A set bit enables the corresponding bits in each byte of the
+          Chrominance data to be modified during data acquisition.
+
+index 09h (R/W): Interrupt Mask Register
+bit    0  If set Video Even Vsync Interrupt is enabled.
+       1  If set Video Odd Vsync Interrupt is enabled.
+       2  (R) Video Vsync
+       3  (R) Video Field. 0=Even, 1=Odd
+       4  (R) VGA VSync
+       5  (R) VGA HSync
+
+index 10h-13h General Purpose I/O Register 0-3
+
+index 18h (R/W): General Purpose I/O Control Register
+bit    0  I2C Bus Clock. Reads/Writes the I2CK pin
+       1  I2C Bus Data. Reads/Writes the I2CO pin
+       2  I2C bus read back input pin I2CI. This pin should be tied to I2CO.
+       4  If clear enables decode of R10 on GPIO0.
+       5  If clear SCSMAT is output on GPOI1, else enables decode of R11 on
+          GPIO1.
+       6  If clear enables decode of R12 on GPIO2.
+       7  If clear enables decode of R13 on GPIO3.
+
+index 20h (R/W): Video Acquisition Mode Register
+bit    0  If set start video acquisition. Type of acquisition determined by
+          bits 1-3. If set Stop Acquisition and allow access to video memory.
+          After an Acquisition this bit should be tested before accessing
+          video memory.
+       1  If clear Continuos Video Acquisition, if set Acquire only a field or
+          frame (see bit 2). Bit 0 cleared at the end of acquisition.
+       2  If clear Acquire a video frame (full picture), if set (only for
+          interlaced video) acquire only a field.
+       3  If clear Acquire an even (first) field, if set Acquire an odd
+          (second) field.
+       4  If set Video Hsync is active high.
+       5  If set Video Vsync is active high.
+       7  If clear video input is interlaced.
+
+index 21h (R/W): Acquisition Window Control Register
+bit    0  If set Video Input Cropping is enabled.
+       1  If set capture outside cropping window, if clear capture inside
+          cropping window.
+       2  If set Horizontal Video Input Scaling is enabled.
+       3  If set Vertical Video Input Scaling is enabled.
+       4  Video Input Data Multiplexing. If set the input is non-multiplexed
+          (i.e.. RGB), if clear input is multiplexed (i.e.. YUV).
+       5  Multiplexing Ratio. Only active if bit 4 is 0.
+           0: 4:1:1 or 2:1:1, 1: 4:2:2
+       6  If set select XFLD input for field signal, if clear use internally
+          generated field signal.
+       7  If set invert field signal polarity.
+
+index 22h-23h W(R/W): Acquisition Window, X-Start Register
+bit  0-9  Horizontal Start of Acquisition Window measured in pixel clocks from
+          the trailing edge of Hsync.
+
+index 24h-25h W(R/W): Acquisition Window, Y-start Register
+bit  0-9  Vertical Start of Acquisition Window measured in scanlines from the
+          trailing edge of (Vsync + V Start Adjust (index 30h)).
+
+index 26h-27h W(R/W): Acquisition Window, X-end Register
+bit  0-9  Horizontal End of Acquisition Window measured in pixel clocks from
+          the trailing edge of Hsync.
+
+index 28h-29h W(R/W): Acquisition Window, Y-end Register
+bit  0-9  Vertical Start of Acquisition Window measured in scanlines from the
+          trailing edge of (Vsync + V Start Adjust (index 30h)).
+
+index 2Ah-2Ch 3(R/W): Acquisition Address Register
+bit 0-19  Linear Address of the start of the Acquisition Buffer.
+          1024 bytes are reserved for each line.
+
+index 2Dh (R/W): Acquisition Horizontal Scaling Register.
+bit  0-5  If enabled by index 21h bit 2, this is the number of pixels (1-63)
+          written for each 64 input pixels.
+
+index 2Eh (R/W): Acquisition Vertical Scaling Register.
+bit  0-5  If enabled by index 21h bit 3, this is the number of lines (1-63)
+          written for each 64 input lines.
+
+index 2Fh (R/W): Scaling Field Adjust Register.
+bit  0-6  Modifies the scaling value for the odd field during acquisition.
+          This is a diagnostic register and should normally be set to the same
+          value as index 2Eh.
+
+index 30h (R/W): Input Video Start Adjust
+bit  0-5  Number of scanlines from the trailing edge of Vsync to the start of
+          the active video frame. Should always be non-zero.
+
+index 38h (R/W): Scaling Control Register.
+bit  0-1  Chroma Multiplex Adjust Bits.
+       2  Y-Over-Write-Mode. When acquiring from an interlaced source with a
+          scaling of less than 1/2, this bit and the Field Grab bit (index 20h
+          bit 2) should be set to write a scaled image from only one of the
+          video fields.
+       3  X-Max Enable. If set prevents wrap around of memory X-address.
+       4  Y-Max Enable. If set prevents wrap around of memory Y-address.
+          Should be set for PAL video.
+       7  Fast Write Enable. If set CPURDY is asserted one clock earlier than
+          normal.
+
+index 40h (R/W): Display Area Control Register
+bit    0  If clear Overlay Window using an X-Y Window is enabled.
+       1  If clear Overlay Window using Color Keying is enabled.
+       2  If set display the Display Frame Buffer Data in the Non-color key or
+          non X-Y Window area, else display VGA data.
+       3  If set display Frame Buffer Data in the X-Y Window area, else
+          display VGA data. Only active if bit 0 is set.
+       4  If set display Frame Buffer Data in the Color Key area, else display
+          VGA data. Only active if bit 1 is set.
+       5  If set display Frame Buffer Data in the X-Y Window or Color Key
+          area, else display VGA data.
+     6-7  Skew between VGA data input and the multiplexer control output in
+          VGA clocks: 0: 2 VGA clocks, 1: 3 clocks, 2: 4 clocks, 3: 5 clocks.
+
+index 41h-42h W(R/W): Display Window, X-start Register
+bit  0-9  Horizontal start of the Display Window in pixels from the trailing
+          edge of the VGA Hsync.
+
+index 43h-44h W(R/W): Display Window, Y-start Register
+bit  0-9  Vertical start of the Display Window in lines from the trailing edge
+          of the VGA Vsync
+
+index 45h-46h W(R/W): Display Window, X-end Register
+bit  0-9  Horizontal end of the Display Window in pixels from the trailing
+          edge of the VGA Hsync.
+
+index 47h-48h W(R/W): Display Window, Y-end Register
+bit  0-9  Vertical end of the Display Window in lines from the trailing edge
+          of the VGA Vsync
+
+index 49h (R/W): X-Panning, Low Register
+bit  0-7  Lower 8 bits of the Column Offset (*2) loaded into the VRAM during
+          the data transfer cycle. For 4:1:1 coding bit 0 should be 0.
+
+index 4Ah (R/W): Y-Panning, Low Register
+bit  0-7  Lower 8 bits of the Row Offset loaded into the VRAM for the first
+          active display line.
+
+index 4Bh (R/W): X,Y Panning, High Register
+bit    0  Bit 8 of the X-panning value. The lower 8 bits are in index 49h.
+       4  Bit 8 of the Y-panning value. The lower 8 bits are in index 4Ah.
+
+index 4Ch (R/W): Shift Clock Start Register
+bit  0-6  End of the display blank from the trailing edge of the VGA Hsync.
+
+index 4Dh (R/W): Sync Polarity Register
+bit  0-1  Horizontal Zoom.  0: No Zoom, 1: x2, 2: x4, 3: x8
+     2-3  Vertical Zoom.  0: No Zoom, 1: x2, 2: x4, 3: x8
+       4  VGA Hsync Polarity. If set the VGA Hsync is active high.
+       5  VGA Vsync Polarity. If set the VGA Vsync is active high.
+
+index 4Eh (R/W): Color Compare Register
+bit  0-7  The color to compare with.
+
+index 4Fh (R/W): Color Mask Register
+bit  0-7  Only the bit positions, which are 0 in this register are used in
+          color comparisons 
+
+index 50h (R/W): Display Window Interlace Control
+bit    0  If set the Display Window is interlaced.
+       1  If set use the VFLD input for the display window field signal,
+          rather than the internally generated field signal.
+       2  If set invert the Display Window field signal polarity.
+     3-4  Replication of fields. 
+            0,2: No replication.
+              1: Replicate even field.
+              3: Replicate odd field.
+
+index FFh (R/W): Chips Version/Enable Register
+bit    0  (W) PC Video Global Enable. Must be set to enable other registers.
+       1  (W) Enable memory if set.
+     4-7  (R) Silicon revision. 0 for initial release.

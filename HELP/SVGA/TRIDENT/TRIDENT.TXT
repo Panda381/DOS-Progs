@@ -1,0 +1,356 @@
+  Trident SuperVGA
+
+  Trident 8800BR   512k   Only 128K banks.
+          8800CS   512k   Has 64k banks and old/new mode
+          8900B    1MB
+          8900C    1MB
+          8900CL   2MB
+          8900D    2MB   Same as 8900CL, but with a few bug corrected
+          8900CXr
+          9200CXi
+          9000           Low component version 256K on chip
+          9000i          Low component count. 15/16 bit DAC on chip
+          GUI9420
+          LCD9100B
+          LCD9100
+          LX8200
+
+
+Support chips:
+
+TCK9001   Clock chip for the 8900B.
+          Supplies: 25.175, 28.322, 44.9, 36, 57.272, 65, 50.35, 40 MHz
+   
+TCK9002   Clock chip for the 8900C and later.
+          Supplies: 25.175, 28.322, 44.9, 36, 57.272, 65, 50.35, 40,
+                    88, 98, 118.8, 108 MHz
+
+TCK9004   Clock chip for the 8900CL and later.
+          Supplies: 25.175, 28.322, 44.9, 36, 57.272, 65, 50.35, 40,
+                    88, 98, 118.8, 108, 72, 77, 80, 75 MHz
+
+
+   What are the specs for all the new chips??  (CX,CXi,CL,CXr,GUI...)
+
+   The Trident 8800 chips have a problem with 256 color modes,
+   as they always double the pixels output in 256 color mode.
+   Thus a 640x400 256 color mode (5Ch) actually uses a 1280x400
+   frame, requiring at least a multi sync monitor.
+   This problem is fixed on the 8900.
+
+Apparently Trident BIOS version 3.xx or later on a 8900C will support Sierra
+HiColor DACs (SC11483 or SC11487). No check is made for the existence of such
+a DAC, the mode is just set as if it was present, resulting in 1024x480,
+1280x480 and 1600x600 256color modes if an ordinary DAC is installed.
+
+
+100h (R/W?): Microchannel ID low
+bit 0-7  Card ID bit 0-7
+
+101h (R/W?): Microchannel ID high
+bit 0-7  Card ID bit 8-15
+
+3C3h (R/W): Microchannel Video Subsystem Enable Register:
+bit 0  Enable Microchannel VGA if set
+
+3C4h index  Bh (R): Chip Version
+bit 0-7  Chip ID
+           1  = TR 8800BR
+           2  = TR 8800CS
+           3  = TR 8900B
+           4  = TR 8900C
+          13h = TR 8900C
+          23h = TR 9000
+          33h = TR 8900CL or TVGA 8900D
+          43h = TVGA9000i
+          53h = TR 8900CXr
+          63h = TLCD9100B
+          73h = TR GUI9420
+          83h = TR LX8200
+          93h = TR 9200CXi
+          A3h = TLCD9320
+          F3h = TR GUI9420
+
+Note:  Writing to index Bh selects old mode registers.
+       Reading from index Bh selects new mode registers.
+Note:  Writing to this register in order to force old mode registers
+       should be done with two 8bit writes, not one 16bit write.
+
+3C4h index  Ch (R/W): Power Up Mode Register 1
+bit   0  Fast Decode if set, Slow if clear
+      1  (9000 & LCD9100) If clear 0 Wait states,
+              if set bit 6 determines number of wait states.
+      4  If set enable post port at 3C3h, at 46E8h if clear
+      5  (8900C)  If set enables access to upper 512KB in non-paged modes
+                  Must be clear in text and CGA modes.
+         (9000 & LCD9100) If set uses 2 DRAMs, 4 if clear
+      6  (9000 & LCD9100) If bit 1 is clear this bit determines the number
+              of wait states. If set 2 Wait states, 1 if clear.
+    5-6  (88xx and 89xx) 0=256K chip, 1 = 2 DRAMs, 2 = 4 DRAMs, 3 = 8 DRAMs.
+      7  If set VRAM bus setting is 16, 8 if clear
+Note: This register can only be changed if New Mode Control 1 (3C4h index 0Eh)
+      bit 7 is set
+
+3C4h index  Dh (R/W): Old Mode Control 2
+bit 0-2  Emulation mode
+         0=VGA, 3=EGA, 5=CGA,MDA,Hercules
+      4  Enable Paging mode if set. If set the CRTC offset (3d4h index 13h)
+         should be multiplied by 2, and the Display Start Address (3d4h index
+         0Ch & 0Dh + 1Eh bit 5 and 3C4h Old Mode index 0Eh bit 0) is in units
+         of 8 bytes rather than 4 (256 color modes only).
+      5  DRAM clock enabled if set.
+
+3C4h index  Dh (R/W): New Mode Control 2                          (not 8800BR)
+bit   0  Clock Select bit 2. Bits 0-1 are in 3CCh bits 2-3.
+         Clock table:
+            0: 25.275   1: 28.322    2:  44.9      3:  36
+            4: 57.272   5: 65        6:  50.35     7:  40
+            8: 88       9: 98       10: 118.8     11: 108
+           12: 72      13: 77       14: 80        15: 75
+         For the 8800 and 8900B only the first 8 clocks are available.
+    1-2  Divide pixel clock by: 0=1, 1=2, 2=4, 3=1.5
+      6  (9xxx) Clock Select bit 3. See bit 0
+Note: The old/new Mode Control 1/2 registers are selected by
+      reading and writing the Chip version register (index Bh).
+
+3C4h index  Eh (R/W): Old Mode Control 1
+bit   0  (8900 Only) CRTC Address bit 17. Apparently this determines in which
+         part of memory the display is, as the display can not cross this
+         line, but can be on either side. Note that in Paged Mode (3C4h Old
+         Mode index 0Dh bit 4 is set) this bit has no effect as 17 bits can
+         span the entire 1MB range.
+    1-2  128kb Bank number (0-3)
+      3  16 bit video interface if set
+      4  (8900C, CL, CXr, GUI9420) Clock Select bit 3.
+         See New mode 3C4h index Dh bit 0.
+
+3C4h index  Eh (R/W): New Mode Control 1                          (not 8800BR)
+bit 0-3  64k Bank nbr. When writing to this field XOR with 02h, when reading
+         from this field no XOR is needed. This is used for Trident detection.
+         In planar modes bits 0 and 2 form a two bit field.
+    4-6  Reserved
+      7  Must be set to update index 0Ch ???
+Note: The old/new Mode Control 1/2 registers are selected by
+      reading and writing the Chip version register (index Bh).
+
+3C4h index  Fh (R/W): Power-up Mode 2
+bit 0-3  Switch settings
+      4  Bus type
+      5  If set I/O address are at 3xxh, else at 2xxh.
+      6  Enable ON-Card ROM if set
+      7  16 bit ROM access enabled if set
+
+3d4h index 1Eh (R/W): Module Testing Register
+bit 2  Vertical interlace if set
+       In interlaced modes the CRTC offset (3d4h index 13h) is the number of
+       bytes in TWO scanlines. Note that in interlaced modes the line doubling
+       caused by index 9 bits 0-4,7 is unlikely to work, as the (even,odd)
+       linepair is repeated rather than each individual line causing stripes.
+    3  If set Load fonts from Bottom, from top if clear
+    4  If set the display wraps back to line 0 when the line counter reaches
+       512.
+    5  CRTC starting address bit 16
+    7  (8900 Only) Host address bit 16. If clear bit 5 has no effect.
+       This does not affect 3C4h Old Mode index 0Eh bit 0.
+
+3d4h index 1Fh (R/W): Software Programming Register  (8900 Only)
+bit 0-1  (8800, 8900, 9000) Memory size  0=256k, 1=512k, 2=768k, 3=1M.
+    0-2  (8900CL, 8900CXr, GUI9420) Memory size  0=256k, 1=512k, 2=768k,
+           3=1M, 4=256k, 5=512k, 6=768k, 7=2M.
+
+3d4h index 1Fh (R/W): Scratch Register               (8800 Only)
+bit 0  Paged memory mode in effect
+    1  Memory size  0=256k, 1=512k
+    2  Analog monitor attached
+    3  44.9 MHz oscillator present
+Note: This register is set by software.
+
+3d4h index 22h (R): CPU Latch Read Back
+bit 0-7  Data Latch value for current read plane.
+
+3d4h index 24h (R): Attribute State Read Back
+bit 0-6  Reserved
+      7  Attribute Controller State
+         If set the next write to 3C0h will go to the data
+         register, if clear to the index register.
+
+3d4h index 26h (R): Attribute Index Read Back
+bit 0-7  Attribute Index Register value
+
+3d4h index 27h (R/W):                                          (8900CL/D only)
+bit 0-1  Display Start Address bit 17-18. Bit 16 is in index 1Eh bit 5.
+
+3d4h index 29h (R/W):                                          (8900CL/D only)
+bit   0  Connected to the RS2 input on the DAC ?.
+
+3D8h (R/W):                                                    (8900CL/D only)
+bit 0-4  Bank number in 64k units. 3C4h index Eh appears still to work.
+
+
+Note: on the 8900CL, 9000i, 8900CXr, GUI9420, TVGA9200CXi and TLCD9320
+      3d4h index 20h, 23h, 25h, 28h-2Ch appears to be used for an 8 byte FIFO?
+
+
+46E8h (R):  Video Subsystem Enable Register
+bit 3  Enable VGA if set
+
+
+
+
+  Bank selection:
+
+    Trident VGAs (except 8800BR) can operate in 2 different modes:
+
+    Old Mode, with a 128k window to display memory at A000h - BFFFh
+    and New Mode, with a 64k window to display memory at A000h - AFFFh.
+    Old/New mode is selected by reading/writing the Chip Version Register
+    (3C4h index 0Bh).
+    Each mode has its own registers at 3C4h index 0Dh and 0Eh.
+
+
+  ID Trident VGA:
+
+    wrinx($3C4,$B,0);    {Force old_mode_registers}
+    chp:=inp($3C5);      {Read chip ID and switch to new_mode_registers}
+    old:=rdinx($3C4,$E);
+    outp($3C5,0);
+    value:=inp($3C5) and $F;
+    outp($3C5,old);
+
+    if value=2 then
+    begin
+      outp($3C5,old xor 2);
+      case chp of
+        1:Trident TR8800BR;
+        2:Trident TR8800CS;
+        3:Trident TR8900;
+    4,$13:Trident TR8900C;
+      $23:Trident TR9000;
+      $33:Trident TR8900CL or D;
+      $43:Trident TR9000i;
+      $53:Trident TR8900CXr
+      $63:Trident LCD9100B;
+      $83:Trident LX8200;
+      $93:Trident TVGA9200CXi
+      $A3:Trident LCD9320;
+  $73,$F3:Trident GUI9420;
+      end;
+    end
+    else if (chp=1) and testinx2($3C4,$E,6) then
+           Trident TVGA 8800BR     {Haven't tested this yet}
+
+  Video Modes:
+    50h  T    80   30  16  (8x16)
+    51h  T    80   43  16  (8x11)
+    52h  T    80   60  16  (8x8)
+    53h  T   132   25  16  (8x14)
+    54h  T   132   30  16  (8x16)
+    55h  T   132   43  16  (8x11)
+    56h  T   132   60  16  (8x8)
+    57h  T   132   25  16  (9x14)
+    58h  T   132   30  16  (9x16)
+    59h  T   132   43  16  (9x11)
+    5Ah  T   132   60  16  (9x8)
+    5Bh  G   800  600  16  PL4
+    5Ch  G   640  400 256  P8
+    5Dh  G   640  480 256  P8
+    5Eh  G   800  600 256  P8      (Undocumented on 8800)
+    5Fh  G  1024  768  16  PL4
+    60h  G  1024  768   4          8900 Only
+    61h  G   768 1024  16  PL4
+    62h  G  1024  768 256  P8      8900 Only
+    63h  G  1280 1024  16  PL4     Which chip/BIOS rev ?
+    64h  G  1280 1024 256  P8      8900CL only
+    6Ah  G   800  600  16  PL4     Newer boards
+    6Bh  G   320  200 16m  P24     TVGA9000i
+    6Ch  G   640  480 16m  P24     8900CL only
+    6Dh  G   800  600 16m  P24     8900CL only
+
+    70h  G   512  480 32K  P15     89xx with Sierra DAC 
+    71h  G   512  480 64K  P16     89xx with Sierra DAC 
+    74h  G   640  480 32K  P15     89xx with Sierra DAC 
+    75h  G   640  480 64K  P16     89xx with Sierra DAC 
+    76h  G   800  600 32K  P15     89xx with Sierra DAC 
+    77h  G   800  600 64K  P16     89xx with Sierra DAC 
+    78h  G  1024  768 32K  P15     8900CL with Sierra DAC
+    79h  G  1024  768 64K  P16     8900CL with Sierra DAC
+    7Eh  G   320  200 32K  P15     TVGA9000i
+    7Fh  G   320  200 64K  P16     TVGA9000i
+
+    ZyMOS POACH51 modes:
+
+    60h  G   960  720  16  PL4
+    61h  G  1280  640  16  PL4
+    62h  G   512  512 256  P8
+    63h  G   720  540  16  PL4
+    64h  G   720  540 256  P8
+    6Ah  G   800  600  16  PL4
+
+
+  Everex Viewpoint use Everex modes.
+
+
+Note: The TVGA9000i has an on-chip DAC with 32k/64k capability.
+      The BIOS on the card I have (BIOS version D3.51) doesn't
+      seem to handle the Hi/True color modes correctly.
+      I have managed to get the 320x200 32k/64k modes working by programming
+      the DAC command register directly, but the 512x480 modes and the 320x200
+      16m mode still doesn't work
+
+
+
+  Bios extensions:
+
+----------1000-------------------------------
+INT 10 - VIDEO - SET VIDEO MODE
+        AH = 00h
+        AL = mode number
+Return: AH = Status of call:  (Trident Super VGA Chips)
+
+                    Trident 8800                Trident 8900
+             00h   Successful                      do
+             80h   Fail. Wrong switch              do
+             81h   Insufficient Video              do
+                   Memory.
+             82h   The 36MHz crystal            Mode not supported
+                   cannot support the mode
+             83h   The 40MHz crystal            Mode not supported
+                   cannot support the mode.
+             84h   The 44.9MHz crystal          Mode not supported
+                   cannot support the mode.
+             85h   Dead or no crystal
+             86h                               Wrong CRTC base for dual screen
+             87h                               Text mode not supported
+----------1012-BL11------------------------------
+INT 10 - VIDEO - Trident BIOS - GET BIOS INFO
+        AH = 12h
+        BL = 11h
+Return: AL = 12h if function supported
+        ES:BP -> BIOS info structure:
+                 Offset:  Size:   Description:
+                   00h    BYTE    ??? (=0)
+                   01h    BYTE    OEM Code (00h for original Trident)
+                   02h    WORD    ID ?? (1073h for 8800BR, 1074h for 8800CS,
+                                   1090h for 8900C or 9000i
+                   04h  8 BYTEs   BIOS date ('mm/dd/yy')
+                   0Ch    WORD    ???
+                   0Eh  8 BYTEs   BIOS Version (' C3-128 ', ' C3-129 ',
+                                    ' D3.51  ').
+----------1012-BL12------------------------------
+INT 10 - VIDEO - Trident BIOS - GET VIDEO RAM SIZE
+        AH = 12h
+        BL = 12h
+Return: AL = 12h if function supported
+        AH = number of 256K banks of RAM installed
+----------101200-BL14----------------------------
+INT 10 - VIDEO - Trident LOCKFIFO - Get FIFO state
+        AX = 1200h
+        BH = 14h
+Return: CX = FIFO state
+Note: Implemented by the LOCKFIFO.COM utility
+----------101201-BL14----------------------------
+INT 10 - VIDEO - Trident LOCKFIFO - Get FIFO state
+        AX = 1201h
+        BH = 14h
+        CX = FIFO state (0..FFh, FFh = disabled)
+Note: Implemented by the LOCKFIFO.COM utility

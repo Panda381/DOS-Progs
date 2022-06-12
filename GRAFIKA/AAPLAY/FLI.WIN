@@ -1,0 +1,136 @@
+
+;
+;                                                                      RPR940811
+; Popis formátu souborù .FLI 320x200 bodù, 256 barev generovaného programy
+; Autodesk Animator V1.0 a Autodesk 3D Studio V1.0 zjištìný na základì
+; experimentù s vytvoøenými soubory.
+;
+
+
+; ******************************************************************************
+; Formát souboru:
+         80h  Záhlaví
+         ??   Paket1
+         ??   Paket2
+              ...
+         ??   PaketN
+
+
+; ==============================================================================
+; ------ Záhlaví souboru
+         dd   Délka souboru v bajtech
+         dw   0AF11h - Identifikátor FLI formátu
+         dw   Poèet obrázkù v souboru
+         dw   Rozmìr obrazovky X
+         dw   Rozmìr obrazovky Y
+         dd   Identifikátor programu, ve kterém byl soubor vytvoøen
+         dw   Prodleva mezi obrázky *10 ms (5 = 20 obrázkù za sekundu)
+         db   110 dup (?) - Komentáø, kopyrajt nebo podobnì
+
+; ==============================================================================
+; ------ Paket
+         dd   Délka paketu v bajtech
+         dw   0F1FAh - Identifikátor FLI paketu
+         dw   Poèet superblokù v paketu
+         dw   0,0,0,0
+
+         ??   Superblok 1
+       [ ??   Superblok 2 ]
+
+
+; ------ Superblok
+         dd   Délka superbloku v bajtech
+         dw   Typ superbloku: 0Bh = Definice palety
+                              0Ch = Delta - obrázek
+                              0Dh = Celoobrazovkový obrázek
+         ??   Data podle typu superbloku
+
+
+; ------------------------------------------------------------------------------
+; ------ Superblok definice palety 0Bh
+         dd   Délka superbloku v bajtech
+         dw   Typ superbloku 0Bh = Definice palety
+         dw   1
+         db   První pøedefinovaná barva
+         db   Poèet barev k pøedefinování (0 = všech 256)
+         ??   Paleta RGB 3*8 bitù
+
+
+; ------------------------------------------------------------------------------
+; ------ Superblok delta - obrázku 0Ch
+         dd   Délka superbloku v bajtech
+         dw   Typ superbloku 0Ch = Delta - obrázek
+         dw   Poèáteèní linka na obrazovce
+         dw   Poèet linek
+
+         ??   Øádek1
+         ??   Øádek2
+              ...
+         ??   ØádekN
+
+
+; ------ Øádek delta - obrázku
+         db   Poèet blokù na øádku
+
+         ??   Blok1
+         ??   Blok2
+              ...
+         ??   BlokN
+
+; ------ Jeden blok øádku delta - obrázku
+         db   Mezera (poèet bodù, které nebudou zmodifikovány)
+         db   Délka:   1..127 -> Poèet bajtù nekomprimovaných dat
+                     128..255 -> Doplnìk (0-X) k poètu opakování
+                                 následujícího bajtu
+         ??   Data
+
+
+; ------------------------------------------------------------------------------
+; ------ Superblok celoobrazovkového obrázku - 0Fh
+         dd   Délka superbloku v bajtech
+         dw   Typ superbloku 0Fh = Celoobrazovkový obrázek
+         ??   200 øádkù komprimovaných dat
+
+; ------ Øádek celoobrazovkového obrázku
+         db   Poèet blokù na øádku
+
+         ??   Blok1
+         ??   Blok2
+              ...
+         ??   BlokN
+
+; ------ Jeden blok øádku celoobrazovkového obrázku
+         db   Délka:   1..127 -> Poèet opakování následujícího bajtu
+                     128..255 -> Doplnìk (0-X) k poètu bajtù
+                                 nekomprimovaných dat
+         ??   Data
+
+
+
+; ******************************************************************************
+; Pøíklad uspoøádání .FLI souboru:
+
+  Záhlaví souboru s rychlostí promítání, rozmìrem a poètem obrázkù
+  Paket 02
+    Superblok palety 0Bh                       ; Nastavení palety
+      Definice barev 0-255
+    Superblok celoobrazovkového obrázku 0Fh    ; Úvodní vykreslení scény
+      200 Øádkù, na každém nìkolik blokù dat
+  Paket 01
+    Superblok delta - obrázku 0Ch              ; Animace
+      Nìkolik øádkù s rozdíly oproti pøedešlému obrázku
+  Paket 01
+    Superblok delta - obrázku 0Ch
+      Nìkolik øádkù s rozdíly oproti pøedešlému obrázku
+
+  Paket 00                                     ; Prodleva
+  Paket 00
+  Paket 00
+
+  Paket 01
+    Superblok palety 0Bh                       ; Napø. rotace palety
+      Nìkolik øádkù s rozdíly oproti pøedešlému obrázku
+  Paket 01
+    Superblok palety 0Bh
+      Nìkolik øádkù s rozdíly oproti pøedešlému obrázku
+

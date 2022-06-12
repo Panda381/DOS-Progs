@@ -1,0 +1,137 @@
+
+                                   +--------+
+                                   | PCBACK |                            V 1.02
+                                   +--------+
+                       zálohování konfigurace poèítaèe PC
+
+Syntaxe
+-------
+    PCBACK  [C | !C]  [M | !M]  [*C [1][2][3][4]] [*D [1][2][3][4]] [W]
+              C ..... úschova obsahu pamìti CMOS do souboru CMOS.BIN
+              !C .... návrat obsahu pamìti CMOS ze souboru CMOS.BIN
+              M ..... úschova obsahu sektoru MBOOT do souboru MBOOT.BIN
+              !M .... návrat obsahu sektoru MBOOT ze souboru MBOOT.BIN
+              *C .... detekce parametrù pevného disku C:
+              *D .... detekce parametrù pevného disku D:
+                      - uvedením èíslic 0 až 4 za parametrem lze urèit
+                        použité testy (implicitnì "*C1234"):
+                           0 = aktuální informace z BIOS
+                           1 = použit MASTER BOOT sektor
+                           2 = použit DOS BOOT sektor
+                           3 = použity informace z AT-BUS
+                           4 = použit test èitelnosti
+                  W ..... provedení všech operací bez potvrzení
+
+Použití
+-------
+Program  PCBACK  slouží  k  úschovì  konfigurace  poèítaèe  PC pro pøípad zmìny
+konfigurace  poèítaèe  pùsobením  viru  nebo  z  dùvodu  havárie  poèítaèe. Lze
+uschovat  obsah  pamìti CMOS (obsahující konfiguraci poèítaèe pro BIOS) a obsah
+hlavního  (MASTER)  BOOT  sektoru  pevného  disku C:. Uschování CMOS a MBOOT se
+provádí  do  souborù  CMOS.BIN  a  MBOOT.BIN v aktivním adresáøi. Doporuèuje se
+vytvoøit si záložní systémovou disketu, která bude obsahovat též program PCBACK
+spolu  s  uschovanými soubory CMOS.BIN a MBOOT.BIN. V pøípadì znièení pùvodního
+obsahu CMOS nebo MASTER BOOT sektoru lze zavést systém z této diskety a pùvodní
+obsah CMOS èi MASTER BOOT navrátit z uschovaných souborù.
+
+
+Zálohování pamìti CMOS
+----------------------
+Zadáním parametru "C" se uloží obsah pamìti CMOS poèítaèe do souboru CMOS.BIN v
+aktivním  adresáøi. Pokud soubor již existuje, program na to upozorní a operace
+mùže  být pøerušena stiskem klávesy Esc. Navrácení obsahu pamìti CMOS (napø. po
+výpadku  pamìti CMOS, znièení obsahu pamìti CMOS virem a pod.) je možné zadáním
+parametru "!C". Obsah pamìti CMOS bude navrácen ze souboru CMOS.BIN, který musí
+být umístìn v aktivním adresáøi. Velikost pamìti CMOS je detekována automaticky
+pøi  navracení  obsahu  pamìti  CMOS  (zobrazí  se  po  provedení  operace). Po
+navrácení  obsahu  pamìti  CMOS  je  vhodné  provést  tzv. tvrdý reset poèítaèe
+stiskem tlaèítka "RESET".
+
+
+Zálohování MASTER BOOT sektoru
+------------------------------
+Zadáním  parametru "M" se uloží obsah hlavního zavádìcího sektoru (MASTER BOOT)
+disku  C:  do  souboru  MBOOT.BIN.  Navrácení  obsahu  tohoto sektoru (napø. po
+napadení  poèítaèe  BOOT virem) je možné zadáním parametru "!M". Obsah hlavního
+zavádìcího sektoru bude navrácen ze souboru MBOOT.BIN, který musí být umístìn v
+aktivním  adresáøi. V pøípadì sektorù vìtších než 512 bajtù je èást sektoru nad
+512  bajtù  navrácením obsahu nezmìnìna. V pøípadì napadení poèítaèe BOOT virem
+je  takto  možné u pøevážné vìtšiny známých virù odstranit virus i bez nutnosti
+zavádìní  systému  z  diskety  (tedy  s  virem aktivním v pamìti). Po navrácení
+pùvodního  obsahu  zavádìcího  sektoru  je  nutné  provést tvrdý reset poèítaèe
+tlaèítkem "RESET", èímž se odstraní virus jak z disku, tak i z pamìti.
+
+
+Detekce parametrù disku
+-----------------------
+Funkce  detekce  parametrù  pevného  disku je urèena k použití v pøípadì ztráty
+informace  o  typu  pevného disku v pamìti CMOS nebo v pøípadì neznámého disku.
+Jedná  se  o parametry: poèet sektorù na stopu, poèet hlav a poèet válcù disku;
+pro informaci též parametry poèet sektorù celkem a jmenovitá kapacita disku.
+
+Pøi  použití  funkce detekce parametrù (kromì testu pomocí AT-BUS informací) je
+podmínkou,  aby  detekovaný  pevný  disk byl pøístupný na úrovni BIOS. Je proto
+nutno  nejdøíve  v konfiguraci poèítaèe (SETUP pamìti CMOS pøi startu poèítaèe)
+nastavit  jakýkoliv  typ  disku  (není  tøeba pro disky SCSI), který se nejvíce
+blíží pøedpokládaným parametrùm disku (radìji zvolit více sektorù, hlav a válcù
+než disk pravdìpodobnì má). Není pøitom dùležité, zda je disk pøístupný pro DOS
+èi nikoliv.
+
+K  detekci parametrù disku C: je nutno zadat parametr "*C", k detekci parametrù
+disku  D:  parametr  "*D".  Program používá nìkolik metod ke zjištìní parametrù
+pevného disku, sám pøitom volí nejoptimálnìjší metodu. V pøípadì chybné detekce
+parametrù (zobrazené údaje se jeví jako nepravdìpodobné) je možné urèit použité
+metody detekce parametrù zadáním èíslic "0" až "4" za parametrem "*C" nebo "*D"
+(implicitnì  "*C1234"  resp.  "*D1234"). Èíslice "0" urèuje, že parametry disku
+budou  pøevzaty  z  informací BIOS. Tato metoda se implicitnì nepoužívá, slouží
+pouze  k  informaci  o  souèasném  nastavení.  Èíslice "1" urèuje, že k detekci
+parametrù   se   využijí  informace  z  MASTER  BOOT  sektoru  a  BOOT  sektorù
+jednotlivých  oddílù  disku.  Pøi  zadání "2" se detekují parametry bez použití
+MASTER  BOOT  sektoru  (typické polohy BOOT sektoru prvního oddílu). Pøi zadání
+"3"  se  parametry detekují pøímým pøístupem na øadiè AT-BUS. Pøi zadání "4" se
+provádí  detekce  testem  èitelnosti  disku.  Poslední uvedená metoda je èasovì
+nejnároènìjší  (mùže  trvat  až  desítky  sekund)  a používá se pouze v pøípadì
+selhání  všech  ostatních metod. Poèet válcù detekovaných touto metodou se mùže
+lišit  o 1 nebo 2 od skuteènosti. U diskù MFM pøitom mùže též docházet k rùzným
+zvukùm, bìžnì se v provozu nevyskytujících (vystavování do parkovací zóny).
+
+
+Parametr "W"
+------------
+Zadáním  parametru "W" budou provedeny všechny operace programu bez vyžádání si
+potvrzení  operací.  To  znamená,  že  pøípadné  existující soubory pøi úschovì
+obsahu  CMOS a MASTER BOOT budou pøepsány bez varování a že obsah CMOS èi obsah
+MASTER  BOOT sektoru budou navráceny též bez varování. Tento parametr má význam
+pøedevším pøi použití programu PCBACK pøedevším v povelovém souboru.
+
+
+Použití programu
+----------------
+Jednou  z  možností  prevence  proti BOOT virùm je instalace programu PCBACK do
+startovacího souboru AUTOEXEC.BAT s parametry "PCBACK !M W". To zpùsobí, že pøi
+každém startu poèítaèe je navracen pùvodní obsah MASTER BOOT sektoru a pøípadný
+nainfikovaný  BOOT  virus  je  takto  ihned  z pevného disku opìt odstranìn. Je
+vhodné  uvést  do  AUTOEXEC.BAT  též  program  BOOTVIR, který v takovém pøípadì
+upozorní  na  to,  že  v pamìti je nainstalován BOOT virus. Postaèí potom pouze
+provést znovu reset poèítaèe a virus je nenávratnì znièen.
+
+Dalším  využitím  je  napø.  možnost  zmìny  konfigurace  poèítaèe pomocí menu.
+Nejdøíve  se  vytvoøí  nìkolik  variant  nastavení CMOS pamìti (rùzné nastavení
+rychlosti  sbìrnice, WAIT cyklù a pod.), ty lze potom podle požadované varianty
+konfigurace  uložit  do pamìti CMOS a pomocí programu napø. "RESET.COM" provést
+resetování poèítaèe s novým nastavením.
+
+
+PCBACK  vyžaduje  k  provozu  poèítaè  IBM  PC/XT/AT  (pro PC a XT nelze použít
+zálohování  pamìti  CMOS)  nebo  plnì  kompatibilní a operaèní systém DOS verze
+minimálnì 2.00.
+
+                  +-----------------------------------------+
+                  |                  GOLEM                  |
+                  | P.O.Box 66, 756 61 Rožnov pod Radhoštìm |
+                  |          tel/fax: (0651) 54044          |
+                  +-----------------------------------------+
+                  | Tento program je souèástí programového  |
+                  |      balíku DOS Manažer verze 1.56      |
+                  +-----------------------------------------+
+

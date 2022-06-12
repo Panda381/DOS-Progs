@@ -1,0 +1,370 @@
+                                
+                                ; ************************************************
+                                ;
+                                ;	     vstupne/vystupni podprogramy
+                                ;
+                                ; ************************************************
+                                
+                                ; ------------------------------------------------
+                                ;          podprogramy pro vystup znaku	
+                                ; ------------------------------------------------
+                                
+  0458'                         outznk:				; vystup znaku
+                                				; na klavesnici
+  0458'   20 0E                 	jr	nz,outp5	; neni prodleva
+                                				; zde je vystup 
+                                				; mezery mezi texty
+  045A'   06 08                 	ld	b,mezer		; pocet vystupu
+                                				; mezery
+  045C'   C5                    outp0:	push	bc
+  045D'   01 3800               	ld	bc,prod1+prod2	; doba 1 klavesy
+  0460'   0B                    outp4:	dec	bc
+  0461'   78                    	ld	a,b
+  0462'   B1                    	or	c
+  0463'   20 FB                 	jr	nz,outp4
+  0465'   C1                    	pop	bc
+  0466'   10 F4                 	djnz	outp0
+  0468'   7B                    outp5:	ld	a,e
+  0469'   FE 29                 	cp	41
+  046B'   38 02                 	jr	c,outp7		; mensi nez 40
+  046D'   1E 28                 	ld	e,40
+  046F'   21 048A'              outp7:	ld	hl,kodtab	; vystupni tabulka
+  0472'   19                    	add	hl,de		; adresa znaku
+  0473'   7E                    	ld	a,(hl)		; znak k vystupu
+  0474'   01 0C00               	ld	bc,prod1	; prodleva znaku
+  0477'   D3 7D                 	out	(PIOBD),a	; vystup znaku
+  0479'   0B                    outp2:	dec	bc
+  047A'   78                    	ld	a,b
+  047B'   B1                    	or	c
+  047C'   20 FB                 	jr	nz,outp2	; cekani
+  047E'   AF                    	xor	a 
+  047F'   D3 7D                 	out	(PIOBD),a	; vystup mezery
+  0481'   01 2C00               	ld	bc,prod2	; prodleva mezery
+  0484'   0B                    outp3:	dec	bc
+  0485'   78                    	ld	a,b
+  0486'   B1                    	or	c
+  0487'   20 FB                 	jr	nz,outp3	; cekani
+  0489'   C9                    	retŠ                                
+                                
+  048A'                         kodtab:				; tab.pro klavesn.
+  048A'   14 24 23 0B           	db	14h,24h,23h,0bh ; kl. 0,1,2,3
+  048E'   44 43 42 84           	db	44h,43h,42h,84h	; kl. 4,5,6,7
+  0492'   83 82 17 27           	db	83h,82h,17h,27h	; kl. 8,9,M1,M2
+  0496'   47 87 16 26           	db	47h,87h,16h,26h ; kl. M3,M4,M5,M6
+  049A'   46 86 0A 0F           	db	46h,86h,0ah,0fh	; kl. M7,M8,<,>
+  049E'   0E 0D 0C 13           	db	0eh,0dh,0ch,13h	; kl. *,\/,-,.
+  04A2'   85 81 45 41           	db	85h,81h,45h,41h ; kl. A,B,C,D
+  04A6'   25 22 15 12           	db	25h,22h,15h,12h ; kl. E,F,X,Y
+  04AA'   09 11 21 08           	db	09h,11h,21h,08h ; kl. P1,P2,P3,P4 
+  04AE'   10 20 40 80           	db	10h,20h,40h,80h ; kl. P5,P6,P7,P8
+  04B2'   00                    	db	0		; mezera
+                                	
+                                
+                                
+                                ; ------------------------------------------------
+                                ;          podprogramy pro vstup znaku
+                                ;      dekodovani kodu CKN od zadane pozice
+                                ; ------------------------------------------------
+                                
+  04B3'   11 0557'              dekock:	ld	de,kodck3	; SYN0 
+  04B6'   CD 02DD'              	call	znak		; prekod.znaku SYN
+  04B9'   D8                    	ret	c
+  04BA'   FE 01                  	cp	1
+  04BC'   37                    	scf
+  04BD'   C0                    	ret	nz		; neni znak SYN
+  04BE'   11 055F'              	ld	de,kodck4	; kod CK
+  04C1'   CD 02DD'              	call	znak		; prekod.zn.KOD
+  04C4'   D8                    	ret	c
+  04C5'   32 1805               	ld	(kod),a		; nastaveni kodu
+  04C8'   E5                    	push	hl		; ukaz.relat.imp.
+  04C9'   21 054B'              	ld	hl,adrkod	; tabulka adres CK
+  04CC'   16 00                 	ld	d,0
+  04CE'   5F                    	ld	e,a
+  04CF'   19                    	add	hl,de
+  04D0'   19                    	add	hl,de		; adresa kodu
+  04D1'   5E                    	ld	e,(hl)
+  04D2'   23                    	inc	hl
+  04D3'   56                    	ld	d,(hl)
+  04D4'   ED 53 1807            	ld	(kodad),de	; adresa tab.kodu
+  04D8'   E1                    	pop	hl		; ukaz.relat.imp.		
+  04D9'   11 05DB'              	ld	de,kodck7
+  04DC'   CD 02DD'              	call	znak		; znak DELKA
+  04DF'   D8                    	ret	c	
+  04E0'   32 1806               	ld	(delka),a	; nast.delky zazn.
+  04E3'   4F                    	ld	c,a		; citac znaku
+  04E4'   B7                    	or	a
+  04E5'   ED 5B 1800            	ld	de,(uklad)	; zapis.adresa
+  04E9'   D5                    	push	de
+  04EA'   F5                    	push	af
+  04EB'   28 2A                 	jr	z,dekp6		; neni zadny znak
+                                	
+  04ED'   ED 5B 1807            dekp3:	ld	de,(kodad)	; adresa kodu
+  04F1'   CD 02DD'              	call	znak		; dekod.znaku
+  04F4'   38 05                 	jr	c,dekp7		; chyba
+  04F6'   CD 0319'              	call	zapznk		; zapis znaku
+  04F9'   30 04                 	jr	nc,dekp8
+  04FB'   F1                    dekp7:	pop	af		; chyba
+  04FC'   D1                    	pop	de		; preplneniŠ  04FD'   37                    	scf
+  04FE'   C9                    	ret
+                                
+  04FF'   0D                    dekp8:	dec	c	
+  0500'   20 EB                 	jr	nz,dekp3	; dalsi znak
+  0502'   3A 1805               	ld	a,(kod)
+  0505'   FE 02                 	cp	2
+  0507'   20 0E                 	jr	nz,dekp6
+  0509'   3E 15                 	ld	a,21		; odesilaci znak
+  050B'   CD 0319'              	call	zapznk
+  050E'   38 EB                 	jr	c,dekp7
+  0510'   3E FF                 	ld	a,0ffh		; mezera 
+  0512'   CD 0319'              	call	zapznk
+  0515'   38 E4                 	jr	c,dekp7
+  0517'                         dekp6:	
+  0517'   F1                    	pop	af		; pocet znaku
+  0518'   E3                    	ex	(sp),hl		; ukaz.rel.imp.
+                                				; HL=uklad.adr.
+  0519'   4F                    	ld	c,a		; pocet znaku
+  051A'   3E 1C                 	ld	a,28
+  051C'   07                    	rlca
+  051D'   DD AE 05              	xor	(ix+kod-RAM)
+  0520'   07                    	rlca
+  0521'   A9                    	xor	c
+  0522'   11 19FC               	ld	de,kontxt	; konec text.buff.
+  0525'   0C                    	inc	c		; pocet znaku
+                                
+  0526'   0D                    dekp4:	dec	c
+  0527'   28 0E                 	jr	z,dekp5		; zadny znak
+  0529'   23                    	inc	hl		; uklad.adr.
+  052A'   E5                    	push	hl
+  052B'   ED 52                 	sbc 	hl,de		; kontrola konce
+  052D'   E1                    	pop	hl		; uklad.adr.
+  052E'   38 03                 	jr	c,dekp9		; prekrocen konec
+  0530'   21 1840               	ld	hl,text		; zacat.text.buff.
+  0533'   07                    dekp9:	rlca
+  0534'   AE                    	xor	(hl)
+  0535'   18 EF                 	jr	dekp4
+                                
+  0537'   D6 37                 dekp5:	sub	55
+  0539'   30 FC                 	jr	nc,dekp5
+  053B'   C6 37                 	add	a,55
+  053D'   E1                    	pop	hl
+                                
+  053E'   4F                    	ld	c,a		; uschova kontr.s.
+  053F'   11 066B'              	ld	de,kodck8
+  0542'   CD 02DD'              	call	znak		; dekod.kontrol.s.
+  0545'   D8                    	ret	c
+  0546'   B9                    	cp	c		; kontrola shody 
+  0547'   37                    	scf
+  0548'   C0                    	ret	nz		; neshoda kontr.s.
+  0549'   AF                    	xor	a		; spravne prekod.
+  054A'   C9                    	ret
+                                
+                                
+                                
+                                
+                                ; ------------------------------------------------
+                                ;	      T A B U L K Y   D A T
+                                ; ------------------------------------------------
+                                Š                                
+                                
+  054B'   0557'                 adrkod:	dw	kodck3		; adresy tabulek kodu
+  054D'   055F'                 	dw	kodck4
+  054F'   0570'                 	dw	kodck5
+  0551'   0593'                 	dw	kodck6
+  0553'   05DB'                 	dw	kodck7
+  0555'   066B'                 	dw	kodck8
+                                
+                                
+  0557'   03                    kodck3:	db	3		; pocet kodu CK3
+  0558'   01 01 81              	db	1,1,81h		; "0"
+  055B'   01 82                 	db	1,82h		; "1"
+  055D'   02 81                 	db	2,81h		; "2"
+                                
+  055F'   06                    kodck4:	db	6		; pocet kodu CK4
+  0560'   01 01 01 81           	db	1,1,1,81h	; "0"
+  0564'   01 01 82              	db	1,1,82h		; "1"
+  0567'   01 02 81              	db	1,2,81h		; "2"
+  056A'   02 01 81              	db	2,1,81h		; "3"
+  056D'   02 82                 	db	2,82h		; "4"
+  056F'   84                    	db	84h		; "5"
+                                
+  0570'   0A                    kodck5:	db	10		; pocet kodu CK5
+  0571'   01 01 01 01           	db	1,1,1,1,81h	; "0"
+  0575'   81                    
+  0576'   01 01 01 82           	db	1,1,1,82h	; "1"
+  057A'   01 01 02 81           	db	1,1,2,81h	; "2"
+  057E'   01 02 01 81           	db	1,2,1,81h	; "3"
+  0582'   02 01 01 81           	db	2,1,1,81h	; "4"
+  0586'   01 02 82              	db	1,2,82h		; "5"
+  0589'   02 01 82              	db	2,1,82h		; "6"
+  058C'   02 02 81              	db	2,2,81h		; "7"
+  058F'   01 84                 	db	1,84h		; "8"
+  0591'   04 81                 	db	4,81h		; "9"
+                                
+  0593'   12                    kodck6:	db	18		; pocet kodu CK6
+  0594'   01 01 01 01           	db	1,1,1,1,1,81h	; "0"
+  0598'   01 81                 
+  059A'   01 01 01 01           	db	1,1,1,1,82h	; "1"
+  059E'   82                    
+  059F'   01 01 01 02           	db	1,1,1,2,81h	; "2"
+  05A3'   81                    
+  05A4'   01 01 02 01           	db	1,1,2,1,81h	; "3"
+  05A8'   81                    
+  05A9'   01 02 01 01           	db	1,2,1,1,81h	; "4"
+  05AD'   81                    
+  05AE'   02 01 01 01           	db	2,1,1,1,81h	; "5"
+  05B2'   81                    
+  05B3'   01 01 02 82           	db	1,1,2,82h	; "6"
+  05B7'   01 02 01 82           	db	1,2,1,82h	; "7"
+  05BB'   02 01 01 82           	db	2,1,1,82h	; "8"
+  05BF'   01 02 02 81           	db	1,2,2,81h	; "9"
+  05C3'   02 01 02 81           	db	2,1,2,81h	; "10"
+  05C7'   02 02 01 81           	db	2,2,1,81h	; "11"
+  05CB'   02 02 82              	db	2,2,82h		; "12"
+  05CE'   01 01 84              	db	1,1,84h		; "13"
+  05D1'   01 04 81              	db	1,4,81h		; "14"
+  05D4'   04 01 81              	db	4,1,81h		; "15"
+  05D7'   02 84                 	db	2,84h		; "16"
+  05D9'   04 82                 	db	4,82h		; "17"Š                                
+  05DB'   1F                    kodck7:	db	31		; pocet kodu CK7
+  05DC'   01 01 01 01           	db	1,1,1,1,1,1,81h	; "0"
+  05E0'   01 01 81              
+  05E3'   01 01 01 01           	db	1,1,1,1,1,82h	; "1"
+  05E7'   01 82                 
+  05E9'   01 01 01 01           	db	1,1,1,1,2,81h	; "2"
+  05ED'   02 81                 
+  05EF'   01 01 01 02           	db	1,1,1,2,1,81h	; "3"
+  05F3'   01 81                 
+  05F5'   01 01 02 01           	db	1,1,2,1,1,81h	; "4"
+  05F9'   01 81                 
+  05FB'   01 02 01 01           	db	1,2,1,1,1,81h	; "5"
+  05FF'   01 81                 
+  0601'   02 01 01 01           	db	2,1,1,1,1,81h	; "6"
+  0605'   01 81                 
+  0607'   01 01 01 02           	db	1,1,1,2,82h	; "7"
+  060B'   82                    
+  060C'   01 01 02 01           	db	1,1,2,1,82h	; "8"
+  0610'   82                    
+  0611'   01 02 01 01           	db	1,2,1,1,82h	; "9"
+  0615'   82                    
+  0616'   02 01 01 01           	db	2,1,1,1,82h	; "10"
+  061A'   82                    
+  061B'   01 01 02 02           	db	1,1,2,2,81h	; "11"
+  061F'   81                    
+  0620'   01 02 01 02           	db	1,2,1,2,81h	; "12"
+  0624'   81                    
+  0625'   02 01 01 02           	db	2,1,1,2,81h	; "13"
+  0629'   81                    
+  062A'   01 02 02 01           	db	1,2,2,1,81h	; "14"
+  062E'   81                    
+  062F'   02 01 02 01           	db	2,1,2,1,81h	; "15"
+  0633'   81                    
+  0634'   02 02 01 01           	db	2,2,1,1,81h	; "16"
+  0638'   81                    
+  0639'   01 02 02 82           	db	1,2,2,82h	; "17"
+  063D'   02 01 02 82           	db	2,1,2,82h	; "18"
+  0641'   02 02 01 82           	db	2,2,1,82h	; "19"
+  0645'   02 02 02 81           	db	2,2,2,81h	; "20"
+  0649'   01 01 01 84           	db	1,1,1,84h	; "21"
+  064D'   01 01 04 81           	db	1,1,4,81h	; "22"
+  0651'   01 04 01 81           	db	1,4,1,81h	; "23"
+  0655'   04 01 01 81           	db	4,1,1,81h	; "24"
+  0659'   01 02 84              	db	1,2,84h		; "25"
+  065C'   02 01 84              	db	2,1,84h		; "26"
+  065F'   01 04 82              	db	1,4,82h		; "27"
+  0662'   02 04 81              	db	2,4,81h		; "28"
+  0665'   04 01 82              	db	4,1,82h		; "29"
+  0668'   04 02 81              	db	4,2,81h		; "30"
+                                
+  066B'   37                    kodck8:	db	55		; pocet kodu CK8
+  066C'   01 01 01 01           	db	1,1,1,1,1,1,1,81h ; "0"
+  0670'   01 01 01 81           
+  0674'   01 01 01 01           	db	1,1,1,1,1,1,82h	; "1"
+  0678'   01 01 82              
+  067B'   01 01 01 01           	db	1,1,1,1,1,2,81h	; "2"
+  067F'   01 02 81              
+  0682'   01 01 01 01           	db	1,1,1,1,2,1,81h	; "3"
+  0686'   02 01 81              
+  0689'   01 01 01 02           	db	1,1,1,2,1,1,81h	; "4"Š  068D'   01 01 81              
+  0690'   01 01 02 01           	db	1,1,2,1,1,1,81h	; "5"
+  0694'   01 01 81              
+  0697'   01 02 01 01           	db	1,2,1,1,1,1,81h	; "6"
+  069B'   01 01 81              
+  069E'   02 01 01 01           	db	2,1,1,1,1,1,81h	; "7"
+  06A2'   01 01 81              
+  06A5'   01 01 01 01           	db	1,1,1,1,2,82h	; "8"
+  06A9'   02 82                 
+  06AB'   01 01 01 02           	db	1,1,1,2,1,82h	; "9"
+  06AF'   01 82                 
+  06B1'   01 01 02 01           	db	1,1,2,1,1,82h	; "10"
+  06B5'   01 82                 
+  06B7'   01 02 01 01           	db	1,2,1,1,1,82h	; "11"
+  06BB'   01 82                 
+  06BD'   02 01 01 01           	db	2,1,1,1,1,82h	; "12"
+  06C1'   01 82                 
+  06C3'   01 01 01 02           	db	1,1,1,2,2,81h	; "13"
+  06C7'   02 81                 
+  06C9'   01 01 02 01           	db	1,1,2,1,2,81h	; "14"
+  06CD'   02 81                 
+  06CF'   01 02 01 01           	db	1,2,1,1,2,81h	; "15"
+  06D3'   02 81                 
+  06D5'   02 01 01 01           	db	2,1,1,1,2,81h	; "16"
+  06D9'   02 81                 
+  06DB'   01 01 02 02           	db	1,1,2,2,1,81h	; "17"
+  06DF'   01 81                 
+  06E1'   01 02 01 02           	db	1,2,1,2,1,81h	; "18"
+  06E5'   01 81                 
+  06E7'   02 01 01 02           	db	2,1,1,2,1,81h	; "19"
+  06EB'   01 81                 
+  06ED'   01 02 02 01           	db	1,2,2,1,1,81h	; "20"
+  06F1'   01 81                 
+  06F3'   02 01 02 01           	db	2,1,2,1,1,81h	; "21"
+  06F7'   01 81                 
+  06F9'   02 02 01 01           	db	2,2,1,1,1,81h	; "22"
+  06FD'   01 81                 
+  06FF'   01 01 02 02           	db	1,1,2,2,82h	; "23"
+  0703'   82                    
+  0704'   01 02 01 02           	db	1,2,1,2,82h	; "24"
+  0708'   82                    
+  0709'   02 01 01 02           	db	2,1,1,2,82h	; "25"
+  070D'   82                    
+  070E'   01 02 02 01           	db	1,2,2,1,82h	; "26"
+  0712'   82                    
+  0713'   02 01 02 01           	db	2,1,2,1,82h	; "27"
+  0717'   82                    
+  0718'   02 02 01 01           	db	2,2,1,1,82h	; "28"
+  071C'   82                    
+  071D'   01 02 02 02           	db	1,2,2,2,81h	; "29"
+  0721'   81                    
+  0722'   02 01 02 02           	db	2,1,2,2,81h	; "30"
+  0726'   81                    
+  0727'   02 02 01 02           	db	2,2,1,2,81h	; "31"
+  072B'   81                    
+  072C'   02 02 02 01           	db	2,2,2,1,81h	; "32"
+  0730'   81                    
+  0731'   01 01 01 01           	db	1,1,1,1,84h	; "33"
+  0735'   84                    
+  0736'   01 01 01 04           	db	1,1,1,4,81h	; "34"
+  073A'   81                    Š  073B'   01 01 04 01           	db	1,1,4,1,81h	; "35"
+  073F'   81                    
+  0740'   01 04 01 01           	db	1,4,1,1,81h	; "36"
+  0744'   81                    
+  0745'   04 01 01 01           	db	4,1,1,1,81h	; "37"
+  0749'   81                    
+  074A'   02 02 02 82           	db	2,2,2,82h	; "38"
+  074E'   01 01 02 84           	db	1,1,2,84h	; "39"
+  0752'   01 02 01 84           	db	1,2,1,84h	; "40"
+  0756'   02 01 01 84           	db	2,1,1,84h	; "41"
+  075A'   01 01 04 82           	db	1,1,4,82h	; "42"
+  075E'   01 02 04 81           	db	1,2,4,81h	; "43"
+  0762'   02 01 04 81           	db	2,1,4,81h	; "44"
+  0766'   01 04 01 82           	db	1,4,1,82h	; "45"
+  076A'   01 04 02 81           	db	1,4,2,81h	; "46"
+  076E'   02 04 01 81           	db	2,4,1,81h	; "47"
+  0772'   04 01 01 82           	db	4,1,1,82h	; "48"
+  0776'   04 01 02 81           	db	4,1,2,81h	; "49"
+  077A'   04 02 01 81           	db	4,2,1,81h	; "50"
+  077E'   02 02 84              	db	2,2,84h		; "51"
+  0781'   02 04 82              	db	2,4,82h		; "52"
+  0784'   04 02 82              	db	4,2,82h		; "53"
+  0787'   04 84                 	db	4,84h		; "54"
+

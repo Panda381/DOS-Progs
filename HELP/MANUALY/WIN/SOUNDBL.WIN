@@ -1,0 +1,1027 @@
+
+                                                                               
+                                                                               
+                                 Zvukové karty                                 
+                                                                               
+                                                                               
+
+
+                                     Adlib
+                                    -------
+
+ADLIB  syntetizátor  je  sestaven  z  oscilátoru a geneátoru obálky. Oscilátor,
+generátor obálky a ovladaè úrovnì jsou spojeny do jednoho celku v "operátor":
+
+     +-----------+  +------------------+  +----------------+
+     | oscilátor +->| generátor obálky +->| ovladaè úrovnì +--> výstup
+     +-----------+  +------------------+  +----------------+
+
+Karta  ADLIB  obsahuje  18  operátorù  spojených  do  párù. Operátory mohou být
+zkombinobány tøemi rùznými zpùsoby:
+
+    1.- Frekvenènì  modulovaný  (FM)  syntezátor používá dva operátory v sérii.
+        První operátor (modulátor) moduluje druhý operátor (nosnou).
+
+                                +-------------+  +-------------+
+                frekvenènì      |  operátor   |  |  operátor   |
+                modulovaná      |      1      +->|      2      +-> výstup
+                syntéza         | (modulátor) |  |   (nosná)   |
+                                +-------------+  +-------------+
+
+
+    2.- Aditivní  syntezátor  používá  dva  operátory spojené paralelnì, jejich
+        výstupy se seèítají. Tato metoda není tak zajímavá jako FM syntéza, ale
+        mùže generovat kvalitní varhanní zvuky.
+
+                                +-------------+
+                                |  operátor   |
+                                |      1      +--+
+                                |             |  |
+                aditivní        +-------------+  |
+                syntéza                          +-> výstup
+                                +-------------+  |
+                                |  operátor   |  |
+                                |      2      +--+
+                                |             |
+                                +-------------+
+
+    3.- Kompozitní  sinusový  syntezátor  (CSW) mùže být používán ke generování
+        øeèi  nebo jiných podobných zvukù pøehráváním všech 9 hlasù samostatnì.
+        Pøi  použití této metody nemùže generovat karta žádné další zvuky. Tato
+        metoda  zde  není  popisována, protože jiné metody umožòují kvalitnìjší
+        generování øeèi.
+
+
+ADLIB  produkuje  buï  9  melodických zvukù nebo 6 melodických zvukù a 5 bicích
+nástrojù. Pro 9 melodických zvukù jsou operátory seskupeny po párech. Pro mód s
+bicími nástroji jsou operátory uspoøádány takto:
+
+         0 až 5: 6 melodických nástrojù (12 operátorù)
+           6:    1 basový buben BD (Bass Drum) (2 operátory)
+           7:    1 malý buben SD (Snare Drum) (1 operátor)
+           8:    1 støední buben TT (Tom-Tom) (1 operátor)
+           9:    1 èinel CY (Cymbal) (1 operátor)
+          10:    1 Hi-Hat HH (1 operátor)
+
+Protože ADLIB má pouze 9 frekvenèích registrù, èinel a Hi-Hat jsou pevné.
+
+V  módu  bicích  nástrojù  je  k vytváøení zvukù použit šumový generátor. Tento
+šumový generátor používá frekvenèní informace hlasù 7 a 8 (malý buben a støední
+buben) a vlastní fázový výstup. Nejlepší pomìr signálù je 3:1 (frekvence malého
+bubnu = 3 * frekvence støedního bubnu).
+
+
+ADLIB  používá následující bázové adresy portù (BASE): 218h, 288h, 318h a 388h.
+Implicitnì je používána adresa 388h.
+
+BASE + 00h: (zápis) indexový registr (zvolí se èíslo registru)
+            (ètení) stavový registr
+                     bit 5: 1=dokonèeno èasování èasovaèe T2
+                     bit 6: 1=dokonèeno èasování èasovaèe T1
+                     bit 7: 1=pøerušení IRQ (dokonèeno èasování T2 nebo T1)
+
+BASE + 01h: (zápis) datový registr (viz dále)
+
+Nejdøíve  se do indexového registru uloží adresa registru, potom se do datového
+registru  uloží data urèená pro tento registr. Po zápisu do indexového registru
+je  nutno  èekat po dobu 3.3 µs, po zápisu do datového registru 23 µs. Nejlepší
+je  provádìt  ètení stavového registru ve smyèce: 6 ètení po zápisu indexu a 36
+ètení po zápisu dat.
+
+Registry:
+         01h: bit 0 až bit 4: testovací registr (musí být vždy = 0)
+              bit 5: 1=povolena volba formátu vln podle registrù E0h-F5h
+                     0=vlny mají normální sinusový prùbìh
+
+         02h: nastavení èítaèe 1 (rozlišení 80 µs)
+               Po ukonèení èítání jsou èítaèe opìt nastaveny stejným èíslem.
+
+         03h: nastavení èítaèe 2 (rozlišení 320 µs)
+
+         04h: bit 0: 1=start èasovaèe T1 (0=èasovaè vypnutý)
+              bit 1: 1=start èasovaèe T2 (0=èasovaè vypnutý)
+              bit 5: 1=pøíznak pøeteèení od èasovaèe T2 neovlivní stav. reg.
+              bit 6: 1=pøíznak pøeteèení od èasovaèe T1 neovlivní stav. reg.
+              bit 7: 1=resetování pøíznaku pøerušení IRQ
+                   Pøi nastavení bitu 7 jsou všechny ostatní bity ignorovány.
+
+         08h: bit 6: 1=volba režimu NOTE
+                NOTE-SEL. Controls the split point of the keyboard. When 0, the
+                keyboard split is the second bit from the bit 8 of the F-Number.
+                When 1, the MSb of the F-Number is used.
+              bit 7: 1=je režim kompozitní syntézy CSW
+
+     20h-35h: ovládání operátorù 1 až 18
+              bit 0 až bit 3: faktor násobení frekvence (viz níže)
+              bit 4: 1=mìnìná obálka (KSR) - vyšší noty jsou kratší než nižší
+              bit 5: 1=stálá úroveò tónu (pøi dobìhu se klesání úrovnì zastaví)
+              bit 6: 1=tremolo (=frekvenèní modulace)
+              bit 7: 1=vibráto (=amplitudová modulace)
+
+                             Faktor násobení frekvence:
+                        +-------+--------+  +-------+--------+
+                        | èíslo | násobek|  | èíslo | násobek|
+                        +-------+--------+  +-------+--------+
+                        |   0   |   1/2  |  |   8   |    8   |
+                        |   1   |    1   |  |   9   |    9   |
+                        |   2   |    2   |  |  10   |   10   |
+                        |   3   |    3   |  |  11   |   10   |
+                        |   4   |    4   |  |  12   |   12   |
+                        |   5   |    5   |  |  13   |   12   |
+                        |   6   |    6   |  |  14   |   15   |
+                        |   7   |    7   |  |  15   |   15   |
+                        +-------+--------+  +-------+--------+
+
+     40h-55h: operátory 1 až 18
+              bit 0 až bit 5: výstupní úroveò (hlasitost)
+              bit 6 až bit 7: stupeò snížení úrovnì vyšších tónù
+
+                        +-----+---------------+
+                        |stup.|     útlum     |
+                        +-----+---------------+
+                        |  0  | -             |
+                        |  1  | 1.5 dB/oktávu |
+                        |  2  | 3.0 dB/okrávu |
+                        |  3  | 6.0 dB/oktávu |
+                        +-----+---------------+
+
+     60h-75h: operátory 1 až 18
+              bit 0 až bit 3: rychlost dobìhu (vyšší èíslo=rychlejší dobìh)
+              bit 4 až bit 7: rychlost nábìhu (vyšší èíslo=rychlejší nábìh)
+
+     80h-95h: operátory 1 až 18
+              bit 0 až bit 3: rychlost uvolnìní tónu se stálou úrovní po vyp.
+              bit 4 až bit 7: hladina stálé úrovnì tónu (tj. bod, od kterého
+                              se pøi dobìhu úroveò tónu pøestane snižovat a
+                              bude stálá - pomìrné èíslo maximální hladiny)
+
+     A0h-A8h: výstupní kanály 1 až 9
+              frekvenèní èíslo tónu - výška tónu (nižších 8 bitù)
+
+     B0h-B8h: výstupní kanály 1 až 9
+              bit 0 až bit 1: frekcenèní èíslo (vyšší 2 bity)
+              bit 2 až bit 4: èíslo bloku tónu (definuje zhruba oktávu)
+              bit 5: maskování kanálu: 1=výstup kanálu je povolen
+
+              Frekvenèní èíslo = Frekvence * (2^(20-Blok) / 49716 Hz
+
+         BDh: bit 0: 1=Hi-Hat (HH) zapnut
+              bit 1: 1=èinel (CY) zapnut
+              bit 2: 1=støední buben (TT) zapnut
+              bit 3: 1=malý buben (SD) zapnut
+              bit 4: 1=velký buben (BD) zapnut
+              bit 5: 1=mód bicích nástrojù, 0=mód melodických nástrojù
+              bit 6: tremolo: 0=7 centù, 1=14 centù (1 cent = 1/100 semi-tónu)
+              bit 7: vibráto: 0=1.0 dB, 1=4.8 dB
+
+     C0h-C8h: kanály 1 až 9
+              bit 0: 1=aditivní syntezátor, 0=frekvenèní modulace
+              bit 1 až bit 3: zpìtný modulaèní faktor (FeedBack Modul. Factor)
+
+                        +-------+--------+
+                        | MULTI | Faktor |
+                        +-------+--------+
+                        |   0   |   0    |
+                        |   1   |  ¶/16  |
+                        |   2   |  ¶/8   |
+                        |   3   |  ¶/4   |
+                        |   4   |  ¶/2   |
+                        |   5   |   ¶    |
+                        |   6   |  2ÿ¶   |
+                        |   7   |  4ÿ¶   |
+                        +-------+--------+
+
+     E0h-F5h: kanály 1 až 9
+              bit 0 až bit 1: volba formátu vln
+
+                        +----+------------+
+                        | WS | Formát vln |
+                        +----+------------+ /\    /\
+                        | 00 | sinusovka  |    \/    \/
+                        | 01 | pùl-sinus  | /\    /\
+                        | 10 | absol. sin.| /\ /\ /\ /\
+                        | 11 | pulsní sin.|
+                        +----+------------+
+
+
+U  nìkterých  parametrù  je jeden registr na výstupní kanál. Pro tyto parametry
+mùže  být  použito  èíslo  kanálu  jako  offset  registru  parametru. Pro mnoho
+parametrù je sice jeden registr na operátor, avšak adresová mapa není spojitá:
+
++-----+------------------------------------------------------------------------+
+|oper.| 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18 |
++-----+------------------------------------------------------------------------+
+|offs.| 00h 01h 02h 03h 04h 05h 08h 09h 0Ah 0Bh 0Ch 0Dh 10h 11h 12h 13h 14h 15h|
++-----+------------------------------------------------------------------------+
+
+Následující dvì tabulky ilustrují, které operátory tvoøí spolu kanál:
+
++---------------------------------------------------+
+|                  melodický mód                    |
++------+----+----+----+----+----+----+----+----+----+
+|kanál | 0  | 1  | 2  | 3  | 4  | 5  | 6  | 7  | 8  |
++------+----+----+----+----+----+----+----+----+----+
+|oper.1| 1  | 2  | 3  | 7  | 8  | 9  | 13 | 14 | 15 |
+|oper.2| 4  | 5  | 6  | 10 | 11 | 12 | 16 | 17 | 18 |
++------+----+----+----+----+----+----+----+----+----+
+
++-------------------------------------------------------------+
+|                     mód bicích nástrojù                     |
++------+----+----+----+----+----+----+----+----+----+----+----+
+|kanál | 0  | 1  | 2  | 3  | 4  | 5  | BD | SD | TT | CY | HH |
++------+----+----+----+----+----+----+----+----+----+----+----+
+|oper.1| 1  | 2  | 3  | 7  | 8  | 9  | 13 | 17 | 15 | 18 | 14 |
+|oper.2| 4  | 5  | 6  | 10 | 11 | 12 | 16 |    |    |    |    |
++------+----+----+----+----+----+----+----+----+----+----+----+
+
+Test èasovaèù pro detekci karty (neumí vyvolat pøerušení):
+
+    1.- zastavení T1 a T2 zápisem 60h do registru 4
+    2.- resetování pøíznaku pøerušení IRQ zápisem 80h do registru 4
+    3.- ètení stavového registru, úschova stavu AND E0h
+    4.- nastavení èasovaèe 1 na FFh zápisem FFh do registru 2
+    5.- odmaskování a start èasovaèe 1 zápisem 21h do registru 4
+    6.- èekání ve smyèce po dobu alespoò 80 µs
+    7.- ètení stavového registru, úschova stavu AND E0h
+    8.- resetování T1, T2 a IRQ jako v krocích 1 a 2
+    9.- testování výsledku obou ètení: první ètení má být 0, druhé C0h.
+        Pokud výsledek operace neodpovídá, není nainstalována karta ADLIB
+
+Pozn.: Tato metoda nefunguje u karty SoundBlaster.
+
+                      Stuktura souboru banky nástrojù .BNK
+                      ------------------------------------
+Sekce záhlaví:
+
+00h: (1) verze souboru (hlavní èíslo)
+01h: (1) verze souboru (vedlejší èíslo)
+02h: (6) oznaèení souboru "ADLIB-"
+08h: (2) poèet použitých položek v seznamu
+0Ah: (2) celkový poèet položek seznamu v souboru
+0Ch: (4) absolutní offset v souboru zaèátku seznamu jmen
+10h: (4) absolutní offset v souboru zaèátku dat
+14h: (8)  .... výplò (nastaveno na nulu)
+1Ch:
+
+Záznam v sekci jmen nástrojù:
+
+00h: (2) index do datové sekce
+02h: (1) pøíznak: 0=záznam je použitý (jinak 1)
+03h: (9) jméno nástroje (max. 8 znakù, doplnìno nulami)
+0Ch:
+
+Záznam v datové sekci:
+
+00h: (1) mód (0=melodický, 1=bicí nástroj)
+01h: (1) èíslo kanálu (hlasu) - je-li mód bicích nástrojù
+
+modulátor
+02h: (1) hladina pro snižování úrovnì tónù s výškou (key scale level)
+03h: (1) násobitel frekvence
+04h: (1) zpìtný modulaèní faktor
+05h: (1) rychlost nábìhu
+06h: (1) hladina stálého tónu
+07h: (1) pøíznak stálého tónu
+08h: (1) rychlost dobìhu
+09h: (1) rychlost uvolnìní stálého tónu
+0Ah: (1) výstupní hladina (hlasitost)
+0Bh: (1) vibráto (amplitudová modulace)
+0Ch: (1) tremolo (frekvenèní modulace)
+0Dh: (1) snižování délky vyšších not pro nosnou (envelope scaling)
+0Eh: (1) 0=freknvenèní syntéza FM, 1=aditivní syntéza
+
+nosná
+0Fh: (1) hladina pro snižování úrovnì tónù s výškou (key scale level)
+10h: (1) násobitel frekvence
+11h: (1) zpìtný modulaèní faktor
+12h: (1) rychlost nábìhu
+13h: (1) hladina stálého tónu
+14h: (1) pøíznak stálého tónu
+15h: (1) rychlost dobìhu
+16h: (1) rychlost uvolnìní stálého tónu
+17h: (1) výstupní hladina (hlasitost)
+18h: (1) vibráto (amplitudová modulace)
+19h: (1) tremolo (frekvenèní modulace)
+1Ah: (1) snižování délky vyšších not pro nosnou (envelope scaling)
+1Bh: (1)   nepoužito
+
+1Ch: (1) typ vlny pro modulátor
+1Dh: (1) typ vlny pro nosnou
+
+
+                                Frekvence tónù:
+                                ---------------
++----+--------+--------+--------+--------+--------+--------+--------+--------+
+|nota|   1    |   2    |   3    |   4    |   5    |   6    |   7    |   8    |
++----+--------+--------+--------+--------+--------+--------+--------+--------+
+| C  | 16.352 | 32.703 | 65.406 | 130.81 |*261.63*| 523.25 | 1046.5 | 2093.0 |
+| C# | 17.324 | 34.648 | 69.295 | 138.59 | 277.18 | 554.37 | 1108.7 | 2217.5 |
+| D  | 18.354 | 36.708 | 73.416 | 146.83 | 293.66 | 587.33 | 1174.7 | 2349.3 |
+| D# | 19.445 | 38.890 | 77.781 | 155.56 | 311.13 | 622.25 | 1244.5 | 2489.0 |
+| E  | 20.601 | 41.203 | 82.406 | 164.81 | 329.63 | 659.26 | 1318.5 | 2637.0 |
+| F  | 21.826 | 43.653 | 87.307 | 174.61 | 349.23 | 698.46 | 1396.9 | 2793.8 |
+| F# | 23.124 | 46.249 | 92.499 | 184.99 | 369.99 | 739.99 | 1480.0 | 2960.0 |
+| G  | 24.499 | 48.999 | 97.998 | 195.99 | 391.99 | 783.99 | 1568.0 | 3136.0 |
+| G# | 25.956 | 51.913 | 103.82 | 207.65 | 415.31 | 830.61 | 1661.2 | 3322.4 |
+| A  | 27.500 | 55.000 | 110.00 | 220.00 | 440.00 | 880.00 | 1760.0 | 3520.0 |
+| A# | 29.135 | 58.270 | 116.54 | 233.08 | 466.16 | 932.32 | 1864.7 | 3729.3 |
+| B  | 30.867 | 61.735 | 123.47 | 246.94 | 493.88 | 987.77 | 1975.5 | 3951.1 |
++----+--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+
+                          Sound Blaster, Sound Galaxy
+                          ---------------------------
+SB    = Sound Blaster       (MONO, 11 kanálù FM, vzorkování do 13 kHz)
+SB2   = Sound Blaster II    (MONO, 11 kanálù FM, vzorkování do 22 kHz)
+SBP   = Sound Blaster PRO   (STEREO, 20 kanálù FM, vzorkování do 44 kHz,CD ROM)
+
+BX    = Sound Galaxy BX     (MONO, 11 kanálù FM, vzorkování do 13 kHz)
+NX    = Sound Galaxy NX     (MONO, 11 kanálù FM, vzorkování do 13 kHz, CD ROM)
+BX2   = Sound Galaxy BX II  (MONO, 11 kanálù FM, vzorkování do 22 kHz)
+NX2   = Sound Galaxy NX II  (MONO, 11 kanálù FM, vzorkování do 22 kHz, CR ROM)
+NXP   = Sound Galaxy NX Pro (STEREO, 20 kanálù FM, vzorkování do 44 kHz,CD ROM)
+SGP16 = Sound Galaxy PRO 16 (STEREO, 20 kanálù FM, vzorkování do 44 kHz, 16 b)
+
+DSP = èip zpracování digitálních signálù (Digital Signal Processing Chip)
+
+Pøenos  dat DSP mùže být provádìn buï pøímým módem (pøenos øídí program) nebo v
+módu  DMA  (pøenos  dat  øídí  øadiè  DMA).  Po provedení pøenosu DMA se vyvolá
+pøerušení.  V  režimu DMA (výstup DAC pøi normální rychlosti) je možné pøenášet
+data  v  komprimovaném  formátu 1:2, 1:3 a 1:4 (není možné v pøímém režimu, pro
+vstup  dat  a  pro zvýšenou rychlost). Prvním bajtem komprimovaných dat je vždy
+referenèní bajt (hodnota, z které se vychází).
+
+DSP používá hardwarová pøerušení IRQ 2,3,5 nebo 7 (SB, SB2, BX, BX2, NX a NX2 -
+implicitnì  7), IRQ 2,5,7 nebo 10 (NXP - implicitnì 7) nebo IRQ 2/9, 7, 10 nebo
+11  (SGP16  -  implicitnì  7).  Bázová adresa DSP je 220h nebo 240h (implicitnì
+220h).  DSP  používá  kanál  DMA  èíslo  1  (BX,  BX2 a NX), kanál 1 a 3 (NX2 -
+implicitnì 1) nebo kanály 0, 1 a 3 (NXP - implicitnì 1).
+
+Adresa èipu DSP se detekuje provádìním funkce RESET - musí být navráceno 0AAh.
+
+Vzorkovací kmitoèet:  èasovací_konstanta = 256 - 1000/vzorkovací_kmitoèet [kHz]
+
+Rozsah rychlostí pro vstup (ADC):
+
+   BX a NX ..... 4 kHz až 15 kHz
+   BX2 a NX2 ... 4 kHz až 13 kHz (normální mód)
+                 13 kHz až 23 kHz (rychlý mód)
+   NXP ......... 4 kHz až 23 kHz (normální mód MONO)
+                 23 kHz až 44.1 kHz (rychlý mód MONO)
+                 2 kHz až 11.5 kHz (normální mód STEREO)
+                 11.5 kHz až 22.05 kHz (rychlý mód STEREO)
+
+Rozsah rychlostí pro výstup (DAC):
+
+   BX a NX ..... 4 kHz až 23 kHz
+   BX2 a NX2 ... 4 kHz až 23 kHz (normální mód)
+                 23 kHz až 44.1 kHz (rychlý mód)
+   NXP ......... 4 kHz až 23 kHz (normální mód MONO)
+                 23 kHz až 44.1 kHz (rychlý mód MONO)
+                 4 kHz až 23 kHz (normální mód STEREO)
+                 23 kHz až 44.1 kHz (rychlý mód STEREO)
+
+Rychlý mód - DSP nepøijímá bìhem operace pøenosu povely. Normální mód po RESET.
+
+
+Game port:
+----------
+200h - 207h   GAME PORT (zápis/ètení)
+
+(BASE = 220h, 240h)
+---------------------
+BASE + 00h (ètení)   Levý stavový port FM
+           (zápis)   Levý port FM adresového registru
+BASE + 01h (ètení)   Levý datový port FM
+BASE + 02h (ètení)   Pravý stavový port FM
+           (zápis)   Pravý port FM adresového registru
+BASE + 03h (ètení)   Pravý datový port FM
+BASE + 04h (zápis)   Port registru adresy èipu mixeru
+           (ètení)   Pouze karta SGP16: 80h = potvrzení pøevzetí povelu mixeru
+                           06h: ... (pouze SGP 16) <- zapisuje se 3Fh
+                           07h: ... (pouze SGP 16) <- zapisuje se 3Fh
+                           0Bh: ... (pouze SGP 16) bit 5 (musí být pøi ètení 0)
+                           49h: ... (pouze SGP 16)
+
+BASE + 05h (ètení/zápis) Datový port èipu mixeru
+
+BASE + 06h (zápis)   reset DSP (01h=RESET, 00h=uvolnìní RESETu)
+                      - DSP  je  nutno resetovat jednou na zaèátku obsluhy, DSP
+                        vrací na ètecím portu (BASE+0Eh) bajt AAh pro kontrolu.
+                             1.- zápis 01h - provedení funkce RESET
+                             2.- èekání po dobu 3 µs
+                             3.- zápis 00h - uvolnìní signálu RESET
+                             4.- èekání na bajt 0AAh na ètecím datovém portu
+                                 (odezva trvá asi 0.1 sek; 0.5 sek -> TIME-OUT)
+                     Reset DSP se provádí též pro vypnutí rychlého módu.
+
+BASE + 08h (ètení)   Stavový port FM
+           (zápis)   Port adresového registru FM
+BASE + 09h (ètení)   Datový port FM
+
+
+BASE + 0Ah (ètení)   Ètení dat z DSP (je-li BASE+0Eh bit 7 = 1)
+
+BASE + 0Ch (ètení)   Stav zápisového bufferu DSP (bit 7: 0=je možný zápis)
+           (zápis)   Zápis dat nebo povelu DSP (je-li pøi ètení bit 7 = 0)
+
+                     Povely:
+
+    10h = výstup na DAC v pøímém módu 8 bitù (PCM DAC) - následuje 1 bajt dat
+          èasování dat na výstup musí zajistit program (napø. pomocí INT 08h)
+    14h = výstup na DAC v módu DMA 8 bitù (PCM DAC)
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    16h = výstup na DAC v módu DMA s 2-bitovou kompresí, není referenèní bajt
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    17h = výstup na DAC v módu DMA s 2-bitovou kompresí, 1. bajt je referenèní
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    1Ch = víceblokový výstup na DAC v módu DMA 8 bitù (PCM DAC)
+          Pøed  tímto  povelem  pøedchází  povel  48h, který nastaví délku dat.
+          Povel  1Ch  zahájí  pøenos.  Po  ukonèení bloku není tøeba nastavovat
+          znovu DSP, lze pokraèovat dalším blokem. Pøenos se ukonèí DAh.
+    1Fh = víceblokový výstup na DAC v módu DMA s 2-bitovou kompresí (ADPCM DAC)
+          Pøed  tímto  povelem  pøedchází  povel  48h, který nastaví délku dat.
+          Povel  1Fh  zahájí  pøenos.  Po  ukonèení bloku není tøeba nastavovat
+          znovu  DSP, lze pokraèovat dalším blokem. Pøenos se ukonèí DAh. První
+          bajt prvního vysílaného bloku je považován za referenèní bajt.
+
+    20h = vstup dat z ADC v pøímém módu 8 bitù (PCM ADC) - ète se 1 bajt dat
+    24h = vstup z ADC v módu DMA 8 bitù (PCM ADC)
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    2Ch = výceblokový vstup z ADC v módu DMA 8 bitù (PCM ADC)
+          Pøed  tímto  povelem  pøedchází  povel  48h, který nastaví délku dat.
+          Povel  2Ch  zahájí  pøenos.  Po  ukonèení bloku není tøeba nastavovat
+          znovu DSP, lze pokraèovat dalším blokem. Pøenos se ukonèí DAh.
+
+    30h = ètení dat z MIDI v èekacím módu (testuje se port BASE+0Eh)
+          vypnutí módu se provede opakovaným vysláním povelu 30h
+    31h = ètení dat z MIDI v normálním módu (nutno povolit masku pøerušení)
+          Pøi  každém  pøipraveném bajtu vyvolá DSP pøerušení. Ètením stavového
+          portu BASE+0Eh se potvrdí pøerušení. Mód se vypne opìt vysláním 31h.
+    34h = nastavení èekacího módu UART ètení/zápis MIDI. Následující zapisovaná
+          data  jsou  vysílána na MIDI, ètená data jsou ètena z MIDI. Tento mód
+          lze ukonèit pouze funkcí RESET DSP.
+    35h = nastavení  pøerušovacího  módu  UART  ètení/zápis  MIDI.  Následující
+          zapisovaná  data jsou vysílána na MIDI, ètená data jsou ètena z MIDI.
+          Tento mód lze ukonèit pouze funkcí RESET DSP.
+    37h = stejné  jako povel 35h, na konci dat jsou pøidány 2 bajty informace o
+          èasové znaèce
+    38h = zápis bajtu na MIDI v èekacím módu
+
+    40h = nastavení èasovací konstanty
+          následuje 1 bajt = èasovací_konstanta = 256 - 1000/kmitoèet [kHz]
+    48h = nastavení velikosti pøenášeného bloku pro DMA pøenos
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+          Po povelu se oèekává startovací povel pro víceblokový pøenos 1Ch atd.
+
+    74h = výstup ma DAC v módu DMA se 4-bitovou kompresí, není referenèní bajt
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    75h = výstup na DAC v módu DMA se 4-bitovou kompresí, 1. bajt je referenèní
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    76h = výstup na DAC v módu DMA se 3-bitovou kompresí, není referenèní bajt
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    77h = výstup na DAC v módu DMA se 3-bitovou kompresí, 1. bajt je referenèní
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+    7Dh = víceblokový výstup na DAC v módu DMA s 4-bitovou kompresí (ADPCM DAC)
+          Pøed  tímto  povelem  pøedchází  povel  48h, který nastaví délku dat.
+          Povel  7Dh  zahájí  pøenos.  Po  ukonèení bloku není tøeba nastavovat
+          znovu  DSP, lze pokraèovat dalším blokem. Pøenos se ukonèí DAh. První
+          bajt prvního vysílaného bloku je považován za referenèní bajt.
+    7Fh = víceblokový výstup na DAC v módu DMA s 3-bitovou kompresí (ADPCM DAC)
+          Pøed  tímto  povelem  pøedchází  povel  48h, který nastaví délku dat.
+          Povel  7Fh  zahájí  pøenos.  Po  ukonèení bloku není tøeba nastavovat
+          znovu  DSP, lze pokraèovat dalším blokem. Pøenos se ukonèí DAh. První
+          bajt prvního vysílaného bloku je považován za referenèní bajt.
+
+    80h = tichý mód - po zadaný poèet bajtù (jakoby pøi DMA) je výstup tichý
+          následuje délka dat (=poèet bajtù - 1): 1 bajt LOW, 1 bajt HIGH
+
+    90h = víceblokový rychlý režim výstupu na DAC v módu DMA 8 bitù (PCM DAC)
+          Pøed  tímto  povelem  pøedchází  povel  48h, který nastaví délku dat.
+          Povel  90h  zahájí  pøenos.  Po  ukonèení bloku není tøeba nastavovat
+          znovu DSP, lze pokraèovat dalším blokem. Pøenos se ukonèí RESET DSP.
+    91h = jednoblokový rychlý režim výstupu na DAC v módu DMA 8 bitù (PCM DAC)
+          Pøed tímto povelem pøedchází povel 48h, který nastaví délku dat.
+    98h = víceblokový rychlý režim vstupu z ADC v módu DMA 8 bitù (PCM ADC)
+          Pøed  tímto  povelem  pøedchází  povel  48h, který nastaví délku dat.
+          Povel  98h  zahájí  pøenos.  Po  ukonèení bloku není tøeba nastavovat
+          znovu DSP, lze pokraèovat dalším blokem. Pøenos se ukonèí RESET DSP.
+    99h = jednoblokový rychlý režim vstupu z ADC v módu DMA 8 bitù (PCM ADC)
+          Pøed tímto povelem pøedchází povel 48h, který nastaví délku dat.
+
+    A8h = start  vstupu  z ADC v režimu STEREO se zvýšenou rychlostí (pouze pro
+          kartu NXP pøi použití povelu 98h). Pøepnutí do MONO pomocí RESET DSP.
+
+    D0h = pozastavení pøenosu DMA (až do pokraèování D4h)
+    D1h = zapnutí reproduktoru (na zaèátku vysílání dat)
+    D3h = vypnutí reproduktoru (po ukonèení pøenosu dat nebo pøed ètením dat)
+    D4h = pokraèování pøenosu DMA (po pøedchozím pozastavení povelem D0h)
+    D8h = poskytnutí stavu reproduktoru: ètení vstupu -> 0=vypnut, 0FFh=zapnut
+    DAh = ukonèení víceblokového pøenosu dat (funkce 1Ch, 1Fh, 2Ch, 7Dh, 7Fh)
+
+    E0h = ovìøení datového portu DSP: následuje vyslání bajtu (napø. 0AAh), musí
+                                      navrátit tento bajt invertovaný (tedy 55h)
+
+    E1h = poskytnutí verze DSP: vrací 2 bajty: 1. bajt=verze, 2. bajt=podverze
+                                            verze 1 = SB, BX, NX
+                                                  2 = SB2, BX2, NX2
+                                                  3 = SBP, NXP
+
+BASE + 0Eh (ètení)   Stav ètecího bufferu DSP (bit 7: 1=jsou pøipravena data)
+                     Ètením tohoto portu se potvrdí též požadavek pøerušení.
+
+Pøíklad - vyslání dat pomocí DMA:
+
+    1.-  22Ch <- 0D1h  (zapnutí reproduktoru)
+    2.-  22Ch <- 40h, 22Ch <- èasovací_konstanta (vyslání èasovací konstanty)
+    3.-  definice obsluhy pøerušení DSP a povolení pøerušení
+    4.-  nastavení øadièe DMA
+    5.-  22Ch <- 14h  (mód DMA 8 bitù DAC), následuje slovo délky dat - 1
+    6.-  pøi každém pøerušení opakovat kroky 4 a 5, až budou všechny bloky
+    7.-  zákaz pøerušení
+    8.-  navrácení obsluhy pøerušení
+    9.-  22Ch <- 0D3h  (vypnutí reproduktoru)
+
+
+Modul MIDI MPU401: (BASE = 300h nebo 330h - pouze karta SGP16)
+------------------
+BASE + 00h (ètení/zápis) Datový port MPU401
+BASE + 01h (ètení/zápis) Zápis povelu/stavový port MPU401
+
+
+Modul systému Microsoft Windows Sound System (SGP16): (BASE=530h,E80h,F40h,604h)
+--------------------------------------------------------------------------------
+BASE + 00h (zápis)   konfigurace
+                        bit 0 až bit 2 = èíslo kanálu DMA
+                                          1 = DMA 0
+                                          2 = DMA 1
+                                          3 = DMA 3
+                        bit 3 až bit 5 = èíslo pøerušení IRQ
+                                          1 = IRQ 7
+                                          2 = IRQ 2 nebo IRQ 9
+                                          3 = IRQ 10 (jen sbìrnice AT)
+                                          4 = IRQ 11 (jen sbìrnice AT)
+                        bit 6: 1=pøerušení povoleno
+BASE + 01h (ètení/zápis) rezervováno
+BASE + 02h (ètení/zápis) rezervováno
+BASE + 03h (ètení)   verze
+                    bit 0 až bit 5 = èíslo verze (pro SGP 16 musí být = 4)
+                    bit 6 = pøíznak pøíchodu pøerušení
+                    bit 7 = typ desky MSS (1=sbìrnice XT, 0=sbìrnice AT ???)
+                             (sbìrnice XT = nejsou povolena IRQ 8 a více)
+               Ètením portu se potvrdí pøerušení
+
+BASE + 04h (ètení/zápis) adresa Codec (sem se zapisuje èíslo registru)
+                            0 =
+                            2 = (hloubky L)
+                            3 = (hloubky R)
+                            4 = (výšky L)
+                            5 = (výšky R)
+                            6 = (hlasitost L)
+                            7 = (hlasitost R 3fh=nula ?)
+                            9 = (øízení) - registr módu (5, 46h, 4)
+                                  (bit0 a bit1 = povolení výstupù na kanály ?)
+                           10 = maska pøerušení: bit 1: 1=pøerušení povoleno
+                           12 =
+                                 bit 0 až bit 3:
+                           14 = poèet krokù DMA k pøenosu dat HIGH (bajtù/slov)
+                           15 = poèet krokù DMA k pøenosu dat LOW (bajtù/slov)
+BASE + 05h (ètení/zápis) data Codec (ètení a zápis dat zvoleného registru)
+BASE + 06h (ètení/zápis) status Codec (pøíznak pøipravenosti dat)
+                           (zápis 0 = potvrzení pøerušení)
+BASE + 07h (ètení/zápis) Direct data Codec (data pøi pøímém pøístupu)
+
+
+FM syntetizátor (kompatibilita s ADLIB):
+----------------------------------------
+388h (ètení)  stavový port FM
+     (zápis)  Port adresového registru FM
+389h (ètení)  datový port FM
+
+
+                    VMP - ovladaè zvukové karty Sound Galaxy
+                    ----------------------------------------
+Ovladaè  VMP  používá  k  volání  svých  funkcí  pøerušení INT 7Fh. Pøi použití
+ovladaèe  VMP  v  jazyku  C  je nutno vložit modul "VMP.H" a pøilinkovat moduly
+CVMP.OBJ  (pro  volání  FAR)  nebo CVMPS.OBJ (pro volání NEAR - typ SMALL). Pøi
+použití ovladaèe VMP v Assembleru je možné doplnit VMP.MAC (makra).
+
+Ovladaèe zaøízení:
+
+VAPI - (Voyetra  Application  Program  Interface)  pøehrávání hudebních souborù
+       MIDI pomocí interface MIDI
+SAPI - (Synthesis  Application  Program  Interface)  -  pøehrávání MIDI souborù
+       pomocí zvukové karty
+AAPI - (Audio  Application  Program Interface) - obsluha nahrávání a pøehrávání
+       digitálních zvukových nahrávek (AUDIO)
+TAPI - (Total  Application  Program  Interface)  kombinovaný ovladaè zahrnující
+       všechny 3 uvedené typy ovladaèù pro vícefunkèní karty
+
+Pozor  na  zavádìní  ovladaèù  do  horní  pamìti  - nìkteré poèítaèe neumožòují
+používat DMA pøenos pro horní pamì.
+
+
+Volání funkcí v Assembleru:
+
+              mov       bl,FUNKCE      ; èíslo požadované funkce
+              mov       ax,'VM'        ; identifikace volání funkce VMP
+              mov       bh,0c1h        ; identifikace volání funkce VMP
+              int       7fh            ; volání požadované funkce VMP
+
+Funkce  VMP  uchovává pouze registry SI, DI, BP, DS a SS:SP. Vìtšinu funkcí VMP
+je  možné  vyvolávat  opakovanì  (napø.  z  obsluhy  pøerušení  pøed  ukonèením
+provádìní funkce VMP) - kromì funkcí OPEN_, CLOSE_ a SETUP_AUDIO. Pro zajištìní
+vícenásobného  volání  funkcí DOS z VMP je nutné: nepoužívat funkce pro vstup z
+klávesnice  s  èekáním, neprovádìt odskok do systému (funkce SHELL), nepoužívat
+funkce  DOS velmi èasto. Pøílišné volání DOS mùže zpùsobit zastavení pøehrávání
+modulu.
+
+Ovladaè VMP podporuje pøehrávání zvukových souborù "VOC", "WAV", "RAW" a "VOY".
+"VOC"  je formát Creative Labs pro kartu Sound Blaster. Podporuje 8 bitù mono a
+stereo  a  kompresi  4,  2.6  a  2  bity  ADPCM.  "WAV" je formát Microsoft pro
+Multimedia  Windows. Podporuje rùznou délku vzorkù (8, 16 bitù atd.) a umožòuje
+jemnìjší  urèení  vzorkovacího  kmitoètu  než "VOC". "RAW" je soubor obsahující
+pouze  zvuková  data  bez záhlaví, parametry je nutno nastavit. "VOY" je formát
+Voyetra  Technologies. Má stejné možnosti jako "WAV", dekódovací metodu používá
+však jinou než lineární PCM.
+
+
+Test pøítomnosti VMP:
+---------------------
+Nejdøíve  ovìøit,  zda je pøerušení INT 7Fh platné (zda adresa není = 0), potom
+volat funkci BL=17 - musí být navráceno AX=0.
+
+Èasovaè:
+-------
+Aplikace by mohla požadovat rychlejší èasovaè INT 08h (IRQ 0). K tomu je urèena
+funkce BL=18 - zpìtné volání obsluhy hodin.
+
+
+Funkce 1: Otevøení ovladaèe VMP
+--------
+Volá se pøed prvním voláním jiné funkce VMP (kromì testu instalace). Jako první
+funkce po této funkci by mìla být volána funkce 13 (hardware).
+
+VSTUP:   BP = definice hodin INT 08h
+                   0 = standardní nastavení
+               jinak = použitá hodnota pro nastavení èítaèe hodin INT 08h
+                       (tj. pokud aplikace nastavila hodiny na vyšší rychlost)
+
+VÝSTUP:  AX = -300 ovladaè je již otevøen (0=funkce OK)
+
+
+Funkce 2: Uzavøení ovladaèe VMP
+--------
+Uzavírá ovladaè VMP - musí být voláno pøed ukonèením aplikace.
+
+VÝSTUP:  AX = -301 ovladaè není otevøen
+
+
+Funkce 3: Pøíprava MIDI souboru k pøehrávání
+--------
+VSTUP:   ES:SI = ukazatel FAR na MIDI soubor naètený v pamìti
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -309 ovladaè MIDI není otevøen
+              -310 soubor MIDI je již otevøen
+              -311 ukazatel neukazuje na soubor MIDI
+              -312 probíhá již pøehrávání MIDI souboru
+
+Funkce 4: Uzavøení pøehrávání MIDI souboru
+--------
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -309 ovladaè MIDI není otevøen
+              -313 není otevøen soubor MIDI
+
+
+Funkce 5: Start pøehrávání MIDI souboru
+--------
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -307 probíhá již pøehrávání nebo záznam AUDIO nebo obsluha MIDI
+                   (nìkterá zaøízení neumožòují souèasnou obsluhu)
+              -309 ovladaè MIDI není otevøen
+              -311 data souboru MIDI byla od otevøení znièena
+              -312 probíhá již pøehrávání MIDI souboru
+              -313 není otevøen soubor MIDI
+
+Funkce 6: Stop pøehrávání MIDI souboru
+--------
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -309 ovladaè MIDI není otevøen
+              -313 není otevøen soubor MIDI
+
+
+Funkce 7: Pøíprava digitálního AUDIO souboru k pøehrávání
+--------
+VSTUP:   ES:SI = jméno AUDIO souboru ASCIIZ
+         DX:CX = formát záznamu (ukazatel FAR na popisovaè struktury)
+                   0: (4) vzorkovací kmitoèet v [Hz]
+                   4: (2) délka vzorku (poèet bitù: 8 nebo 16)
+                   6: (2) 0=MONO, 1=STEREO
+                   8: (2) formát souboru
+                             0 = VOC (Sound Blaster)
+                             1 = WAV (Microsoft)
+                             2 = RAW
+                             3 = VOY (Voyetra)
+                  10: (2) kompresní algoritmus
+                             0 = není komprese (lineární PCM 8/12/16 bitù)
+                             1 = 4-bitová komprese VOC (Sound Blaster)
+                             2 = 2.6-bitová komprese VOC (Sound Blaster)
+                             3 = 2-bitová komprese VOC (Sound Blaster)
+                             4 = 4-bitová komprese (z 12 bitù) ADPCM (OKI)
+                             5 = 4-bitová komprese (z 12 bitù) ADPCM (CCITT)
+                             8 = 8-bitová komprese (z 12 bitù) µLAW
+                   12: (2*3) rezervováno
+
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -302 ovladaè AAPI (AUDIO) není otevøen
+              -303 chyba alokace DMA bufferu
+              -304 formát souboru není podporován
+              -305 formát dat souboru není podporován
+              -306 nelze otevøít soubor pro záznam AUDIO
+              -307 probíhá již pøehrávání nebo záznam AUDIO nebo obsluha MIDI
+                   (nìkterá zaøízení neumožòují souèasnou obsluhu)
+
+Pokud  soubor obsahuje informace o formátu dat (VOC, WAV a VOY), jsou informace
+z  popisovaèe  formátu  ignorovány,  informace  budou doplnìny podle skuteèného
+obsahu souboru. Pro soubor RAW je nutno tyto informace nastavit.
+
+
+Funkce 8: Pøíprava digitálního AUDIO souboru k záznamu
+--------
+VSTUP:   ES:SI = jméno AUDIO souboru ASCIIZ
+         DX:CX = formát záznamu (ukazatel FAR na popisovaè struktury)
+                   0: (4) vzorkovací kmitoèet v [Hz]
+                   4: (2) délka vzorku (poèet bitù: 8 nebo 16)
+                   6: (2) 0=MONO, 1=STEREO
+                   8: (2) formát souboru
+                             0 = VOC (Sound Blaster)
+                             1 = WAV (Microsoft)
+                             2 = RAW
+                             3 = VOY (Voyetra)
+                  10: (2) kompresní algoritmus
+                             0 = není komprese (lineární PCM 8/12/16 bitù)
+                             1 = 4-bitová komprese VOC (Sound Blaster)
+                             2 = 2.6-bitová komprese VOC (Sound Blaster)
+                             3 = 2-bitová komprese VOC (Sound Blaster)
+                             4 = 4-bitová komprese (z 12 bitù) ADPCM (OKI)
+                             5 = 4-bitová komprese (z 12 bitù) ADPCM (CCITT)
+                             8 = 8-bitová komprese (z 12 bitù) µLAW
+                   12: (2*3) rezervováno
+
+VÝSTUP:  CY = chyba
+         NC = operace OK
+         AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -302 ovladaè AAPI (AUDIO) není otevøen
+              -303 chyba alokace DMA bufferu
+              -304 formát souboru není podporován
+              -305 formát dat souboru není podporován
+              -306 nelze otevøít soubor pro záznam AUDIO
+              -307 probíhá již pøehrávání nebo záznam AUDIO nebo obsluha MIDI
+                   (nìkterá zaøízení neumožòují souèasnou obsluhu)
+
+
+Funkce 9: Start operace pøehrávání nebo záznamu
+--------
+Pøed touto operací musí pøedcházet funkce pro pøípravu k záznamu/pøehrávání.
+
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -302 ovladaè AAPI (AUDIO) není otevøen
+              -307 probíhá již pøehrávání nebo záznam AUDIO nebo obsluha MIDI
+                   (nìkterá zaøízení neumožòují souèasnou obsluhu)
+              -308 nebyla nastavena žádná operace pøehrávání/záznamu
+
+Funkce 10: Stop operace pøehrávání nebo záznamu
+---------
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -302 ovladaè AAPI (AUDIO) není otevøen
+              -308 nebyla nastavena žádná operace pøehrávání/záznamu
+
+Funkce 11: Pokraèování v pøehrávání MIDI souboru (po zastavení PAUSE)
+---------
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -307 probíhá již pøehrávání nebo záznam AUDIO nebo obsluha MIDI
+                   (nìkterá zaøízení neumožòují souèasnou obsluhu)
+              -309 ovladaè MIDI není otevøen
+              -311 data souboru MIDI byla od otevøení znièena
+              -312 probíhá již pøehrávání MIDI souboru
+              -313 není otevøen soubor MIDI
+
+
+Funkce 13: Poskytnutí stavu VMP
+---------
+VSTUP:   ES:SI = buffer 10 bajtù k naètení informací o stavu VMP
+VÝSTUP:            0: (1) stav ovladaèe VMP
+                            0 = ovladaè VMP není otevøen
+                            1 = ovladaè VMP otevøen
+                   1: (1) stav ovladaèe VAPI
+                            0 = ovladaè MIDI nepøítomen nebo není otevøen
+                            1 = ovladaè MIDI otevøen
+                            2 = hudební soubor MIDI otevøen k pøehrávání
+                            4 = probíhá pøehrávání hudebního souboru MIDI
+                   2: (1) stav ovladaèe AAPI
+                            0 = ovladaè AUDIO není otevøen
+                            1 = ovladaè AUDIO otevøen
+                            2 = zvukový soubor AUDIO otevøen k pøehrávání
+                            3 = zvukový soubor AUDIO otevøen k záznamu (RECORD)
+                            4 = probíhá pøehrávání zvukového souboru AUDIO
+                            5 = probíhá záznam do zvukového souboru AUDIO
+                   3: (1) stav ovladaèe CD (MSCDEX)
+                            0 = ovladaè MSCDEX nepøítomen nebo není otevøen
+                            1 = ovladaè MSCDEX otevøen
+                            2 = v jednotce CD je zasunut platný CD disk
+                            3 = disk CD je pozastaven, mùže pokraèovat (PAUSE)
+                            4 = probíhá pøehrávání disku CD
+                   4: (1) verze VMP - vyšší bajt (vlevo od desetinné teèky)
+                   5: (1) verze VMP - nižší bajt (vpravo od desetinné teèky)
+                               (napø. 1 a 6 -> verze 1.06)
+                   6: (1) chyba digitálního zvuku
+                            0 = digitální zvuk ukonèen normálnì
+                            1 = ukonèení z dùvodu zaplnìní disku (RECORD)
+                            2 = ukonèení z dùvodu pøíliš pomalého disku
+                            3 = ukonèení z dùvodu omezení formátu souboru
+                            4 = ukonèení z dùvodu diskové chyby DOS
+                   7: (1) typ ovladaèe
+                            0 = VMP používající VAPI a/nebo AAPI
+                            1 = VMP používající MMSYSTEM.DLL
+
+
+Funkce 16: Pøidìlení rezidentní pamìti pro pøehrávání MODI souboru
+----------
+Pøi  startu  VMP  s  volbou /clp: je pøidìlena pamì k pøehrávání souborù MIDI.
+Tato  funkce  testuje,  zda  je  dost rezidentní pamìti k pøehrání souboru MIDI
+(napø. pokud chce být aplikace ukonèena a ponechat soubor pøehrávat v pozadí).
+
+VSTUP:   BP = velikost souboru MIDI v KB
+VÝSTUP:  AX = segment adresy bufferu, kam lze soubor MIDI naèíst (offset = 0)
+         AX = 0 -> soubor je pøíliš velký, nevejde se do bufferu VMP
+                   (aplikace musí vytvoøit svùj vlastní buffer k naètení MIDI)
+
+
+Funkce 17: Test pøítomnosti VMP
+---------
+Tato  funkce  by  mìla  být  volána  døíve  pøed  voláním jakékoliv funkce VMP.
+Nejdøíve však je nutno otestovat platnost adresy INT 7Fh (zda není = 0).
+
+VÝSTUP:  AX=0 ovladaè VMP je nainstalován
+
+
+Funkce 18: Obsluha pøerušení hodin
+---------
+Tato  funkce  je  volána,  pokud  jsou hodiny INT 08h aplikací pøedefinovány na
+vyšší  rychlost. Jako parametr je VMP pøedána adresa obsluhy pøerušení od hodin
+aplikace. VMP pøedává na tuto adresu obsluhu pøi pøíchodu každého pøerušení INT
+08h.
+
+VSTUP:   ES:SI = adresa vlastní obsluhy INT 08h (která má být z VMP volána)
+VÝSTUP:  CY = chyba operace
+         NC = operace OK
+         AX = 0 operace OK
+              -301 VMP neotevøen
+              -309 MIDI ovladaè neotevøen
+
+   v zásobníku slovo = poèet [ms] prodlevy od posledního volání obsluhy hodin
+
+VMP  si  pøed  voláním  obsluhy  uschová všechny registry - je možné je všechny
+modifikovat. Registr SS je nedefinován. Obsluha nesmí volat služby DOS.
+
+
+Funkce 24: Pøíprava digitálního AUDIO souboru k pøehrávání èásti souboru
+--------
+VSTUP:   ES:SI = ukazatel FAR na popisovaè rozsahu
+                   0: (4) ukazatel FAR na jméno souboru ASCIIZ
+                   4: (4) poèáteèní pozice v souboru (offset)
+                   8: (4) koncová pozice v souboru (offset)
+         DX:CX = formát záznamu (ukazatel FAR na popisovaè struktury)
+                   0: (4) vzorkovací kmitoèet v [Hz]
+                   4: (2) délka vzorku (poèet bitù: 8 nebo 16)
+                   6: (2) 0=MONO, 1=STEREO
+                   8: (2) formát souboru
+                             0 = VOC (Sound Blaster)
+                             1 = WAV (Microsoft)
+                             2 = RAW
+                             3 = VOY (Voyetra)
+                  10: (2) kompresní algoritmus
+                             0 = není komprese (lineární PCM 8/12/16 bitù)
+                             1 = 4-bitová komprese VOC (Sound Blaster)
+                             2 = 2.6-bitová komprese VOC (Sound Blaster)
+                             3 = 2-bitová komprese VOC (Sound Blaster)
+                             4 = 4-bitová komprese (z 12 bitù) ADPCM (OKI)
+                             5 = 4-bitová komprese (z 12 bitù) ADPCM (CCITT)
+                             8 = 8-bitová komprese (z 12 bitù) µLAW
+                   12: (2*3) rezervováno
+
+VÝSTUP:  AX = 0 operace OK
+              -301 ovladaè VMP není otevøen
+              -302 ovladaè AAPI (AUDIO) není otevøen
+              -303 chyba alokace DMA bufferu
+              -304 formát souboru není podporován
+              -305 formát dat souboru není podporován
+              -306 nelze otevøít soubor pro záznam AUDIO
+              -307 probíhá již pøehrávání nebo záznam AUDIO nebo obsluha MIDI
+                   (nìkterá zaøízení neumožòují souèasnou obsluhu)
+
+Pokud  soubor obsahuje informace o formátu dat (VOC, WAV a VOY), jsou informace
+z  popisovaèe  formátu  ignorovány,  informace  budou doplnìny podle skuteèného
+obsahu souboru. Pro soubor RAW je nutno tyto informace nastavit.
+
+
+VF_VU_ENABLE                  equ  25  ;
+
+Funkce 25: Pøístup k hodnotám úrovní signálù bìhem AUDIO operace
+---------
+VÝSTUP:  DX:AX = ukazatel FAR na buffer indikátorù úrovní (DX=0 chyba)
+                   0: (2) funkce povolena
+                   2: (2) levá špièka
+                   4: (2) levá úroveò
+                   6: (2) pravá špièka
+                   8: (2) pravá úroveò
+         DX = 0 -> chyba
+      -> AX = -301 ovladaè VMP není otevøen
+              -302 ovladaè AAPI (AUDIO) není otevøen
+              -308 neprobíhá žádná operace pøehrávání/záznamu
+              -318 komprimovaný soubor
+
+Hodnoty  indikátorù jsou v rozsahu 0 až 127 pro 8-bitové karty a 0 až 32767 pro
+16-bitové karty. Úrovnì signálù nelze èíst pro komprimovaný soubor.
+
+
+Funkce 26: Provádìní funkcí VMP s obsluhou DOS
+---------
+Tato  funkce  má zabránit pøerušení AUDIO operace z dùvodu pøílišné zatíženosti
+DOS  (napø.  se  naèítá  velký grafický soubor nebo se èasto testuje klávesnice
+pomocí DOS). Bìhem této funkce mùže provádìt VMP požadované operace s DOS.
+
+
+Funkce 27: Nastavení globálních promìnných k pøehrávání MIDI souboru
+---------
+VSTUP:   BP = globální prommìnná, která má být nastavena
+         CX = hodnota k nastavení globální promìnné
+VÝSTUP:   
+
+
+
+Funkce VMP pro Assembler:
+------------------------
+
+
+VF_SEND_MIDI_DATA             equ  12  ;
+VF_SMPTE_ON                   equ  14  ;
+VF_SMPTE_OFF                  equ  15  ;
+VF_RESERVED1                  equ  19  ;
+VF_RESERVED2                  equ  20  ;
+
+VF_CD_CONTROL                 equ  21  ;
+VF_SET_MIXER                  equ  22  ;
+
+VF_GET_MIXER                  equ  23  ;
+VF_SET_PLAY                   equ  28  ;
+VF_SET_REC                    equ  29  ;
+
+
+Funkce VMP pro C:
+----------------
+vmp_open_driver()            /* otevøení ovladaèe VMP - musí být voláno      */
+                             /* jednou pøed voláním jakékoliv jiné funkce    */
+
+
+vmp_driver_present()         /* test instalace VMP -> 0 je nainstalován OK   */
+
+
+vmp_timer_callback()         /* zpìtné volání pøerušení hodin                */
+vmp_dos_yield()              /* náhrada funkce DOS dotazu na èas             */
+
+
+
+Návratové kódy funkcí VMP (v registru AX):
+------------------------------------------
+VMP_OK                        equ  0    ; operace OK
+VMP_OPEN                      equ  -300 ; ovladaè VMP je již otevøen
+VMP_NOPEN                     equ  -301 ; ovladaè VMP není otevøen
+AA_NOPEN                      equ  -302 ; ovladaè AAPI není otevøen
+AA_MEM_ERR                    equ  -303 
+VMP_FFORMAT                   equ  -304 ; formát souboru není VMP podporován
+VMP_DFORMAT                   equ  -305 ; formát dat není VMP podporován
+VMP_DISKERR                   equ  -306 
+VMP_BUSY                      equ  -307 
+VMP_NSET                      equ  -308 
+VA_NOPEN                      equ  -309 
+VMP_MFILE_OPEN                equ  -310 
+VMP_MFILE                     equ  -311 
+VMP_MFILE_BUSY                equ  -312 
+VMP_MFILE_NOPEN               equ  -313 
+VMP_MEM_ERR                   equ  -314 
+VMP_CDPOS                     equ  -315 
+VMP_NOCD                      equ  -316 
+VMP_BAD_FUNC                  equ  -317 
+VMP_NIMP                      equ  -318
+

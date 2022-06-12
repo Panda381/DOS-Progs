@@ -1,0 +1,137 @@
+CONTEXT   0 241   0   3  72
+
+
+
+; zav dˆc¡ sektor pevn‚ho disku
+
+                     org    7c00h
+
+                                                 ; tato ‡ st programu p©enese
+                                                 ; sektor na adresu 0:0600h
+7c00  fa             cli                         ; z kaz p©eru¨en¡
+7c01  33c0           xor    ax,ax
+7c03  8ed0           mov    ss,ax                ; SS <- 0000
+7c05  bc007c         mov    sp,7c00              ; z sobn¡k
+7c08  8bf4           mov    si,sp
+7c0a  50             push   ax
+7c0b  07             pop    es                   ; ES <- 0000
+7c0c  50             push   ax
+7c0d  1f             pop    ds                   ; DS <- 0000
+7c0e  fb             sti                         ; povolen¡ p©eru¨en¡
+7c0f  fc             cld                         ; smˆt p©enosu nahoru
+7c10  bf0006         mov    di,0600              ; nov  adresa zavadˆ‡e pevn‚ho disku
+7c13  b90001         mov    cx,0100              ; d‚lka dat zavadˆ‡e
+7c16  f2a5           repnz  movsw                ; p©enesen¡ sektoru na adresu 0:0600h
+7c18  ea1d060000     jmp    0000:061d            ; pokra‡ov n¡ programu na nov‚ adrese
+
+                                                 ; zde program pokra‡uje ji‘ ve
+                                                 ;  sv‚ kopii
+                                                 ; v t‚to ‡ sti se nalezne aktivn¡ odd¡l
+061d  bebe07         mov    si,07be              ; tabulka odd¡l– disku
+0620  b304           mov    bl,04                ; po‡et odd¡l– disku
+0622  803c80       * cmp    [si],80              ; je aktivn¡ odd¡l ?
+0625  740e           jz     0635                 ; je aktivn¡ odd¡l
+0627  803c00         cmp    [si],00              ; je neaktivn¡ odd¡l ?
+062a  751c           jnz    0648                 ; chyba - neplatn  tabulka
+062c  83c610         add    si,0010              ; adresa dal¨¡ho odd¡lu
+062f  fecb           dec    bl                   ; ‡¡ta‡ odd¡l–
+0631  75ef           jnz    0622                 ; dal¨¡ odd¡l
+0633  cd18           int    18                   ; skok na zavadˆ‡ BASIC
+
+                                                 ; zde se zkontroluje, zda nen¡
+                                                 ; nˆkter˜ dal¨¡ odd¡l aktivn¡
+0635  8b14         * mov    dx,[si]              ; DH-hlava po‡ te‡n¡ho sektoru
+0637  8b4c02         mov    cx,[si+02]           ; sektor a v lec po‡ te‡n¡ho sektoru
+063a  8bee           mov    bp,si                ; £schova ukazatele tabulky odd¡l–
+063c  83c610       * add    si,0010              ; n sleduj¡c¡ odd¡l
+063f  fecb           dec    bl                   ; ‡¡ta‡ odd¡l–
+0641  741a           jz     065d                 ; byl ji‘ posledn¡ odd¡l - pokra‡ov n¡
+0643  803c00         cmp    [si],00              ; jsou n sleduj¡c¡ odd¡ly neaktivn¡ ?
+0646  74f4           jz     063c                 ; kontrola dal¨¡ho odd¡lu
+
+                                                 ; chyba - neplatn  tabulka odd¡l– disku
+0648  be8b06       * mov    si,068b              ; chybov‚ hl ¨en¡ 'Invalid part...'
+                                                 ; chybov‚ hl ¨en¡
+064b  ac           * lodsb                       ; znak k zobrazen¡
+064c  3c00           cmp    al,00                ; je konec textu ?
+064e  740b           jz     065b                 ; konec textu - zablokov n¡ programu
+0650  56             push   si                   ; ukazatel textu (£schova)
+0651  bb0700         mov    bx,0007              ; barva textu b¡l  na ‡ern‚m pozad¡
+0654  b40e           mov    ah,0e                ; funkce zobrazen¡ znaku na displej
+0656  cd10           int    10                   ; zobrazen¡ znaku v telegrafn¡m m¢du
+0658  5e             pop    si                   ; ukazatel textu (n vrat)
+0659  ebf0           jmp    064b                 ; zobrazen¡ dal¨¡ho znaku
+065b  ebfe         * jmp    065b                 ; cyklov n¡ programu po chybˆ
+
+                                                 ; zde se na‡te zav dˆc¡ sektor odd¡lu
+065d  bf0500       * mov    di,0005              ; po‡et pokus– o zaveden¡ sektoru
+0660  bb007c       * mov    bx,7c00              ; adresa pro zaveden¡ sektoru
+0663  b80102         mov    ax,0201              ; funkce na‡ten¡ 1 sektoru
+0666  57             push   di                   ; ‡¡ta‡ pokus–
+0667  cd13           int    13                   ; zaveden¡ 1 sektoru z disku
+0669  5f             pop    di                   ; ‡¡ta‡ pokus–
+066a  730c           jnc    0678                 ; sektor na‡ten OK
+066c  33c0           xor    ax,ax                ; funkce resetov n¡ disku
+066e  cd13           int    13                   ; resetov n¡ pevn‚ho disku
+0670  4f             dec    di                   ; sn¡‘en¡ ‡¡ta‡e pokus–
+0671  75ed           jnz    0660                 ; dal¨¡ pokus o na‡ten¡ sektoru
+0673  bea306         mov    si,06a3              ; text 'Error loading ...'
+0676  ebd3           jmp    064b                 ; chybov‚ hl ¨en¡, STOP syst‚mu
+
+                                                 ; zde se zkontroluje spr vnost sektoru
+                                                 ; a provede se start zavadˆ‡e odd¡lu
+0678  bec206         mov    si,06c2              ; text 'Missing oper...'
+067b  bffe7d         mov    di,7dfe              ; adresa identifika‡n¡ho slova zavadˆ‡e
+067e  813d55aa       cmp    [di],aa55            ; je to zav dˆc¡ sektor ?
+0682  75c7           jnz    064b                 ; nen¡ - chybov‚ hl ¨en¡
+0684  8bf5           mov    si,bp                ; ukazatel na informace o odd¡lu
+0686  ea007c0000     jmp    0000:7c00            ; start zavadˆ‡e syst‚mu v odd¡lu
+
+068b                 db     'Invalid partition table',0
+06a3                 db     'Error loading operating system',0
+06c2                 db     'Missing operating system',0
+
+06db                 db     0...
+
+                                                 ; ODD‹L 1
+07be                 db     80h                  ; zav dˆc¡ p©¡znak (80h=aktivn¡)
+07bf                 db     1                    ; za‡ tek odd¡lu - ‡¡slo hlavy
+07c0                 dw     1                    ; za‡ tek odd¡lu - sektor a v lec
+07c2                 db     6                    ; k¢d syst‚mu FAT (6=
+07c3                 db     5                    ; konec odd¡lu - ‡¡slo hlavy
+07c4                 dw     32d1h                ; konec odd¡lu - sektor a v lec
+07c6                 dd     00000011h            ; ‡¡slo po‡ te‡n¡ho rel. sektoru
+07ca                 dd     00014641h            ; po‡et sektor– odd¡lu
+
+                                                 ; ODD‹L 2
+07ce                 db     0                    ; zav dˆc¡ p©¡znak (80h=aktivn¡)
+07cf                 db     0                    ; za‡ tek odd¡lu - ‡¡slo hlavy
+07d0                 dw     0                    ; za‡ tek odd¡lu - sektor a v lec
+07d2                 db     0                    ; k¢d syst‚mu FAT (6=
+07d3                 db     0                    ; konec odd¡lu - ‡¡slo hlavy
+07d4                 dw     0                    ; konec odd¡lu - sektor a v lec
+07d6                 dd     0                    ; ‡¡slo po‡ te‡n¡ho rel. sektoru
+07da                 dd     0                    ; po‡et sektor– odd¡lu
+
+                                                 ; ODD‹L 3
+07de                 db     0                    ; zav dˆc¡ p©¡znak (80h=aktivn¡)
+07df                 db     0                    ; za‡ tek odd¡lu - ‡¡slo hlavy
+07e0                 dw     0                    ; za‡ tek odd¡lu - sektor a v lec
+07e2                 db     0                    ; k¢d syst‚mu FAT (6=
+07e3                 db     0                    ; konec odd¡lu - ‡¡slo hlavy
+07e4                 dw     0                    ; konec odd¡lu - sektor a v lec
+07e6                 dd     0                    ; ‡¡slo po‡ te‡n¡ho rel. sektoru
+07ea                 dd     0                    ; po‡et sektor– odd¡lu
+
+                                                 ; ODD‹L 4
+07ee                 db     0                    ; zav dˆc¡ p©¡znak (80h=aktivn¡)
+07ef                 db     0                    ; za‡ tek odd¡lu - ‡¡slo hlavy
+07f0                 dw     0                    ; za‡ tek odd¡lu - sektor a v lec
+07f2                 db     0                    ; k¢d syst‚mu FAT (6=
+07f3                 db     0                    ; konec odd¡lu - ‡¡slo hlavy
+07f4                 dw     0                    ; konec odd¡lu - sektor a v lec
+07f6                 dd     0                    ; ‡¡slo po‡ te‡n¡ho rel. sektoru
+07fa                 dd     0                    ; po‡et sektor– odd¡lu
+
+07fe                 dw     0aa55h               ; identifika‡n¡ slovo sektoru
+

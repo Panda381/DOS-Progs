@@ -1,0 +1,1643 @@
+
+
+
+############################################################
+#                                                          #
+#        #########        ########       ##      ##        #
+#        ##########      ##########      ##      ##        #
+#        ##      ##      ##      ##      ##      ##        #
+#        ##      ##      ##              ##      ##        #
+#        ##      ##      ##              ##      ##        #
+#        ##      ##      ##              ##      ##        #
+#        ##########      #########       ##      ##        #
+#        #########        #########      ##      ##        #
+#        ##                      ##      ##      ##        #
+#        ##                      ##      ##      ##        #
+#        ##                      ##      ##      ##        #
+#        ##              ##      ##      ##      ##        #
+#        ##              ##########      ##########        #
+#        ##               ########        ########         #
+#                                                          #
+#        TESTOVACÍ SYSTÉM PRO TESTOVÁNÍ SSE K8524          #
+############################################################
+
+
+
+
+
+
+
+OBSAH:
+------
+1. Poèáteèní testy SSE .............. str. 2
+
+2. Pøíprava SSE k testování ......... str. 5
+
+3. Obsluha programu PSU ............. str. 7
+
+4. Testovací programy - popis ....... str.10
+
+5. Generátory testù ................. str.28
+
+6. Testovací disketa PSU ............ str.29
+
+			    - 2 -
+
+1. Poèáteèní testy SSE
+----------------------
+     Po startu SSE se provádìjí nejdøíve vnitøní testy øídí-
+cí elektroniky STR koncentrátoru KON a inteligentního  adap-
+toru  pro spojení ILA , které jsou  umístìny  v pamìtech ROM
+(tyto programy v STR a ILA se nejdøíve  pøenesou  do  pamìti
+RAM) .  Je-li nalezena chyba, rozbliká se na indikátoru pøí-
+slušného zaøízení ( tj.  STR, KON nebo ILA  )  chybovı  kód.
+Pøi úspìchu testù KON a ILA èekají na spojení s STR , èas po
+kterı èekají je max.  2,5 minuty , pak hlásí chybu  spojení.
+Øídící  elektronika  STR  mezitím  ( po pøenosu ROM - adresa
+0C00H a 0BFFH do RAM na adresu B400H a BFFFH  a  provedení
+testù  pamìtí  )  nahrává  z  disketové mechaniky ( postupnì
+cyklicky prohledává všechny mechaniky ) ze systémové diskety
+fáze programù :  test STR - èást 2 , test STR - èást 3 (jako
+podprogram èásti 2), program pro vícenásobné spojení a  test
+pro  KON  - èást 2 .  Potom ète ze stopy 0 sektoru 7 návìští
+diskety :  bajt 00H = systémová  disketa,  "P"  =  testovací
+disketa   PSU.  Odstartuje  se  test  STR - èást 2.  Nyní se
+STR a ILA propojí - provádí  se  kontrola  spojení  pøenosem
+bajtù  00-FFH.  Do ILA se vyšle identifikaèní znak diskety ,
+èím se program v ILA rozvìtví na systémovou  èást  nebo  na
+testovací  èást PSU.  Nyní se STR spojí s KON a provádí opìt
+kontrolu  spojení  pøenosem  kontrolních  bajtù .   Pøi  PSU
+nyní STR testuje klávesnici, zda je stisknuta klávesa ENTER.
+Pokud  je  tato  klávesa   stisknuta ,  pøeskoèí  se  v  KON
+následující   èást   testù   provádìjící   kontrolu  øetìzce
+pøerušení a kanálù ASS a v STR se pøeskoèí èást kontrolující
+desku  ATS  a  ZRE-CTC.  KON a ILA nyní èekají na pøíkazy od
+STR.  STR zavede z diskety operaèní  systém  nebo  testovací
+systém  PSU,  pøi operaèním systému zavede operaèní systém i
+do KON.
+
+
+CHYBOVÉ KÓDY:
+ (Cyklus 5 sec, èárka  1 sec, teèka 0,3 sec, mezera 0,3 sec)
+
+a) Zavádìcí testy
+
+ Øídící elektronika STR:
+
+
+-	  (1/0) S10:  Kontrola M1 na adr. 0000H...0066H
+-.	  (1/1) S11:  RAM 0000H...3FFFH
+-..	  (1/2) S14:  RAM 4000H...7FFFH
+-...	  (1/3) S14:  RAM 8000H...B3FFH
+-....	  (1/4) S343: RAM C000H...FFFFH (CMOS)
+-.....	  (1/5) S12:  RAM B400H...BFFFH (kontrolní souèet
+			  pøenesené èásti programu z ROM)
+-......	  (1/6) S344: Nejsou data v CMOS-RAM (není signál
+			  SUE) - pro SSE K8524.20 a .30
+-.......  (1/7) S344: RAM C000H...FFFFH, chyba kontrolního
+			  souètu uchovanıch dat v CMOS-RAM
+			  - pro SSE K8524.10
+
+
+			    - 3 -
+
+-	  (2/0)       Chyba kontrolního souètu fáze zavede-
+ 	                  né z diskety
+--.	  (2/1) S12:  RAM B400H...B7FFH nebo ZRE - PROM 1
+--..	  (2/2) S12:  RAM B800H...BBFFH nebo ZRE - PROM 2
+--...	  (2/3) S12:  RAM BC00H...BFFFH nebo ZRE - PROM 3
+--....	  (2/4)       RAM 0000H...03FFH chyba kontrolního
+ 		          souètu (zkušební systém PSU)
+--.....	  (2/5)       RAM 0400H...C7FFH chyba kontrolního
+			  souètu (zkušební systém PSU)
+--......  (2/6)	      RAM 0800H...0BFFH chyba kontrolního
+			  souètu (zkušební systém PSU)
+
+
+---.	  (3/1) S13:  ZRE-CTC
+---..	  (3/2) S37:  ATS-CTC
+----	  (4/0) S37:  ATS
+-----	  (5/0) S25:  Spojení STR-->ILA (není synchronizace)
+-----.	  (5/1) S25:  Spojení STR-->ILA (chyba dat)
+-----..	  (5/2) S25:  Spojení STR-->ILA (není interrupt)
+------	  (6/0) S26:  Spojení STR-->KON (není synchronizace)
+------.	  (6/1) S26:  Spojení STR-->KON (chyba dat)
+------..  (6/2) S26:  Spojení STR-->KON (není interrupt)
+
+
+    Chyby pøi zavádìní fáze 1 a fáze 2 z diskety:
+
+----.	  (4/1)       Chyba rychlosti otáèek mechaniky FD
+----..	  (4/2)       Chybná disketa (SYS na stopì 0 sekt.7)
+----...	  (4/3)	      Chyba kontrol. souètu øadièe FD 512
+			  (AC00H)
+----....  (4/4)       Chyba kontrol. souètu datového sektoru
+----..... (4/5)	      Chyba od øadièe FD - sektor neèitelnı
+
+
+ Koncentrátor KON:
+
+-	  (1/0)	      Kontrola M1 na adrese 0000H...0066H
+-.	  (1/1)	      RAM 0000H...3FFFH
+-..	  (1/2)       RAM 4000H...7FFFH
+-...	  (1/3)	      RAM 8000H...B3FFH
+-....	  (1/4)	      RAM C000H...FFFFH
+-.....	  (1/5)	      RAM B400H...BFFFH
+--.	  (2/1)	      RAM B400H...B7FFH nebo ZRE - PROM 1
+--..	  (2/2)	      RAM B800H...BBFFH nebo ZRE - PROM 2
+--...	  (2/3)	      RAM BC00H...BFFFH nebo ZRE - PROM 3
+--....	  (2/4)	      RAM 0000H...03FFH chyba kontrolního
+			  souètu (zkušební systém PSU)
+--.....	  (2/5)	      RAM 0400H...07FFH chyba kontrolního
+			  souètu (zkušební systém PSU)
+---.	  (3/1)	      ZRE-CTC
+---..	  (3/2)       ASS1-CTC0
+---...	  (3/3)       ASS2-CTC0
+----.	  (4/1)	      ASS1/kanál 1
+----..	  (4/2)	      ASS1/kanál 2
+----...	  (4/3)       ASS1/kanál 3
+----....  (4/4)	      ASS1/kanál 4
+----..... (4/5)	      ASS2/kanál 1
+----......  (4/6)     ASS2/kanál 2
+----....... (4/7)     ASS2/kanál 3
+----........(4/8)     ASS2/kanál 4
+------.	  (6/1)       Spojení STR-->KON, chyba dat kanálu A
+------..  (6/2)       Spojení STR-->KON, není interrupt
+
+			    - 4 -
+
+ Inteligentní adaptor spojení ILA:
+
+-	  (1/0)      Indikace testù
+-.	  (1/1)	     RAM - datová sbìrnice
+-...	  (1/3)	     RAM - adresová sbìrnice
+-.....	  (1/5)      PROM - kontrolní souèet
+--	  (2/0)	     SIO - datové vedení
+--.	  (2/1)      SIO - pøerušení
+--...	  (2/3)      IFLS - pøenos
+--.....	  (2/5)      IFLS - synchronizace
+---.	  (3/1)	     CTC - datové vedení
+---...	  (3/3)      CTC - pøerušení
+---.....  (3/5)      PIO - pøerušení
+-----.	  (5/1)      Spojení STR<-->ILA, chyba dat
+-----...  (5/3)      Spojení STR<-->ILA, není pøerušení
+
+
+ Chyby pøi pøenosu STR<-->KON nebo STR<-->ILA:
+
+-------      (7/0)      Není poadavek na pøíjem od STR
+-------.     (7/1)	Není poadavek na vysílání od STR
+-------..    (7/2)	Není interrupt pøi pøíjmu
+-------...   (7/3)      Není interrupt pøi vysílání
+-------....  (7/4)      První znak není STX
+-------..... (7/5)	Chybnı øídící znak
+-------......(7/6)      Poslední znak není ETX
+
+b) Testy po zavedení systému
+
+ Øídící elektronika STR:
+
+-	  (1/0)	     Chyba disketové mechaniky bìhem zavádì-
+		        ní systému
+--	  (2/0)	     Chyba pøenosu STR-KON
+---       (3/0)      Chyba pøenosu STR-ILA
+----	  (4/0)	     Chyba pøenosu s povelovou stanicí
+-----	  (5/0)	     Chyba kontrolního  souètu  programu pro
+		        KON po zavedení ze systémové diskety
+------	  (6/0)	     Chyba kontrolního  souètu  programu pro
+			DST po zavedení ze systémové diskety
+-------   (7/0)	     Chyba RAM (cyklické testy pamìti)
+--------  (8/0)	     Zápis dat pøi zavádìní systému po pøed-
+		 	chozí havarii není monı
+
+ Koncentrátor KON:
+
+-	  (1/0)	     Chyba kontrolního  souètu  programu KON
+			po pøenosu z STR
+--	  (2/0)	     Chyba pøenosu STR-KON
+---	  (3/0)	     Chyba kontrolního  souètu  programu DST
+			po pøenosu z STR
+----	  (4/0)	     Chyba pøenosu s povelovou stanicí DST
+-----	  (5/0)	     Chyba pøenosu k øídící elektronice STR
+
+
+			    - 5 -
+
+2. Pøíprava SSE k testování
+---------------------------
+
+    Rozmístìní modulù SSE K8524.20 - DIS A6422:
+   -----------------------------------------------------
+  |							|
+  |-------------                                        |
+  |  STM K0360  |                                       |
+  | .03  | .08  |                                       |
+  |  5N  | 12N  |                                       |
+  |-------------                                        |
+  |             |    -----------------------------------|
+  | STM K0363.03|  1| =======ASS==========K8025======== |
+  |             |  2| =======ASS==========K8025======== |
+  |     5P      |  3| =======OPS=64K======K3528.00===== |
+  |             |  4| - - - - - - - - - - - - - - - - - |
+  |-------------|  5| =======ZRE==========K2522======== |
+  | STM K0362.13|   |-----------------------------------|
+  |    24P      |  1| =======OPS=CMOS=====K3521.30===== |
+  |             |  2| =======OPS=CMOS=====K3521.30===== |
+  |-------------|  3| =======OPS=CMOS=====K3521.30===== |
+  | STM K0361.08|  4| =======OPS=CMOS=====K3521.30===== |
+  |    12P      |  5| =======ATS==========K7028.20===== |
+  |             |  6| =======AFS==========K5121======== |
+  |-------------|  7| - - - -ABS- - - - - K7023.01- - - |
+  |             |  8| =======OPS=48K======K3528.10===== |
+  |    SKE      |  9| - - - - - - - - - - - - - - - - - |
+  |   K 369     | 10| =======ZRE==========K2521======== |
+  |             | 11| =======ILA==========K8501======== |
+  |-------------     -----------------------------------|
+  |                                                     |
+  -------------------------------------------------------
+ |                                     K A E             |
+ |                                                       |
+  -------------------------------------------------------
+
+			    - 6 -
+
+Postup pøi pøípravì SSE:
+
+     1. Z nìkterého DST vyjmout desku displeje ABS K 7023.01
+     2. Nastavit adresaci ABS pomocí propojek na adr. AC00H:
+
+       pùvodní propojky              propojky pro
+            v DST:                       SSE:
+      (adr. 1000H-13FFH)          (adr. AC00H-AFFFH)
+
+         o o o o o o                 o o o o o o
+               |                     | | |     |
+               |                     | | |     |
+         o o o o o o                 o o o o o o
+         1 2 3 4 5 6                 1 2 3 4 5 6
+           -------                     -------
+          |       |                   |       |
+   -------         -------     -------         -------
+
+     3. Zasunout desku  ABS  do STR na  pozici 7 (vedle AFS)
+	(monitor  z DST  zùstává  i nadále  pøipojen  k ABS)
+     4. Zapojit  klávesnici  z  DST  do   X3  na  desce  ATS
+	(konektor  2  x  13  pólù  vlevo)
+     5. Je-li tiskárna  (K6311, K6312 nebo SD1157),  zapojit
+        ji do konektoru X5 na desce ATS (konektor 2 x 5 pólù
+        na pravé stranì)
+     6. Zapnout  DST  (rozsvítí  se  chyba  -  není  závada)
+     7. Zapnout SSE  (nebo restartovat), po poèáteèních tes-
+        tech bude  SSE ohledávat  mechaniky a hledat disketu
+     8. Vloit disketu  s PSU2  do nìkteré  mechaniky  (bude
+        nadále jako systémová  mechanika ; levá mechanika má
+        èíslo 1 a  pravá èíslo 0).  SSE zobrazí na obrazovce
+	DST  znak odpovídající mechanice,  ze které se nata-
+	huje systém : !=mechanika 0, "=mechanika 1.  Poté se
+	na obrazovce zobrazují sektory, které se natahují do
+	pamìti (jejich èísla a znakovı vıpis obsahu). Diske-
+	ty s PSU mají formát 128 bajtù na sektor a 26 sekto-
+	rù na stopu.  Po  nataení  zavadìèe  systému  se na
+	obrazovce objeví èíslo mechaniky, z které je zavádìn
+	testovací systém, rychlost otáèek disketové mechani-
+	ky a èíslo právì  zavádìného sektoru.  Pøi  chybì se
+	objeví na spodním øádku  hlášení chyby,  pokraèování
+	v zavádìní je moné po stisknutí "Y".
+     9. Po zavedení  testovacího systému se na obrazovce zo-
+	brazí nápis "Testovací system 1 SSE 20.3 PSU" a pro-
+	gram si vyádá informaci,  zda bude pracováno  s KON
+	nebo s ILA. Zadání se provede stisknutím klávesy "Y"
+	(=KON) nebo "N" (=ILA) a potvrzením potvrzovací klá-
+	vesou "\/". Dále se zadává jméno obsluhy a datum (ve
+	tvaru  Den.Mìsíc.Rok).  Po tìchto zadáních se vypíše
+	v dolní èásti obrazovky nabídka povelù PSU a program
+	èeká na zadání poadované funkce nebo povelu.
+
+
+
+                            - 7 -
+
+3. Obsluha programu PSU
+------------------------
+     Vyvolání pøíslušné funkce testovacího systému PSU se
+provádí zapsáním názvu funkce a odesláním klávesou \/ (šipka
+dolù).
+
+Rozdìlení pamìti STR pøi testovacím systému PSU:
+
+     0000H...03FFH	Obsluhy RESET, RST a NMI
+     0400H...07FFH	Zavádìcí programy, inicializace
+     0800H...0BFFH	Ovladaè floppy diskù (FD-Treiber)
+     0C00H...0FFFH	Pracovní pamì RAM systému
+
+     1000H...27FFH	Nepouito
+     2800H...2FFFH	Testovací programy (pøi funkci TEST)
+
+     3000H...33FFH	Generovací informace pro PRSY01
+     3400H...6B7FH	Testovací systém PRSY01
+     6B80H...6BFFH	Pamì pro uloení hlavièky obrazovky
+     6C00H...6FFFH	Pamì pro uloení obrazovky (PRSY01)
+
+     7000H...8FFFH	Testovací programy (pøi funkci TEST)
+     9000H...ABFFH	Nepouito
+
+     AC00H...AFFFH	Obrazovka BAB1 (12 x 80)
+
+     B000H...B3FFH	Generovací informace pro PRSY00
+     B400H...EB7FH	Testovací systém PRSY00
+     EB80H...EBFFH	Pamì pro uloení hlavièky obrazovky
+     EC00H...EFFFH	Pamì pro uloení obrazovky (PRSY00)
+
+     F000H...FFFFH	Nepouito
+
+
+Rozdìlení pamìti KON:
+
+     0000H...03FFH	Obsluha RESET, RST a NMI
+     0400H...0BFFH	Øídící program KON
+     0C00H...0FFFH	Pracovní pamì RAM pro KON
+
+     1000H...27FFH	Nepouito
+     2800H...2FFFH	Testovací programy
+     3000H...6FFFH	Nepouito
+     7000H...8FFFH	Testovací programy
+     9000H...FFFFH	Nepouito
+
+
+
+                            - 8 -
+
+Povely testovacího systému PSU:
+
+TEST	Vyvolání testovacích programù z diskety (podrobnìji
+        viz kapitoly 4. a 5.).
+
+DATUM	Nové zadání datumu (jako pøi startu programu)
+
+BEDIEN	Nové zadání jména obsluhy (pro tisk protokolù)
+
+MEMS    Práce s pamìtí SLAVE (tj.STR)
+	- Zadá se poèáteèní adresa. Objeví se pole 128 bajtù
+        vıpisu pamìti. Po poli je mono se posouvat kurzoro-
+        vımi klávesami  a pøepisovat bajty  znaky  HEX.  Pøi
+        pøekroèení hranice zobrazené oblasti se pole automa-
+        ticky posouvá. Znakem "@" lze pøepnout zobrazení buï
+        v kódu HEX nebo ISO. Pøerušení editace je moné klá-
+        vesou ENTER. Pøi zápisu je potøeba dbát  na to,  aby
+        nedošlo k pøepsání dat  v zakázanıch oblastech  (tj.
+        adresy 0000H...0FFFH, 3000H...6FFFH a pokud se  pra-
+        cuje pod PRSY00 tak i oblast B000H...EFFFH  (aktivní
+        systém se zobrazuje v levém horním rohu obrazovky).
+
+MEMM	Práce s pamìtí MASTER (tj. KON nebo ILA)
+	- Obsluha je stejná jako u pøíkazu MEMS, pouze zaká-
+        zaná oblast je jenom 0000H...0FFFH.
+
+MEMFD	Zobrazení sektorù diskety
+ 	- Obsah sektorù  se zobrazuje  stejnì jako u pøíkazù
+        MEMS a MEMM, na disketu však nelze zapisovat zmìny.
+
+MWRS	Zaplnìní obsahu pamìti SLAVE (tj.STR) konstantou
+	- Zadává se poèáteèní a koneèná adresa a byte, kterı
+        bude zapsán do prostoru mezi tìmito adresami.
+
+MWRM	Zaplnìní obsahu pamìti MASTER (tj.KON nebo ILA)
+	- Obsluha stejná jako u povelu MWRS
+
+TRANSM	Pøenos dat ze SLAVE do MASTER (tj. z STR do KON,ILA)
+	- Adresovı prostor ze SLAVE od zadané  poèáteèní ad-
+        resy po zadanou koneènou adresu se pøenese do MASTER
+        na stejné adresy v pamìti.
+
+GOTOS	Start programu v SLAVE (tj. v STR)
+	- V pamìti SLAVE  je odstartován  program  od zadané
+        adresy. Program je mono ukonèit instrukcí RET  nebo
+        pøerušit instrukcí RST0 - v tomto pøípadì se  vypíší
+        obsahy registrù procesoru a v programu je mono poz-
+        dìji pokraèovat povelem GOS.
+
+GOS	Pokraèování v programu v SLAVE po pøerušení
+	- Je moné pokraèování programu v SLAVE (tj.STR)  po
+        pøerušení instrukcí RST nebo signálem NMI. Vypíše se
+        adresa na  které nastalo  pøerušení, tuto  adresu je
+        moné zmìnit, po odeslání  se program  odstartuje od
+        této adresy (chceme-li napø. pokraèovat za instrukcí
+        RST0, která vyvolala pøerušení, je nutno zvıšit  ad-
+        resu na další instrukci - tj. +1).
+
+
+                            - 9 -
+
+GOTOM	Start programu v MASTER (tj. v KON nebo ILA)
+	- Obsluha stejná jako u povelu GOTOS.
+
+GOM	Pokraèování v programu v MASTER po pøerušení
+	- Obsluha stejná jako u povelu GOS.
+
+BIB	Vıpis knihovny testovacích programù
+	- Po zadání disketové mechaniky (0,1) se  z knihovny
+        fází na disketì vypíše obsah této knihovny (jsou zde
+        uloeny testovací programy, generátory testù a  pro-
+        gramy vytvoøené uivatelem).
+
+LOAD	Uloení fáze z diskety do pamìti SLAVE (STR)
+        - Povelem lze vyvolat testovací program  nebo uiva-
+        telskı program, kterı je uloen  v knihovnì diskety.
+        Informace o  poèáteèní adrese programu, jeho délce a
+        startovací adrese je uloena  v prvních  bytech fáze
+        a vypisuje se té po nataení programu.
+
+SAVE	Uloení fáze z pamìti SLAVE (STR) na disketu
+	- Povelem se uloí èást pamìti STR od zadané adresy,
+        o zadané délce, se zadanou startovací adresou  a pod
+        zadanım jménem na disketu jako program (fáze). Pokud
+        název fáze ji existuje, je na to obsluha upozornìna
+        a je nutno zadat nové jméno programu.
+
+SUMKOR	Kontrolní souèet pamìti (pouze pro STR)
+	- Provádí  se kontrolní souèet  pamìti (jako 1 bajt)
+        od zadané adresy a o zadané délce. Zadá se té poa-
+        dovanı kontrolní souèet (1 bajt), po provedení souè-
+        tu se vypíše  skuteènı  kontrolní souèet  a korekce,
+        kterou je tøeba doplnit pro dosaení pøedpokládaného
+        kontrolního souètu.
+
+
+                            - 10 -
+
+4. Testovací programy - popis
+-----------------------------
+     Testovací programy je moné vyvolat pomocí povelu TEST,
+parametry pro nastavení testù se pøedávají v povelovém  sou-
+boru GEN... (generátor testù). Oznaèení  testù je  zpravidla
+ètyøznakové + 2 další znaky udávají, na jakou adresu se  pro-
+gram ukládá (28 = 2800H, 70 = 7000H).
+
+
+11 CPU1	   Testy procesoru - funkèní testy 1
+
+	   - Rutina testuje základní funkce procesoru
+		TEST 01-07  - základní instrukce
+		TEST 10-1B  - pøesuny mezi registry 8-bitù
+		TEST 20-2E  - instrukce INC a DEC 8 bitù
+		TEST 30-37  - porovnávací instrukce
+		TEST 40-4C  - pøesuny dat registr <-> pamì
+		TEST 50-51  - nastavování 16-bit. registrù
+		TEST 60-65  - pøesuny dat reg. A <--> pamì
+		TEST 70-77  - pøesuny dat 16-bit.reg.<->pam.
+		TEST 80-83  - nastavování index. registrù
+		TEST 90-94  - operace s registrem SP
+		TEST A0-AA  - ukládací instrukce PUSH a POP
+		TEST B0-BB  - instrukce INC a DEC 16 bitù
+		TEST C0-C2  - testy registrù I a R
+		TEST D0-D3  - blokovı pøesun/blok. porovnání
+
+    	   - Parametry rutiny:
+		Startovací adresa	P1100
+		Provozní doba		3,26 s bez WAIT
+					3,48 s s WAIT
+		Koneèné zastavení	P11EH
+		Chybové zastavení FLR
+
+    	   - Nastavovací bajty:
+		bez vıznamu
+
+   	   - Chybové bajty:
+		FB 1		Èíslo rutiny (11)
+		FB 2		Èíslo testu (01-D3)
+		FB 3		Chybovı kód
+		FB 4		Èítaè
+		FB 5,6		Pøedpokládaná data
+		FB 7,8		Skuteèná data
+
+
+                            - 11 -
+
+12 CPU2    Testy procesoru - funkèní testy 2
+
+	   - Druhá èást testù
+		TEST 10-15  - seèítání/odèítání 8 bitù
+		TEST 20-21  - seèítání/odèítání 8 b.s pamìtí
+		TEST 30-3D  - indexované adresování
+		TEST 40	    - indexované ukládání dat
+		TEST 50-51  - indexovaná aritmetika
+		TEST 60-61  - INC a DEC s indexem
+		TEST 70     - indexované porovnání
+		TEST 80-83  - aritmetika 16 bitù
+		TEST 90-93  - seèítání 16 bitù s IX,IY
+		TEST A0     - vımìna DE <-> HL
+		TEST B0     - vımìna EXX
+		TEST C0     - vımìna (SP) <-> HL
+		TEST D0-D1  - vımìna (SP) <-> IX,IY
+		TEST E0     - logické operace s registry
+		TEST F0     - logické operace s daty
+		TEST F1     - logické operace s pamìtí
+		TEST F2-F4  - indexované logické operace
+
+    	   - Parametry rutiny:
+		Startovací adresa	W1200
+		Provozní doba		0,065 s bez WAIT
+					0,073 s s WAIT
+		Koneèné zastavení	W12EH
+		Chybové zastavení	FLR
+
+    	   - Generovací bajty:
+		Bez vıznamu
+
+    	   - Chybové bajty:
+		FB 1		Èíslo rutiny (12)
+		FB 2		Èíslo testu (10-F4)
+		FB 3		Chybovı kód
+		FB 4		Èítaè
+		FB 5,6		Pøedpokládaná data
+		FB 7,8		Skuteèná data
+
+
+13 CPU3	   Testy procesoru - funkèní testy 3
+
+	   - Tøetí èást testù
+		TEST 10-11  - operace CPL, NEG
+		TEST 20     - rotace registru A
+		TEST 30-35  - rotace registrù vpravo
+		TEST 40-45  - rotace registrù vlevo
+		TEST 50-5B  - rotace SLA
+		TEST 60-61  - rotace v pamìti
+		TEST 70-73  - indexovaná rotace
+		TEST 80-85  - test a resetování bitù
+		TEST 90     - nastavování bitù
+		TEST A0     - operace s bity v pamìti
+		TEST B0-B1  - operace s bity s indexem
+		TEST C0     - testy bitu s indexem
+
+
+                            - 12 -
+
+    	   - Parametry rutiny:
+		Startovací adresa	W1300
+		Provozní doba		0,023 s bez WAIT
+					0,026 s s WAIT
+		Koneèné zastavení	W13EH
+		Chybové zastavení	FLR
+
+    	   - Generovací bajty:
+		Bez vıznamu
+
+    	   - Chybové bajty:
+		FB 1		Èíslo rutiny (13)
+		FB 2		Èíslo testu (10-C0)
+		FB 3		Chybovı kód
+		FB 4		Èítaè
+		FB 5,6		Pøedpokládaná data
+		FB 7,8		Skuteèná data
+
+
+14 CPU4	   Testy procesoru - funkèní testy 4
+
+	   - Ètvrtá èást testù
+		Operace  se zásobníkem, volání  podprogramù,
+		skoky, návraty, restarty
+
+    	   - Parametry rutiny:
+		Startovací adresa	S1400
+		Provozní doba		0,008 s bez WAIT
+					0,0085 s s WAIT
+		Koneèné zastavení	S14EH
+		Chybové zastavení	FLR
+
+    	   - Generovací bajty:
+		Bez vıznamu
+
+    	   - Chybové bajty:
+		FB 1		Èíslo rutiny (14)
+		FB 2		Èíslo testu (10-28)
+		FB 3		Chybovı kód
+		FB 4		Návìští
+		FB 5,6		Pøedpokládaná data
+		FB 7,8		Skuteèná data
+
+
+1A CPUA	   Testy procesoru - funkèní testy 5
+
+	   - Pátá èást testù
+		Instrukce pro vstup a vıstup
+
+    	   - Parametry rutiny:
+		Startovací adresa	R1A00
+		Provozní doba		0,014 s bez WAIT
+					0,016 s s WAIT
+		Koneèné zastavení	R1AEH
+		Chybové zastavení	FLR
+
+
+                            - 13 -
+
+    	   - Generovací bajty:
+		GB 1		Adresa CTC resp. PIO
+		GB 2		Nastavovací bity
+				  Bit 0: 0 = CTC
+                                         1 = PIO
+                                  Bit 1: 0 = stop po prùch.
+                                         1 = cyklická práce
+            	GB 3		00 = není pøídavná RAM
+                		jiná data = adresa RAM (H)
+                GB 4...GB 8     Nepouito
+
+    	   - Chybové bajty:
+		FB 1		Èíslo rutiny (1A)
+		FB 2		Èíslo testu (01-09)
+		FB 3		Chybovı znak
+		FB 4		Chybovı kód
+		FB 5		Pøedpokládaná data
+                FB 6		Skuteèná data
+		FB 7,8		Skuteèná data
+
+
+48 ROM0	   Kontrola pamìti ROM
+
+	   - Rutina kontroluje obsah pamìti provedením  kon-
+           trolního souètu pamìti a jeho porovnáním  s poa-
+           dovanou hodnotou (3 bajty).
+
+	   - Parametry rutiny:
+              	Startovací adresa	S4800
+              	Provozní doba		asi 40 ms / 1 KB
+                Koneèné zastavení	S48EH
+                Chybové zastavení	FLR
+
+	   - Generovací bajty:
+           	GB 1,2		Poèáteèní adresa PROM (L,H)
+                GB 3,4		Koneèná adresa PROM (L,H)
+                GB 5		Nepouito
+                GB 6,7,8	Poadovanı kontrolní souèet
+
+	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (48H)
+                FB 2		Èíslo testu (01H)
+                FB 3,4,5	Poadovanı kontrolní souèet
+                FB 6,7,8	Skuteènı kontrolní souèet
+
+
+40 RAM0    Kontrola pamìti RAM
+
+	   - Rutina provádí testy pamìového prostoru RAM od
+           zadané poèáteèní adresy po zadanou koneènou adre-
+           su pomocí následujících testù:
+           	TEST 10	- Test datové sbìrnice pamìti
+                	Provádí test  v kadém  prostoru 256
+                        bajtù  pamìti pomocí  posuvu  bitu 1
+                        pøes nulové bajty.
+                TEST 21 - Test adresové sbìrnice pamìti - L
+                	Všechny  buòky  pamìti jsou  popsány
+                        niším bajtem adresy (L)
+                TEST 22 - Test adresové sbìrnice pamìti - H
+                	Pamì se v intervalech 256 bajtù po-
+                        pisuje vyšším bajtem adresy (H)
+
+                            - 14 -
+
+                TEST 31 - Test pamìovıch bunìk
+                	Od poèáteèní adresy po koneènou 55H
+                TEST 32 - Test pamìovıch bunìk
+                	Od koneèné adresy po  poèáteèní AAH,
+                        kontroluje obsah 55H
+
+	   - Parametry rutiny:
+           	Startovací adresa	S4000
+                Provozní doba		0,32 s / KB bez WAIT
+                			0,36 s / KB s WAIT
+                Koncové zastavení	S40EH
+                Chybové zastavení	FLR
+
+           - Generovací bajty:
+           	GB 1,2		Poèáteèní adresa (L,H)
+                GB 3,4		Koneèná adresa (L,H)
+                GB 5...8	Nepouito
+
+	   - Chybové bajty
+           	FB 1		Èíslo rutiny (40H)
+                FB 2		Èíslo testu (10...32)
+                FB 3,4		Adresa chybné pamìové buòky
+                FB 5		Pøedpokládaná data
+                FB 6		Skuteèná data
+                FB 7,8		Bez vıznamu
+
+43 RAM1	   Test operaèní pamìti s cyklem M1
+
+	   - Rutina testuje v pamìovém prostoru RAM  od za-
+           dané adresy po koneènou správné zpracování  urèi-
+           tého 1-bajtového  povelu  pøi zkráceném  pøístupu
+           k pamìti bìhem ètení povelu ve stroj. cyklu M1.
+           Pøedpoklady:	- ani testovaná pamì ani programová
+           		  pamì nesmìjí  generovat WAIT  pøi
+                          cyklu M1
+                        - pamìová buòka  XA.ARB+18 musí bıt
+                          generována na sudé adrese
+
+	   - Parametry rutiny:
+           	Startovací adresa	S4300
+                Provozní doba		3,22 s / KB
+                Koneèné zastavení 	S43EH
+                Chybové zastavení	FLR
+
+	   - Generovací bajty:
+           	GB 1,2		Poèáteèní adresa (L,H)
+                GB 3,4		Koneèná adresa (L,H)
+                GB 5...8	Nepouito
+
+	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (43H)
+                FB 2		Èíslo testu (01)
+                FB 3,4		Adresa chybného bajtu (L,H)
+                FB 5		Chyba testu
+                FB 6		Oznaèení chyby  (1=chyba re-
+                		gistru, 2=chyba PC)
+                FB 7,8		Nepouito
+
+
+                            - 15 -
+
+44 RAM2	   Testování RAM na falšování dat pøi koncentrovaném
+	   ètení
+
+           - Rutina  je urèena pouze  pro testy  dynamickıch
+           pamìtí. Zadanı pamìovı  prostor je popsán bajtem
+           FFH, potom je kadá pamìová buòka  asi 1000 krát
+           za sebou ètena a kontrolována,  jestli nedošlo ke
+           zmìnì obsahu buòky. Test je opakován s bajtem 00.
+
+	   - Parametry rutiny:
+           	Startovací adresa	S4400
+                Provozní doba		30 s / KB
+                Koneèné zastavení	S44EH
+                Chybové zastavení	FLR
+
+	   - Generovací bajty:
+           	GB 1,2		Poèáteèní adresa
+                GB 3,4		Koneèná adresa
+                GB 5...8	Nepouito
+
+	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (44)
+                FB 2		Èíslo testu (01)
+                FB 3,4		Adresa chybné pamìové buòky
+                FB 5		Poadovaná data
+                FB 6		Skuteèná data
+                FB 7,8		Nepouito
+
+46 RAM3	   Kontrola operaèní pamìti opodìnım ètením
+
+    	   - Rutina provádí v zadaném pamìovém prostoru ná-
+           sledující testy:
+           	TEST 01 - Popis celého  pamìového  prostoru
+                	zapisovacím bajtem  (GB5), po zápisu
+                        kontrolní ètení kadého pamì. místa
+                TEST 02 - Èekací èas 0 - 255 s  (GB6).  Kon-
+                	trola  kadého  pamìového  místa  a
+                        zápis negovaného  zapisovacího bajtu
+                        s kontrolním ètením.
+                TEST 03 - Èekací èas 0 - 255 s  (GB6).  Kon-
+                	trola  kadého  pamìového  místa  a
+                        zápis zapisovacího bajtu  s kontrol-
+                        ním ètením.
+
+	   - Parametry testu:
+           	Startovací adresa	STAUT = RAM3 + 3
+                Provozní doba 		bez WAIT=0,21 s/KB +
+                			      + 2,00*(GB6) s
+                                        s   WAIT=0,25 s/KB +
+                                              + 2,15*(GB6) s
+                Koneèné zastavení	EHAUT = RAM3 + 1DH
+                Chybové zastavení	XA.FLR
+
+                            - 16 -
+
+	   - Generovací bajty:
+           	GB 1,2		Poèáteèní adresa (L,H)
+                GB 3,4		Koneèná adresa (L,H)
+                GB 5		Zapisovací byte
+                GB 6		Èekací prodleva v sekundách
+                GB 7		Pouze pro autonomní práci:
+                		  bit 0 = 1  Trvalı test
+                                  bit 0 = 0  Stop po jednom
+                                  	     prùchodu
+                GB 8		Nepouit
+
+	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (46)
+                FB 2		Èíslo testu (01, 02, 03)
+                FB 3,4		Adresa chybného bajtu (L,H)
+                FB 5		Pøedpokládaná data
+                FB 6		Skuteèná data
+                FB 7		Èekací prodleva v sekundách
+                FB 8		Èasovı okamik chyby
+                		  00 Chyba ihned po zápisu
+                                  01 Chyba a po prodlevì
+
+
+45 RAMC	   Test udrení obsahu dat v CMOS-RAM
+
+	   - Rutina testuje pamì RAM po provozu s podpùrnım
+           napájecím  napìtím  (udrení dat  pøi redukovaném
+           napájecím napìtí pamìtí)
+           Fáze testu:	- Popis pamìti specifikovanım bajtem
+           		- Klidovı stav
+                        - Novı start rutiny s kontrolou dat
+
+    	   - Parametry rutiny:
+           	Startovací adresa	S4500
+                Provozní èas		Ménì ne 1 sekundu
+                Koneèné zastavení	S45EH
+                Chybové zastavení	FLR
+
+ 	   - Generovací bajty:
+           	GB 1,2		Poèáteèní adresa (L,H)
+                GB 3,4		Koneèná adresa (L,H)
+                GB 5		Zapisovací bajt
+                GB 6		Volba - zápis =  AAH
+                		      - ètení <> AAH
+                GB 7,8		Nepouito
+
+	   - Chybové bajty:
+           	FB 1		Èílo rutiny (45)
+                FB 2		Èíslo testu (01)
+                FB 3,4		Adresa chybného bajtu (L,H)
+                FB 5		Pøedpokládaná data
+                FB 6		Skuteèná data
+                FB 7,8		Bez vıznamu
+
+
+                            - 17 -
+
+42 RAMD	   Speciální testy dynamickıch pamìtí
+
+	   - Rutina testuje v zadaném pamìovém rozsahu fun-
+           kce  REFRESH - udrení dat s potlaèenım  signálem
+           REFRESH (minimální  poadovaná  doba udrení  dat
+           bez signálu REFRESH je  2 ms,  dobré pamìti udrí
+           data 10 ms, velmi dobré i nìkolik desítek a sto-
+           vek ms) a udrení dat s podporou signálem REFRESH
+           (data se nesmí ztratit po libovolnì dlouhou dobu)
+
+ 	   Upozornìní:  Je moné zadávat pouze pamìové pro-
+           		story 4K- , 8K- , 12K-  nebo  16K- ,
+                        jejich poèáteèní adresy  tvoøí hra-
+                        nice 4K- (tj. 1000H, 2000H atd.). To
+                        je kontrolováno pøi zadávání kontro-
+                        lou syntaxe.
+
+	   - Parametry rutiny:
+           	Startovací adresa	S4200
+                Provozní doba		0,6 s/4K + GB6/10 s
+                Koneèné zastavení	S42EH
+                Chybové zastavení	FLR
+
+	   - Generovací bajty:
+           	GB 1,2		Poèáteèní adresa (L,H)
+                GB 3,4		Koneèná adresa (L,H)
+                GB 5		Zapisovací bajt
+                GB 6		Èekací prodleva pøi kontrole
+                		REFRESH: prodl.= GB6 * 50 ms
+                GB 7		Èekací prodleva s potlaèením
+                		REFRESH: prodl.= GB7 * 1 ms
+                GB 8 		00 = pamì bez WAIT
+                		nenulovı bajt = pamì s WAIT
+
+ 	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (42)
+                FB 2		Èíslo testu (11,12,20,30)
+                FB 3,4		Adresa chybného bajtu (L,H)
+                FB 5		Pøedpokládaná data
+                FB 6		Skuteèná data
+                FB 7		Èekací prodleva
+                FB 8		Bez vıznamu
+
+71 ATSZ	   Kontrola desky interface ATS K 7028.10 a .20
+
+	   - Provádí se kontroly desek ATS K 7028.10 -2*IFSS
+           a K 7028.20 - IFSS a V24 a pøipojení  klávesnice.
+           U desky  K 7028.10 jsou konektory  IFSS  navzájem
+           propojeny zkratovacím kabelem, u desky  K 7028.20
+           jsou konektory zakonèeny zkratovacími konektory.
+
+	   - Generovací bajty:
+           	GB 1		Adresa kanálu SIO/CTC (F0H)
+                GB 2		Adresa selektor.bajtu, vıst.
+                		registru, tastatury (E0H)
+                GB 3		Øídící bity:
+                		  Bit 2 = 0  STOP po  jednom
+                                  	     prùchodu
+                                        = 1  Trvalı test
+                                  Bit 3 = 0  ATS K 7028.10
+                                  	= 1  ATS K 7028.20
+
+                            - 18 -
+
+                GB 4		Èasová konstanta  pro nasta-
+                		vení rychlosti pøenosu (10H)
+                GB 5		Adresa kanálu ATSZ (00H)
+                GB 6		Poèáteèní znak dat. generát.
+                GB 7		Koneènı znak dat. generátoru
+                GB 8		Vyšší bajt adr. pøídavné RAM
+
+	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (71)
+                FB 2		Èíslo testu
+                FB 3		Adresa kanálu
+                FB 4		Kód chyby:
+                		  F0 = Chyba pøerušení
+                                  F1 = Pøeteèení èasu
+                                  F2 = Zvláštní podm. pøíjmu
+                                  FF = Chyba porovnání  nebo
+                                       chybnı vektor pøeruš.
+                FB 5 		Pøedpokládaná data
+                FB 6		Skuteèná data
+                FB 7		Skuteènı ètecí registr 0
+                FB 8		Skuteènı ètecí registr 1
+
+	   	Moné kombinace:
+                Èíslo testu    FKZ
+                    01         FF    Chyba dat selekt. bajtu
+                   		     ZVE  nebo signálu  RDY-
+                    02         FF    Chyba dat vıst.registru
+                    		     ZVE nebo  signálu  RDY-
+                    03	       FF    Chyba  dat klávesnice ,
+                    		     chyba RDY-, chyba  UINT
+                    04         FF    Chyba BEL1/BEL2
+                    05         FF    Chyba dat ZVE-SIO , SR2
+                    06         F0    Chyba pøerušení
+                               FF    Chybnı vektor pøerušení
+                    07	       F1    Chyba propojení V24
+                    08         F0    Chyba pøerušení
+                               FF    Chyba dat
+                               F2    Zvlášt. podmínky pøíjmu
+
+96 V240	   Kontrola desky DFUE K 8172 - V24
+
+	   - Rutina kontroluje spojovací vedení,  pøenos dat
+           asynchronní poloduplex nebo duplex (do 9600 Bd) ,
+           pøenos dat synchronní poloduplex nebo duplex  (do
+           19200 Bd), èekací reim asynchronní a synchronní,
+           test  ASV K 8021 a V24  synchronní  a asynchronní
+           pøes zkratovací kabel nebo zkratovací konektory ,
+           vysílání pravoúhlıch impulsù na datové vedení 103
+           (nastavení GB1 (9F04H)=adresa kanálu, GB4 (9F07H)
+           =èasovací konstanta, startovací adresa S9670).
+
+
+                            - 19 -
+
+ 	   - Generovací bajty:
+           	GB 1		Adresa datového slova kanálu
+                		1 (vysílaè)
+                GB 2		Adresa datového slova kanálu
+                		2 (pøijímaè)
+                GB 3		Øídící slovo:
+                		  Bit 0: 0 = Poloduplex
+                                         1 = Duplex
+                                  Bit 1: 0 = Asynchronní
+                                  	 1 = Synchronní
+                GB 4 	Èasovací konstanta  pro nas-
+                		tavení rychlosti pøenosu:
+                                Asynchronní: 01H = 9600 Bd
+                                	     02H = 4800 Bd
+                                             04H = 2400 Bd
+                                             08H = 1200 Bd
+                                             10H =  600 Bd
+                                             20H =  300 Bd
+                                             30H =  200 Bd
+                                Synchronní:  04H =19200 Bd
+                                	     08H = 9600 Bd
+                                             10H = 4800 Bd
+                                             20H = 2400 Bd
+                                             40H = 1200 Bd
+                GB 5		Poèáteèní znak
+                GB 6		Koneènı znak (pøi  synchron.
+                		provozu nepouívat znak 16H)
+                GB 7		Pøenos bloku:
+                		  01H...FFH = po konec
+                                  00H	    = trvalı reim
+                GB 8 	Nepouit
+
+ 	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (96)
+                FB 2		Èíslo testu:
+                		  01 = asynchr. 1 kanál
+                                  02 = asynchr. poloduplex
+                                  03 = asynchr. duplex
+                                  11 = synchro. 1 kanál
+                                  12 = synchro. poloduplex
+                                  13 = synchro. duplex
+                FB 3		Adresa kanálu
+                FB 4		Oznaèení chyby:
+                		  F0 = není interrupt
+                                  F1 = pøeteèení èasu
+                                  F2 = není pøeruš. vysílaèe
+                                  F3 = není pøeruš.pøijímaèe
+                                  F4 = pøeruš.vnìjší status
+                                  F5 = pøeruš.spec.podm.pø.
+                                  FF = chyba porovnání
+                FB 5 		Pøedpokládaná data
+                FB 6		Skuteèná data
+                FB 7		Skuteènı ètecí registr 0
+                FB 8		Skuteènı ètecí registr 1
+
+
+                            - 20 -
+
+81 AFS0	   Testování disketové mechaniky a øadièe FD
+
+	   -Rutinou lze testovat jednotlivé disketové mecha-
+           niky, øadiè floppy diskù a diskety (pouze  formát
+           26*128 B/sektor !).
+
+	   - Parametry rutiny:
+           	Startovací adresa	F8100
+                Provozní doba		asi 250 ms pro ètení
+                			a 500 ms pro zápis
+                Koneèné zastavení	F810E
+                Chybové zastavení	FLR
+
+	   - Generovací bajty:
+           	GB 1	Volba mechanik FD:
+                  	  BIT0=1: FD0 - mechanika pøipojena
+                          BIT1=1: FD1 - mechanika pøipojena
+                          BIT2=1: FD2 - mechanika pøipojena
+                          BIT3=1: FD3 - mechanika pøipojena
+                          BIT4=1: FD0 - kontrola otáèek
+                          BIT5=1: FD1 - kontrola otáèek
+                          BIT6=1: FD2 - kontrola otáèek
+                          BIT7=1: FD3 - kontrola otáèek
+                GB 2	PIO - základní adresa AFS
+                GB 3	Datovı bajt pro zápis
+                GB 4	Povel:
+                	  04H = Nastavení na stopu 0
+                          00H = Naètení 1 sektoru z pozice 1
+                                do bufferu
+                          01H = Zápis 1 sektoru z bufferu na
+                                pozici 1
+                          10H = Ètení sektoru  z pozice 1 do
+                                bufferu a potom  ètení sekt.
+                                z pozice 2 do bufferu
+                          11H = Z datového bufferu  je støí-
+                          	davì zapisován sektor na po-
+                                zici 1 a na pozici 2
+                          19H = Ètení sektoru  z pozice 1 do
+                                datového bufferu a jeho  zá-
+                                pis na pozici 2
+                          20H = Jako 00H  -
+                          21H = Jako 01H   |
+                          30H = Jako 10H    > pozice jsou
+                          31H = Jako 11H   |    náhodné
+                          39H = Jako 19H  -
+                          41H = Pøepis   datového   prostoru
+                          	diskety datovım bajtem z GB3
+              Pro GB4 = 00H...39H:
+         	GB 5	Pozice 1 - stopa  (00H - 4CH)
+                GB 6	Pozice 1 - sektor (01H - 1AH)
+                GB 7	Pozice 2 - stopa  (00H - 4CH)
+                GB 8	Pozice 2 - sektor (00H - 1AH)
+              Pro GB4 = 41H:
+                GB 5	Poèáteèní stopa  (00H - 4CH)
+                GB 6	Poèáteèní sektor (01H - 1AH)
+                GB 7	Koneèná stopa	 (00H - 4CH)
+                GB 8 	Koneènı sektor	 (01H - 1AH)
+
+                            - 21 -
+
+	   Pøevodní tabulka pro pøevod èísla stopy:
+
+     DEK|  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 |
+     -----------------------------------------------------
+     0x | 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 |
+     1x | 0A | 0B | 0C | 0D | 0E | 0F | 10 | 11 | 12 | 13 |
+     2x | 14 | 15 | 16 | 17 | 18 | 19 | 1A | 1B | 1C | 1D |
+     3x | 1E | 1F | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 |
+     4x | 28 | 29 | 2A | 2B | 2C | 2D | 2E | 2F | 30 | 31 |
+     5x | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3A | 3B |
+     6x | 3C | 3D | 3E | 3F | 40 | 41 | 42 | 43 | 44 | 45 |
+     7x | 46 | 47 | 48 | 49 | 4A | 4B | 4C |  ( H E X A ) |
+     -----------------------------------------------------
+
+   	  Pro zápis na disketu s PSU je moné pouívat pouze
+          stopy 40 - 69 ! (ve zdrojové mechanice  s disketou
+          PSU se testuje, aby nemohla bıt znièena - je nutno
+	  natáhnout PSU z jiné mechaniky, pokud je ji  tøeba
+	  testovat).
+
+	   - Chybové bajty:
+
+		FB 1	Èíslo rutiny (81)
+                FB 2 = 10H  Mechanika není generovaná
+                           FB 3...FB 8  Nejsou pouité
+                FB 2 = 11H  Mechanika   není  uzavøena  nebo
+                            chyba signálu IX-
+                           FB 3,4,6,8   Nejsou pouité
+                           FB 5         Èíslo mechaniky
+                FB 2 = 12H  Chyba otáèek (162...171 ot/s)
+                    	   FB 3,4,6     Nepouit
+                           FB 5		Èíslo mechaniky
+                           FB 7		Otáèky v ms (stovky)
+                           FB 8		Otáèky v ms (desítky
+                           		a jednotky)
+                FB 2 = 13H  Chyba  syntaxe  poèáteèní  stopy
+                	    nebo sektoru (formát)
+                FB 2 = 14H  Chyba syntaxe koneèné stopy nebo
+                	    sektoru (chybnı formát)
+                           FB 3 	Stopa pozice chyby
+                           FB 4		Sektor pozice chyby
+                           FB 5		Èíslo mechaniky
+                           FB 6,7,8	Bez vıznamu
+                FB 2 = 22H  Chyba kontroly CRC (kontr.sumy)
+                FB 2 = 42H  Konec FD
+                FB 2 = 72H  Chyba znaèky
+                FB 2 = 82H  Chybnı sektor
+                	   FB 3 	Stopa pozice chyby
+                           FB 4		Sektor pozice chyby
+                           FB 5		Èíslo mechaniky
+                           FB 6	        Nepouito
+                           FB 7		Adresa bufferu (L)
+                           FB 8		Adresa bufferu (H)
+                           		(délka bufferu 128B)
+
+
+                            - 22 -
+
+20 CTC0	   Test èítaèe/èasovaèe
+
+	   - Testuje se èítaè/èasovaè na desce K2521, K2522.
+           	TEST 01	Kontrola adresace  kanálù CTC
+                TEST 02 Datovı pøenos  ZVE-->CTC,  zápis  do
+                	registru èasové konstanty a zpìtného
+                        èítaèe, ètení zpìtného èítaèe
+                TEST 03 Maskování pøerušení
+                TEST 04 Systém pøerušení/priorita
+                TEST 05 Pøeddìliè èasovaèe 1:16, nastavení
+                TEST 06 Pøeddìliè èasovaèe 1:256, nastavení
+
+	   Pøedpoklady:
+            	- Nezávadnost povelového systému ZVE
+                - Nezávadnost systému pøerušení ZVE
+                - K  bezporuchovému  prùbìhu  je nutné,  aby
+                  vstupy CTC  "CLK/TRG0...3"  byly  uzemnìny
+                  nebo byly trvale na úrovni "0" nebo "1"
+
+	   - Parametry testu:
+           	Startovací adresa	R2000
+                Provozní doba		0,47 s bez WAIT
+                			0,50 s s WAIT
+                Koneèné zastavení	R20EH
+                Chybové zastavení	FLR
+
+	   - Generovací bajty:
+          	GB 1		Adresa CTC - kanálu 0
+                		 (ZRE=80, ATS=F8, ASS=08,28)
+                GB 2		Bit0 = 0: Jeden prùchod
+                		     = 1: Cyklická práce
+                                Bit1 = 0: Pamì bez WAIT
+                                     = 1: Pamì s WAIT
+                GB 3...8	Nepouito
+
+	   - Chybové bajty:
+           	FB 1		Èíslo rutiny (20)
+                FB 2		Èíslo testu (01...06)
+                FB 3		Adresa testovaného kanálu
+                FB 4		Chybovı kód:
+				  F0 = Chybné pøerušení
+                                  F1 = Neoèekávané pøerušení
+                                  FF = Chyba porovnání
+                FB 5 		Pøi testech 05 a 06= pøedpo-
+                		kládaná data (èást L), jinak
+                                nepouito
+                FB 6		Pøedpokládaná data, pøi tes-
+                		tech  05 a 06  pøedpokládaná
+                                data (èást H)
+                FB 7		Pøi testech 05 a 06 skuteèná
+                		data (èást L), jinak  nepou-
+                		ito. Pøi  chybì  F1H adresa
+                                skoku (èást L)
+                FB 8		Skuteèná  data,  pøi testech
+                		05 a 06  skuteèná data (èást
+                                H),  pøi  chybì  F1H  adresa
+                                skoku (èást H)
+
+
+                            - 23 -
+
+	   Moné kombinace chybovıch kódù:
+           TEST 01   Chyba FF	Chyba  nastavení adresy nebo
+           			v pøenosu dat
+           TEST 02   Chyba FF	Chyba v pøenosu dat ZVE->CTC
+           			pøi zápisu nebo  ètení resp.
+                                chyba obvodu CTC
+           TEST 03   Chyba F1	Chyba maskování kanálu (FB3)
+           TEST 04   Chyba F0   Chyba pøerušení z kanálu FB3
+           	     Chyba F1   Kanál FB3  má  chybnı  vodiè
+                     		pøerušení resp.kanál s vyšší
+                                prioritou je vadnı
+           TEST 05,06 Chyba F0  Chybné pøerušení  kanálu FB3
+           			resp. pøichází pozdì
+                     Chyba FF	Programovatelnı  èítaè  není
+                     		pøi pøerušení = 0 (pøerušení
+                                pøišlo pøíliš brzy)
+
+61 ASS1	   Test zásuvné jednotky ASS se 4 kanály IFSS K 8025
+
+    	   - Testováno:
+           	- Pøenos dat ZVE-->SIO-->ZVE
+                - Generování pøerušení
+                - Pøenos dat v "èekacím provozu", CTC=èítaè
+                - Pøenos dat pøes zkratovací konektor
+                - Pøenos dat v "èekacím provozu",CTC=èasovaè
+                - Test datovıch vedení CTC0, CTC1 resp. CTC2
+                  s kanálem 0
+
+	   Pøedpoklady:
+           	- Testy CTC0  desky ASS (rutina "CTC0") pro-
+                  bìhly bez závad
+                - Zkratovací konektory:
+                  Kontakt:  Signál:
+                 A1 - A3   -SD --> +ED  -  Vysílaè aktivní a
+                 		         > pøijímaè  pasivní
+                 B2 - B4   +SD --> -ED  -  nebo naopak
+
+		 A1 -> 51,1 Ohm na 5P   -  Vysílaè i pøijí-
+                 A3 -> 547 Ohm na 12N    > maè jsou v pasiv-
+                 B2 - B4   +SD --> -ED  -  ním módu
+
+	   - Parametry rutiny:
+           	Startovací adresa	B6100
+                Koneèné zastavení	B61EH
+                Chybové zastavení	XA.FLR
+
+	   - Generovací bajty:
+           	GB 1	Adresa kanálu
+                	Bit 0 	  = 0 --> SIO kanál A
+                                  = 1 --> SIO kanál B
+                        Bit 1,2,3 = 0
+                        Bit 4     = 0 --> SIO 1
+                                  = 1 --> SIO 2
+                        Bit 5,6,7 =       Poèáteèní adresa
+                              	          desky ASS
+
+                            - 24 -
+
+	        GB 2	Bit 0     = 0 --> Test v èekacím
+                		          reimu
+                                  = 1 --> Test se zkrat.
+                               	          konektorem
+                        Bit 1...6         Nepouito
+                        Bit 7     = 0 --> Zastavení  pøi
+                               	          kadém prùchodu
+                                  = 1 --> Cyklická práce
+    		GB 3  	Èasovací konstanta pro pøenosovou
+                	frekvenci SIO (HEX)
+                        èas. konstanta     pøenos. frekvence
+                          (DEK)	   (HEX)    Èasovaè  Èítaè
+                          192     C0H      25     200
+                           96       60H       50     400
+                           48       30H      100     800
+                           32       20H      150    1200
+                           24       18H      200    1600
+                           16       10H      300    2400
+                            8       08H      600    4800
+                            6       06H      800    6400
+                            4       04H     1200    9600
+                            2       02H     2400   19200
+                            1       01H     4800   39400
+      		GB 4	Poèáteèní znak generátoru dat
+                GB 5	Koncovı znak generátoru dat
+                GB 6	Adresa pøídavné pamìti RAM (H-èást)
+                	(L-èást = 0 ; H-èást=0 = není RAM)
+                GB 7	Bit 0	 = 0 --> Bude testován pouze
+                		  	 jeden kanál (GB1)
+                                 = 1 --> Bude testována celá
+                                 	 deska ASS
+                GB 8 		 = 0 --> Normální rutina PSU
+                	Bit 0	 = 1 --> Zastavení  po testu
+                        		 jednoho kanálu, po-
+                                         kraèování sign. NMI
+                        Bit 1 	 = 1 --> Zastavení  po testu
+                        		 jednoho kanálu, po-
+                                         kraèování po stisku
+                                         klávesy "W"
+
+	   - Chybové bajty:
+           	FB 1	Èíslo rutiny (61)
+                FB 2	Èíslo testu (01...06)
+                FB 3	Adresa kanálu
+                FB 4	Chybovı kód:
+                	  F0 = Není pøerušení
+                          F1 = Chyba pøeteèení (TIME-OUT)
+                          F2 = Zvláštní podmínky pøíjmu
+                          FF = Chyba porovnání nebo chyba
+                               vektoru pøerušení
+           	FB 5	Pøedpokládaná data
+                FB 6	Skuteèná data
+                FB 7	Skuteèná hodnota ètecího registru 0
+                FB 8	Skuteèná hodnota ètecího registru 1
+
+
+                            - 25 -
+
+	   Moné kombinace chybovıch kódù:
+           TEST 01   Chyba FF   Chyba  datového vedení SIO
+	   TEST 02   Chyba F0   Chyba pøerušení SIO
+	   	     Chyba FF   Chybnı vektor pøerušení
+           TEST 03   Chyba F0   Chyba pøerušení
+           	     Chyba F2   Zvláštní podmínky pøíjmu
+                     Chyba FF   Chyba dat
+               - pøenos dat v èekacím reimu, CTC jako èítaè
+           TEST 04   Chyba F0   Chyba pøerušení
+           	     Chyba F2   Zvláštní podmínky pøíjmu
+                     Chyba FF   Chyba dat
+               - pøenos dat pøes zkratovací konektor
+           TEST 05   Chyba F0   Chyba pøerušení
+           	     Chyba F2   Zvláštní podmínky pøíjmu
+                     Chyba FF   Chyba dat
+               - pøenos dat v èekacím reimu, CTC = èasovaè
+           TEST 06   Chyba FF   Chyba dat CTC0
+
+
+64 ATSZ	   Test spojení IFLS-Z (ILA <--> BDT)
+
+    	   - Provìøuje pøístupnost BDT na vedení
+
+	   - Parametry rutiny:
+		Startovací adresa	M6400
+		Provozní doba		podle poètu BDT
+		Koneèné zastavení	M64EH
+		Chybové zastavení	XA.FLR
+
+	   - Generovací bajty:
+		Pomocí GB 1 ... GB 8 se nastavuje tabulka
+		provìøovanıch BDT:
+             BIT     7    6    5    4    3    2    1    0
+	     -----------------------------------------------
+             GB 1   41H  42H  43H  44H  45H  46H  47H  48H
+             GB 2   49H  4AH  4BH  4CH  4DH  4EH  4FH  50H
+             GB 3   51H  52H  53H  54H  55H  56H  57H  58H
+             GB 4   59H  5AH  5BH  5CH  5DH  5EH  5FH  60H
+             GB 5   61H  62H  63H  64H  65H  66H  67H  68H
+             GB 6   69H  6AH  6BH  6CH  6DH  6EH  6FH  70H
+             GB 7   71H  72H  73H  74H  75H  76H  77H  78H
+             GB 8   79H  7AH  7BH  7CH  '0'  '0'  '0'  '0'
+
+	     BIT =0 -> není generováno ; =1 -> je generováno
+
+	   - Chybové bajty:
+           	FB 1	Èíslo rutiny (64)
+                FB 2	Chybné BDT
+
+
+
+                            - 26 -
+
+D0 INTP	   Test priority øetìzce pøerušení
+
+	   - Test provìøuje všechny obvody  pracujíci s pøe-
+           rušením tím zpùsobem, e je nejdøíve všechny ini-
+           cializuje a pak u nich vyvolá pøerušení a kontro-
+           luje správnost poøadí pøíchodù pøerušení a správ-
+           nost vektorù pøerušení.
+
+	   - Generovací bajty:
+           	GB 1	Nastavení priority ASS1
+           	GB 2    Nastavení priority ASS2
+           	GB 3	Nastavení priority AFS
+           	GB 4    Nastavení priority ZRE
+          	GB 5    Nastavení priority ATS
+           	GB 6...GB 8 = 00H  (nepouito)
+
+	   Vıznam nastavení:
+           	GB x = 00H Deska není zapojena v øetìzci
+                GB x = 01H Nejvyšší priorita desky
+                GB y = 02H Druhá nejvyšší priorita desky
+                 .....
+            Priority musí na sebe navazovat a ádná se nesmí
+            opakovat.
+
+	   - Chybové bajty:
+           	FB 1 	Èíslo testovací rutiny (D0H)
+                FB 2	Chybovı kód oèekávaného pøerušení
+                FB 3	Chybovı kód skuteèného pøerušení
+                FB 4...FB 8    Nepouito
+
+	   Tabulka chybovıch kódù:
+           Kód:  Deska:  Obvod:  Kanál:  Adr.:  Adr.kanálu:
+           11H	 ASS1    CTC0    3       INT+06H     0CH
+           12H           SIO1    B       INT+10H     00H
+           13H           SIO2    B       INT+20H     10H
+
+	   21H   ASS2    CTC0    3       INT+36H     2CH
+           22H           SIO1    B       INT+40H     20H
+           23H           SIO2    B       INT+50H     30H
+
+	   31H   AFS     PIO2    A       INT+60H     74H
+           32H           PIO1    A       INT+70H     70H
+
+	   41H   ZRE     CTC     3       INT+86H     80H
+
+	   51H   ATS     SIO     A       INT+98H     F0H
+           52H           CTC     3       INT+A6H     F8H
+
+	   00H    Nepøišlo ádné pøerušení (TIME-OUT)
+           FEH    Pøišlo neznámé pøerušení
+
+	   Tabulka poèáteèních adres desek:
+           ASS1:   00H
+           ASS2:   20H
+           AFS:    70H
+           ZRE:    80H
+           ATS:    E0H
+      
+
+                            - 27 -
+
+63 IFLS	   Testování kanálu IFLS-Z na desce ILA
+
+	   - Rutina testuje obvod SIO, kodér, dekodér, obvo-
+           dy synchronizace, vysílaè a pøijímaè.
+           Testy: - Øízení SIO procesorem CPU
+           	  - Pøerušení SIO
+                  - Pøenos dat testem bez jádra
+                  - Pøenos dat testem s jádrem
+                  - Funkèní test bez seriového vedení
+	   Pøedpoklady:
+           	  - CPU a RAM jsou v poøádku
+                  - Pøi testu s jádrem musí bıt vedení volné
+
+	   - Parametry rutiny:
+           	Startovací adresa	M6300
+                Provozní doba		--
+                Koneèné zastavení	M63EH
+                Chybové zastavení	XA.FLR
+
+	   - Generovací bajty:
+           	GB 1	Podmínky testu:
+                	00H = zastavení po testu s jádrem
+                        01H = zastavení po testu bez jádra
+                        02H = cyklickı test bez jádra
+                        03H = cyklickı test s jádrem
+              	GB 2	Adresa SIO-kanál A datové slovo (10)
+                GB 3	Adresa SIO-kanál A øídící slovo (11)
+                GB 4	Adresa SIO-kanál B øídící slovo (13)
+                GB 5    Adresa CTC pro TIME-OUT (20)
+                GB 6...8   Nepouito
+
+	   - Chybové bajty:
+           	FB 1	Èíslo rutiny (63)
+                FB 2	Nastavení (GB 1)
+                FB 3	Chybovı bajt:
+                	  20H = Chyba dat (viz FB 4)
+                          21H = Chyba vektoru (viz FB 4)
+                          23H = Není pøerušení (FB 4...6)
+                          25H = Chyba CRC (FB 5,6)
+           	FB 4	Poslední pøijatı znak
+                FB 5	Pøedpokládaná data
+                FB 6	Skuteèná dat
+                FB 7	Ètecí registr 0 SIO
+                FB 8	Ètecí registr 1 SIO
+
+A2 AMBT	   Test páskové jednotky 1/2 "
+
+                            - 28 -
+
+5. Generátory testù
+-------------------
+  Po povely "TEST" se na obrazovce objeví následujíci volby:
+
+ Tisk protokolu :  N = není
+ 		   Y = tiskárna SD 1157
+                   K = tiskárna K 6311
+
+ Zastavení pøi chybì:  Y = ano, po chybì se zastaví
+ 		       N = ne, chybu pouze vypíše
+
+ Generování SLAVE (tj.STR): D = Zavádìní generující informa-
+ 				ce z diskety (jméno GEN..S,
+                                místo teèek se dopíše název)
+                            N = Nová generace (je generován
+                                novı soubor GEN..S)
+                            R = Návrat k poslední generaci
+                                (obvykle pøi opravách gen.)
+
+  Podle volby se zobrazí na obrazovce buï generátor testu z
+diskety, novı generátor nebo poslednì pouitı generátor).
+Tabulka generátoru testu má poloky (jeden øádek):
+- Jméno testovací rutiny - zadá se jméno testu (napø.RAMD28)
+- BS - nastavení pouitého systému a uchování obrazovky:
+	   BS = 00	Obrazovka se uchová, systém PRSY00
+              = 01	Obrazovka se uchová, systém PRSY01
+              = 10	Obrazovka se neuchová, systém PRSY00
+              = 11	Obrazovka se neuchová, systém PRSY01
+- Startovací adresa programu - vypisuje se po spuštìní testu
+- Èítaè prùchodù testu WZI - zobrazují se prùchody
+- Poèet pøuchodù testu WZS - nastaví se poèet opakování
+- Generovací bajty GB 1...GB 8 - nastaví se podle rutin
+ Tabulkou lze posouvat kurzorovımi klávesami. Mazání jednoho
+øádku je moné klávesou ^\  (kromì  posledního),  kterıkoliv
+øádek lze smazat té klávesou <DEL LINE> (objeví se ******).
+Klávesou <--' lze vloit  prázdnı  øádek.  Ukonèení generace
+testù  je moné klávesou  -->|.  Po ukonèení se  objeví  pro
+kontrolu na obrazovce poèet vygenerovanıch testù (v HEX tva-
+ru) , po  potvrzení  klávesou  \/  (šipka  dolù)   se  ještì
+zvolí  celkovı  poèet  prùchodù celého testu GZZSW a program
+se zeptá, zda se má uloit vytvoøenı generátor testù na dis-
+ketu:  Y = ano (zadá se jméno GEN..S), N = ne.
+  Stejné vygenerování testu se provede pro MASTER (ILA,KON),
+název generátoru je nastaven na GEN..M.
+  Po ukonèení generací testù se odstartuje  provádìní testù.
+Prùbìh testu je mono ukonèit klávesou <OFF> (pouze po ukon-
+èení jednoho testu). Objeví se nabídka voleb: 
+  A = Vypnutí SSE (napø. pøi testu CMOS)
+  F = Pokraèování testu
+  S = Novı start testu
+  G = Nová generace testù
+
+
+                            - 29 -
+
+6. Testovací disketa PSU
+------------------------
+   Na testovací disketì PSU jsou umístìny následující fáze:
+
+ Poøadí|  Název  | Èíslo | Poèát |Poèát. |Poèát. | Pozn.
+       | souboru | testu | stopa |sektor |adresa |
+-------+---------+-------+-------+-------+-------+-------
+    1
+    2    KEN		    02      01            adresáø
+    3    PRSY01	            02      02     3400H  systém PSU
+    4    PRSY00             06      07     B400H  systém PSU
+    5    RAM070     40      10      12     7000H  STR,KON
+    6    RAM170     43      10      15     7000H  STR,KON
+    7    RAM370     46      10      18     7000H  STR,KON
+    8    RAMC70     45      10      20     7000H  STR,KON
+    9    RAMD70     42	    10      21     7000H  STR,KON
+   10    ROM070     48      10      25     7000H  STR,KON
+   11    CPU170     11      10      26     7000H  STR,KON
+   12    CPU270     12      12      08     7000H  STR,KON
+   13    CPU370     13      13      08     7000H  STR,KON
+   14    CPU470     14      13      23     7000H  STR,KON
+   15    CPUA70     1A      14      06     7000H  STR,KON
+   16    CTC070     20      14      15     7000H  STR,KON
+   17    INTP70     D0      14      20     7000H  STR,KON
+   18    ATSZ70     71      15      01     7000H  STR,KON
+   19    ASS170     61      15      07     7000H  STR,KON
+   20    AFS070     81      15      14     7000H  STR,KON
+   21    V24070     96      16      04     7000H  STR,KON
+   22    AMBT70     A2      16      20     7000H  STR,KON
+   23    RAM028     40      17      13     2800H  STR,KON
+   24    RAM128     43      17      16     2800H  STR,KON
+   25    RAM328     46      17      19     2800H  STR,KON
+   26    RAMC28     45      17      21     2800H  STR,KON
+   27    RAMD28     42      17      22     2800H  STR,KON
+   28    RAM0I1     40      17      26     1000H  ILA
+   29    RAM1I1     43      18      03     1000H  ILA
+   30    RAM3I1     46      18      06     1000H  ILA
+   31    RAMCI1     45      18      08     1000H  ILA
+   32    ROM0I1     48      18      09	   1000H  ILA
+   33    CPU1I1     11      18      10     1000H  ILA
+   34    CPU2I1     12      19      18     1000H  ILA
+   35    CPU3I1     13      20      18     1000H  ILA
+   36    CPU4I1     14      21      07     1000H  ILA
+   37    CPUAI1     1A      21      16     1000H  ILA
+   38    CTC0I1     20      21      26     1000H  ILA
+   39    IFLSI1     63      22      05     1000H  ILA
+   40    IST170     64      22      08     7000H  STR
+   41    BSILA4     64      22      12     2000H  ILA
+   42    RAM0I2     40      24      01     2000H  ILA
+   43    RAM1I2     43      24      04     2000H  ILA
+   44    RAM3I2     46      24      07     2000H  ILA
+   45    RAMCI2     45      24      09     2000H  ILA
+   46    GENS0S             24      16            gen. STR
+   47    GENK0M             24      21            gen. KON
+   48    GENSFS             24      25            gen.FLOPPY
+   49    GENDTS             25      04            gen. BDT
+   50    EPROMS 	    25      09     0000H  EPROM STR
+   51    EPROMK             26      08     0000H  EPROM KON
+   52    PHASE1             27      07     0000H
+   53    PHASE2             27      22     0000H
+   54    GENI0M             29      11            gen. ILA
+
+                            - 30 -
+
+Vygenerované testy na disketì:
+==============================
+STR:
+----
+GENS0S	- testy V24, ATS, RAM, ROM, INTP, CTC a CPU na STR
+GENSFS  - testy disketové mechaniky 1 - ètení a zápis vzorku
+	  dat mezi dvìma pozicemi (mae disketu !), kontrola
+          otáèek (systém nataen z mechaniky 0)
+GENDTS	- Test spojení s BDT (implicitnì adresa BDT 41H)
+	  (po startu PSU musí bıt zvolena ILA !)
+
+KON:
+----
+GENK0M	- testy ASS, RAM,ROM, INTP, CTC a CPU
+
+ILA:
+----
+GENI0M  - testy ILA - IFLS, RAM, ROM, CTC, CPU
+          (musí bıt po startu PSU zvolena ILA !)
+

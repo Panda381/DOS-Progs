@@ -1,0 +1,320 @@
+Introduction.
+
+This is intended as a collection of documentation about all the various 
+display adapters for the IBM PC series (and relatives).
+This is NOT intended as an introduction to basic VGA programming. There are
+numerous books available on the subject with much better general VGA/graphics
+programming sections.
+Neither is this intended to cover benchmarking, highlevel graphics algorithms,
+graphics file formats or specific graphics programs.
+
+This compilation (c) Copyright 1991-94 Finn Thoegersen. All Rights Reserved.
+You can redistribute the collection provided it is distributed unmodified in
+its entirety and these clauses are left intact. The programs - executables and
+source - can be left out if they are not meaningful for the intended audience.
+No fee, monies et cetera can be charged, except for normal connection, media,
+shipment and handling expenses.
+You are free to use the information herein and excerpts from the programs,
+provided that the source is credited (My name and the VGADOC2 package).
+
+In short you can redistribute and use the information. What you cannot do is
+charge for it (except as above) or change it (please communicate corrections
+and additions to me).
+
+No fees, monies et cetera is asked, however contributions in the form of
+information, documentation (datasheets/books, programmers refs...) relevant
+for this collection will be gratefully accepted and credited.
+
+I can be contacted at:
+
+Email:      jesperf@daimi.aau.dk           ;This is not my account, so please
+                                           ;include either Finn or VGADOC in
+                                           ;the subject: line
+
+Telephone:  +45 9751 3788                  ;Both the Phone and FAX are company
+                                           ;numbers, so please attention:
+FAX:        +45 9751 4050                  ;Finn Thoegersen
+                                           ;Also these numbers are different
+                                           ;from those given in VGADOC2
+
+Surface:    Finn Thoegersen
+            Nordbanevej 3 C
+            DK-7800 Skive
+            Denmark
+
+
+Terminology/style:
+
+The BIOS calls are mostly taken directly from Ralf Brown's interrupt list
+and tends to follow its style and structure.
+
+The register descriptions are sorted by the register number.
+
+All register addresses, data values et cetera are given in hexadecimal.
+
+3d4h means 3D4h when in color mode and 3B4h when in monochrome mode.
+
+3CEh index 3 means register 3CEh is set to 3 and register 3CFh is the
+     data port. See notes on register 3C0h under VGA registers.
+     On some cards write operations can be done with a single OUTW
+     instruction. This may fail on some cards or machines.
+     ATI cards require the index to be updated before each access to
+     the dataport. 
+
+(R)   means the register is Read Only.
+(W)   means the register is Write Only.
+(R/W) means the register is both Readable and Writable.
+(r/W) means the register is Write Only on EGA cards and Read/Writable
+      on VGA cards.
+
+Sometimes the size of the registers is given as:
+  W(R/W):   The register is 2 bytes (16 bits) long. If the register is
+            indexed, the low byte is in the low index (n) and the high byte is
+            in the high index (n+1) unless otherwise indicated.
+  3(R/W):   The register is 3 bytes (24 bits) long. The lowest byte is in the
+            low index (n), the middle byte is in the middle index (n+1) and
+            the upper byte in the high index (n+2).
+
+
+Examples are in Turbo Pascal for readability (your mileage may vary,
+I don't discuss politics, choice of computer, editor, keyboard,
+programming language or other religious matters on the net  :-) ).
+Seriously while assembler can be more precise and/or efficient for the
+low-level register access, the complexity and volume of assembler can make
+even simple examples totally incomprehensible to all but experts.
+Also when I started this my "C" was not up to the task, so ...
+
+
+A short translation of terms:
+
+Pascal:         C:                  Assembler:         Description:
+
+x:byte;         unsigned char x;    x  DB ?            8 bit unsigned byte
+
+y:word;         unsigned int y;     y  DW ?            16 bit unsigned word. 
+
+z:integer;      int z;              z  DW ?            16 bit signed word. 
+
+w:longint;      long w;             w  DD ?            32 bit signed Dword
+
+s:string[20];   char s[21];         x DB 20 dup(?)     a 20 character string
+
+$ABCD           0xABCD              0ABCDh             The value 43981
+                                                          (ABCD hex)
+
+x:=port[$3CC]   x=inp(0x3CC)        MOV DX,03CCh       Read an 8bit value from 
+                                    IN AL,DX           I/O port $3CC.
+
+y:=portw[$3CE]  y=inpw(0x3CE)       MOV DX,03CEh       Read a 16bit value from
+                                    IN AX,DX           I/O ports $3CE and $3CF
+
+port[$3C2]:=x   outp(0x3C2,x)       MOV DX,03C2h       Write an 8bit value to
+                                    OUT DX,AL          I/O port $3C2.
+
+portw[$3CE]:=y  outpw(0x3CE,y)      MOV DX,03CEh       Write a 16bit value to
+                                    OUT DX,AX          I/O ports $3CE and $3CF
+
+a shr 3         a>>3                SHR AX,3           Shifts a 3 bits rights
+                                                       (Divides by 8).
+
+a shl 3         a<<3                SHL AX,3           Shifts a 3 bits left
+
+{Comment}       /* comment */       ;comment           Comments.
+'string'        "string"            DB "string"        Text string
+
+procedure x;    void x(void)        x PROC             A procedure/function
+var x:integer;    {                  ;Alloc x on stack with no parameters
+begin               int x;           _code_            a local variable  
+  _code_            _code_           ;reset stack      and main body.
+end;              }                  RET
+
+function y:     int y(void)        Well you            A function returning
+  integer;        {                figure it out!      an integer.
+begin
+  y:=123;           return(123)
+end;              }   
+
+
+
+
+The examples use a number of simple rutines:
+
+procedure vio(ax:word);    {Calls interrupt 10h with register AX=parameter ax
+                          other registers can be set in the rp structure.
+                          rp.ax is set to the return value in the AX register}
+
+function inp(reg:word):byte;   {returns a byte from I/O port REG.}
+
+procedure outp(reg,val:word);  {writes the byte VAL to I/O port REG}
+
+function rdinx(pt,inx:word):word;   {read register PT index INX}
+
+procedure wrinx(pt,inx,val:word);   {write VAL to register PT index INX}
+
+procedure modinx(pt,inx,mask,nwv:word);
+                                {In register PT index INX change the bits
+                                 indicated by MASK to the ones in NWV
+                                 keeping the other bits unchanged).
+
+function tstrg(pt,msk:word):boolean;   {Returns true if the bits specified in
+                                        MSK are read/writable in register PT}
+
+function testinx(pt,rg:word):boolean;  {Returns true if all 8 bits of register
+                                        PT index RG are read/writable}
+
+function testinx2(pt,rg,msk:word):boolean;
+                                   {Returns true if the bits specified in MSK
+                                    are read/writable in register PT index RG} 
+
+procedure dac2pel;                 {Forces the DAC back to PEL (normal) mode}
+
+procedure dac2comm;                {Enter command mode of HiColor DACs}
+
+
+
+
+References:
+
+Richard F. Ferraro's Programmer's guide to the EGA and VGA cards 2nd ed.
+Addison-Wesley 1990. ISBN 0-201-57025-4.
+
+George Sutty and Steve Blair's Advanced Programmers Guide to Super VGAs.
+Brady Books 1990. ISBN 0-13-010455-8.
+
+John Mueller and Wallace Wang's The Ultimate DOS Programmer's Manual.
+Windcrest/McGraw-Hill 1990. ISBN 0-8306-3434-3.
+
+Jake Richter's Power Programming the IBM XGA.
+MIS Press 1992. ISBN 1-55828-127-4 (1-55828-124-9 with disc).
+
+Ralf Brown's interrupt list version 38.
+    (Simtel: info/inter38a.zip - info/inter38d.zip)
+  This is based on contributions from many people, including:
+    Dennis Grinberg    dennis+@cs.cmu.edu         MCGA/VGA
+    Michael A. Moran   Michael@cup.portal.com     VGA INT 10h
+    Gary E. Miller     GEM@cup.portal.com         Paradise, WD90c & Diamond
+                                                  Stealth 24X VGA
+    Michael Shiels     mshiels@ziebmef.uucp       ATI VIP INT 10h
+    Robert Seals       rds95@leah.Albany.EDU      ATI VGA Wonder modes
+    Peter Sawatzki     IN307@DHAFEU11.BITNET      Video7 extended INT 10
+    Ben Myers          0003571400@mcimail.com     Everex Viewpoint VGA, NCR
+                                                  77c22 modes
+    Mark Livingstone   markl@csource.oz.au        TVGA video modes
+    Patrick Ibbetson   ibbetsom@nes.nersc.gov     NEL Electronics BIOS, Cirrus
+                                                  chipsets
+    A. Peter Blicher   Oakland, CA                Genoa Super EGA
+    Tim Farley         tim@magee.mhs.compuserve.com    XGA
+    Bent Lynggaard     lynggaard@risoe.dk         misc video
+    Frank Klemm        pfk@rz.uni-jena.de         Diamond Speedstar 24X
+    Mikael Rydberg     Sweden                     Cirrus/UM587/etc video modes
+    Jens Vollmar       Erlangen, Germany          Trident/C&T video
+    Aki Korhonen       aki@holonet.net            Cirrus Logic BIOS
+    Alexi Lookin       alexi@riaph.irkutsk.su     Realtek RTVGA, Avance Logic,
+                                                  C&T video
+    Win Osterholt      2:512/56.198               Cirrus Logic BIOS 3.02
+  And many, many others...
+
+
+John Bridge's VGAKIT52.
+    (Simtel: vga/vgakit52.zip)
+
+Fractint v18.1 source (primarily video.asm).
+    (Simtel: graphics/frasr181.zip)
+
+Configuration files and drivers from amongst others:
+  CSHOW:        (Simtel:  graphics/cshw860a.zip)
+  VPIC:         (Simtel:  gif/vpic60.zip)
+  VUIMAGE:      (Simtel:  gif/vuimg340.zip)
+  SVGA:         (Simtel:  gif/svga112.zip)
+
+XFree86 2.0 - X11 Unix SVGA driver. Available from:
+   ftp.x.org:             /contrib/XFree86
+   ftp.physics.su.oz.au:  /XFree86
+   ftp.win.tue.nl:        /pub/XFree86
+   ftp.prz.tu-berlin.de:  /pub/pc/src/XFree86
+The XFree86 team includes:
+   Robert Baron       Robert.Baron@ernst.mach.cs.cmu.edu
+   David Dawes        dawes@physics.su.oz.au
+   Dirk Hohndel       hohndel@informatik.uni-wuerzburg.de
+   Glenn Lai          glenn@cs.utexas.edu
+   Rich Murphey       Rich@Rice.edu
+   Jon Tombs          jon@gtex02.us.es
+   David Wexelblat    dwex@goblin.org, dwex@aib.com
+   Thomas Wolfram     wolf@prz.tu-berlin.de
+   Orest Zborowski    orestz@microsoft.com
+E-mail regarding XFree86 should be sent to xfree86@physics.su.oz.au
+
+PCVISION plus Frame Grabber User's Manual.
+
+Enhanced Graphics Adapter Reference Manual from HP.
+
+Data Sheet for the Yamaha 6388 VPDC.
+
+Commodore Advanced Graphics Adapter (AGA) manual.
+
+Chips and Technologies Inc datasheets for:
+   82c455A, 82c456, 82c457, 82c480, 65520/530, 82c425, 82c426, 82c9001A.
+
+Truevision Targa+ Hardware Technical Reference Manual.
+
+The following have contributed information:
+
+Darren Senn           sinster@scintilla.capitola.ca.us
+Tomi H Engdahl        then@vipunen.hut.fi
+Jori Hamalainen       jhamala@kannel.lut.fi
+H.R.R van Roosmalen and E. Zoer,
+   Delft University of Technology,
+   The Netherlands    huub@dutetvd.ET.TUDelft.NL
+Eric ??               praetzel@marconi.uwaterloo.ca
+Frank Klemm           pfk@rz.uni-jena.de
+Michael Schindler     michael@eichow.tuwien.ac.at
+Kendall Bennett       kjb@cgl.citri.edu.au
+Danny Halamish        dny@cs.huji.ac.il
+Daniel Sill           sill@zoe.as.utexas.edu
+GARY                  GEM@rellim.com
+
+Testers:
+Ross Ackland          rackland@csis.dit.csiro.au
+Chris Bailey          cbailey@crl.com
+Ross Becker           beckerr@pyrite.som.cwru.edu
+Darren Brown          de2brown@undergrad.math.uwaterloo.ca
+Carlos Henrique Cantu cahcantu@pintado.ciagri.usp.br
+Murray Chapman        muzzle@cs.uq.oz.au
+Frank Dikker          dikker@cs.utwente.nl
+Michael Eichow        michael@eichow.tuwien.ac.at
+Torben H. Hansen      100024,3066@compuserve.com
+Heikki Julkunen       dp93hju@txfs1.hfb.se
+Nanda G. Kutty        eapu290@orion.oac.uci.edu
+Leonardo Loureiro     loureiro@fiu.edu
+Steven Martin         Steven.Martin@eng.monash.edu.au
+Jouni Miettunen       jon@stekt.oulu.fi
+Jack Nomssi           Nomssi@physik.tu-chemnitz.de
+Juho-Pekka Rosti      atjuro@uta.fi
+Lode Vande Sande      stud11@cc4.kuleuven.ac.ec
+
+
+
+Disclaimer:
+
+All information herein is presented as is and without warranty.
+Use at your own risk.
+
+
+
+
+IBM PC, PC/XT, PC/AT, PCjr, PS/2, Micro Channel, Personal System/2,Enhanced Graphics Adapter, Color Graphics Adapter, Video Graphics Adapter, IBM Color Display, IBM Monochrome Display, 8514/A and XGA are trademarks of International Business Machines Corporation.
+MS-DOS, Microsoft and Windows are trademarks of Microsoft, Incorporated.
+Hercules is a trademark of Hercules Computer Technology, Inc.
+Multisync is a trademark of Nippon Electric Company (NEC).
+Brooktree and RAMDAC are trademarks of Brooktree Corporation.
+SMARTMAP is a trademark of Chips and Technologies, Incorporated.
+TARGA is a registered trademark of Truevision, Inc.
+Cirrus Logic is a trademark of Cirrus Logic, Inc.
+HiColor is a trademark of Sierra Semiconducter, Inc.
+i386, i486 and Intel are trademarks of Intel Corp.
+Inmos and SGS-Thomson are trademarks of SGS-Thomson, Ltd.
+IIT is a trademark of Integrated Information Technology, Inc.
+Motorola is a trademark of Motorola Corp.
+TIGA is a trademark of Texas Instruments.
+VBE, VESA and VSE are trademarks of the Video Electronics Standards Association.
+All other product names are copyright and registered trademarks/tradenames of their respective owners.

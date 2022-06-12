@@ -1,0 +1,3845 @@
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz CHCP
+; -----------------------------------------------------------------------------
+
+210F 1E             PUSH   DS
+2110 07             POP    ES
+2111 BE8100         MOV    SI,0081          ; zadan˜ parametr
+2114 BFA387         MOV    DI,87A3
+2117 33C9           XOR    CX,CX
+2119 33D2           XOR    DX,DX
+211B E86901         CALL   2287             ; rozbor p©¡kazov‚ho © dku
+211E 3DFFFF         CMP    AX,FFFF
+2121 7463           JZ     2186             ; rozbor OK, nic nen¡ zad no
+2123 3D0000         CMP    AX,0000          ; je nˆco zad no ?
+2126 755B           JNZ    2183             ; chyba zad n¡
+
+; -----------------------------------------------------------------------------
+                                          ;* zad na nov  k¢dov  str nka
+
+2128 51             PUSH   CX
+2129 BBA998         MOV    BX,98A9          ;
+212C 8B0F           MOV    CX,[BX]
+212E 890EDF8E       MOV    [8EDF],CX        ; po‘adovan  nov  k¢dov  str nka
+2132 59             POP    CX
+
+2133 BFA387         MOV    DI,87A3
+2136 E83701         CALL   2270
+2139 7548           JNZ    2183
+
+                                          ;* kontrola instalace NLSFUNC
+213B B414           MOV    AH,14
+213D B000           MOV    AL,00
+213F CD2F           INT    2F               ; test, zda je instalov n NLSFUNC
+2141 3CFF           CMP    AL,FF            ; je NLSFUNC instalov n ?
+2143 7405           JZ     214A             ; NLSFUNC nainstalov n
+
+                                          ;* chyba - nenainstalov n NLSFUNC
+2145 BA9C82         MOV    DX,829C
+2148 EB39           JMP    2183
+
+                                          ;* nastaven¡ nov‚ k¢dov‚ str nky
+214A 8B1EDF8E       MOV    BX,[8EDF]        ; po‘adovan  k¢dov  str nka
+214E B466           MOV    AH,66                         ;'f'
+2150 B002           MOV    AL,02
+2152 CD21           INT    21               ; nastaven¡ celkov‚ k¢dov‚ str nky
+2154 7340           JNB    2196             ; nastaven¡ OK
+
+2156 3D0200         CMP    AX,0002          ; chyba - soubor COUNTRY nenalezen ?
+2159 7515           JNZ    2170
+215B B459           MOV    AH,59                         ;'Y'
+215D 33DB           XOR    BX,BX
+215F CD21           INT    21               ; poskytnut¡ chybov‚ informace
+2161 3D0D00         CMP    AX,000D          ; chyba - neplatn  data ?
+2164 7505           JNZ    216B
+2166 BA9F82         MOV    DX,829F          ; neplatn  data
+2169 EB18           JMP    2183
+
+216B BA8084       * MOV    DX,8480
+216E EB13           JMP    2183
+
+                                          ;* zji¨tˆn¡ p©¡‡iny chyby
+2170 B459           MOV    AH,59                         ;'Y'
+2172 33DB           XOR    BX,BX
+2174 CD21           INT    21               ; poskytnut¡ chybov˜ch informac¡
+2176 3D4100         CMP    AX,0041          ; po‘adavek odm¡tnut ?
+2179 7505           JNZ    2180
+217B BA8082         MOV    DX,8280
+217E EB03           JMP    2183
+
+2180 BA7282         MOV    DX,8272
+2183 E9C508       * JMP    2A4B
+
+; -----------------------------------------------------------------------------
+
+                                          ;* zobrazen¡ aktivn¡ k¢dov‚ str nky
+2186 B466           MOV    AH,66                         ;'f'
+2188 B001           MOV    AL,01
+218A CD21           INT    21               ; poskytnut¡ celkov‚ k¢dov‚ str nky
+218C 891EDF8E       MOV    [8EDF],BX        ; aktu ln¡ k¢dov  str nka
+
+                                          ;* zobrazen¡
+2190 BA8E82         MOV    DX,828E
+2193 E87C2E         CALL   5012
+2196 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz TRUENAME
+; -----------------------------------------------------------------------------
+
+2197 1E             PUSH   DS
+2198 07             POP    ES
+2199 BE8100         MOV    SI,0081
+219C BF0188         MOV    DI,8801
+219F 33C9           XOR    CX,CX
+21A1 33D2           XOR    DX,DX
+21A3 E8E100         CALL   2287
+21A6 BFA58A         MOV    DI,8AA5
+21A9 3DFFFF         CMP    AX,FFFF
+21AC 740E           JZ     21BC
+21AE 3D0000         CMP    AX,0000
+21B1 7536           JNZ    21E9
+21B3 803EA59806     CMP    Byte Ptr [98A5],06
+21B8 7409           JZ     21C3
+21BA EB19           JMP    21D5
+21BC B400           MOV    AH,00
+21BE B02E           MOV    AL,2E                         ;'.'
+21C0 AB             STOSW
+21C1 EB29           JMP    21EC
+
+21C3 56             PUSH   SI
+21C4 BEA998         MOV    SI,98A9
+21C7 AC             LODSB
+21C8 0440           ADD    AL,40                         ;'@'
+21CA AA             STOSB
+21CB B83A2E         MOV    AX,2E3A
+21CE AB             STOSW
+21CF B000           MOV    AL,00
+21D1 AA             STOSB
+21D2 5E             POP    SI
+21D3 EB0C           JMP    21E1
+21D5 56             PUSH   SI
+21D6 C536A998       LDS    SI,[98A9]
+21DA AC             LODSB
+21DB AA             STOSB
+21DC 3C00           CMP    AL,00
+21DE 75FA           JNZ    21DA
+21E0 5E             POP    SI
+21E1 BF0188         MOV    DI,8801
+21E4 E88900         CALL   2270
+21E7 7403           JZ     21EC
+21E9 E95F08         JMP    2A4B
+
+21EC BEA58A         MOV    SI,8AA5
+21EF BFD68B         MOV    DI,8BD6
+21F2 B460           MOV    AH,60                         ;'`'
+21F4 CD21           INT    21               ; poskytnut¡ pln‚ho jm‚na souboru
+21F6 7311           JNB    2209
+
+21F8 E895FB         CALL   1D90
+21FB C706658FA58A   MOV    Word Ptr [8F65],8AA5 ; adresa jm‚na souboru p©i chybˆ
+2201 C606158201     MOV    Byte Ptr [8215],01    ; ‡¡slo parametru hl ¨en¡
+2206 E94208         JMP    2A4B
+2209 C706658FD68B * MOV    Word Ptr [8F65],8BD6 ; adresa jm‚na souboru p©i chybˆ
+220F BADA83         MOV    DX,83DA
+2212 E8A204         CALL   26B7             ; chybov‚ hl ¨en¡
+2215 E8EB2D         CALL   5003
+2218 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz EXIT
+; -----------------------------------------------------------------------------
+
+                                          ;* test, zda je dal¨¡ p©¡kaz
+2219 1E             PUSH   DS               ; £schova DS
+221A 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+221E 803EAB0200     CMP    Byte Ptr [02AB],00 ; po‡et znak– p©¡kaz. © dku
+2223 740A           JZ     222F             ; nen¡ ‘ dn˜ znak v p©¡kaz. © dku
+2225 833EAC02FF     CMP    Word Ptr [02AC],-01 ; je p©¡kazov˜ © dek ?
+222A 7412           JZ     223E             ;
+222C E9D5DE         JMP    0104             ; dal¨¡ p©¡kaz povelov‚ho souboru
+
+                                          ;* poskytnut¡ syst‚mov‚ tabulky 5
+222F B82E12         MOV    AX,122E
+2232 B205           MOV    DL,05
+2234 8B3EC102       MOV    DI,[02C1]
+2238 8E06C302       MOV    ES,[02C3]
+223C CD2F           INT    2F               ; poskytnut¡ tabulky 5
+
+223E 1F           * POP    DS
+223F E81B03         CALL   255D             ; n vrat aktivn¡ho adres ©e
+
+                                          ;* n vrat vektor– p©eru¨en¡
+2242 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2246 26A14702       MOV    AX,ES:[0247]     ; segment otcovsk‚ho PSP
+224A 26A31600       MOV    ES:[0016],AX     ; n vrat otcovsk‚ho PSP
+224E 26A14902       MOV    AX,ES:[0249]     ; offset p–vodn¡ho INT 22h
+2252 26A30A00       MOV    ES:[000A],AX     ; n vrat offsetu p–vodn¡ho INT 22h
+2256 26A14B02       MOV    AX,ES:[024B]     ; segment p–vodn¡ho INT 22h
+225A 26A30C00       MOV    ES:[000C],AX     ; n vrat segmentu p–vodn¡ho INT 22h
+
+                                          ;* uvolnˆn¡ pamˆti s COMMAND.COM
+225E 06             PUSH   ES
+225F 8E06878D       MOV    ES,[8D87]
+2263 B449           MOV    AH,49                         ;'I'
+2265 CD21           INT    21               ; uvolnˆn¡ bloku pamˆti
+2267 07             POP    ES
+
+                                          ;* konec programu COMMAND.COM
+2268 B44C           MOV    AH,4C                         ;'L'
+226A 26A0A302       MOV    AL,ES:[02A3]     ; n vratov˜ k¢d COMMAND.COM
+226E CD21           INT    21               ; konec programu COMMAND.COM
+
+
+; -----------------------------------------------------------------------------
+
+2270 33D2           XOR    DX,DX
+2272 8936DD8E       MOV    [8EDD],SI
+2276 E87E2D         CALL   4FF7
+2279 3CFF           CMP    AL,FF
+227B 7409           JZ     2286
+227D 3D0000         CMP    AX,0000
+2280 7501           JNZ    2283
+2282 40             INC    AX
+2283 E81500         CALL   229B
+2286 C3             RET
+; -----------------------------------------------------------------------------
+;    Rozbor p©¡kazov‚ho © dku
+; -----------------------------------------------------------------------------
+
+2287 8936DD8E       MOV    [8EDD],SI
+228B E8692D         CALL   4FF7
+228E 3CFF           CMP    AL,FF
+2290 7408           JZ     229A
+2292 3D0000         CMP    AX,0000
+2295 7403           JZ     229A
+2297 E80100         CALL   229B
+229A C3           * RET
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+229B C606118202     MOV    Byte Ptr [8211],02
+22A0 BA1382         MOV    DX,8213          ; adresa tabulky popisu chyby
+22A3 C60400         MOV    Byte Ptr [SI],00
+22A6 A31382         MOV    [8213],AX        ; k¢d chyby
+22A9 3D0200         CMP    AX,0002
+22AC 740D           JZ     22BB
+22AE 8B36DD8E       MOV    SI,[8EDD]
+22B2 8936658F       MOV    [8F65],SI        ; adresa jm‚na souboru p©i chybˆ
+22B6 C606158201     MOV    Byte Ptr [8215],01 ; ‡¡slo parametru hl ¨en¡
+22BB 46             INC    SI
+22BC C3             RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz PROMPT
+; -----------------------------------------------------------------------------
+
+22BD E8FE00         CALL   23BE             ; vypustˆn¡ param.PROMPT z prost©ed¡
+22C0 E8B501         CALL   2478             ; nalezen¡ konce vzorov‚ho prost©ed¡
+22C3 56             PUSH   SI
+22C4 E8A301         CALL   246A             ; nalezen¡ za‡ tku textu p©¡kaz. © dku
+22C7 5E             POP    SI
+22C8 7501           JNZ    22CB             ; je nˆjak˜ dal¨¡ text
+22CA C3           * RET
+
+                                          ;* ulo‘en¡ parametru PROMPT do prost©.
+22CB E87D01         CALL   244B             ; p©enos n zvu param. do prost©ed¡
+22CE E89901         CALL   246A             ; nalezen¡ za‡ tku textu p©¡kaz. © dku
+22D1 56             PUSH   SI               ; £schova za‡ tku textu
+22D2 EB53           JMP    2327             ; ulo‘en¡ textu parametru do prost©.
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz SET
+; -----------------------------------------------------------------------------
+
+22D4 E9BE00       * JMP    2395
+
+22D7 E89001         CALL   246A             ; nalezen¡ za‡ tku textu p©¡kaz. © dku
+22DA 74F8           JZ     22D4             ; konec textu - bude zobrazen¡ SET
+
+22DC 33DB           XOR    BX,BX
+22DE 56             PUSH   SI
+22DF AC           * LODSB                   ; n sleduj¡c¡ znak
+22E0 3C0D           CMP    AL,0D            ; je konec © dku ?
+22E2 740F           JZ     22F3             ; je konec © dku - zobrazen¡
+22E4 3C3D           CMP    AL,3D            ; je definice "=" ?
+22E6 75F7           JNZ    22DF             ; neplatn˜ znak - dal¨¡
+22E8 FEC3           INC    BL
+22EA 803C0D         CMP    Byte Ptr [SI],0D
+22ED 75F0           JNZ    22DF
+22EF FEC7           INC    BH
+22F1 EBEC           JMP    22DF
+
+
+22F3 5E             POP    SI
+22F4 FECB           DEC    BL
+22F6 7406           JZ     22FE
+22F8 BAAB82         MOV    DX,82AB
+22FB E94D07         JMP    2A4B
+
+
+22FE 53             PUSH   BX
+22FF E8BF00         CALL   23C1             ; vypustˆn¡ parametru z prost©ed¡
+2302 5B             POP    BX
+2303 FECF           DEC    BH
+2305 74C3           JZ     22CA             ; = RET
+2307 E86E01         CALL   2478             ; nalezen¡ konce vzorov‚ho prost©ed¡
+230A 8BDF           MOV    BX,DI
+230C E83C01         CALL   244B             ; p©enos n zvu param. do prost©ed¡
+230F 56             PUSH   SI
+2310 87DF           XCHG   BX,DI
+2312 C606538700     MOV    Byte Ptr [8753],00
+2317 BE8F84         MOV    SI,848F          ; text "COMSPEC="
+231A B90400         MOV    CX,0004          ; po‡et slov textu
+231D F3             REPZ
+231E A7             CMPSW                   ; porovn n¡, jestli to je COMSPEC=
+231F 7504           JNZ    2325             ; nen¡ COMSPEC
+2321 FE065387       INC    Byte Ptr [8753]  ; p©¡znak nastaven¡ COMSPEC
+2325 8BFB         * MOV    DI,BX
+
+                                          ;* ulo‘en¡ textu param. do prost©ed¡
+
+2327 5E             POP    SI
+2328 56             PUSH   SI               ; za‡ tek textu parametru
+2329 AC           * LODSB
+232A 3C0D           CMP    AL,0D            ; je konec textu ?
+232C 7405           JZ     2333             ; je konec textu
+232E E8B601         CALL   24E7             ; ulo‘en¡ znaku do prost©ed¡
+2331 EBF6           JMP    2329             ; p©enos dal¨¡ho znaku
+
+2333 5E           * POP    SI
+2334 803E538700     CMP    Byte Ptr [8753],00
+
+
+2339 748F         * JZ     22CA             ; = RET
+233B E88603         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+233E 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2342 BF5402         MOV    DI,0254
+2345 8BDF           MOV    BX,DI
+2347 33C0           XOR    AX,AX
+2349 26A29D02       MOV    ES:[029D],AL
+234D 50             PUSH   AX
+234E 8A04           MOV    AL,[SI]
+2350 E84701         CALL   249A             ; test, zda je znak v tabulce LEAD
+2353 58             POP    AX
+2354 7518           JNZ    236E
+2356 807C013A       CMP    Byte Ptr [SI+01],3A           ;':'
+235A 7512           JNZ    236E
+235C 8A04           MOV    AL,[SI]
+235E E86301         CALL   24C4             ; p©evod na velk‚ p¡smeno
+2361 2C41           SUB    AL,41                         ;'A'
+2363 83C702         ADD    DI,+02
+2366 FEC0           INC    AL
+2368 26A29D02       MOV    ES:[029D],AL
+236C 0440           ADD    AL,40                         ;'@'
+236E 26893E3302     MOV    ES:[0233],DI
+2373 26A23802       MOV    ES:[0238],AL
+2377 8BFB           MOV    DI,BX
+2379 AC             LODSB
+237A E84F03         CALL   26CC             ; test, zda je znak oddˆlova‡
+237D 7407           JZ     2386
+237F 3C0D           CMP    AL,0D
+2381 7403           JZ     2386
+2383 AA             STOSB
+2384 EBF3           JMP    2379
+2386 32C0           XOR    AL,AL
+2388 AA             STOSB
+2389 C606538700     MOV    Byte Ptr [8753],00
+238E 4F             DEC    DI
+238F 26893E9402     MOV    ES:[0294],DI
+2394 C3             RET
+
+
+
+                                          ;* p©¡kaz SET
+2395 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2399 8E1E4504       MOV    DS,[0445]        ; segment vzorov‚ho prost©ed¡
+239D 33F6           XOR    SI,SI            ; SI <- 0 za‡ tek prost©ed¡
+
+                                          ;* p©enos jednoho parametru
+239F 803C00       * CMP    Byte Ptr [SI],00 ; je konec prost©ed¡ ?
+23A2 7495           JZ     2339             ; je konec prost©ed¡ = RET
+23A4 BFE18E         MOV    DI,8EE1          ; buffer pro zobrazen¡ prost©ed¡
+
+                                          ;* p©enos jednoho parametru prost©ed¡
+23A7 AC           * LODSB
+23A8 AA             STOSB
+23A9 0AC0           OR     AL,AL            ; je konec parametru ?
+23AB 75FA           JNZ    23A7             ; dal¨¡ znak parametru
+23AD BAB083         MOV    DX,83B0          ;
+23B0 1E             PUSH   DS
+23B1 06             PUSH   ES
+23B2 1F             POP    DS
+23B3 E84D2C         CALL   5003
+23B6 1F             POP    DS
+23B7 EBE6           JMP    239F             ; dal¨¡ parametr
+
+                                          ;* vypustˆn¡ param. PATH z prost©ed¡
+23B9 BE8384         MOV    SI,8483          ; text "PATH="
+23BC EB03           JMP    23C1             ; vypustˆn¡ parametru z prost©ed¡
+
+                                          ;* vypustˆn¡ param. PROMPT z prost©ed¡
+23BE BE8884         MOV    SI,8488          ; text "PROMPT="
+
+; -----------------------------------------------------------------------------
+;    Vypustˆn¡ textu parametru z prost©ed¡
+; -----------------------------------------------------------------------------
+
+23C1 56             PUSH   SI
+23C2 1E             PUSH   DS
+23C3 E82C00         CALL   23F2             ; nalezen¡ parametru v prost©ed¡
+23C6 7217           JB     23DF             ; parametr nenalezen
+23C8 8BF7           MOV    SI,DI            ; za‡ tek parametru
+23CA E8C500         CALL   2492             ; nalezen¡ konce parametru
+23CD 87F7           XCHG   SI,DI
+23CF 26803C00       CMP    Byte Ptr ES:[SI],00 ; je dal¨¡ parametr ?
+23D3 7501           JNZ    23D6             ; je je¨tˆ dal¨¡ parametr
+23D5 4E             DEC    SI               ; ponech  se posledn¡ bajt prost©ed¡
+23D6 E87001       * CALL   2549             ; zji¨tˆn¡ velikosti alok. bloku
+23D9 2BCE           SUB    CX,SI            ; po‡et bajt– do konce prost©ed¡
+23DB 06             PUSH   ES
+23DC 1F             POP    DS
+23DD F3             REPZ
+23DE A4             MOVSB                   ; vypustˆn¡ parametru z prost©ed¡
+23DF 1F           * POP    DS
+23E0 5E             POP    SI
+23E1 C3           * RET
+
+
+; -----------------------------------------------------------------------------
+;    Nalezen¡ parametru "PATH" v prost©ed¡
+; -----------------------------------------------------------------------------
+
+23E2 BE8384         MOV    SI,8483          ; text 'PATH='
+23E5 EB03           JMP    23EA
+
+; -----------------------------------------------------------------------------
+;    Nalezen¡ parametru "PROMPT" v prost©ed¡
+; -----------------------------------------------------------------------------
+
+23E7 BE8884         MOV    SI,8488          ; text 'PROMPT='
+
+23EA E80500         CALL   23F2             ; nalezen¡ parametru v prost©ed¡
+23ED 72F2           JB     23E1
+23EF E99C00         JMP    248E             ; nalezen¡ znaku "=" v textu
+
+; -----------------------------------------------------------------------------
+;    Nalezen¡ parametru v prost©ed¡
+; -----------------------------------------------------------------------------
+
+23F2 FC             CLD
+23F3 E84100         CALL   2437             ; zji¨tˆn¡ d‚lky parametru prost©ed¡
+23F6 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+23FA 268E064504     MOV    ES,ES:[0445]     ; segment vzorov‚ho prost©ed¡
+23FF 33FF           XOR    DI,DI            ; za‡ tek prost©ed¡
+
+                                          ;* porovn n¡ CX znak– textu prost©ed¡
+2401 51           * PUSH   CX
+2402 56             PUSH   SI
+2403 57             PUSH   DI
+2404 AC           * LODSB                   ; znak z p©¡kazov‚ho © dku
+2405 E89200         CALL   249A             ; test, zda je znak v tabulce LEAD
+2408 740F           JZ     2419
+240A 4E             DEC    SI               ; n vrat posledn¡ho znaku
+240B AD             LODSW                   ; znak bude dvoubajtovˆ
+240C 47             INC    DI
+240D 47             INC    DI               ; p©esko‡en¡ 2 bajt–
+240E 263B45FE       CMP    AX,ES:[DI-02]    ; porovn n¡ znaku 2-bajtovˆ
+2412 7511           JNZ    2425             ; znaky nejsou shodn‚
+2414 49             DEC    CX               ; sn¡‘en¡ ‡¡ta‡e znak–
+2415 E2ED           LOOP   2404             ; test dal¨¡ho bajtu
+2417 EB0C           JMP    2425
+
+2419 E8A800       * CALL   24C4             ; p©evod na velk‚ p¡smeno
+241C 47             INC    DI               ; p©esko‡en¡ znaku
+241D 263A45FF       CMP    AL,ES:[DI-01]    ; porovn n¡ znaku 1-bajtovˆ
+2421 7502           JNZ    2425             ; nen¡ shoda znak–
+2423 E2DF           LOOP   2404             ; test dal¨¡ho bajtu
+
+2425 5F           * POP    DI
+2426 5E             POP    SI
+2427 59             POP    CX
+2428 74B7           JZ     23E1             ; ©etˆzec byl nalezen
+
+242A 51             PUSH   CX
+242B E86400         CALL   2492             ; nalezen¡ konec textu prost©ed¡
+242E 59             POP    CX
+242F 26803D00       CMP    Byte Ptr ES:[DI],00 ; je je¨tˆ dal¨¡ parametr ?
+2433 75CC           JNZ    2401             ; je je¨tˆ dal¨¡ parametr
+2435 F9             STC
+2436 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zji¨tˆn¡ d‚lky textu parametru prost©ed¡ (po znak "=")
+; -----------------------------------------------------------------------------
+
+2437 1E             PUSH   DS
+2438 07             POP    ES               ; ES <- DS adresa prost©ed¡
+2439 8BFE           MOV    DI,SI            ; DI <- SI offset prost©ed¡
+243B 57             PUSH   DI
+243C E84F00         CALL   248E             ; nalezen¡ znaku "=" v textu prost©.
+243F EB04           JMP    2445
+
+; -----------------------------------------------------------------------------
+;    Zji¨tˆn¡ d‚lky ©etˆzce v prost©ed¡ (po bajt 0)
+; -----------------------------------------------------------------------------
+
+2441 57             PUSH   DI
+2442 E84D00         CALL   2492             ; nalezen¡ bajtu 0 v prost©ed¡
+
+2445 59             POP    CX               ; CX <- n vrat adresy za‡ tku textu
+2446 2BF9           SUB    DI,CX            ; v˜po‡et d‚lky textu
+2448 87F9           XCHG   DI,CX            ;
+244A C3           * RET
+
+; -----------------------------------------------------------------------------
+;    P©enos n zvu parametru do prost©ed¡ (po "=")
+; -----------------------------------------------------------------------------
+
+244B 803C0D       * CMP    Byte Ptr [SI],0D ; je konec textu ?
+244E 74FA           JZ     244A             ; je konec textu
+2450 AC             LODSB                   ; na‡ten¡ znaku
+2451 E84600         CALL   249A             ; test, zda je znak v tabulce LEAD
+2454 7409           JZ     245F             ; nen¡ v tabulce LEAD
+2456 E88E00         CALL   24E7             ; ulo‘en¡ znaku do prost©ed¡
+2459 AC             LODSB                   ; na‡ten¡ druh‚ho znaku
+245A E88A00         CALL   24E7             ; ulo‘en¡ znaku do prost©ed¡
+245D EBEC           JMP    244B             ; ulo‘en¡ dal¨¡ho znaku
+
+                                          ;* ulo‘en¡ znaku 1-bajtovˆ
+245F E86200       * CALL   24C4             ; p©evod na velk‚ p¡smeno
+2462 E88200         CALL   24E7             ; ulo‘en¡ znaku do prost©ed¡
+2465 3C3D           CMP    AL,3D            ; je konec parametru ?
+2467 75E2           JNZ    244B             ; nen¡ konec - dal¨¡ znak
+2469 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Nalezen¡ za‡ tku textu p©¡kazov‚ho © dku
+; -----------------------------------------------------------------------------
+
+246A BE8000         MOV    SI,0080          ; p©¡kazov˜ © dek
+246D AC             LODSB                   ; po‡et znak– textu
+246E 0AC0           OR     AL,AL            ; je nˆjak˜ znak ?
+2470 74F7           JZ     2469             ; nen¡ ‘ dn˜ znak
+2472 E84F02         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+2475 3C0D           CMP    AL,0D            ; je konec © dku ?
+2477 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Nalezen¡ konce vzorov‚ho prost©ed¡
+; -----------------------------------------------------------------------------
+
+2478 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+247C 268E064504     MOV    ES,ES:[0445]     ; segment vzorov‚ho prost©ed¡
+2481 33FF           XOR    DI,DI            ; offset za‡ tku prost©ed¡
+2483 26803D00     * CMP    Byte Ptr ES:[DI],00 ; je konec prost©ed¡ ?
+2487 74EE           JZ     2477             ; nen¡ ‘ dn˜ text
+2489 E80600         CALL   2492             ; nalezen¡ bajtu 0 v prost©ed¡
+248C EBF5           JMP    2483             ; test, zda je konec prost©ed¡
+
+; -----------------------------------------------------------------------------
+;    Nalezen¡ bajtu v textu prost©ed¡
+; -----------------------------------------------------------------------------
+
+
+                                          ;* nalezen¡ znaku "=" v prost©ed¡
+248E B03D           MOV    AL,3D            ;'='
+2490 EB02           JMP    2494             ; nalezen¡ bajtu "="
+
+                                          ;* nalezen¡ bajtu 0 v prost©ed¡
+2492 32C0           XOR    AL,AL            ; hledan˜ bajt 0
+
+                                          ;* nalezen¡ bajtu v textu prost©ed¡
+2494 B90001         MOV    CX,0100          ; maxim ln¡ d‚lka textu
+2497 F2             REPNZ
+2498 AE             SCASB                   ; nalezen¡ bajtu AL
+2499 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Test, zda je znak v tabulce LEAD (ZY=znak nen¡ v tabulce LEAD)
+; -----------------------------------------------------------------------------
+
+249A 1E             PUSH   DS
+249B 56             PUSH   SI
+
+249C 50             PUSH   AX
+249D 2E8E1E778D     MOV    DS,CS:[8D77]     ; segment 1. ‡ sti COMMAND.COM
+24A2 C536C502       LDS    SI,[02C5]        ; adresa tabulky LEAD
+24A6 833C00         CMP    Word Ptr [SI],+00 ; konec tabulky ?
+24A9 740E           JZ     24B9             ; konec tabulky LEAD
+24AB 58             POP    AX
+
+                                          ;* kontrola, zda je znak v mez¡ch LEAD
+24AC 50             PUSH   AX
+24AD 3A04           CMP    AL,[SI]          ; je nad spodn¡ hranic¡ ?
+24AF 7208           JB     24B9             ; mimo rozsah - znak nen¡ v tabulce
+24B1 46             INC    SI               ; druh˜ bajt tabulky
+24B2 3A04           CMP    AL,[SI]          ; je pod horn¡ hranic¡ ?
+24B4 7607           JBE    24BD             ; je v mez¡ch - znak je v tabulce
+24B6 46             INC    SI               ; n sleduj¡c¡ bajt tabulky
+24B7 EBED           JMP    24A6
+
+                                          ;* p©¡znak ZY - znak nen¡ v tabulce
+24B9 33C0         * XOR    AX,AX            ; p©¡znak ZY - znak nen¡ v tabulce
+24BB EB03           JMP    24C0
+
+                                          ;* p©¡znak NZ - znak je v tabulce
+24BD 33C0           XOR    AX,AX            ; AX <- 0
+24BF 40             INC    AX               ; p©¡znak NZ, znak je v tabulce
+
+24C0 58           * POP    AX
+
+24C1 5E             POP    SI
+24C2 1F             POP    DS
+24C3 C3             RET
+
+; -----------------------------------------------------------------------------
+;    P©evod na velk‚ p¡smeno
+; -----------------------------------------------------------------------------
+
+24C4 3C80           CMP    AL,80            ; je to bˆ‘n˜ znak ?
+24C6 7214           JB     24DC             ; je to bˆ‘n˜ znak < 128
+24C8 2C80           SUB    AL,80            ; offset v p©evodn¡ tabulce
+24CA 1E             PUSH   DS               ; £schova DS
+24CB 53             PUSH   BX               ; £schova BX
+24CC 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+24D0 C51EBD02       LDS    BX,[02BD]        ; adresa tabulky UPPERCASE
+24D4 83C302         ADD    BX,+02           ;
+24D7 D7             XLAT                    ; p©evod znaku AL podle tabulky
+24D8 5B             POP    BX               ; n vrat BX
+24D9 1F             POP    DS               ; n vrat DS
+24DA EB0A           JMP    24E6
+
+                                          ;* p©evod bˆ‘n‚ho znaku < 128
+24DC 3C61         * CMP    AL,61                         ;'a'
+24DE 7206           JB     24E6
+24E0 3C7A           CMP    AL,7A                         ;'z'
+24E2 7702           JA     24E6
+24E4 2C20           SUB    AL,20            ; korekce na velk‚ p¡smeno
+24E6 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Ulo‘en¡ znaku do segmentu prost©ed¡
+; -----------------------------------------------------------------------------
+
+24E7 51             PUSH   CX
+24E8 53             PUSH   BX
+24E9 06             PUSH   ES
+24EA 1E             PUSH   DS
+
+                                          ;* kontrola konce prost©ed¡
+24EB 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+24EF 8E064504       MOV    ES,[0445]        ; segment vzorov‚ho prost©ed¡
+24F3 1F             POP    DS
+24F4 E85200         CALL   2549             ; zji¨tˆn¡ velikosti alok. bloku ES
+24F7 8BD9           MOV    BX,CX            ; velikost alok. bloku
+24F9 83EB02         SUB    BX,+02           ; rezerva pro koncov‚ bajty 0,0
+24FC 3BFB           CMP    DI,BX            ; je p©ekro‡en konec ?
+24FE 723F           JB     253F             ; nen¡ je¨tˆ konec textu
+
+                                          ;* blok prost©ed¡ se mus¡ zvˆt¨it
+
+                                          ;* uvolnˆn¡ bloku programu
+2500 50             PUSH   AX
+2501 51             PUSH   CX
+2502 53             PUSH   BX
+2503 E802E2         CALL   0708             ; uvolnˆn¡ bloku programu
+2506 5B             POP    BX
+
+                                          ;* kontrola velikosti prost©ed¡
+2507 83C302         ADD    BX,+02           ; sou‡asn  velikost bloku prost©ed¡
+250A 81FB0080       CMP    BX,8000          ; je p©ekro‡ena hranice velikosti ?
+250E 7203           JB     2513             ; nen¡ je¨tˆ p©ekro‡ena hranice
+
+                                          ;* chyba prost©ed¡
+2510 F9             STC                     ; chyba - p©ekro‡ena velikost
+2511 EB16           JMP    2529
+
+                                          ;* modifikace velikosti prost©ed¡
+2513 B104           MOV    CL,04            ; po‡et rotac¡
+2515 D3EB           SHR    BX,CL            ; p©epo‡et velikosti na odstavce
+2517 43             INC    BX               ; zv˜¨en¡ velikosti bloku o odstavec
+2518 8CC1           MOV    CX,ES            ; modifikovan˜ segment
+251A 03CB           ADD    CX,BX            ; segment konce prost©ed¡
+251C 83C120         ADD    CX,+20           ; rezerva pro 1 sektor
+251F 8CC8           MOV    AX,CS            ; segment t‚to ‡ sti COMMAND.COM
+2521 3BC8           CMP    CX,AX            ; je p©ekro‡en konec pamˆti ?
+2523 73EB           JNB    2510             ; je p©ekro‡en konec pamˆti
+2525 B44A           MOV    AH,4A
+2527 CD21           INT    21               ; modifikace bloku pamˆti
+
+                                          ;* vytvo©en¡ nov‚ho bloku pro program
+2529 9C             PUSHF
+252A 06             PUSH   ES
+252B 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+252F E8E6E1         CALL   0718             ; vytvo©en¡ bloku pro program
+2532 07             POP    ES
+2533 9D             POPF
+
+2534 59             POP    CX
+2535 58             POP    AX
+2536 7307           JNB    253F             ; operace OK
+2538 07             POP    ES
+2539 BA2A82         MOV    DX,822A
+253C E90C05         JMP    2A4B             ; chyba
+
+253F AA           * STOSB                   ; ulo‘en¡ znaku do prost©ed¡
+2540 26C7050000     MOV    Word Ptr ES:[DI],0000 ; ozna‡en¡ konce textu
+2545 07             POP    ES
+2546 5B             POP    BX
+2547 59             POP    CX
+2548 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zji¨tˆn¡ velikosti alok. bloku ES (CX <- velikost v bajtech)
+; -----------------------------------------------------------------------------
+
+2549 06             PUSH   ES               ; £schova ES
+254A 50             PUSH   AX               ; £schova AX
+254B 8CC0           MOV    AX,ES            ; AX <- segment prost©ed¡
+254D 48             DEC    AX               ; segment popisova‡e bloku pamˆti
+254E 8EC0           MOV    ES,AX            ; segment popisova‡e bloku pamˆti
+2550 26A10300       MOV    AX,ES:[0003]     ; velikost pamˆŸov‚ho bloku
+2554 B104           MOV    CL,04            ; po‡et rotac¡
+2556 D3E0           SHL    AX,CL            ; p©evod velikosti na bajty
+2558 8BC8           MOV    CX,AX            ; velikost aloka‡n¡ho bloku pamˆti
+255A 58             POP    AX               ; n vrat AX
+255B 07             POP    ES               ; n vrat ES
+255C C3           * RET
+
+; -----------------------------------------------------------------------------
+;    N vrat aktivn¡ho adres ©e
+; -----------------------------------------------------------------------------
+
+255D 1E             PUSH   DS
+255E 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2562 803EAA0200     CMP    Byte Ptr [02AA],00 ; po‘adavek nastaven¡ aktiv.adres ©e
+2567 1F             POP    DS
+2568 74F2           JZ     255C             ; nen¡ t©eba nastavit aktiv. adres ©
+256A BA598C         MOV    DX,8C59          ; uschovan˜ aktivn¡ adres ©
+256D B43B           MOV    AH,3B            ; funkce nastaven¡ adres ©e
+256F CD21           INT    21               ; nastaven¡ adres ©e
+2571 32C0           XOR    AL,AL            ; AL <- 0
+2573 E88508         CALL   2DFB             ; nulov n¡ po‘adavku nastaven¡ adres ©e
+2576 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz CD, CHDIR
+; -----------------------------------------------------------------------------
+
+2577 BE8100         MOV    SI,0081
+257A BF0188         MOV    DI,8801
+257D 33C9           XOR    CX,CX
+257F 33D2           XOR    DX,DX
+2581 E803FD         CALL   2287             ; rozbor p©¡kazov‚ho © dku
+2584 3DFFFF         CMP    AX,FFFF
+2587 7416           JZ     259F
+2589 3D0000         CMP    AX,0000
+258C 7550           JNZ    25DE
+258E 803EA59806     CMP    Byte Ptr [98A5],06
+2593 7511           JNZ    25A6
+2595 BF0188         MOV    DI,8801
+2598 33D2           XOR    DX,DX
+259A E8D3FC         CALL   2270
+259D 753F           JNZ    25DE
+259F E83DF9       * CALL   1EDF
+25A2 E81201         CALL   26B7             ; chybov‚ hl ¨en¡
+25A5 C3             RET
+
+25A6 56             PUSH   SI
+25A7 C536A998       LDS    SI,[98A9]
+25AB E80F08         CALL   2DBD
+25AE 5E             POP    SI
+25AF BF0188         MOV    DI,8801
+25B2 33D2           XOR    DX,DX
+25B4 E8B9FC         CALL   2270
+25B7 7525           JNZ    25DE
+25B9 E83306         CALL   2BEF
+25BC F606808F02     TEST   Byte Ptr [8F80],02
+25C1 7518           JNZ    25DB
+
+                                          ;* pokus o zmˆnu adres ©e
+25C3 B43B           MOV    AH,3B            ; funkce nastaven¡ adres ©e
+25C5 CD21           INT    21               ; nastaven¡ zadan‚ho adres ©e
+25C7 73DC           JNB    25A5             ; adres © zmˆnˆn OK
+
+                                          ;* rozbor p©¡‡iny chyby
+25C9 E8D4F7         CALL   1DA0             ; poskytnut¡ chybov˜ch informac¡
+25CC 3D0300         CMP    AX,0003          ; chyba - cesta nenalezena ?
+25CF 740A           JZ     25DB             ; chyba - cesta nenalezena
+25D1 3D0500         CMP    AX,0005          ; chyba - po‘adavek odm¡tnut ?
+25D4 7405           JZ     25DB             ; chyba - po‘adavek odm¡tnut
+25D6 E8A300         CALL   267C             ; nastaven¡ k¢du chyby
+25D9 EB03           JMP    25DE             ; chybov‚ hl ¨en¡ - jin  chyba
+
+                                          ;* chybov‚ hl ¨en¡
+25DB BA4E83       * MOV    DX,834E          ; tabulka popisu chyby
+25DE E8292A       * CALL   500A             ; chybov‚ hl ¨en¡
+25E1 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz MD, MKDIR
+; -----------------------------------------------------------------------------
+
+                                          ;* pokus o vytvo©en¡ zadan‚ho adres ©e
+25E2 E83F00         CALL   2624             ; dek¢dov n¡ zadan‚ho jm‚na adres ©e
+25E5 7239           JB     2620             ; chyba zad n¡ jm‚na adres ©e
+25E7 B439           MOV    AH,39            ; funkce vytvo©en¡ adres ©e
+25E9 CD21           INT    21               ; vytvo©en¡ zadan‚ho adres ©e
+25EB 73F4           JNB    25E1             ; nov˜ adres © vytvo©en OK
+
+                                          ;* rozbor navr cen‚ho k¢du chyby
+25ED E8B0F7         CALL   1DA0             ; poskytnut¡ chybov˜ch informac¡
+25F0 3D0300         CMP    AX,0003          ; chyba - cesta nenalezena ?
+25F3 7428           JZ     261D             ; chyba zad n¡ cesty k adres ©i
+25F5 3D0500         CMP    AX,0005          ; chyba - po‘adavek odm¡tnut ?
+25F8 7405           JZ     25FF             ; chyba - po‘adavek odm¡tnut
+25FA E87F00         CALL   267C             ; nastaven¡ p©¡znaku nˆjak‚ chyby
+25FD EB21           JMP    2620             ; chybov‚ hl ¨en¡
+
+                                          ;* rozli¨en¡ d–vodu odm¡tnut¡
+25FF BAA58A         MOV    DX,8AA5          ; buffer pro nalezen¡ souboru
+2602 B41A           MOV    AH,1A            ; funkce nastaven¡ adres ©e
+2604 CD21           INT    21               ; nastaven¡ adresy DTA
+2606 B44E           MOV    AH,4E            ; funkce nalezen¡ souboru
+2608 B91000         MOV    CX,0010          ; atributy - adres ©
+260B CD21           INT    21               ; nalezen¡ souboru zadan‚ho jm‚na
+260D 720E           JB     261D             ; soubor nebyl nalezen
+260F 8A16BA8A       MOV    DL,[8ABA]        ; atributy nalezen‚ho souboru
+2613 F6C210         TEST   DL,10            ; je to adres © ?
+2616 7405           JZ     261D             ; je to soubor - chyba zad n¡ adres.
+2618 BA3E84         MOV    DX,843E          ; chyba - adres © ji‘ existuje
+261B EB03           JMP    2620             ; chybov‚ hl ¨en¡
+
+                                          ;* chybn‚ zad n¡ specifikace adres ©e
+261D BA5183       * MOV    DX,8351          ; tabulka chybov˜ch hl ¨en¡
+2620 E8E729       * CALL   500A             ; chybov‚ hl ¨en¡ - chyba syntaxe
+2623 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Rozbor zad n¡ adres ©e
+; -----------------------------------------------------------------------------
+
+                                          ;* rozbor zad n¡ adres ©e
+2624 BE8100         MOV    SI,0081          ; buffer se zad n¡m (adres ©)
+2627 BFF887         MOV    DI,87F8          ; buffer
+262A 33C9           XOR    CX,CX            ; CX <- 0
+262C 33D2           XOR    DX,DX            ; DX <- 0
+262E E856FC         CALL   2287             ; rozbor zad n¡ jm‚na adres ©e
+2631 3D0000         CMP    AX,0000          ; probˆhl rozbor OK ?
+2634 7519           JNZ    264F             ; zad n¡ neprobˆhlo OK
+
+                                          ;* p©enos zad n¡ do vlastn¡ho bufferu
+2636 BFA58A         MOV    DI,8AA5          ; pracovn¡ buffer
+2639 57             PUSH   DI               ; £schova DI
+263A 56             PUSH   SI               ; £schova SI
+263B C536A998       LDS    SI,[98A9]        ; adresa s dek¢dovan˜m zad n¡m
+263F AC           * LODSB                   ; na‡ten¡ znaku
+2640 AA             STOSB                   ; ulo‘en¡ znaku do
+2641 3C00           CMP    AL,00            ; je ji‘ konec textu ?
+2643 75FA           JNZ    263F             ; nen¡ konec textu - dal¨¡ znak
+2645 5E             POP    SI               ; n vrat SI
+2646 BFF887         MOV    DI,87F8
+2649 E824FC         CALL   2270
+264C 5A             POP    DX               ; DX <- adresa p©enesen‚ho textu
+264D 74D4           JZ     2623             ; rozbor OK
+
+                                          ;* chyba zad n¡ specifikace souboru
+264F BA1382       * MOV    DX,8213          ; adresa tabulky popisu chyby
+2652 33C0           XOR    AX,AX            ; k¢d chyby
+2654 F9             STC                     ; p©¡znak chyby zad n¡ adres ©e
+2655 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz RD, RMDIR
+; -----------------------------------------------------------------------------
+
+                                          ;* pokus o zru¨en¡ adres ©e
+2656 E8CBFF         CALL   2624             ; rozbor zad n¡ specifikace adres ©e
+2659 721D           JB     2678             ; chyba zad n¡ - chybov‚ hl ¨en¡
+265B 7518           JNZ    2675             ;
+265D B43A           MOV    AH,3A            ; funkce zru¨en¡ adres ©e
+265F CD21           INT    21               ; zru¨en¡ zadan‚ho adres ©e
+2661 73F2           JNB    2655             ; adres © zru¨en OK
+
+                                          ;* rozli¨en¡ k¢du chyby
+2663 E83AF7         CALL   1DA0             ; poskytnut¡ chybov˜ch informac¡
+2666 3D0300         CMP    AX,0003          ; chyba - cesta nenalezena ?
+2669 740A           JZ     2675             ; chyba zad n¡ cesty k adres ©i
+266B 3D0500         CMP    AX,0005          ; chyba - po‘adavek odm¡tnut ?
+266E 7405           JZ     2675             ; chybn‚ zad n¡ adres ©e
+2670 E80900         CALL   267C             ; nastaven¡ p©¡znak– chyby - nezn m 
+2673 EB03           JMP    2678             ; chybov‚ hl ¨en¡
+
+                                          ;* chybov‚ hl ¨en¡
+2675 BA5483       * MOV    DX,8354          ; tabulka popisu chyby
+2678 E88F29       * CALL   500A             ; chybov‚ hl ¨en¡
+267B C3           * RET
+
+; -----------------------------------------------------------------------------
+
+267C C606118201     MOV    Byte Ptr [8211],01
+2681 8916658F       MOV    [8F65],DX        ; adresa jm‚na souboru p©i chybˆ
+2685 C606158201     MOV    Byte Ptr [8215],01 ; ‡¡slo parametru hl ¨en¡
+268A BA1382         MOV    DX,8213          ; adresa tabulky popisu chyby
+268D A31382         MOV    [8213],AX        ; k¢d chyby
+2690 C3             RET
+
+; -----------------------------------------------------------------------------
+;      Sestaven¡ cesty k aktivn¡mu adres ©i
+; -----------------------------------------------------------------------------
+
+
+2691 BF598C         MOV    DI,8C59          ; buffer k ulo‘en¡ aktivn¡ho adres ©e
+2694 8AC2           MOV    AL,DL            ; disk
+2696 0440           ADD    AL,40            ; korekce na ozna‡en¡ ASCII
+2698 3C40           CMP    AL,40            ; je aktivn¡ disk ?
+269A 7506           JNZ    26A2             ; nen¡ aktivn¡ disk
+269C 02068B8D       ADD    AL,[8D8B]        ; zadan˜ disk se souborem BAT
+26A0 FEC0           INC    AL               ; ozna‡en¡ disku
+26A2 AA           * STOSB                   ; ulo‘en¡ ozna‡en¡ disku
+26A3 8A267C8D       MOV    AH,[8D7C]        ; oddˆlova‡ cesty "\"
+26A7 B03A           MOV    AL,3A            ; oddˆlova‡ disku ":"
+26A9 AB             STOSW                   ; ulo‘en¡ znak– ":\"
+26AA 06             PUSH   ES
+26AB 1F             POP    DS               ; DS <- ES adresa s bufferem
+26AC 8BF7           MOV    SI,DI            ; SI <- adresa k na‡ten¡ adres ©e
+26AE B447           MOV    AH,47            ; funkce poskytnut¡ adres ©e
+26B0 CD21           INT    21               ; poskytnut¡ aktivn¡ho adres ©e
+26B2 72C7           JB     267B             ; chyba - konec
+26B4 0E             PUSH   CS
+26B5 1F             POP    DS               ; DS <- CS
+26B6 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Chybov‚ hl ¨en¡
+; -----------------------------------------------------------------------------
+
+26B7 52             PUSH   DX
+26B8 BAF283         MOV    DX,83F2
+26BB 1E             PUSH   DS
+26BC 0E             PUSH   CS
+26BD 1F             POP    DS
+26BE E85129         CALL   5012
+26C1 1F             POP    DS
+26C2 5A             POP    DX
+26C3 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Vypustˆn¡ oddˆlova‡– z textu
+; -----------------------------------------------------------------------------
+
+26C4 AC           * LODSB                   ; na‡ten¡ znaku
+26C5 E80400         CALL   26CC             ; test, zda je znak oddˆlova‡
+26C8 74FA           JZ     26C4             ; znak je oddˆlova‡ - p©esko‡en¡
+26CA 4E             DEC    SI               ; n vrat posledn¡ho znaku
+26CB C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Test, zda je znak oddˆlova‡
+; -----------------------------------------------------------------------------
+
+26CC 3C20           CMP    AL,20                         ;' '
+26CE 74FB           JZ     26CB             : je mezera
+26D0 3C3D           CMP    AL,3D                         ;'='
+26D2 74F7           JZ     26CB             : je oddˆlova‡ "="
+26D4 3C2C           CMP    AL,2C                         ;','
+26D6 74F3           JZ     26CB             ; je oddˆlova‡ ","
+26D8 3C3B           CMP    AL,3B                         ;';'
+26DA 74EF           JZ     26CB             ; je oddˆlova‡ ";"
+26DC 3C09           CMP    AL,09
+26DE 74EB           JZ     26CB             ; je tabel tor
+26E0 3C0A           CMP    AL,0A            ; je LF ?
+26E2 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Konverze jm‚na souboru z FCB na ASCIIZ
+; -----------------------------------------------------------------------------
+
+                                          ;* vytvo©en¡ jm‚na souboru
+26E3 B90800         MOV    CX,0008          ; po‡et znak–
+26E6 AC           * LODSB                   ; na‡ten¡ znaku
+26E7 3C20           CMP    AL,20            ; je to mezera ?
+26E9 7401           JZ     26EC             ; je to mezera - p©esko‡en¡
+26EB AA             STOSB                   ; ulo‘en¡ znaku
+26EC E2F8         * LOOP   26E6             ; p©enos dal¨¡ho znaku
+
+                                          ;* ulo‘en¡ oddˆlovac¡ te‡ky
+26EE AC             LODSB                   ; na‡ten¡ dal¨¡ho znaku
+26EF 3C20           CMP    AL,20            ; je to mezera ?
+26F1 7412           JZ     2705             ; je to mezera - konec
+26F3 8AE0           MOV    AH,AL            ; £schova prvn¡ho znaku p©¡pony
+26F5 B02E           MOV    AL,2E            ; oddˆlovac¡ te‡ka
+26F7 AA             STOSB                   ; ulo‘en¡ oddˆlovac¡ te‡ky
+
+                                          ;* ulo‘en¡ p©¡pony jm‚na
+26F8 86C4           XCHG   AL,AH            ; n vrat prvn¡ho znaku
+26FA AA             STOSB                   ; ulo‘en¡ prvn¡ho znaku p©¡pony
+26FB B102           MOV    CL,02            ; max. po‡et zbyl˜ch znak– p©¡pony
+26FD AC           * LODSB                   ; na‡ten¡ dal¨¡ho znaku
+26FE 3C20           CMP    AL,20            ; je mezera ?
+2700 7403           JZ     2705             ; je mezera - konec
+2702 AA             STOSB                   ; ulo‘en¡ platn‚ho znaku
+2703 E2F8           LOOP   26FD             ; p©enos dal¨¡ho znaku
+2705 32C0         * XOR    AL,AL            ; ukon‡ovac¡ bajt 0
+2707 AA             STOSB                   ; ulo‘en¡ uko¤covac¡ho bajtu 0
+2708 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Porovn n¡ dvou ©etˆzc– ASCIIZ
+; -----------------------------------------------------------------------------
+
+2709 A6           * CMPSB                   ; porovn n¡ 1 znaku
+270A 75FC           JNZ    2708             ; neshoda
+270C 807CFF00       CMP    Byte Ptr [SI-01],00 ; byl j¡z konec textu ?
+2710 74F6           JZ     2708             ; konec textu - shoda
+2712 EBF5           JMP    2709             ; porovn n¡ dal¨¡ho znaku
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+2714 50             PUSH   AX
+2715 B00D           MOV    AL,0D
+2717 51             PUSH   CX
+2718 57             PUSH   DI
+2719 8BFA           MOV    DI,DX
+271B B9FFFF         MOV    CX,FFFF
+271E 06             PUSH   ES
+271F 1E             PUSH   DS
+2720 07             POP    ES
+2721 F2             REPNZ
+2722 AE             SCASB
+2723 C645FF00       MOV    Byte Ptr [DI-01],00
+2727 07             POP    ES
+2728 8916658F       MOV    [8F65],DX        ; adresa jm‚na souboru p©i chybˆ
+272C BADA83         MOV    DX,83DA
+272F E8E028         CALL   5012
+2732 C645FF0D       MOV    Byte Ptr [DI-01],0D
+2736 7204           JB     273C
+2738 5F             POP    DI
+2739 59             POP    CX
+273A 58             POP    AX
+273B C3             RET
+
+273C 0E             PUSH   CS
+273D 1F             POP    DS
+273E 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2742 BA2782         MOV    DX,8227
+2745 26803E1E0300   CMP    Byte Ptr ES:[031E],00
+274B 7406           JZ     2753
+274D E85D09         CALL   30AD
+2750 BA7483         MOV    DX,8374
+2753 E9F502       * JMP    2A4B
+
+; -----------------------------------------------------------------------------
+;    Test, zda je standardn¡ oddˆlova‡ parametr–
+; -----------------------------------------------------------------------------
+
+2756 50             PUSH   AX
+2757 B42F           MOV    AH,2F                         ;'/'
+2759 38267B8D       CMP    [8D7B],AH        ; oddˆlova‡ parametr–
+275D 7404           JZ     2763
+275F 3C2F           CMP    AL,2F                         ;'/'
+2761 7402           JZ     2765
+2763 3C5C         * CMP    AL,5C                         ;'\'
+2765 58           * POP    AX
+2766 C3             RET
+
+
+
+2767 C706E9900000   MOV    Word Ptr [90E9],0000
+276D 8A165C00       MOV    DL,[005C]        ; zadan˜ disk
+2771 E81DFF         CALL   2691             ; poskytnut¡ aktivn¡ho adres ©e
+2774 7233           JB     27A9
+2776 E87604         CALL   2BEF
+2779 F606808F02     TEST   Byte Ptr [8F80],02
+277E 752C           JNZ    27AC
+2780 B43B           MOV    AH,3B                         ;';'
+2782 CD21           INT    21               ; nastaven¡ adres ©e
+2784 7313           JNB    2799             ; adres © nastaven OK
+2786 E817F6         CALL   1DA0             ; poskytnut¡ chybov˜ch informac¡
+2789 3D0300         CMP    AX,0003
+278C 741E           JZ     27AC
+278E 3D0500         CMP    AX,0005
+2791 7419           JZ     27AC
+2793 A3E990         MOV    [90E9],AX
+2796 E98B00         JMP    2824
+
+2799 E85D06       * CALL   2DF9
+279C B03F           MOV    AL,3F            ; inicializa‡n¡ znak "?"
+279E BF5D00         MOV    DI,005D          ; standardn¡ FCB
+27A1 B90B00         MOV    CX,000B          ; po‡et znak– jm‚na FCB
+27A4 F3             REPZ
+27A5 AA             STOSB                   ; inicializace FCB na "?"
+27A6 32C0           XOR    AL,AL            ;
+27A8 C3             RET
+
+27A9 E98300         JMP    282F
+
+
+27AC 8B36D48E       MOV    SI,[8ED4]
+27B0 4E             DEC    SI
+27B1 8A44FF         MOV    AL,[SI-01]
+27B4 803E049100     CMP    Byte Ptr [9104],00
+27B9 7505           JNZ    27C0
+27BB E898FF         CALL   2756             ; test, zda je stand.oddˆlova‡ param.
+27BE 7464           JZ     2824
+27C0 8BCE           MOV    CX,SI
+27C2 8BF2           MOV    SI,DX
+27C4 52             PUSH   DX
+27C5 3BF1           CMP    SI,CX
+27C7 7413           JZ     27DC
+27C9 AC             LODSB
+27CA E8CDFC         CALL   249A             ; test, zda je znak v tabulce LEAD
+27CD 7403           JZ     27D2
+27CF 46             INC    SI
+27D0 EBF3           JMP    27C5
+27D2 E881FF         CALL   2756             ; test, zda je stand.oddˆlova‡ param.
+27D5 75EE           JNZ    27C5
+27D7 8BD6           MOV    DX,SI
+27D9 4A             DEC    DX
+27DA EBE9           JMP    27C5
+27DC 8BF2           MOV    SI,DX
+27DE 5A             POP    DX
+27DF 3BF2           CMP    SI,DX
+27E1 7456           JZ     2839
+27E3 8BCE           MOV    CX,SI
+27E5 8BF2           MOV    SI,DX
+27E7 3BF1           CMP    SI,CX
+27E9 7412           JZ     27FD
+27EB C606049100     MOV    Byte Ptr [9104],00
+27F0 AC             LODSB
+27F1 E8A6FC         CALL   249A             ; test, zda je znak v tabulce LEAD
+27F4 74F1           JZ     27E7
+27F6 46             INC    SI
+27F7 FE060491       INC    Byte Ptr [9104]
+27FB EBEA           JMP    27E7
+27FD 50             PUSH   AX
+27FE B02E           MOV    AL,2E                         ;'.'
+2800 384401         CMP    [SI+01],AL
+2803 7509           JNZ    280E
+2805 384402         CMP    [SI+02],AL
+2808 7404           JZ     280E
+280A 807C0200       CMP    Byte Ptr [SI+02],00
+280E 58             POP    AX
+280F 7413           JZ     2824
+2811 8A44FF         MOV    AL,[SI-01]
+2814 3C3A           CMP    AL,3A                         ;':'
+2816 7421           JZ     2839
+2818 803E049100     CMP    Byte Ptr [9104],00
+281D 7507           JNZ    2826
+281F E834FF         CALL   2756             ; test, zda je stand.oddˆlova‡ param.
+2822 7502           JNZ    2826
+2824 F9             STC
+2825 C3             RET
+
+2826 C60400         MOV    Byte Ptr [SI],00
+2829 B43B           MOV    AH,3B                         ;';'
+282B CD21           INT    21               ; nastaven¡ adres ©e
+282D 7320           JNB    284F
+282F E86EF5         CALL   1DA0             ; poskytnut¡ chybov˜ch informac¡
+2832 A3E990         MOV    [90E9],AX
+2835 0BF6           OR     SI,SI
+2837 F9             STC
+2838 C3             RET
+
+2839 8A04           MOV    AL,[SI]
+283B E818FF         CALL   2756             ; test, zda je stand.oddˆlova‡ param.
+283E F9             STC
+283F 75F7           JNZ    2838
+2841 32DB           XOR    BL,BL
+2843 865C01         XCHG   BL,[SI+01]
+2846 B43B           MOV    AH,3B                         ;';'
+2848 CD21           INT    21               ; nastaven¡ adres ©e
+284A 72E3           JB     282F
+284C 885C01         MOV    [SI+01],BL
+284F E8A705         CALL   2DF9
+2852 46             INC    SI
+2853 89367E8F       MOV    [8F7E],SI
+2857 9C             PUSHF
+2858 803EDC8EFF     CMP    Byte Ptr [8EDC],FF
+285D 7408           JZ     2867
+285F BF5C00         MOV    DI,005C
+2862 B80229         MOV    AX,2902
+2865 CD21           INT    21               ; rozbor jm‚na souboru
+2867 9D             POPF
+2868 C3             RET
+
+2869 93           * XCHG   AX,BX
+286A C3             RET
+
+286B 33DB           XOR    BX,BX            ; BX <- 0
+286D E854FE         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+2870 3A067B8D       CMP    AL,[8D7B]        ; oddˆlova‡ parametr–
+2874 75F3           JNZ    2869             ; nen¡ oddˆlova‡ parametr–
+2876 81CB0080       OR     BX,8000
+287A 46             INC    SI
+287B E846FE         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+287E 3C0D           CMP    AL,0D
+2880 74E7           JZ     2869
+2882 46             INC    SI
+2883 E83EFC         CALL   24C4             ; p©evod na velk‚ p¡smeno
+2886 BF4287         MOV    DI,8742
+2889 B90600         MOV    CX,0006
+288C F2             REPNZ
+288D AE             SCASB
+288E 7509           JNZ    2899
+2890 B80100         MOV    AX,0001
+2893 D3E0           SHL    AX,CL
+2895 0BD8           OR     BX,AX
+2897 EBD4           JMP    286D
+2899 EBD2           JMP    286D
+
+289B BA6F82         MOV    DX,826F
+289E E9AA01         JMP    2A4B
+
+28A1 E90201       * JMP    29A6
+
+28A4 0AC0           OR     AL,AL
+28A6 74F9           JZ     28A1
+28A8 E83303         CALL   2BDE             ; kontrola, zda je povel rezidentn¡
+28AB 7429           JZ     28D6
+28AD 8A0EFF8D       MOV    CL,[8DFF]
+28B1 B500           MOV    CH,00
+28B3 890ED48E       MOV    [8ED4],CX
+28B7 FE06EB90       INC    Byte Ptr [90EB]
+28BB E8C903         CALL   2C87
+28BE BEFF8D         MOV    SI,8DFF          ; adresa k ulo‘en¡ n vratov‚ho stavu
+28C1 BAFFFF         MOV    DX,FFFF          ; identifika‡n¡ slovo
+28C4 BFFB4F         MOV    DI,4FFB          ;
+28C7 B801AE         MOV    AX,AE01
+28CA CD2F           INT    2F               ; proveden¡ instalovateln‚ho povelu
+28CC 803EFF8D00     CMP    Byte Ptr [8DFF],00 ; byl povel proveden ?
+28D1 7503           JNZ    28D6
+28D3 E9A000         JMP    2976
+
+28D6 BFC185       * MOV    DI,85C1
+28D9 33C9           XOR    CX,CX
+28DB BE008E         MOV    SI,8E00
+28DE 8A0D           MOV    CL,[DI]
+28E0 47             INC    DI
+28E1 E3BE           JCXZ   28A1
+28E3 3A0EFF8D       CMP    CL,[8DFF]
+28E7 7506           JNZ    28EF
+28E9 890ED48E       MOV    [8ED4],CX
+28ED F3             REPZ
+28EE A6             CMPSB
+28EF 9F             LAHF
+28F0 03F9           ADD    DI,CX
+28F2 8A05           MOV    AL,[DI]
+28F4 A2898D         MOV    [8D89],AL
+28F7 47             INC    DI
+28F8 8B1D           MOV    BX,[DI]
+28FA 47             INC    DI
+28FB 47             INC    DI
+28FC 8B15           MOV    DX,[DI]
+28FE 47             INC    DI
+28FF 47             INC    DI
+2900 9E             SAHF
+2901 75D8           JNZ    28DB
+2903 803EEB9000     CMP    Byte Ptr [90EB],00
+2908 7503           JNZ    290D
+290A E87A03         CALL   2C87
+290D A18E8D         MOV    AX,[8D8E]
+2910 0B06948D       OR     AX,[8D94]
+2914 252000         AND    AX,0020
+2917 7426           JZ     293F
+2919 F606898D04     TEST   Byte Ptr [8D89],04
+291E 7407           JZ     2927
+2920 833EC59302     CMP    Word Ptr [93C5],+02
+2925 7518           JNZ    293F
+2927 8BF2           MOV    SI,DX
+2929 B80000         MOV    AX,0000
+292C 50             PUSH   AX
+292D AD             LODSW
+292E 0BC0           OR     AX,AX
+2930 7409           JZ     293B
+2932 50             PUSH   AX
+2933 8BD4           MOV    DX,SP
+2935 E8DA26         CALL   5012
+2938 58             POP    AX
+2939 EBF2           JMP    292D
+293B 58             POP    AX
+293C E9C5D7         JMP    0104
+293F F606898D01     TEST   Byte Ptr [8D89],01
+2944 740E           JZ     2954
+2946 A08C8D         MOV    AL,[8D8C]
+2949 0A068D8D       OR     AL,[8D8D]
+294D 3CFF           CMP    AL,FF
+294F 7503           JNZ    2954
+2951 E947FF         JMP    289B
+2954 E86A02         CALL   2BC1
+2957 F606898D02     TEST   Byte Ptr [8D89],02
+295C 7516           JNZ    2974
+295E E82F00         CALL   2990
+2961 7511           JNZ    2974
+2963 C606118202     MOV    Byte Ptr [8211],02
+2968 BA1382         MOV    DX,8213          ; adresa tabulky popisu chyby
+296B C70613820300   MOV    Word Ptr [8213],0003 ; k¢d chyby
+2971 E9D700         JMP    2A4B
+2974 FFD3           CALL   BX
+2976 0E             PUSH   CS
+2977 1F             POP    DS
+2978 1E             PUSH   DS
+2979 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+297D 803EB70201     CMP    Byte Ptr [02B7],01
+2982 C606B70200     MOV    Byte Ptr [02B7],00
+2987 1F             POP    DS
+2988 7403           JZ     298D
+298A E977D7         JMP    0104
+298D E948D9         JMP    02D8
+2990 57             PUSH   DI
+2991 BF8100         MOV    DI,0081
+2994 BE8000         MOV    SI,0080
+2997 AC             LODSB
+2998 8AC8           MOV    CL,AL
+299A 32ED           XOR    CH,CH
+299C 2EA07B8D       MOV    AL,CS:[8D7B]     ; oddˆlova‡ parametr–
+29A0 3C00           CMP    AL,00
+29A2 F2             REPNZ
+29A3 AE             SCASB
+29A4 5F             POP    DI
+29A5 C3             RET
+
+29A6 E83502         CALL   2BDE             ; kontrola, zda je povel rezidentn¡
+29A9 7403           JZ     29AE
+29AB E9FFFE         JMP    28AD
+29AE 2EC6068A8D00   MOV    Byte Ptr CS:[8D8A],00
+29B4 2E8A16978D     MOV    DL,CS:[8D97]
+29B9 2E8816FF8D     MOV    CS:[8DFF],DL
+29BE 2EC606778F00   MOV    Byte Ptr CS:[8F77],00
+29C4 52             PUSH   DX
+29C5 BAFF8D         MOV    DX,8DFF
+29C8 E830DA         CALL   03FB
+29CB 5A             POP    DX
+29CC 7307           JNB    29D5
+29CE 2EFE06778F     INC    Byte Ptr CS:[8F77]
+29D3 EB00           JMP    29D5
+29D5 BF9F8C         MOV    DI,8C9F
+29D8 C60500         MOV    Byte Ptr [DI],00
+29DB 2E803E778F00   CMP    Byte Ptr CS:[8F77],00
+29E1 7511           JNZ    29F4
+29E3 E8EB08         CALL   32D1
+29E6 0BC0           OR     AX,AX
+29E8 7408           JZ     29F2
+29EA 3D0400         CMP    AX,0004
+29ED 7D05           JGE    29F4
+29EF E99CDD         JMP    078E
+29F2 EB52           JMP    2A46
+29F4 E89002         CALL   2C87
+29F7 8E06878D       MOV    ES,[8D87]
+29FB B449           MOV    AH,49                         ;'I'
+29FD CD21           INT    21               ; zru¨en¡ bloku pamˆti
+29FF 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2A03 26FE06A202     INC    Byte Ptr ES:[02A2]
+2A08 26C606AA0200   MOV    Byte Ptr ES:[02AA],00 ; po‘adavek nastaven¡ aktiv.adres ©e
+2A0E BE9F8C         MOV    SI,8C9F
+2A11 BF6904         MOV    DI,0469
+2A14 B95000         MOV    CX,0050
+2A17 FC             CLD
+2A18 F3             REPZ
+2A19 A4             MOVSB
+2A1A BF5C00         MOV    DI,005C
+2A1D 8BF7           MOV    SI,DI
+2A1F B95200         MOV    CX,0052
+2A22 F3             REPZ
+2A23 A5             MOVSW
+2A24 BA6904         MOV    DX,0469
+2A27 06             PUSH   ES
+2A28 1F             POP    DS
+2A29 BB4504         MOV    BX,0445
+2A2C B8004B         MOV    AX,4B00
+2A2F 2EF606778FFF   TEST   Byte Ptr CS:[8F77],FF
+2A35 7403           JZ     2A3A
+2A37 E93ADA         JMP    0474
+2A3A 8CC1           MOV    CX,ES
+2A3C 8ED1           MOV    SS,CX
+2A3E BC3E05         MOV    SP,053E
+2A41 2EFF2E7D8D     JMP    FAR CS:[8D7D]
+2A46 0E             PUSH   CS
+2A47 1F             POP    DS
+2A48 BA3682         MOV    DX,8236
+
+
+2A4B E8BC25         CALL   500A
+2A4E E9B3D6         JMP    0104
+
+2A51 33C9           XOR    CX,CX
+2A53 8E06778D       MOV    ES,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2A57 BED88B         MOV    SI,8BD8
+2A5A 8BFE           MOV    DI,SI
+2A5C AC             LODSB
+2A5D 3C22           CMP    AL,22                         ;'"'
+2A5F 7504           JNZ    2A65
+2A61 FEC5           INC    CH
+2A63 EBF7           JMP    2A5C
+2A65 3C0D           CMP    AL,0D
+2A67 75F3           JNZ    2A5C
+2A69 51             PUSH   CX
+2A6A 8BF7           MOV    SI,DI
+2A6C AC             LODSB
+2A6D E82AFA         CALL   249A             ; test, zda je znak v tabulce LEAD
+2A70 740F           JZ     2A81
+2A72 8AE0           MOV    AH,AL
+2A74 AC             LODSB
+2A75 3D2020         CMP    AX,2020
+2A78 75F2           JNZ    2A6C
+2A7A C744FE2020     MOV    Word Ptr [SI-02],2020
+2A7F EBEB           JMP    2A6C
+2A81 3C22           CMP    AL,22                         ;'"'
+2A83 750D           JNZ    2A92
+2A85 FECD           DEC    CH
+2A87 74E3           JZ     2A6C
+2A89 AC             LODSB
+2A8A 3C22           CMP    AL,22                         ;'"'
+2A8C 75FB           JNZ    2A89
+2A8E FECD           DEC    CH
+2A90 EBDA           JMP    2A6C
+2A92 3C0D           CMP    AL,0D
+2A94 75D6           JNZ    2A6C
+2A96 59             POP    CX
+2A97 8BF7           MOV    SI,DI
+2A99 AC             LODSB
+2A9A E8FDF9         CALL   249A             ; test, zda je znak v tabulce LEAD
+2A9D 740D           JZ     2AAC
+2A9F 8805           MOV    [DI],AL
+2AA1 47             INC    DI
+2AA2 AC             LODSB
+2AA3 8805           MOV    [DI],AL
+2AA5 47             INC    DI
+2AA6 FEC1           INC    CL
+2AA8 FEC1           INC    CL
+2AAA EBED           JMP    2A99
+2AAC 3C22           CMP    AL,22                         ;'"'
+2AAE 7510           JNZ    2AC0
+2AB0 FECD           DEC    CH
+2AB2 740C           JZ     2AC0
+2AB4 8805           MOV    [DI],AL
+2AB6 47             INC    DI
+2AB7 FEC1           INC    CL
+2AB9 AC             LODSB
+2ABA 3C22           CMP    AL,22                         ;'"'
+2ABC 75F6           JNZ    2AB4
+2ABE FECD           DEC    CH
+2AC0 3C3E           CMP    AL,3E                         ;'>'
+2AC2 7557           JNZ    2B1B
+2AC4 3804           CMP    [SI],AL
+2AC6 7506           JNZ    2ACE
+2AC8 AC             LODSB
+2AC9 26FE06CC02     INC    Byte Ptr ES:[02CC]
+2ACE E8F3FB         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+2AD1 3C3C           CMP    AL,3C                         ;'<'
+2AD3 7404           JZ     2AD9
+2AD5 3C0D           CMP    AL,0D
+2AD7 750D           JNZ    2AE6
+2AD9 C6050D         MOV    Byte Ptr [DI],0D
+2ADC 26C706CD020900 MOV    Word Ptr ES:[02CD],0009
+2AE3 E9B200         JMP    2B98
+2AE6 57             PUSH   DI
+2AE7 BFCD02         MOV    DI,02CD
+2AEA 8BDF           MOV    BX,DI
+2AEC 06             PUSH   ES
+2AED 51             PUSH   CX
+2AEE B94D00         MOV    CX,004D
+2AF1 AC             LODSB
+2AF2 3C0D           CMP    AL,0D
+2AF4 741A           JZ     2B10
+2AF6 E8D3FB         CALL   26CC             ; test, zda je znak oddˆlova‡
+2AF9 7415           JZ     2B10
+2AFB 3A067B8D       CMP    AL,[8D7B]        ; oddˆlova‡ parametr–
+2AFF 740F           JZ     2B10
+2B01 3C22           CMP    AL,22                         ;'"'
+2B03 7413           JZ     2B18
+2B05 3C3C           CMP    AL,3C                         ;'<'
+2B07 7404           JZ     2B0D
+2B09 3C3E           CMP    AL,3E                         ;'>'
+2B0B 7506           JNZ    2B13
+2B0D 4E             DEC    SI
+2B0E B020           MOV    AL,20                         ;' '
+2B10 59             POP    CX
+2B11 EB61           JMP    2B74
+2B13 AA             STOSB
+2B14 E2DB           LOOP   2AF1
+2B16 EBF8           JMP    2B10
+2B18 59             POP    CX
+2B19 EB54           JMP    2B6F
+2B1B 3C3C           CMP    AL,3C                         ;'<'
+2B1D 7523           JNZ    2B42
+2B1F 8BDE           MOV    BX,SI
+2B21 E8A0FB         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+2B24 3C3E           CMP    AL,3E                         ;'>'
+2B26 7404           JZ     2B2C
+2B28 3C0D           CMP    AL,0D
+2B2A 750B           JNZ    2B37
+2B2C C6050D         MOV    Byte Ptr [DI],0D
+2B2F C706228D0900   MOV    Word Ptr [8D22],0009
+2B35 EB61           JMP    2B98
+2B37 57             PUSH   DI
+2B38 BF228D         MOV    DI,8D22
+2B3B 8BDF           MOV    BX,DI
+2B3D 06             PUSH   ES
+2B3E 0E             PUSH   CS
+2B3F 07             POP    ES
+2B40 EBAB           JMP    2AED
+2B42 8AE0           MOV    AH,AL
+2B44 80FC7C         CMP    AH,7C                         ;'|'
+2B47 7405           JZ     2B4E
+2B49 80FC7C         CMP    AH,7C                         ;'|'
+2B4C 753D           JNZ    2B8B
+2B4E 26803E1E0300   CMP    Byte Ptr ES:[031E],00
+2B54 7505           JNZ    2B5B
+2B56 26D026A602     SHL    Byte Ptr ES:[02A6],1
+2B5B 26FE061E03     INC    Byte Ptr ES:[031E]
+2B60 E861FB         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+2B63 3C0D           CMP    AL,0D
+2B65 7408           JZ     2B6F
+2B67 3C7C           CMP    AL,7C                         ;'|'
+2B69 7404           JZ     2B6F
+2B6B 3C7C           CMP    AL,7C                         ;'|'
+2B6D 751C           JNZ    2B8B
+2B6F 06           * PUSH   ES
+2B70 1F             POP    DS
+2B71 E9B102         JMP    2E25
+
+2B74 86E0           XCHG   AH,AL
+2B76 B03A           MOV    AL,3A                         ;':'
+2B78 2BDF           SUB    BX,DI
+2B7A 83FBFF         CMP    BX,-01
+2B7D 7407           JZ     2B86
+2B7F 263845FF       CMP    ES:[DI-01],AL
+2B83 7501           JNZ    2B86
+2B85 4F             DEC    DI
+2B86 32C0           XOR    AL,AL
+2B88 AA             STOSB
+2B89 07             POP    ES
+2B8A 5F             POP    DI
+2B8B 8825           MOV    [DI],AH
+2B8D 47             INC    DI
+2B8E 80FC0D         CMP    AH,0D
+2B91 7405           JZ     2B98
+2B93 FEC1           INC    CL
+2B95 E901FF         JMP    2A99
+2B98 26803E1E0300   CMP    Byte Ptr ES:[031E],00
+2B9E 7414           JZ     2BB4
+2BA0 BFC003         MOV    DI,03C0
+2BA3 26893EBE03     MOV    ES:[03BE],DI
+2BA8 BED88B         MOV    SI,8BD8
+2BAB E816FB         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+2BAE AC             LODSB
+2BAF AA             STOSB
+2BB0 3C0D           CMP    AL,0D
+2BB2 75FA           JNZ    2BAE
+2BB4 880ED78B       MOV    [8BD7],CL
+2BB8 26803E1E0300   CMP    Byte Ptr ES:[031E],00
+2BBE 0E             PUSH   CS
+2BBF 07             POP    ES
+2BC0 C3             RET
+
+2BC1 BED88B         MOV    SI,8BD8
+2BC4 E8FDFA         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+2BC7 0336D48E       ADD    SI,[8ED4]
+2BCB BF8100         MOV    DI,0081
+2BCE 33C9           XOR    CX,CX
+2BD0 AC             LODSB
+2BD1 AA             STOSB
+2BD2 3C0D           CMP    AL,0D
+2BD4 7403           JZ     2BD9
+2BD6 41             INC    CX
+2BD7 EBF7           JMP    2BD0
+2BD9 880E8000       MOV    [0080],CL
+2BDD C3             RET
+
+; -----------------------------------------------------------------------------
+;    Kontrola, zda je povel rezidentn¡ (ZY=nen¡)
+; -----------------------------------------------------------------------------
+
+2BDE BBD68B         MOV    BX,8BD6          ; povelov  © dka
+2BE1 BEFF8D         MOV    SI,8DFF          ; adresa k ulo‘en¡ n vratov‚ho slova
+2BE4 BAFFFF         MOV    DX,FFFF          ; identifika‡n¡ slovo
+2BE7 B800AE         MOV    AX,AE00
+2BEA CD2F           INT    2F               ; kontrola, zda je povel rezidentn¡
+2BEC 3C00           CMP    AL,00            ; je povel rezidentn¡ ?
+2BEE C3             RET
+
+; -----------------------------------------------------------------------------
+
+
+2BEF A1D28E         MOV    AX,[8ED2]
+2BF2 8B36D48E       MOV    SI,[8ED4]
+2BF6 C606808F00     MOV    Byte Ptr [8F80],00
+2BFB C6067C8F00     MOV    Byte Ptr [8F7C],00
+2C00 8B36D48E       MOV    SI,[8ED4]
+2C04 8B0ED28E       MOV    CX,[8ED2]
+2C08 8BD6           MOV    DX,SI
+2C0A E34D           JCXZ   2C59
+2C0C 51             PUSH   CX
+2C0D 56             PUSH   SI
+2C0E E85AFC         CALL   286B
+2C11 A3D68E         MOV    [8ED6],AX
+2C14 5B             POP    BX
+2C15 2BDE           SUB    BX,SI
+2C17 59             POP    CX
+2C18 03CB           ADD    CX,BX
+2C1A 8BD6           MOV    DX,SI
+2C1C C606049100     MOV    Byte Ptr [9104],00
+2C21 E336           JCXZ   2C59
+2C23 49             DEC    CX
+2C24 AC             LODSB
+2C25 E872F8         CALL   249A             ; test, zda je znak v tabulce LEAD
+2C28 7408           JZ     2C32
+2C2A 49             DEC    CX
+2C2B 46             INC    SI
+2C2C FE060491       INC    Byte Ptr [9104]
+2C30 EBEF           JMP    2C21
+2C32 E821FB         CALL   2756             ; test, zda je stand.oddˆlova‡ param.
+2C35 7504           JNZ    2C3B
+2C37 FE067C8F       INC    Byte Ptr [8F7C]
+2C3B 3C3F           CMP    AL,3F                         ;'?'
+2C3D 7505           JNZ    2C44
+2C3F 800E808F02     OR     Byte Ptr [8F80],02
+2C44 3C2A           CMP    AL,2A                         ;'*'
+2C46 7505           JNZ    2C4D
+2C48 800E808F02     OR     Byte Ptr [8F80],02
+2C4D E87CFA         CALL   26CC             ; test, zda je znak oddˆlova‡
+2C50 7406           JZ     2C58
+2C52 3A067B8D       CMP    AL,[8D7B]        ; oddˆlova‡ parametr–
+2C56 75C4           JNZ    2C1C
+2C58 4E             DEC    SI
+2C59 32C0           XOR    AL,AL
+2C5B 8604           XCHG   AL,[SI]
+2C5D 46             INC    SI
+2C5E 3C0D           CMP    AL,0D
+2C60 7502           JNZ    2C64
+2C62 8804           MOV    [SI],AL
+2C64 8936D48E       MOV    [8ED4],SI
+2C68 890ED28E       MOV    [8ED2],CX
+2C6C C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Vypustˆn¡ po‡ te‡n¡ch oddˆlova‡– ";"
+; -----------------------------------------------------------------------------
+
+2C6D BE8000         MOV    SI,0080          ; za‡ tek p©¡kazov‚ho © dku
+2C70 AC             LODSB                   ; po‡et znak– textu
+2C71 0AC0           OR     AL,AL            ; je nˆjak˜ znak ?
+2C73 74F7           JZ     2C6C             ; nen¡ ‘ dn˜ znak textu
+2C75 E80300         CALL   2C7B             ; vypustˆn¡ oddˆlova‡– ";"
+2C78 3C0D           CMP    AL,0D            ; je konec textu CR ?
+2C7A C3             RET
+
+                                          ;* vypustˆn¡ znak– ";"
+2C7B AC           * LODSB                   ; na‡ten¡ dal¨¡ho znaku
+2C7C E84DFA         CALL   26CC             ; test, zda je znak oddˆlova‡
+2C7F 7504           JNZ    2C85             ; nen¡ oddˆlova‡
+2C81 3C3B           CMP    AL,3B            ; je oddˆlova‡ ";" ?
+2C83 75F6           JNZ    2C7B             ; nen¡ ";" - dal¨¡ znak
+2C85 4E           * DEC    SI
+2C86 C3             RET
+
+; -----------------------------------------------------------------------------
+
+
+2C87 1E             PUSH   DS
+2C88 52             PUSH   DX
+2C89 50             PUSH   AX
+2C8A 53             PUSH   BX
+2C8B 51             PUSH   CX
+2C8C 2E8E1E778D     MOV    DS,CS:[8D77]     ; segment 1. ‡ sti COMMAND.COM
+2C91 803E1E0300     CMP    Byte Ptr [031E],00
+2C96 750D           JNZ    2CA5
+2C98 F606B102FF     TEST   Byte Ptr [02B1],FF
+2C9D 7506           JNZ    2CA5
+2C9F E80900         CALL   2CAB
+2CA2 E84E00         CALL   2CF3
+2CA5 59             POP    CX
+2CA6 5B             POP    BX
+2CA7 58             POP    AX
+2CA8 5A             POP    DX
+2CA9 1F             POP    DS
+2CAA C3             RET
+
+2CAB 2E803E228D00   CMP    Byte Ptr CS:[8D22],00
+2CB1 74F7           JZ     2CAA
+2CB3 1E             PUSH   DS
+2CB4 0E             PUSH   CS
+2CB5 1F             POP    DS
+2CB6 BA228D         MOV    DX,8D22
+2CB9 B8003D         MOV    AX,3D00
+2CBC 8BD8           MOV    BX,AX
+2CBE CD21           INT    21               ; otev©en¡ souboru pro ‡ten¡
+2CC0 1F             POP    DS
+2CC1 720B           JB     2CCE
+2CC3 8BD8           MOV    BX,AX
+2CC5 B0FF           MOV    AL,FF
+2CC7 864718         XCHG   AL,[BX+18]
+2CCA A21800         MOV    [0018],AL
+2CCD C3             RET
+
+2CCE 0E             PUSH   CS
+2CCF 1F             POP    DS
+2CD0 E8BF00         CALL   2D92
+2CD3 3D4100         CMP    AX,0041
+2CD6 7408           JZ     2CE0
+2CD8 80FF3D         CMP    BH,3D                         ;'='
+2CDB 7406           JZ     2CE3
+2CDD BA2D82         MOV    DX,822D
+2CE0 E968FD         JMP    2A4B
+2CE3 2EC606118201   MOV    Byte Ptr CS:[8211],01
+2CE9 BA1382         MOV    DX,8213          ; adresa tabulky popisu chyby
+2CEC 2EA31382       MOV    CS:[8213],AX     ; k¢d chyby
+2CF0 E958FD         JMP    2A4B
+2CF3 803ECD0200     CMP    Byte Ptr [02CD],00
+2CF8 7503           JNZ    2CFD
+2CFA E98600         JMP    2D83
+2CFD 803ECC0200     CMP    Byte Ptr [02CC],00
+2D02 7465           JZ     2D69
+2D04 BACD02         MOV    DX,02CD
+2D07 B8023D         MOV    AX,3D02
+2D0A 50             PUSH   AX
+2D0B CD21           INT    21               ; otev©en¡ souboru pro ‡ten¡/z pis
+2D0D 5B             POP    BX
+2D0E 7250           JB     2D60
+2D10 8BD8           MOV    BX,AX
+2D12 B80044         MOV    AX,4400
+2D15 CD21           INT    21               ; poskytnut¡ informac¡ o za©¡zen¡
+2D17 F6C280         TEST   DL,80
+2D1A 755F           JNZ    2D7B
+2D1C B80242         MOV    AX,4202
+2D1F B9FFFF         MOV    CX,FFFF
+2D22 8BD1           MOV    DX,CX
+2D24 CD21           INT    21               ; ‡ten¡ ze znakov‚ho za©¡zen¡
+2D26 0E             PUSH   CS
+2D27 1F             POP    DS
+2D28 B8003F         MOV    AX,3F00
+2D2B B90100         MOV    CX,0001
+2D2E BA748F         MOV    DX,8F74
+2D31 CD21           INT    21               ; ‡ten¡ ze souboru
+2D33 722B           JB     2D60
+2D35 3BC1           CMP    AX,CX
+2D37 7517           JNZ    2D50
+2D39 803E748F1A     CMP    Byte Ptr [8F74],1A
+2D3E 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2D42 7537           JNZ    2D7B
+2D44 B80142         MOV    AX,4201
+2D47 B9FFFF         MOV    CX,FFFF
+2D4A 8BD1           MOV    DX,CX
+2D4C CD21           INT    21               ; nastaven¡ informac¡ o za©¡zen¡
+2D4E EB2B           JMP    2D7B
+2D50 2E8E1E778D     MOV    DS,CS:[8D77]     ; segment 1. ‡ sti COMMAND.COM
+2D55 B80042         MOV    AX,4200
+2D58 33C9           XOR    CX,CX
+2D5A 8BD1           MOV    DX,CX
+2D5C CD21           INT    21               ; poskytnut¡ informac¡ o za©¡zen¡
+2D5E EB1B           JMP    2D7B
+2D60 3D0500         CMP    AX,0005
+2D63 F9             STC
+2D64 7503           JNZ    2D69
+2D66 E965FF         JMP    2CCE
+2D69 BACD02         MOV    DX,02CD
+2D6C 33C9           XOR    CX,CX
+2D6E B43C           MOV    AH,3C                         ;'<'
+2D70 50             PUSH   AX
+2D71 CD21           INT    21               ; vytvo©en¡ souboru
+2D73 5B             POP    BX
+2D74 7303           JNB    2D79
+2D76 E955FF         JMP    2CCE
+2D79 8BD8           MOV    BX,AX
+2D7B B0FF           MOV    AL,FF
+2D7D 864718         XCHG   AL,[BX+18]
+2D80 A21900         MOV    [0019],AL
+2D83 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zji¨tˆn¡ d‚lky textu ASCIIZ
+; -----------------------------------------------------------------------------
+
+2D84 50             PUSH   AX
+2D85 33C9           XOR    CX,CX            ; ‡¡ta‡ znak– <- 0
+2D87 FC             CLD                     ; smˆr nahoru
+2D88 AC           * LODSB                   ; na‡ten¡ znaku
+2D89 41             INC    CX               ; zv˜¨en¡ ‡¡ta‡e znak–
+2D8A 0AC0           OR     AL,AL            ; je konec textu ?
+2D8C 75FA           JNZ    2D88             ; nen¡ konec textu
+2D8E 2BF1           SUB    SI,CX            ; n vrat adresy za‡ tku textu
+2D90 58             POP    AX
+2D91 C3             RET
+
+; -----------------------------------------------------------------------------
+
+2D92 73FD           JNB    2D91
+2D94 9C             PUSHF
+2D95 53             PUSH   BX
+2D96 51             PUSH   CX
+2D97 56             PUSH   SI
+2D98 57             PUSH   DI
+2D99 55             PUSH   BP
+2D9A 06             PUSH   ES
+2D9B 1E             PUSH   DS
+2D9C 50             PUSH   AX
+2D9D 52             PUSH   DX
+2D9E B459           MOV    AH,59                         ;'Y'
+2DA0 CD21           INT    21               ; poskytnut¡ chybov‚ho k¢du
+2DA2 59             POP    CX
+2DA3 5B             POP    BX
+2DA4 BA3982         MOV    DX,8239
+2DA7 3D4100         CMP    AX,0041
+2DAA 7404           JZ     2DB0
+2DAC 8BC3           MOV    AX,BX
+2DAE 8BD1           MOV    DX,CX
+2DB0 1F             POP    DS
+2DB1 07             POP    ES
+2DB2 5D             POP    BP
+2DB3 5F             POP    DI
+2DB4 5E             POP    SI
+2DB5 59             POP    CX
+2DB6 5B             POP    BX
+2DB7 9D             POPF
+2DB8 C3             RET
+
+2DB9 E8D6FF         CALL   2D92
+2DBC CB             RETF
+
+2DBD 56             PUSH   SI
+2DBE 57             PUSH   DI
+2DBF 51             PUSH   CX
+2DC0 BFE48F         MOV    DI,8FE4
+2DC3 33C9           XOR    CX,CX
+2DC5 8BC1           MOV    AX,CX
+2DC7 57             PUSH   DI
+2DC8 AC             LODSB
+2DC9 3C00           CMP    AL,00
+2DCB 7405           JZ     2DD2
+2DCD AA             STOSB
+2DCE 41             INC    CX
+2DCF AC             LODSB
+2DD0 EBF7           JMP    2DC9
+2DD2 B00D           MOV    AL,0D
+2DD4 AA             STOSB
+2DD5 5F             POP    DI
+2DD6 0E             PUSH   CS
+2DD7 1F             POP    DS
+2DD8 890ED28E       MOV    [8ED2],CX
+2DDC 893ED48E       MOV    [8ED4],DI
+2DE0 59             POP    CX
+2DE1 5F             POP    DI
+2DE2 5E             POP    SI
+2DE3 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Test, zda je p©¡kaz. © dek definov n
+; -----------------------------------------------------------------------------
+
+2DE4 1E             PUSH   DS
+2DE5 2E8E1E778D     MOV    DS,CS:[8D77]     ; segment 1. ‡ sti COMMAND.COM
+2DEA 833EAC0200     CMP    Word Ptr [02AC],+00 ; byl p©¡kaz. © dek definov n ?
+2DEF 7406           JZ     2DF7             ; nen¡ definov n
+2DF1 813EAC02FFEF   CMP    Word Ptr [02AC],EFFF ; je p©¡kaz. © dek platn˜ ?
+2DF7 1F           * POP    DS
+2DF8 C3             RET
+
+; -----------------------------------------------------------------------------
+
+2DF9 B001           MOV    AL,01
+2DFB 1E           * PUSH   DS
+2DFC 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2E00 A2AA02         MOV    [02AA],AL        ; po‘adavek nastaven¡ aktiv.adres ©e
+2E03 1F             POP    DS
+2E04 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zru¨en¡ p©echodn˜ch soubor–
+; -----------------------------------------------------------------------------
+
+2E05 1E             PUSH   DS
+2E06 52             PUSH   DX
+2E07 2E8E1E778D     MOV    DS,CS:[8D77]     ; segment 1. ‡ sti COMMAND.COM
+2E0C BA2003         MOV    DX,0320
+2E0F B441           MOV    AH,41                         ;'A'
+2E11 CD21           INT    21               ; zru¨en¡ souboru
+2E13 BA6F03         MOV    DX,036F
+2E16 B441           MOV    AH,41                         ;'A'
+2E18 CD21           INT    21               ; zru¨en¡ souboru
+2E1A 5A             POP    DX
+2E1B E88F02         CALL   30AD
+2E1E C6061F0300     MOV    Byte Ptr [031F],00 ; p©¡znak vytvo©en¡ p©echod. souboru
+2E23 1F             POP    DS
+2E24 C3             RET
+
+; -----------------------------------------------------------------------------
+
+2E25 BAAB82         MOV    DX,82AB
+2E28 E8DAFF         CALL   2E05
+2E2B 0E             PUSH   CS
+2E2C 1F             POP    DS
+2E2D E91BFC         JMP    2A4B
+2E30 9C             PUSHF
+2E31 E85EFF         CALL   2D92
+2E34 50             PUSH   AX
+2E35 52             PUSH   DX
+2E36 BA7483         MOV    DX,8374
+2E39 E8C9FF         CALL   2E05
+2E3C 0E             PUSH   CS
+2E3D 1F             POP    DS
+2E3E E8C921         CALL   500A
+2E41 5A             POP    DX
+2E42 58             POP    AX
+2E43 9D             POPF
+2E44 3D4100         CMP    AX,0041
+2E47 7503           JNZ    2E4C
+2E49 E9FFFB         JMP    2A4B
+2E4C E9B5D2         JMP    0104
+2E4F 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+2E53 FE061F03       INC    Byte Ptr [031F]  ; p©¡znak vytvo©en¡ p©echod. souboru
+2E57 06             PUSH   ES
+2E58 57             PUSH   DI
+2E59 1E             PUSH   DS
+2E5A 56             PUSH   SI
+2E5B 1E             PUSH   DS
+2E5C 06             PUSH   ES
+2E5D 1F             POP    DS
+2E5E BEBC88         MOV    SI,88BC
+2E61 E886F5         CALL   23EA
+2E64 1F             POP    DS
+2E65 721F           JB     2E86
+2E67 1E             PUSH   DS
+2E68 06             PUSH   ES
+2E69 1F             POP    DS
+2E6A 07             POP    ES
+2E6B 8BF7           MOV    SI,DI
+2E6D E8F802         CALL   3168
+2E70 E80103         CALL   3174
+2E73 06             PUSH   ES
+2E74 1F             POP    DS
+2E75 BA2003         MOV    DX,0320
+2E78 B80043         MOV    AX,4300
+2E7B CD21           INT    21               ; poskytnut¡ atribut– souboru
+2E7D 7207           JB     2E86
+2E7F F7C11000       TEST   CX,0010
+2E83 7501           JNZ    2E86
+2E85 F9             STC
+2E86 5E             POP    SI
+2E87 1F             POP    DS
+2E88 5F             POP    DI
+2E89 07             POP    ES
+2E8A 7314           JNB    2EA0
+2E8C B42E           MOV    AH,2E                         ;'.'
+2E8E 88262003       MOV    [0320],AH
+2E92 88266F03       MOV    [036F],AH
+2E96 32E4           XOR    AH,AH
+2E98 88262103       MOV    [0321],AH
+2E9C 88267003       MOV    [0370],AH
+2EA0 BA2003         MOV    DX,0320
+2EA3 33C9           XOR    CX,CX
+2EA5 B45A           MOV    AH,5A                         ;'Z'
+2EA7 CD21           INT    21               ; vytvo©en¡ jedine‡n‚ho souboru
+2EA9 7302           JNB    2EAD
+2EAB EB83           JMP    2E30
+2EAD 8BD8           MOV    BX,AX
+2EAF B43E           MOV    AH,3E                         ;'>'
+2EB1 CD21           INT    21               ; uzav©en¡ souboru
+2EB3 BA6F03         MOV    DX,036F
+2EB6 B45A           MOV    AH,5A                         ;'Z'
+2EB8 CD21           INT    21               ; vytvo©en¡ jedine‡n‚ho souboru
+2EBA 7303           JNB    2EBF
+2EBC E971FF         JMP    2E30
+2EBF 8BD8           MOV    BX,AX
+2EC1 B43E           MOV    AH,3E                         ;'>'
+2EC3 CD21           INT    21               ; uzav©en¡ souboru
+2EC5 E8E3FD         CALL   2CAB
+2EC8 8B36BE03       MOV    SI,[03BE]
+2ECC 833EAC02FF     CMP    Word Ptr [02AC],-01
+2ED1 7506           JNZ    2ED9
+2ED3 C706AC0200F0   MOV    Word Ptr [02AC],F000
+2ED9 EB2D           JMP    2F08
+2EDB 8026A602FE     AND    Byte Ptr [02A6],FE
+2EE0 8B36BE03       MOV    SI,[03BE]
+2EE4 AC             LODSB
+2EE5 3C7C           CMP    AL,7C                         ;'|'
+2EE7 7407           JZ     2EF0
+2EE9 3C7C           CMP    AL,7C                         ;'|'
+2EEB 7403           JZ     2EF0
+2EED E98E00         JMP    2F7E
+2EF0 8B164104       MOV    DX,[0441]
+2EF4 B8003D         MOV    AX,3D00
+2EF7 CD21           INT    21               ; otev©en¡ souboru pro ‡ten¡
+2EF9 7303           JNB    2EFE
+2EFB E932FF         JMP    2E30
+2EFE 8BD8           MOV    BX,AX
+2F00 B0FF           MOV    AL,FF
+2F02 864718         XCHG   AL,[BX+18]
+2F05 A21800         MOV    [0018],AL
+2F08 BFD88B         MOV    DI,8BD8
+2F0B 33C9           XOR    CX,CX
+2F0D 803C0D         CMP    Byte Ptr [SI],0D
+2F10 7503           JNZ    2F15
+2F12 E910FF         JMP    2E25
+2F15 B07C           MOV    AL,7C                         ;'|'
+2F17 3804           CMP    [SI],AL
+2F19 74F7           JZ     2F12
+2F1B 803C7C         CMP    Byte Ptr [SI],7C              ;'|'
+2F1E 74F2           JZ     2F12
+2F20 AC             LODSB
+2F21 AA             STOSB
+2F22 E875F5         CALL   249A             ; test, zda je znak v tabulce LEAD
+2F25 7405           JZ     2F2C
+2F27 A4             MOVSB
+2F28 41             INC    CX
+2F29 41             INC    CX
+2F2A EBF4           JMP    2F20
+2F2C 3C0D           CMP    AL,0D
+2F2E 743C           JZ     2F6C
+2F30 41             INC    CX
+2F31 3C7C           CMP    AL,7C                         ;'|'
+2F33 7404           JZ     2F39
+2F35 3C7C           CMP    AL,7C                         ;'|'
+2F37 75E7           JNZ    2F20
+2F39 26C645FF0D     MOV    Byte Ptr ES:[DI-01],0D
+2F3E 49             DEC    CX
+2F3F 26880ED78B     MOV    ES:[8BD7],CL
+2F44 4E             DEC    SI
+2F45 8936BE03       MOV    [03BE],SI
+2F49 8B164304       MOV    DX,[0443]
+2F4D 51             PUSH   CX
+2F4E 33C9           XOR    CX,CX
+2F50 B8003C         MOV    AX,3C00
+2F53 CD21           INT    21               ; vytvo©en¡ souboru
+2F55 59             POP    CX
+2F56 72A1           JB     2EF9
+2F58 8BD8           MOV    BX,AX
+2F5A B0FF           MOV    AL,FF
+2F5C 864718         XCHG   AL,[BX+18]
+2F5F A21900         MOV    [0019],AL
+2F62 87164104       XCHG   DX,[0441]
+2F66 89164304       MOV    [0443],DX
+2F6A EB0D           JMP    2F79
+2F6C 26880ED78B     MOV    ES:[8BD7],CL
+2F71 4E             DEC    SI
+2F72 8936BE03       MOV    [03BE],SI
+2F76 E87AFD         CALL   2CF3
+2F79 0E             PUSH   CS
+2F7A 1F             POP    DS
+2F7B E965D3         JMP    02E3
+2F7E E884FE         CALL   2E05
+2F81 813EAC0200F0   CMP    Word Ptr [02AC],F000
+2F87 7506           JNZ    2F8F
+2F89 C706AC02FFFF   MOV    Word Ptr [02AC],FFFF
+2F8F E972D1         JMP    0104
+2F92 2E8C1E778D     MOV    CS:[8D77],DS     ; segment 1. ‡ sti COMMAND.COM
+2F97 06             PUSH   ES
+2F98 1E             PUSH   DS
+2F99 8CC8           MOV    AX,CS
+2F9B 8EC0           MOV    ES,AX
+2F9D 8ED8           MOV    DS,AX
+2F9F E85921         CALL   50FB
+2FA2 BA5498         MOV    DX,9854
+2FA5 B80038         MOV    AX,3800
+2FA8 CD21           INT    21               ; poskytnut¡ COUNTRY informac¡
+2FAA C70681000D00   MOV    Word Ptr [0081],000D
+2FB0 C606D68B80     MOV    Byte Ptr [8BD6],80
+2FB5 C706D78B010D   MOV    Word Ptr [8BD7],0D01
+2FBB E80600         CALL   2FC4
+2FBE E86C00         CALL   302D
+2FC1 1F             POP    DS
+2FC2 07             POP    ES
+2FC3 CB             RETF
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz DATE
+; -----------------------------------------------------------------------------
+
+2FC4 BE8100         MOV    SI,0081
+2FC7 BFC287         MOV    DI,87C2
+2FCA 33C9           XOR    CX,CX
+2FCC 33D2           XOR    DX,DX
+2FCE E82620         CALL   4FF7
+2FD1 3DFFFF         CMP    AX,FFFF
+2FD4 7407           JZ     2FDD
+2FD6 3D0000         CMP    AX,0000
+2FD9 7547           JNZ    3022
+2FDB EB20           JMP    2FFD
+2FDD E8B008         CALL   3890
+2FE0 86F2           XCHG   DH,DL
+2FE2 890EC182       MOV    [82C1],CX
+2FE6 8916C382       MOV    [82C3],DX
+2FEA BAB182         MOV    DX,82B1
+2FED E82220         CALL   5012
+2FF0 E8EF00         CALL   30E2
+2FF3 3DFFFF         CMP    AX,FFFF
+2FF6 7429           JZ     3021
+2FF8 3D0000         CMP    AX,0000
+2FFB 7525           JNZ    3022
+2FFD 8B0EB198       MOV    CX,[98B1]
+3001 8A36B398       MOV    DH,[98B3]
+3005 8A16B498       MOV    DL,[98B4]
+3009 51             PUSH   CX
+300A 52             PUSH   DX
+300B B90100         MOV    CX,0001
+300E 33D2           XOR    DX,DX
+3010 E8E41F         CALL   4FF7
+3013 3CFF           CMP    AL,FF
+3015 5A             POP    DX
+3016 59             POP    CX
+3017 7509           JNZ    3022
+3019 B42B           MOV    AH,2B                         ;'+'
+301B CD21           INT    21               ; nastaven¡ syst‚mov‚ho data
+301D 0AC0           OR     AL,AL
+301F 7501           JNZ    3022
+3021 C3             RET
+
+3022 E892F6         CALL   26B7             ; chybov‚ hl ¨en¡
+3025 BAAE82         MOV    DX,82AE
+3028 E8E71F         CALL   5012
+302B EBC3           JMP    2FF0
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz TIME
+; -----------------------------------------------------------------------------
+
+
+
+302D BE8100         MOV    SI,0081
+3030 BFD487         MOV    DI,87D4
+3033 33C9           XOR    CX,CX
+3035 33D2           XOR    DX,DX
+3037 E8BD1F         CALL   4FF7
+303A 3DFFFF         CMP    AX,FFFF
+303D 7407           JZ     3046
+303F 3D0000         CMP    AX,0000
+3042 754E           JNZ    3092
+3044 EB23           JMP    3069
+3046 B42C           MOV    AH,2C                         ;','
+3048 CD21           INT    21               ; poskytnut¡ syst‚mov‚ho ‡asu
+304A 86E9           XCHG   CH,CL
+304C 86F2           XCHG   DH,DL
+304E 890EE382       MOV    [82E3],CX
+3052 8916E582       MOV    [82E5],DX
+3056 BADE82         MOV    DX,82DE
+3059 E8B61F         CALL   5012
+305C E8DE00         CALL   313D
+305F 3DFFFF         CMP    AX,FFFF
+3062 742D           JZ     3091
+3064 3D0000         CMP    AX,0000
+3067 7529           JNZ    3092
+3069 8A2EB998       MOV    CH,[98B9]
+306D 8A0EBA98       MOV    CL,[98BA]
+3071 8A36BB98       MOV    DH,[98BB]
+3075 8A16BC98       MOV    DL,[98BC]
+3079 51             PUSH   CX
+307A 52             PUSH   DX
+307B B90100         MOV    CX,0001
+307E 33D2           XOR    DX,DX
+3080 E8741F         CALL   4FF7
+3083 3CFF           CMP    AL,FF
+3085 5A             POP    DX
+3086 59             POP    CX
+3087 7509           JNZ    3092
+3089 B42D           MOV    AH,2D                         ;'-'
+308B CD21           INT    21               ; nastaven¡ syst‚mov‚ho ‡asu
+308D 0AC0           OR     AL,AL
+308F 7501           JNZ    3092
+3091 C3             RET
+
+3092 E822F6         CALL   26B7             ; chybov‚ hl ¨en¡
+3095 BADB82         MOV    DX,82DB
+3098 E8771F         CALL   5012
+309B EBBF           JMP    305C
+309D 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+30A1 80261D03FD     AND    Byte Ptr [031D],FD
+30A6 080E1D03       OR     [031D],CL
+30AA 0E             PUSH   CS
+30AB 1F             POP    DS
+30AC C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+30AD 1E             PUSH   DS
+30AE 50             PUSH   AX
+30AF 2E8E1E778D     MOV    DS,CS:[8D77]     ; segment 1. ‡ sti COMMAND.COM
+30B4 32C0           XOR    AL,AL
+30B6 86061E03       XCHG   AL,[031E]
+30BA 0AC0           OR     AL,AL
+30BC 7404           JZ     30C2
+30BE D02EA602       SHR    Byte Ptr [02A6],1
+30C2 58           * POP    AX
+30C3 1F             POP    DS
+30C4 C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+30C5 B42C           MOV    AH,2C                         ;','
+30C7 CD21           INT    21               ; poskytnut¡ syst‚mov‚ho ‡asu
+30C9 06             PUSH   ES
+30CA 0E             PUSH   CS
+30CB 07             POP    ES
+30CC 86E9           XCHG   CH,CL
+30CE 86F2           XCHG   DH,DL
+30D0 2E890E1C84     MOV    CS:[841C],CX
+30D5 2E89161E84     MOV    CS:[841E],DX
+30DA BA1784         MOV    DX,8417
+30DD E8321F         CALL   5012
+30E0 07             POP    ES
+30E1 C3             RET
+
+30E2 B80038         MOV    AX,3800
+30E5 BA5C00         MOV    DX,005C
+30E8 CD21           INT    21               ; poskytnut¡ COUNTRY informac¡
+30EA 8BF2           MOV    SI,DX
+30EC AD             LODSW
+30ED 2E8B16F583     MOV    DX,CS:[83F5]
+30F2 48             DEC    AX
+30F3 780C           JS     3101
+30F5 2E8B16F883     MOV    DX,CS:[83F8]
+30FA 7405           JZ     3101
+30FC 2E8B16FB83     MOV    DX,CS:[83FB]
+3101 8BC2           MOV    AX,DX
+3103 B6FF           MOV    DH,FF
+3105 E8F91F         CALL   5101
+3108 2E8936D282     MOV    CS:[82D2],SI
+310D BACD82         MOV    DX,82CD
+3110 E8FF1E         CALL   5012
+3113 2EC706D2820000 MOV    Word Ptr CS:[82D2],0000
+311A B40A           MOV    AH,0A
+311C BAD68B         MOV    DX,8BD6
+311F B90200         MOV    CX,0002
+3122 E878FF         CALL   309D
+3125 CD21           INT    21               ; vstup textu z konzoly
+3127 33C9           XOR    CX,CX
+3129 E871FF         CALL   309D
+312C E888F5         CALL   26B7             ; chybov‚ hl ¨en¡
+312F BED88B         MOV    SI,8BD8
+3132 BFC287         MOV    DI,87C2
+3135 33C9           XOR    CX,CX
+3137 33D2           XOR    DX,DX
+3139 E8BB1E         CALL   4FF7
+313C C3             RET
+
+313D 33C9           XOR    CX,CX
+313F BAEC82         MOV    DX,82EC
+3142 E8CD1E         CALL   5012
+3145 B40A           MOV    AH,0A
+3147 BAD68B         MOV    DX,8BD6
+314A B90200         MOV    CX,0002
+314D E84DFF         CALL   309D
+3150 CD21           INT    21               ; vstup textu z konzoly
+3152 33C9           XOR    CX,CX
+3154 E846FF         CALL   309D
+3157 E85DF5         CALL   26B7             ; chybov‚ hl ¨en¡
+315A BED88B         MOV    SI,8BD8
+315D BFD487         MOV    DI,87D4
+3160 33C9           XOR    CX,CX
+3162 33D2           XOR    DX,DX
+3164 E8901E         CALL   4FF7
+3167 C3             RET
+
+3168 FC             CLD
+3169 AC             LODSB
+316A 3C20           CMP    AL,20                         ;' '
+316C 74FB           JZ     3169
+316E 3C09           CMP    AL,09
+3170 74F7           JZ     3169
+3172 4E             DEC    SI
+3173 C3             RET
+
+3174 B9FFFF         MOV    CX,FFFF
+3177 32C0           XOR    AL,AL
+3179 8BFE           MOV    DI,SI
+317B 06             PUSH   ES
+317C 1E             PUSH   DS
+317D 07             POP    ES
+317E FC             CLD
+317F 57             PUSH   DI
+3180 F2             REPNZ
+3181 AE             SCASB
+3182 5F             POP    DI
+3183 07             POP    ES
+3184 F7D1           NOT    CX
+3186 BF2003         MOV    DI,0320
+3189 57             PUSH   DI
+318A 51             PUSH   CX
+318B F3             REPZ
+318C A4             MOVSB
+318D 59             POP    CX
+318E 5F             POP    DI
+318F 1E             PUSH   DS
+3190 06             PUSH   ES
+3191 1F             POP    DS
+3192 8BF7           MOV    SI,DI
+3194 BF6F03         MOV    DI,036F
+3197 F3             REPZ
+3198 A4             MOVSB
+3199 1F             POP    DS
+319A C3             RET
+
+319B 50             PUSH   AX
+319C 53             PUSH   BX
+319D 51             PUSH   CX
+319E 52             PUSH   DX
+319F 57             PUSH   DI
+31A0 56             PUSH   SI
+31A1 9C             PUSHF
+31A2 C606698F00     MOV    Byte Ptr [8F69],00
+31A7 C706CB96FFFF   MOV    Word Ptr [96CB],FFFF
+31AD 33C0           XOR    AX,AX
+31AF B94405         MOV    CX,0544
+31B2 BF0591         MOV    DI,9105
+31B5 F3             REPZ
+31B6 AA             STOSB
+31B7 C7064996C993   MOV    Word Ptr [9649],93C9
+31BD C706C7930000   MOV    Word Ptr [93C7],0000
+31C3 C706C5930000   MOV    Word Ptr [93C5],0000
+31C9 BED88B         MOV    SI,8BD8
+31CC 1E             PUSH   DS
+31CD 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+31D1 803EB20200     CMP    Byte Ptr [02B2],00
+31D6 1F             POP    DS
+31D7 7510           JNZ    31E9
+31D9 BFC995         MOV    DI,95C9
+31DC 32ED           XOR    CH,CH
+31DE 8A0ED78B       MOV    CL,[8BD7]
+31E2 FEC1           INC    CL
+31E4 F3             REPZ
+31E5 A4             MOVSB
+31E6 BEC995         MOV    SI,95C9
+31E9 BF4B96         MOV    DI,964B
+31EC B320           MOV    BL,20                         ;' '
+31EE 8936CD96       MOV    [96CD],SI
+31F2 33ED           XOR    BP,BP
+31F4 C606E79000     MOV    Byte Ptr [90E7],00
+31F9 E8C8F4         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+31FC E82011         CALL   431F
+31FF 7309           JNB    320A
+3201 0BED           OR     BP,BP
+3203 7411           JZ     3216
+3205 E81B00         CALL   3223
+3208 EB0C           JMP    3216
+320A C606698F02     MOV    Byte Ptr [8F69],02
+320F E81100         CALL   3223
+3212 73DA           JNB    31EE
+3214 EB04           JMP    321A
+3216 9D             POPF
+3217 F8             CLC
+3218 EB02           JMP    321C
+321A 9D             POPF
+321B F9             STC
+321C 5E             POP    SI
+321D 5F             POP    DI
+321E 5A             POP    DX
+321F 59             POP    CX
+3220 5B             POP    BX
+3221 58             POP    AX
+3222 C3             RET
+
+3223 53             PUSH   BX
+3224 51             PUSH   CX
+3225 52             PUSH   DX
+3226 57             PUSH   DI
+3227 56             PUSH   SI
+3228 9C             PUSHF
+3229 E86600         CALL   3292
+322C 833EC59340     CMP    Word Ptr [93C5],+40
+3231 7D4F           JGE    3282
+3233 8AF7           MOV    DH,BH
+3235 8B1EC593       MOV    BX,[93C5]
+3239 FF06C593       INC    Word Ptr [93C5]
+323D B80591         MOV    AX,9105
+3240 E88200         CALL   32C5
+3243 C747070000     MOV    Word Ptr [BX+07],0000
+3248 894F05         MOV    [BX+05],CX
+324B 887702         MOV    [BX+02],DH
+324E 8B364996       MOV    SI,[9649]
+3252 8937           MOV    [BX],SI
+3254 0336AB90       ADD    SI,[90AB]
+3258 2BF7           SUB    SI,DI
+325A 897703         MOV    [BX+03],SI
+325D 8B36CD96       MOV    SI,[96CD]
+3261 897709         MOV    [BX+09],SI
+3264 8BF7           MOV    SI,DI
+3266 8B3E4996       MOV    DI,[9649]
+326A 03F9           ADD    DI,CX
+326C 81FFC894       CMP    DI,94C8
+3270 7D15           JGE    3287
+3272 2BF9           SUB    DI,CX
+3274 FC             CLD
+3275 F3             REPZ
+3276 A4             MOVSB
+3277 B000           MOV    AL,00
+3279 AA             STOSB
+327A 893E4996       MOV    [9649],DI
+327E 9D             POPF
+327F F8             CLC
+3280 EB0A           JMP    328C
+3282 B80100         MOV    AX,0001
+3285 EB03           JMP    328A
+3287 B80200         MOV    AX,0002
+328A 9D             POPF
+328B F9             STC
+328C 5E             POP    SI
+328D 5F             POP    DI
+328E 5A             POP    DX
+328F 59             POP    CX
+3290 5B             POP    BX
+3291 C3             RET
+
+3292 50             PUSH   AX
+3293 53             PUSH   BX
+3294 51             PUSH   CX
+3295 57             PUSH   DI
+3296 9C             PUSHF
+3297 F6C701         TEST   BH,01
+329A 741C           JZ     32B8
+329C 833ECB96FF     CMP    Word Ptr [96CB],-01
+32A1 741B           JZ     32BE
+32A3 8B1ECB96       MOV    BX,[96CB]
+32A7 B80591         MOV    AX,9105
+32AA E81800         CALL   32C5
+32AD 096F07         OR     [BX+07],BP
+32B0 092EC793       OR     [93C7],BP
+32B4 9D             POPF
+32B5 F9             STC
+32B6 EB08           JMP    32C0
+32B8 A1C593         MOV    AX,[93C5]
+32BB A3CB96         MOV    [96CB],AX
+32BE 9D             POPF
+32BF F8             CLC
+32C0 5F             POP    DI
+32C1 59             POP    CX
+32C2 5B             POP    BX
+32C3 58             POP    AX
+32C4 C3             RET
+
+32C5 50             PUSH   AX
+32C6 8AC3           MOV    AL,BL
+32C8 B30B           MOV    BL,0B
+32CA F6E3           MUL    BL
+32CC 5B             POP    BX
+32CD 03C3           ADD    AX,BX
+32CF 93             XCHG   AX,BX
+32D0 C3             RET
+
+32D1 53             PUSH   BX
+32D2 51             PUSH   CX
+32D3 52             PUSH   DX
+32D4 56             PUSH   SI
+32D5 57             PUSH   DI
+32D6 55             PUSH   BP
+32D7 9C             PUSHF
+32D8 F606079103     TEST   Byte Ptr [9107],03
+32DD 7403           JZ     32E2
+32DF E9C300         JMP    33A5
+32E2 E85B01         CALL   3440
+32E5 BACF96         MOV    DX,96CF
+32E8 B8001A         MOV    AX,1A00
+32EB CD21           INT    21               ; nastaven¡ adresy DTA
+32ED 06             PUSH   ES
+32EE E8F1F0         CALL   23E2             ; nalezen¡ parametru "PATH" v prost©ed¡
+32F1 8C06FA96       MOV    [96FA],ES
+32F5 893EFC96       MOV    [96FC],DI
+32F9 893EFE96       MOV    [96FE],DI
+32FD 07             POP    ES
+32FE BB8000         MOV    BX,0080
+3301 BE9F8C         MOV    SI,8C9F
+3304 E89C02         CALL   35A3
+3307 72D6           JB     32DF
+3309 8BD6           MOV    DX,SI
+330B C7064F976F82   MOV    Word Ptr [974F],826F
+3311 E8B501         CALL   34C9
+3314 0BC0           OR     AX,AX
+3316 746B           JZ     3383
+3318 8BE8           MOV    BP,AX
+331A BF9F8C         MOV    DI,8C9F
+331D 8B360591       MOV    SI,[9105]
+3321 8B0E0891       MOV    CX,[9108]
+3325 2BCE           SUB    CX,SI
+3327 B43A           MOV    AH,3A                         ;':'
+3329 83F902         CMP    CX,+02
+332C 7205           JB     3333
+332E 386401         CMP    [SI+01],AH
+3331 7408           JZ     333B
+3333 A08B8D         MOV    AL,[8D8B]
+3336 0441           ADD    AL,41                         ;'A'
+3338 AB             STOSW
+3339 EB05           JMP    3340
+333B AD             LODSW
+333C AB             STOSW
+333D 83E902         SUB    CX,+02
+3340 0C20           OR     AL,20                         ;' '
+3342 8AD0           MOV    DL,AL
+3344 80EA60         SUB    DL,60                         ;'`'
+3347 A00097         MOV    AL,[9700]
+334A AA             STOSB
+334B 83F901         CMP    CX,+01
+334E 720A           JB     335A
+3350 AC             LODSB
+3351 49             DEC    CX
+3352 3A060097       CMP    AL,[9700]
+3356 741E           JZ     3376
+3358 41             INC    CX
+3359 4E             DEC    SI
+335A 56             PUSH   SI
+335B 8BF7           MOV    SI,DI
+335D B80047         MOV    AX,4700
+3360 CD21           INT    21               ; poskytnut¡ aktivn¡ho adres ©e
+3362 8BFE           MOV    DI,SI
+3364 5E             POP    SI
+3365 A00097         MOV    AL,[9700]
+3368 803D00         CMP    Byte Ptr [DI],00
+336B 7409           JZ     3376
+336D 803D00         CMP    Byte Ptr [DI],00
+3370 7403           JZ     3375
+3372 47             INC    DI
+3373 EBF8           JMP    336D
+3375 AA             STOSB
+3376 3804           CMP    [SI],AL
+3378 7502           JNZ    337C
+337A 46             INC    SI
+337B 49             DEC    CX
+337C E302           JCXZ   3380
+337E F3             REPZ
+337F A4             MOVSB
+3380 E9A800         JMP    342B
+3383 F606079104     TEST   Byte Ptr [9107],04
+3388 751B           JNZ    33A5
+338A B73B           MOV    BH,3B                         ;';'
+338C 8B160891       MOV    DX,[9108]
+3390 2B160591       SUB    DX,[9105]
+3394 81C29F8C       ADD    DX,8C9F
+3398 E8B900         CALL   3454
+339B 8BE8           MOV    BP,AX
+339D 9F             LAHF
+339E 0BED           OR     BP,BP
+33A0 7508           JNZ    33AA
+33A2 9E             SAHF
+33A3 73F3           JNB    3398
+33A5 33C0           XOR    AX,AX
+33A7 E98E00         JMP    3438
+33AA BF9F8C         MOV    DI,8C9F
+33AD 8B0EFE96       MOV    CX,[96FE]
+33B1 8B36FC96       MOV    SI,[96FC]
+33B5 06             PUSH   ES
+33B6 FF36FA96       PUSH   [96FA]
+33BA 07             POP    ES
+33BB 26807C022E     CMP    Byte Ptr ES:[SI+02],2E        ;'.'
+33C0 753B           JNZ    33FD
+33C2 26807C013A     CMP    Byte Ptr ES:[SI+01],3A        ;':'
+33C7 7534           JNZ    33FD
+33C9 51             PUSH   CX
+33CA 268A04         MOV    AL,ES:[SI]
+33CD 8805           MOV    [DI],AL
+33CF 268A4401       MOV    AL,ES:[SI+01]
+33D3 884501         MOV    [DI+01],AL
+33D6 A00097         MOV    AL,[9700]
+33D9 884502         MOV    [DI+02],AL
+33DC 56             PUSH   SI
+33DD 268A14         MOV    DL,ES:[SI]
+33E0 80CA20         OR     DL,20                         ;' '
+33E3 80EA60         SUB    DL,60                         ;'`'
+33E6 8BF7           MOV    SI,DI
+33E8 83C603         ADD    SI,+03
+33EB B80047         MOV    AX,4700
+33EE CD21           INT    21               ; poskytnut¡ aktivn¡ho adres ©e
+33F0 E891F9         CALL   2D84             ; zji¨tˆn¡ d‚lky textu ASCIIZ
+33F3 03F1           ADD    SI,CX            ; adresa konce textu
+33F5 4E             DEC    SI
+33F6 8BFE           MOV    DI,SI
+33F8 5E             POP    SI
+33F9 83C603         ADD    SI,+03
+33FC 59             POP    CX
+33FD 07             POP    ES
+33FE 2BCE           SUB    CX,SI
+3400 1E             PUSH   DS
+3401 FF36FA96       PUSH   [96FA]
+3405 1F             POP    DS
+3406 FC             CLD
+3407 AC             LODSB
+3408 AA             STOSB
+3409 E88EF0         CALL   249A             ; test, zda je znak v tabulce LEAD
+340C 7410           JZ     341E
+340E 49             DEC    CX
+340F E307           JCXZ   3418
+3411 A4             MOVSB
+3412 49             DEC    CX
+3413 83F901         CMP    CX,+01
+3416 77EF           JA     3407
+3418 1F             POP    DS
+3419 A00097         MOV    AL,[9700]
+341C EB0C           JMP    342A
+341E E2E7           LOOP   3407
+3420 1F             POP    DS
+3421 4F             DEC    DI
+3422 A00097         MOV    AL,[9700]
+3425 3A45FF         CMP    AL,[DI-01]
+3428 7401           JZ     342B
+342A AA             STOSB
+342B BE0297         MOV    SI,9702
+342E 33C9           XOR    CX,CX
+3430 AC             LODSB
+3431 AA             STOSB
+3432 0AC0           OR     AL,AL
+3434 75FA           JNZ    3430
+3436 8BC5           MOV    AX,BP
+3438 9D             POPF
+3439 5D             POP    BP
+343A 5F             POP    DI
+343B 5E             POP    SI
+343C 5A             POP    DX
+343D 59             POP    CX
+343E 5B             POP    BX
+343F C3             RET
+
+3440 50             PUSH   AX
+3441 B02F           MOV    AL,2F                         ;'/'
+3443 E810F3         CALL   2756             ; test, zda je stand.oddˆlova‡ param.
+3446 7407           JZ     344F
+3448 B05C           MOV    AL,5C                         ;'\'
+344A A20097         MOV    [9700],AL
+344D 58             POP    AX
+344E C3             RET
+
+344F A20097         MOV    [9700],AL
+3452 58             POP    AX
+3453 C3             RET
+
+3454 53             PUSH   BX
+3455 51             PUSH   CX
+3456 52             PUSH   DX
+3457 57             PUSH   DI
+3458 56             PUSH   SI
+3459 9C             PUSHF
+345A E8E3FF         CALL   3440
+345D BF4B96         MOV    DI,964B
+3460 8B36FE96       MOV    SI,[96FE]
+3464 8936FC96       MOV    [96FC],SI
+3468 1E             PUSH   DS
+3469 FF36FA96       PUSH   [96FA]
+346D 1F             POP    DS
+346E 32C9           XOR    CL,CL
+3470 AC             LODSB
+3471 0AC0           OR     AL,AL
+3473 7414           JZ     3489
+3475 3AC7           CMP    AL,BH
+3477 7410           JZ     3489
+3479 E81EF0         CALL   249A             ; test, zda je znak v tabulce LEAD
+347C 7406           JZ     3484
+347E AA             STOSB
+347F A4             MOVSB
+3480 B101           MOV    CL,01
+3482 EBEC           JMP    3470
+3484 32C9           XOR    CL,CL
+3486 AA             STOSB
+3487 EBE7           JMP    3470
+3489 1F             POP    DS
+348A 8936FE96       MOV    [96FE],SI
+348E 8AD8           MOV    BL,AL
+3490 33C0           XOR    AX,AX
+3492 81FF4B96       CMP    DI,964B
+3496 7421           JZ     34B9
+3498 A00097         MOV    AL,[9700]
+349B 0AC9           OR     CL,CL
+349D 7505           JNZ    34A4
+349F 3A45FF         CMP    AL,[DI-01]
+34A2 7401           JZ     34A5
+34A4 AA             STOSB
+34A5 8BF2           MOV    SI,DX
+34A7 AC             LODSB
+34A8 AA             STOSB
+34A9 0AC0           OR     AL,AL
+34AB 75FA           JNZ    34A7
+34AD BA4B96         MOV    DX,964B
+34B0 C7064F976B83   MOV    Word Ptr [974F],836B
+34B6 E81000         CALL   34C9
+34B9 0ADB           OR     BL,BL
+34BB 7404           JZ     34C1
+34BD 9D             POPF
+34BE F8             CLC
+34BF EB02           JMP    34C3
+34C1 9D             POPF
+34C2 F9             STC
+34C3 5E             POP    SI
+34C4 5F             POP    DI
+34C5 5A             POP    DX
+34C6 59             POP    CX
+34C7 5B             POP    BX
+34C8 C3             RET
+
+34C9 51             PUSH   CX
+34CA 52             PUSH   DX
+34CB 57             PUSH   DI
+34CC 56             PUSH   SI
+34CD 9C             PUSHF
+34CE 52             PUSH   DX
+34CF 8BFA           MOV    DI,DX
+34D1 BE0F97         MOV    SI,970F
+34D4 33D2           XOR    DX,DX
+34D6 807D013A       CMP    Byte Ptr [DI+01],3A           ;':'
+34DA 7508           JNZ    34E4
+34DC 8A15           MOV    DL,[DI]
+34DE 80E2DF         AND    DL,DF
+34E1 80EA40         SUB    DL,40                         ;'@'
+34E4 B80047         MOV    AX,4700
+34E7 CD21           INT    21               ; poskytnut¡ aktivn¡ho adres ©e
+34E9 5A             POP    DX
+34EA 724C           JB     3538
+34EC B91300         MOV    CX,0013
+34EF B8004E         MOV    AX,4E00
+34F2 CD21           INT    21               ; nalezen¡ 1. souboru
+34F4 7249           JB     353F
+34F6 C606019700     MOV    Byte Ptr [9701],00
+34FB C606029700     MOV    Byte Ptr [9702],00
+3500 E84500         CALL   3548
+3503 3A060197       CMP    AL,[9701]
+3507 7E13           JLE    351C
+3509 A20197         MOV    [9701],AL
+350C BEED96         MOV    SI,96ED
+350F BF0297         MOV    DI,9702
+3512 B90D00         MOV    CX,000D
+3515 FC             CLD
+3516 F3             REPZ
+3517 A4             MOVSB
+3518 3C08           CMP    AL,08
+351A 740A           JZ     3526
+351C B91300         MOV    CX,0013
+351F B8004F         MOV    AX,4F00
+3522 CD21           INT    21               ; nalezen¡ dal¨¡ho souboru
+3524 73DA           JNB    3500
+3526 A00197         MOV    AL,[9701]
+3529 803EBB9001     CMP    Byte Ptr [90BB],01
+352E 7412           JZ     3542
+3530 A0BB90         MOV    AL,[90BB]
+3533 A20197         MOV    [9701],AL
+3536 EB0A           JMP    3542
+3538 8B164F97       MOV    DX,[974F]
+353C E8D31A         CALL   5012
+353F B80000         MOV    AX,0000
+3542 9D             POPF
+3543 5E             POP    SI
+3544 5F             POP    DI
+3545 5A             POP    DX
+3546 59             POP    CX
+3547 C3             RET
+
+3548 57             PUSH   DI
+3549 56             PUSH   SI
+354A B80000         MOV    AX,0000
+354D BFED96         MOV    DI,96ED
+3550 B90D00         MOV    CX,000D
+3553 FC             CLD
+3554 F2             REPNZ
+3555 AE             SCASB
+3556 7536           JNZ    358E
+3558 83EF05         SUB    DI,+05
+355B BE3687         MOV    SI,8736
+355E 8BC7           MOV    AX,DI
+3560 A7             CMPSW
+3561 7508           JNZ    356B
+3563 A7             CMPSW
+3564 7505           JNZ    356B
+3566 B80800         MOV    AX,0008
+3569 EB23           JMP    358E
+356B 8BF8           MOV    DI,AX
+356D BE3A87         MOV    SI,873A
+3570 A7             CMPSW
+3571 7508           JNZ    357B
+3573 A7             CMPSW
+3574 7505           JNZ    357B
+3576 B80400         MOV    AX,0004
+3579 EB13           JMP    358E
+357B 8BF8           MOV    DI,AX
+357D BE3E87         MOV    SI,873E
+3580 A7             CMPSW
+3581 7508           JNZ    358B
+3583 A7             CMPSW
+3584 7505           JNZ    358B
+3586 B80200         MOV    AX,0002
+3589 EB03           JMP    358E
+358B B80000         MOV    AX,0000
+358E 803EBB9001     CMP    Byte Ptr [90BB],01
+3593 740B           JZ     35A0
+3595 3D0000         CMP    AX,0000
+3598 7406           JZ     35A0
+359A A2BB90         MOV    [90BB],AL
+359D B80800         MOV    AX,0008
+35A0 5E             POP    SI
+35A1 5F             POP    DI
+35A2 C3             RET
+
+35A3 50             PUSH   AX
+35A4 53             PUSH   BX
+35A5 51             PUSH   CX
+35A6 52             PUSH   DX
+35A7 57             PUSH   DI
+35A8 56             PUSH   SI
+35A9 9C             PUSHF
+35AA C606BB9001     MOV    Byte Ptr [90BB],01
+35AF 8B160591       MOV    DX,[9105]
+35B3 8B3E0891       MOV    DI,[9108]
+35B7 803D00         CMP    Byte Ptr [DI],00
+35BA 7440           JZ     35FC
+35BC 8BCA           MOV    CX,DX
+35BE 030E0A91       ADD    CX,[910A]
+35C2 2BCF           SUB    CX,DI
+35C4 41             INC    CX
+35C5 B02E           MOV    AL,2E                         ;'.'
+35C7 FC             CLD
+35C8 F2             REPNZ
+35C9 AE             SCASB
+35CA E309           JCXZ   35D5
+35CC C606BB9000     MOV    Byte Ptr [90BB],00
+35D1 B000           MOV    AL,00
+35D3 F2             REPNZ
+35D4 AE             SCASB
+35D5 8BCF           MOV    CX,DI
+35D7 2BCA           SUB    CX,DX
+35D9 83EB04         SUB    BX,+04
+35DC 3BCB           CMP    CX,BX
+35DE 7F1C           JG     35FC
+35E0 8BFE           MOV    DI,SI
+35E2 8BF2           MOV    SI,DX
+35E4 FC             CLD
+35E5 F3             REPZ
+35E6 A4             MOVSB
+35E7 803EBB9001     CMP    Byte Ptr [90BB],01
+35EC 750A           JNZ    35F8
+35EE 4F             DEC    DI
+35EF AA             STOSB
+35F0 B03F           MOV    AL,3F                         ;'?'
+35F2 AA             STOSB
+35F3 AA             STOSB
+35F4 AA             STOSB
+35F5 B000           MOV    AL,00
+35F7 AA             STOSB
+35F8 9D             POPF
+35F9 F8             CLC
+35FA EB02           JMP    35FE
+35FC 9D             POPF
+35FD F9             STC
+35FE 5E             POP    SI
+35FF 5F             POP    DI
+3600 5A             POP    DX
+3601 59             POP    CX
+3602 5B             POP    BX
+3603 58             POP    AX
+3604 C3             RET
+
+3605 53             PUSH   BX
+3606 51             PUSH   CX
+3607 52             PUSH   DX
+3608 57             PUSH   DI
+3609 56             PUSH   SI
+360A 55             PUSH   BP
+360B 9C             PUSHF
+360C 81C35305       ADD    BX,0553
+3610 B104           MOV    CL,04
+3612 D3EB           SHR    BX,CL
+3614 B80048         MOV    AX,4800
+3617 CD21           INT    21               ; p©idˆlen¡ pamˆti
+3619 7244           JB     365F
+361B 8BE8           MOV    BP,AX
+361D 06             PUSH   ES
+361E 8EC0           MOV    ES,AX
+3620 B94405         MOV    CX,0544
+3623 33FF           XOR    DI,DI
+3625 BE0591         MOV    SI,9105
+3628 F3             REPZ
+3629 A4             MOVSB
+362A 8B0EC593       MOV    CX,[93C5]
+362E 33C0           XOR    AX,AX
+3630 BE0591         MOV    SI,9105
+3633 49             DEC    CX
+3634 7C24           JL     365A
+3636 8BD9           MOV    BX,CX
+3638 E88AFC         CALL   32C5
+363B 8B970591       MOV    DX,[BX+9105]
+363F 2BD6           SUB    DX,SI
+3641 268917         MOV    ES:[BX],DX
+3644 8B970891       MOV    DX,[BX+9108]
+3648 2BD6           SUB    DX,SI
+364A 26895703       MOV    ES:[BX+03],DX
+364E 8B970E91       MOV    DX,[BX+910E]
+3652 2BD6           SUB    DX,SI
+3654 26895709       MOV    ES:[BX+09],DX
+3658 EBD9           JMP    3633
+365A 07             POP    ES
+365B 8BC5           MOV    AX,BP
+365D EB04           JMP    3663
+365F 9D             POPF
+3660 F9             STC
+3661 EB02           JMP    3665
+3663 9D             POPF
+3664 F8             CLC
+3665 5D             POP    BP
+3666 5E             POP    SI
+3667 5F             POP    DI
+3668 5A             POP    DX
+3669 59             POP    CX
+366A 5B             POP    BX
+366B C3             RET
+
+366C B90B00         MOV    CX,000B
+366F BE5D00         MOV    SI,005D
+3672 AC             LODSB
+3673 3C3F           CMP    AL,3F                         ;'?'
+3675 7502           JNZ    3679
+3677 E2F9           LOOP   3672
+3679 83F900         CMP    CX,+00
+367C 752F           JNZ    36AD
+367E BAF282         MOV    DX,82F2
+3681 E88E19         CALL   5012
+3684 BE8000         MOV    SI,0080
+3687 8BD6           MOV    DX,SI
+3689 C7047800       MOV    Word Ptr [SI],0078
+368D B80A0C         MOV    AX,0C0A
+3690 CD21           INT    21               ; vstup textu s vypr zdnˆn¡m
+3692 AD             LODSW
+3693 0AE4           OR     AH,AH
+3695 74E7           JZ     367E
+3697 E82AF0         CALL   26C4             ; vypustˆn¡ oddˆlova‡– z textu
+369A E81C02         CALL   38B9
+369D 7301           JNB    36A0
+369F C3             RET
+
+36A0 3C00           CMP    AL,00
+36A2 74FB           JZ     369F
+36A4 3C01           CMP    AL,01
+36A6 9C             PUSHF
+36A7 E80DF0         CALL   26B7             ; chybov‚ hl ¨en¡
+36AA 9D             POPF
+36AB 75D1           JNZ    367E
+36AD B413           MOV    AH,13
+36AF BA5C00         MOV    DX,005C
+36B2 CD21           INT    21               ; zru¨en¡ souboru s FCB
+36B4 FEC0           INC    AL
+36B6 7404           JZ     36BC
+36B8 E8AFEE         CALL   256A
+36BB C3             RET
+
+36BC E8D1E6         CALL   1D90
+36BF 52             PUSH   DX
+36C0 E8A7EE         CALL   256A
+36C3 5A             POP    DX
+36C4 833E138212     CMP    Word Ptr [8213],+12 ; k¢d chyby - nen¡ dal¨¡ soubor
+36C9 7506           JNZ    36D1
+36CB C70613820200   MOV    Word Ptr [8213],0002 ; k¢d chyby - soubor nenalezen
+36D1 E977F3         JMP    2A4B
+36D4 E819E8         CALL   1EF0             ; sestaven¡ adres ©e zadan‚ho disku
+36D7 B41A           MOV    AH,1A
+36D9 BA3B8E         MOV    DX,8E3B
+36DC CD21           INT    21               ; nastaven¡ adresy DTA
+36DE B411           MOV    AH,11
+36E0 BA5C00         MOV    DX,005C
+36E3 CD21           INT    21               ; nalezen¡ prvn¡ho souboru FCB
+36E5 FEC0           INC    AL
+36E7 74D3           JZ     36BC
+36E9 BE3C8E         MOV    SI,8E3C
+36EC BF0B8E         MOV    DI,8E0B
+36EF A07C8D         MOV    AL,[8D7C]        ; oddˆlova‡ cesty "\"
+36F2 AA             STOSB
+36F3 E8EDEF         CALL   26E3             ; konverze jm‚na z FCB na ASCIIZ
+36F6 E8BEEF         CALL   26B7             ; chybov‚ hl ¨en¡
+36F9 BA7E8E         MOV    DX,8E7E
+36FC 8BDA           MOV    BX,DX
+36FE 807F0300       CMP    Byte Ptr [BX+03],00
+3702 7504           JNZ    3708
+3704 C6470200       MOV    Byte Ptr [BX+02],00
+3708 8916658F       MOV    [8F65],DX        ; adresa jm‚na souboru p©i chybˆ
+370C BADA83         MOV    DX,83DA
+370F E80019         CALL   5012
+3712 BA0B8E         MOV    DX,8E0B
+3715 8916658F       MOV    [8F65],DX        ; adresa jm‚na souboru p©i chybˆ
+3719 BADA83         MOV    DX,83DA
+371C E8F318         CALL   5012
+371F BAEF82         MOV    DX,82EF
+3722 E8ED18         CALL   5012
+3725 B8010C         MOV    AX,0C01
+3728 CD21           INT    21               ; vstup s konzoly s echem a vypr zd.
+372A E88C01         CALL   38B9
+372D 7301           JNB    3730
+372F C3             RET
+
+3730 3C00           CMP    AL,00
+3732 7427           JZ     375B
+3734 3C01           CMP    AL,01
+3736 7402           JZ     373A
+3738 EBBC           JMP    36F6
+373A B413           MOV    AH,13
+373C BA3B8E         MOV    DX,8E3B
+373F CD21           INT    21               ; zru¨en¡ souboru s FCB
+3741 FEC0           INC    AL
+3743 7516           JNZ    375B
+3745 E858E6         CALL   1DA0             ; poskytnut¡ chybov˜ch informac¡
+3748 3D0500         CMP    AX,0005
+374B 750B           JNZ    3758
+374D E867EF         CALL   26B7             ; chybov‚ hl ¨en¡
+3750 E83DE6         CALL   1D90
+3753 E8B418         CALL   500A
+3756 EB03           JMP    375B
+3758 E961FF         JMP    36BC
+375B B41A           MOV    AH,1A
+375D BA3B8E         MOV    DX,8E3B
+3760 CD21           INT    21               ; nastaven¡ adresy DTA
+3762 B412           MOV    AH,12
+3764 BA5C00         MOV    DX,005C
+3767 CD21           INT    21               ; nalezen¡ dal¨¡ho souboru FCB
+3769 FEC0           INC    AL
+376B 7403           JZ     3770
+376D E979FF         JMP    36E9
+3770 E82DE6         CALL   1DA0             ; poskytnut¡ chybov˜ch informac¡
+3773 3D1200         CMP    AX,0012
+3776 7403           JZ     377B
+3778 E956E3         JMP    1AD1
+377B E8ECED         CALL   256A
+377E E836EF         CALL   26B7             ; chybov‚ hl ¨en¡
+3781 C3             RET
+
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz ECHO
+; -----------------------------------------------------------------------------
+
+3782 E89C00         CALL   3821
+3785 7215           JB     379C
+3787 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+378B 7506           JNZ    3793
+378D 800EA60201     OR     Byte Ptr [02A6],01
+3792 C3             RET
+
+3793 8026A602FE     AND    Byte Ptr [02A6],FE
+3798 C3             RET
+
+3799 E9AFF2         JMP    2A4B
+379C 80F900         CMP    CL,00
+379F 7409           JZ     37AA
+37A1 BA8200         MOV    DX,0082
+37A4 E86DEF         CALL   2714
+37A7 E90DEF         JMP    26B7             ; chybov‚ hl ¨en¡
+37AA 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+37AE 8A1EA602       MOV    BL,[02A6]
+37B2 0E             PUSH   CS
+37B3 1F             POP    DS
+37B4 80E301         AND    BL,01
+37B7 BA9683         MOV    DX,8396
+37BA EB22           JMP    37DE
+
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz BREAK
+; -----------------------------------------------------------------------------
+
+37BC E86200         CALL   3821             ; test zad n¡ p©ep¡na‡e ON/OFF
+37BF B80133         MOV    AX,3301
+37C2 720C           JB     37D0
+37C4 7505           JNZ    37CB
+37C6 B201           MOV    DL,01
+37C8 CD21           INT    21               ; zapnut¡ p©ep¡na‡e BREAK
+37CA C3             RET
+
+37CB 32D2           XOR    DL,DL
+37CD CD21           INT    21               ; vypnut¡ p©ep¡na‡e BREAK
+37CF C3             RET
+
+37D0 80F900         CMP    CL,00
+37D3 75C4           JNZ    3799
+37D5 32C0           XOR    AL,AL
+37D7 CD21           INT    21               ; poskytnut¡ p©ep¡na‡e BREAK
+37D9 8ADA           MOV    BL,DL
+37DB BA7A83         MOV    DX,837A
+37DE BEA783         MOV    SI,83A7
+37E1 0ADB           OR     BL,BL
+37E3 7503           JNZ    37E8
+37E5 BEA483         MOV    SI,83A4
+37E8 52             PUSH   DX
+37E9 8BDA           MOV    BX,DX
+37EB AD             LODSW
+37EC B6FF           MOV    DH,FF
+37EE E81019         CALL   5101
+37F1 83C305         ADD    BX,+05
+37F4 8937           MOV    [BX],SI
+37F6 5A             POP    DX
+37F7 E81818         CALL   5012
+37FA C7070000       MOV    Word Ptr [BX],0000
+37FE C3             RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz VERIFY
+; -----------------------------------------------------------------------------
+
+37FF E81F00         CALL   3821
+3802 B8012E         MOV    AX,2E01
+3805 720A           JB     3811
+3807 7503           JNZ    380C
+3809 CD21           INT    21               ; zapnut¡ p©ep¡na‡e VERIFY
+380B C3             RET
+
+380C FEC8           DEC    AL
+380E CD21           INT    21               ; vypnut¡ p©ep¡na‡e VERIFY
+3810 C3             RET
+
+3811 80F900         CMP    CL,00
+3814 7583           JNZ    3799
+3816 B454           MOV    AH,54                         ;'T'
+3818 CD21           INT    21               ; poskytnut¡ stavu p©ep¡na‡e VERIFY
+381A 8AD8           MOV    BL,AL
+381C BA8883         MOV    DX,8388
+381F EBBD           JMP    37DE
+
+; -----------------------------------------------------------------------------
+;    Test zad n¡ p©ep¡na‡e ON/OFF
+; -----------------------------------------------------------------------------
+
+3821 BE8100         MOV    SI,0081
+3824 AC             LODSB
+3825 3C20           CMP    AL,20                         ;' '
+3827 74FB           JZ     3824
+3829 3C09           CMP    AL,09
+382B 74F7           JZ     3824
+382D 3C3D           CMP    AL,3D                         ;'='
+382F 7401           JZ     3832
+3831 4E             DEC    SI
+3832 BF8087         MOV    DI,8780
+3835 33C9           XOR    CX,CX
+3837 33D2           XOR    DX,DX
+3839 E8BB17         CALL   4FF7
+383C 3DFFFF         CMP    AX,FFFF
+383F 7430           JZ     3871
+3841 3D0000         CMP    AX,0000
+3844 7404           JZ     384A
+3846 8BC8           MOV    CX,AX
+3848 EB27           JMP    3871
+384A 803EA698FF     CMP    Byte Ptr [98A6],FF
+384F 7505           JNZ    3856
+3851 B90A00         MOV    CX,000A
+3854 EB1B           JMP    3871
+3856 33C0           XOR    AX,AX
+3858 0A06A698       OR     AL,[98A6]
+385C 9C             PUSHF
+385D BF8087         MOV    DI,8780
+3860 33D2           XOR    DX,DX
+3862 E89217         CALL   4FF7
+3865 3DFFFF         CMP    AX,FFFF
+3868 7504           JNZ    386E
+386A 9D             POPF
+386B F8             CLC
+386C EB07           JMP    3875
+386E 8BC8           MOV    CX,AX
+3870 9D             POPF
+3871 BA5783         MOV    DX,8357
+3874 F9             STC
+3875 C3             RET
+
+3876 06             PUSH   ES
+3877 57             PUSH   DI
+3878 0E             PUSH   CS
+3879 07             POP    ES
+387A E81300         CALL   3890
+387D 86F2           XCHG   DH,DL
+387F 890E0E84       MOV    [840E],CX
+3883 89161084       MOV    [8410],DX
+3887 BAFE83         MOV    DX,83FE
+388A E88517         CALL   5012
+388D 5F             POP    DI
+388E 07             POP    ES
+388F C3             RET
+
+3890 BFE18E         MOV    DI,8EE1
+3893 B42A           MOV    AH,2A                         ;'*'
+3895 CD21           INT    21               ; poskytnut¡ syst‚mov‚ho data
+3897 98             CBW
+3898 51             PUSH   CX
+3899 52             PUSH   DX
+389A 8BF0           MOV    SI,AX
+389C D1E6           SHL    SI,1
+389E 03F0           ADD    SI,AX
+38A0 8BCE           MOV    CX,SI
+38A2 A1CA82         MOV    AX,[82CA]
+38A5 B6FF           MOV    DH,FF
+38A7 57             PUSH   DI
+38A8 E85618         CALL   5101
+38AB 5F             POP    DI
+38AC 03F1           ADD    SI,CX
+38AE B90300         MOV    CX,0003
+38B1 F3             REPZ
+38B2 A4             MOVSB
+38B3 B000           MOV    AL,00
+38B5 AA             STOSB
+38B6 5A             POP    DX
+38B7 59             POP    CX
+38B8 C3             RET
+
+38B9 8AD0           MOV    DL,AL
+38BB 32F6           XOR    DH,DH
+38BD B82365         MOV    AX,6523
+38C0 CD21           INT    21               ; poskytnut¡ informac¡ COUNTRY
+38C2 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Intern¡ p©¡kaz COPY
+; -----------------------------------------------------------------------------
+
+38C3 33C0           XOR    AX,AX
+38C5 A3678F         MOV    [8F67],AX
+38C8 A39590         MOV    [9095],AX
+38CB A3E18F         MOV    [8FE1],AX
+38CE A2968D         MOV    [8D96],AL
+38D1 A39A8D         MOV    [8D9A],AX
+38D4 A3928D         MOV    [8D92],AX
+38D7 A3AB90         MOV    [90AB],AX
+38DA A37E8F         MOV    [8F7E],AX
+38DD A2978D         MOV    [8D97],AL
+38E0 A27D8F         MOV    [8F7D],AL
+38E3 A2E08F         MOV    [8FE0],AL
+38E6 A2808F         MOV    [8F80],AL
+38E9 A2E38F         MOV    [8FE3],AL
+38EC A29790         MOV    [9097],AL
+38EF A27C8F         MOV    [8F7C],AL
+38F2 A2DF8F         MOV    [8FDF],AL
+38F5 A2598C         MOV    [8C59],AL
+38F8 A29890         MOV    [9098],AL
+38FB A28A8D         MOV    [8D8A],AL
+38FE A33B90         MOV    [903B],AX
+3901 A3A090         MOV    [90A0],AX
+3904 A3A290         MOV    [90A2],AX
+3907 A23D90         MOV    [903D],AL
+390A A2A890         MOV    [90A8],AL
+390D A3A490         MOV    [90A4],AX
+3910 A3A690         MOV    [90A6],AX
+3913 A29C90         MOV    [909C],AL
+3916 A2DA8E         MOV    [8EDA],AL
+3919 A2DB8E         MOV    [8EDB],AL
+391C A2E890         MOV    [90E8],AL
+391F A3948D         MOV    [8D94],AX
+3922 A28D8D         MOV    [8D8D],AL
+3925 A29E90         MOV    [909E],AL
+3928 A29990         MOV    [9099],AL
+392B A29D90         MOV    [909D],AL
+392E A3A18D         MOV    [8DA1],AX
+3931 A39A90         MOV    [909A],AX
+3934 A28C8D         MOV    [8D8C],AL
+3937 A2DC8F         MOV    [8FDC],AL
+393A A3DD8F         MOV    [8FDD],AX
+393D A33E90         MOV    [903E],AX
+3940 A3818F         MOV    [8F81],AX
+3943 A3E48F         MOV    [8FE4],AX
+3946 A3C48E         MOV    [8EC4],AX
+3949 A37E8E         MOV    [8E7E],AX
+394C A33B8E         MOV    [8E3B],AX
+394F A29F90         MOV    [909F],AL
+3952 48             DEC    AX
+3953 A3D88F         MOV    [8FD8],AX
+3956 A29C8D         MOV    [8D9C],AL
+3959 A2DB8F         MOV    [8FDB],AL
+395C A27C8F         MOV    [8F7C],AL
+395F BE8100         MOV    SI,0081
+3962 B32B           MOV    BL,2B                         ;'+'
+3964 FE06E790       INC    Byte Ptr [90E7]
+3968 C606698F01     MOV    Byte Ptr [8F69],01
+396D 33ED           XOR    BP,BP
+396F BF3E90         MOV    DI,903E
+3972 8936DD8E       MOV    [8EDD],SI
+3976 E8A609         CALL   431F
+3979 9C             PUSHF
+397A FE069F90       INC    Byte Ptr [909F]
+397E F6C780         TEST   BH,80
+3981 7405           JZ     3988
+3983 C6069E9001     MOV    Byte Ptr [909E],01
+3988 F6C701         TEST   BH,01
+398B 742F           JZ     39BC
+398D F7C51000       TEST   BP,0010
+3991 740C           JZ     399F
+3993 F706948D1000   TEST   Word Ptr [8D94],0010
+3999 7404           JZ     399F
+399B 81CD0040       OR     BP,4000
+399F 092E928D       OR     [8D92],BP
+39A3 092E948D       OR     [8D94],BP
+39A7 F7C5E37F       TEST   BP,7FE3
+39AB 740A           JZ     39B7
+39AD 9D             POPF
+39AE B80300         MOV    AX,0003
+39B1 E8E7E8         CALL   229B
+39B4 E994F0         JMP    2A4B
+39B7 9D             POPF
+39B8 7233           JB     39ED
+39BA EBB1           JMP    396D
+39BC 9D             POPF
+39BD 722E           JB     39ED
+39BF F6C780         TEST   BH,80
+39C2 7504           JNZ    39C8
+39C4 FE068D8D       INC    Byte Ptr [8D8D]
+39C8 56             PUSH   SI
+39C9 A1AB90         MOV    AX,[90AB]
+39CC BE3E90         MOV    SI,903E
+39CF 2BC6           SUB    AX,SI
+39D1 BF818F         MOV    DI,8F81
+39D4 03C7           ADD    AX,DI
+39D6 A37E8F         MOV    [8F7E],AX
+39D9 880E7D8F       MOV    [8F7D],CL
+39DD 41             INC    CX
+39DE F3             REPZ
+39DF A4             MOVSB
+39E0 883E808F       MOV    [8F80],BH
+39E4 C706928D0000   MOV    Word Ptr [8D92],0000
+39EA 5E             POP    SI
+39EB EB80           JMP    396D
+39ED 803E9E9001     CMP    Byte Ptr [909E],01
+39F2 7514           JNZ    3A08
+39F4 803E8D8D01     CMP    Byte Ptr [8D8D],01
+39F9 750D           JNZ    3A08
+39FB 803E9F9002     CMP    Byte Ptr [909F],02
+3A00 7506           JNZ    3A08
+3A02 BA3C82         MOV    DX,823C
+3A05 E93106         JMP    4039
+3A08 A09E90         MOV    AL,[909E]
+3A0B A28C8D         MOV    [8D8C],AL
+3A0E D0E0           SHL    AL,1
+3A10 D0E0           SHL    AL,1
+3A12 A29790         MOV    [9097],AL
+3A15 A08D8D         MOV    AL,[8D8D]
+3A18 0AC0           OR     AL,AL
+3A1A 750B           JNZ    3A27
+3A1C BA1382         MOV    DX,8213          ; adresa tabulky popisu chyby
+3A1F C70613820200   MOV    Word Ptr [8213],0002 ; k¢d chyby - soubor nenalezen
+3A25 EB0D           JMP    3A34
+3A27 3C02           CMP    AL,02
+3A29 7611           JBE    3A3C
+3A2B BA1382         MOV    DX,8213          ; adresa tabulky popisu chyby
+3A2E C70613820100   MOV    Word Ptr [8213],0001 ; k¢d chyby - neplatn  funkce
+3A34 C606118202     MOV    Byte Ptr [8211],02
+3A39 E90FF0         JMP    2A4B
+3A3C BD7C8F         MOV    BP,8F7C
+3A3F 3C01           CMP    AL,01
+3A41 7520           JNZ    3A63
+3A43 A08B8D         MOV    AL,[8D8B]
+3A46 0441           ADD    AL,41                         ;'A'
+3A48 B43A           MOV    AH,3A                         ;':'
+3A4A C6460102       MOV    Byte Ptr [BP+01],02
+3A4E BF818F         MOV    DI,8F81
+3A51 AB             STOSW
+3A52 C706928D0000   MOV    Word Ptr [8D92],0000
+3A58 C6460402       MOV    Byte Ptr [BP+04],02
+3A5C C6460000       MOV    Byte Ptr [BP+00],00
+3A60 E88C08         CALL   42EF
+3A63 807E0102       CMP    Byte Ptr [BP+01],02
+3A67 7516           JNZ    3A7F
+3A69 B03A           MOV    AL,3A                         ;':'
+3A6B 3806828F       CMP    [8F82],AL
+3A6F 750E           JNZ    3A7F
+3A71 804E0402       OR     Byte Ptr [BP+04],02
+3A75 BF838F         MOV    DI,8F83
+3A78 C6460000       MOV    Byte Ptr [BP+00],00
+3A7C E87008         CALL   42EF
+3A7F 8B7E02         MOV    DI,[BP+02]
+3A82 803D00         CMP    Byte Ptr [DI],00
+3A85 7515           JNZ    3A9C
+3A87 BA4E83         MOV    DX,834E
+3A8A B03A           MOV    AL,3A                         ;':'
+3A8C 3845FE         CMP    [DI-02],AL
+3A8F 75A8           JNZ    3A39
+3A91 C6460002       MOV    Byte Ptr [BP+00],02
+3A95 804E0406       OR     Byte Ptr [BP+04],06
+3A99 E85308         CALL   42EF
+3A9C A1948D         MOV    AX,[8D94]
+3A9F A91000         TEST   AX,0010
+3AA2 7414           JZ     3AB8
+3AA4 B454           MOV    AH,54                         ;'T'
+3AA6 CD21           INT    21               ; poskytnut¡ stavu p©ep¡na‡e VERIFY
+3AA8 1E             PUSH   DS
+3AA9 8E1E778D       MOV    DS,[8D77]        ; segment 1. ‡ sti COMMAND.COM
+3AAD 32E4           XOR    AH,AH
+3AAF A3AE02         MOV    [02AE],AX
+3AB2 1F             POP    DS
+3AB3 B8012E         MOV    AX,2E01
+3AB6 CD21           INT    21               ; nastaven¡ p©ep¡na‡e VERIFY
+3AB8 33ED           XOR    BP,BP
+3ABA BE8100         MOV    SI,0081
+3ABD B32B           MOV    BL,2B                         ;'+'
+3ABF BF3E90         MOV    DI,903E
+3AC2 E85A08         CALL   431F
+3AC5 F6C701         TEST   BH,01
+3AC8 75F5           JNZ    3ABF
+3ACA 092E928D       OR     [8D92],BP
+3ACE F7C50800       TEST   BP,0008
+3AD2 750C           JNZ    3AE0
+3AD4 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3AD9 7405           JZ     3AE0
+3ADB C6069D9004     MOV    Byte Ptr [909D],04
+3AE0 E8C503         CALL   3EA8
+3AE3 E84400         CALL   3B2A
+3AE6 E99700         JMP    3B80
+3AE9 E8CC02         CALL   3DB8
+3AEC BA4582         MOV    DX,8245
+3AEF 8B36A18D       MOV    SI,[8DA1]
+3AF3 8936678F       MOV    [8F67],SI
+3AF7 E81815         CALL   5012
+3AFA E907C6         JMP    0104
+3AFD 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3B02 7543           JNZ    3B47
+3B04 C606118201     MOV    Byte Ptr [8211],01
+3B09 BA1382         MOV    DX,8213          ; adresa tabulky popisu chyby
+3B0C C70613820200   MOV    Word Ptr [8213],0002 ; k¢d chyby - soubor nenalezen
+3B12 C706658FE48F   MOV    Word Ptr [8F65],8FE4 ; adresa jm‚na souboru p©i chybˆ
+3B18 C606158201     MOV    Byte Ptr [8215],01 ; ‡¡slo parametru hl ¨en¡
+3B1D E91905         JMP    4039
+3B20 E88503         CALL   3EA8
+3B23 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3B28 750B           JNZ    3B35
+3B2A 33C0           XOR    AX,AX
+3B2C A2968D         MOV    [8D96],AL
+3B2F A39A8D         MOV    [8D9A],AX
+3B32 A2978D         MOV    [8D97],AL
+3B35 89369590       MOV    [9095],SI
+3B39 BF598C         MOV    DI,8C59
+3B3C BDDF8F         MOV    BP,8FDF
+3B3F E85D06         CALL   419F
+3B42 8B36E18F       MOV    SI,[8FE1]
+3B46 C3             RET
+
+3B47 803E9E9000     CMP    Byte Ptr [909E],00
+3B4C 7502           JNZ    3B50
+3B4E EB99           JMP    3AE9
+3B50 33ED           XOR    BP,BP
+3B52 8B369590       MOV    SI,[9095]
+3B56 B32B           MOV    BL,2B                         ;'+'
+3B58 BF3E90         MOV    DI,903E
+3B5B E8C107         CALL   431F
+3B5E 72EE           JB     3B4E
+3B60 F6C780         TEST   BH,80
+3B63 74E9           JZ     3B4E
+3B65 F6C701         TEST   BH,01
+3B68 75EE           JNZ    3B58
+3B6A E8B3FF         CALL   3B20
+3B6D 803EDA8E01     CMP    Byte Ptr [8EDA],01
+3B72 7507           JNZ    3B7B
+3B74 C606DB8E01     MOV    Byte Ptr [8EDB],01
+3B79 EB82           JMP    3AFD
+3B7B C606DB8E00     MOV    Byte Ptr [8EDB],00
+3B80 BF5C00         MOV    DI,005C
+3B83 B80029         MOV    AX,2900
+3B86 CD21           INT    21               ; rozbor jm‚na souboru
+3B88 803C00         CMP    Byte Ptr [SI],00
+3B8B 7516           JNZ    3BA3
+3B8D A1E48F         MOV    AX,[8FE4]
+3B90 80FC3A         CMP    AH,3A                         ;':'
+3B93 7402           JZ     3B97
+3B95 B040           MOV    AL,40                         ;'@'
+3B97 0C20           OR     AL,20                         ;' '
+3B99 2C60           SUB    AL,60                         ;'`'
+3B9B A25C00         MOV    [005C],AL
+3B9E B411           MOV    AH,11
+3BA0 E8FE00         CALL   3CA1
+3BA3 9C             PUSHF
+3BA4 E8B6E9         CALL   255D             ; n vrat aktivn¡ho adres ©e
+3BA7 9D             POPF
+3BA8 7403           JZ     3BAD
+3BAA E950FF         JMP    3AFD
+3BAD 32C0           XOR    AL,AL
+3BAF 86069C8D       XCHG   AL,[8D9C]
+3BB3 0AC0           OR     AL,AL
+3BB5 740B           JZ     3BC2
+3BB7 B90C00         MOV    CX,000C
+3BBA BFC48E         MOV    DI,8EC4
+3BBD BE7E8E         MOV    SI,8E7E
+3BC0 F3             REPZ
+3BC1 A4             MOVSB
+3BC2 32C0           XOR    AL,AL
+3BC4 A29890         MOV    [9098],AL
+3BC7 8B3EE18F       MOV    DI,[8FE1]
+3BCB BE7F8E         MOV    SI,8E7F
+3BCE E812EB         CALL   26E3             ; konverze jm‚na z FCB na ASCIIZ
+3BD1 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3BD6 7507           JNZ    3BDF
+3BD8 F606E38F02     TEST   Byte Ptr [8FE3],02
+3BDD 7409           JZ     3BE8
+3BDF BABE83         MOV    DX,83BE
+3BE2 E82D14         CALL   5012
+3BE5 E8CFEA         CALL   26B7             ; chybov‚ hl ¨en¡
+3BE8 E8C700         CALL   3CB2
+3BEB 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3BF0 750A           JNZ    3BFC
+3BF2 E8C301         CALL   3DB8
+3BF5 7205           JB     3BFC
+3BF7 C606968D00     MOV    Byte Ptr [8D96],00
+3BFC 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3C01 740C           JZ     3C0F
+3C03 E8F102         CALL   3EF7
+3C06 F606DC8FFF     TEST   Byte Ptr [8FDC],FF
+3C0B 7402           JZ     3C0F
+3C0D EB0C           JMP    3C1B
+3C0F E88300         CALL   3C95
+3C12 755D           JNZ    3C71
+3C14 C606978D00     MOV    Byte Ptr [8D97],00
+3C19 EBA7           JMP    3BC2
+3C1B 803EDC8FFF     CMP    Byte Ptr [8FDC],FF
+3C20 740D           JZ     3C2F
+3C22 8B369590       MOV    SI,[9095]
+3C26 8936DD8F       MOV    [8FDD],SI
+3C2A C606DC8FFF     MOV    Byte Ptr [8FDC],FF
+3C2F 33ED           XOR    BP,BP
+3C31 8B369590       MOV    SI,[9095]
+3C35 B32B           MOV    BL,2B                         ;'+'
+3C37 BF3E90         MOV    DI,903E
+3C3A E8E206         CALL   431F
+3C3D F6C780         TEST   BH,80
+3C40 7432           JZ     3C74
+3C42 F6C701         TEST   BH,01
+3C45 75F0           JNZ    3C37
+3C47 E8D6FE         CALL   3B20
+3C4A E810E9         CALL   255D             ; n vrat aktivn¡ho adres ©e
+3C4D BFFF8D         MOV    DI,8DFF
+3C50 B80029         MOV    AX,2900
+3C53 CD21           INT    21               ; rozbor jm‚na souboru
+3C55 BBC58E         MOV    BX,8EC5
+3C58 BE008E         MOV    SI,8E00
+3C5B 8B3EE18F       MOV    DI,[8FE1]
+3C5F E80D05         CALL   416F
+3C62 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3C67 7405           JZ     3C6E
+3C69 C606989000     MOV    Byte Ptr [9098],00
+3C6E E960FF         JMP    3BD1
+3C71 E9D3FE         JMP    3B47
+3C74 E84101         CALL   3DB8
+3C77 33C0           XOR    AX,AX
+3C79 A2968D         MOV    [8D96],AL
+3C7C A39A8D         MOV    [8D9A],AX
+3C7F A2978D         MOV    [8D97],AL
+3C82 8B36DD8F       MOV    SI,[8FDD]
+3C86 89369590       MOV    [9095],SI
+3C8A E80800         CALL   3C95
+3C8D 7403           JZ     3C92
+3C8F E95AFE         JMP    3AEC
+3C92 E922FF         JMP    3BB7
+3C95 B412           MOV    AH,12
+3C97 F606E38F02     TEST   Byte Ptr [8FE3],02
+3C9C 7503           JNZ    3CA1
+3C9E 0AE4           OR     AH,AH
+3CA0 C3             RET
+
+3CA1 50             PUSH   AX
+3CA2 B41A           MOV    AH,1A
+3CA4 BA7E8E         MOV    DX,8E7E
+3CA7 CD21           INT    21               ; nastaven¡ adresy DTA
+3CA9 58             POP    AX
+3CAA BA5C00         MOV    DX,005C
+3CAD CD21           INT    21               ; funkce s FCB
+3CAF 0AC0           OR     AL,AL
+3CB1 C3             RET
+
+3CB2 BEE48F         MOV    SI,8FE4
+3CB5 BFA58A         MOV    DI,8AA5
+3CB8 B460           MOV    AH,60                         ;'`'
+3CBA CD21           INT    21               ; korekce na plnou specifikaci soub.
+3CBC C6068A8D00     MOV    Byte Ptr [8D8A],00
+3CC1 B8006C         MOV    AX,6C00
+3CC4 BB4000         MOV    BX,0040
+3CC7 33C9           XOR    CX,CX
+3CC9 BA0101         MOV    DX,0101
+3CCC CD21           INT    21               ; otev©en¡/vytvo©en¡ souboru
+3CCE 7302           JNB    3CD2
+3CD0 EB17           JMP    3CE9
+3CD2 8BD8           MOV    BX,AX
+3CD4 891E3B90       MOV    [903B],BX
+3CD8 B80057         MOV    AX,5700
+3CDB CD21           INT    21               ; poskytnut¡ data a ‡asu souboru
+3CDD 720A           JB     3CE9
+3CDF 8916A090       MOV    [90A0],DX
+3CE3 890EA290       MOV    [90A2],CX
+3CE7 EB28           JMP    3D11
+3CE9 E8A4E0         CALL   1D90
+3CEC C706658FE48F   MOV    Word Ptr [8F65],8FE4 ; adresa jm‚na souboru p©i chybˆ
+3CF2 C606158201     MOV    Byte Ptr [8215],01 ; ‡¡slo parametru hl ¨en¡
+3CF7 E81013         CALL   500A
+3CFA 833E3B9000     CMP    Word Ptr [903B],+00
+3CFF 7403           JZ     3D04
+3D01 E8AB00         CALL   3DAF
+3D04 803E968D00     CMP    Byte Ptr [8D96],00
+3D09 7403           JZ     3D0E
+3D0B E9DBFD         JMP    3AE9
+3D0E E9DBFD         JMP    3AEC
+3D11 8B1E3B90       MOV    BX,[903B]
+3D15 B80044         MOV    AX,4400
+3D18 CD21           INT    21               ; poskytnut¡ informac¡ o souboru
+3D1A 80E280         AND    DL,80
+3D1D 88163D90       MOV    [903D],DL
+3D21 740D           JZ     3D30
+3D23 803E999000     CMP    Byte Ptr [9099],00
+3D28 7406           JZ     3D30
+3D2A BA7783         MOV    DX,8377
+3D2D E90903         JMP    4039
+3D30 8B1E3B90       MOV    BX,[903B]
+3D34 8B0E988D       MOV    CX,[8D98]        ; velikost datov‚ho bufferu v bajtech
+3D38 8B169A8D       MOV    DX,[8D9A]
+3D3C 2BCA           SUB    CX,DX
+3D3E 750E           JNZ    3D4E
+3D40 E8B401         CALL   3EF7
+3D43 803E9C9000     CMP    Byte Ptr [909C],00
+3D48 7565           JNZ    3DAF
+3D4A 8B0E988D       MOV    CX,[8D98]        ; velikost datov‚ho bufferu v bajtech
+3D4E 1E             PUSH   DS
+3D4F 8E1E798D       MOV    DS,[8D79]
+3D53 B43F           MOV    AH,3F                         ;'?'
+3D55 CD21           INT    21               ; ‡ten¡ ze souboru
+3D57 1F             POP    DS
+3D58 728F           JB     3CE9
+3D5A 8BC8           MOV    CX,AX
+3D5C E351           JCXZ   3DAF
+3D5E 803E3D9000     CMP    Byte Ptr [903D],00
+3D63 7507           JNZ    3D6C
+3D65 803E9D9000     CMP    Byte Ptr [909D],00
+3D6A 741B           JZ     3D87
+3D6C 8BD1           MOV    DX,CX
+3D6E 8B3E9A8D       MOV    DI,[8D9A]
+3D72 B01A           MOV    AL,1A
+3D74 06             PUSH   ES
+3D75 8E06798D       MOV    ES,[8D79]
+3D79 F2             REPNZ
+3D7A AE             SCASB
+3D7B 07             POP    ES
+3D7C 7505           JNZ    3D83
+3D7E FE068A8D       INC    Byte Ptr [8D8A]
+3D82 41             INC    CX
+3D83 2BD1           SUB    DX,CX
+3D85 8BCA           MOV    CX,DX
+3D87 030E9A8D       ADD    CX,[8D9A]
+3D8B 890E9A8D       MOV    [8D9A],CX
+3D8F 3B0E988D       CMP    CX,[8D98]        ; velikost datov‚ho bufferu v bajtech
+3D93 720C           JB     3DA1
+3D95 E85F01         CALL   3EF7
+3D98 803E9C9000     CMP    Byte Ptr [909C],00
+3D9D 7510           JNZ    3DAF
+3D9F EB8F           JMP    3D30
+3DA1 803E3D9000     CMP    Byte Ptr [903D],00
+3DA6 7407           JZ     3DAF
+3DA8 803E8A8D00     CMP    Byte Ptr [8D8A],00
+3DAD 7481           JZ     3D30
+3DAF 8B1E3B90       MOV    BX,[903B]
+3DB3 B43E           MOV    AH,3E                         ;'>'
+3DB5 CD21           INT    21               ; uzav©en¡ souboru
+3DB7 C3             RET
+
+3DB8 803E978D00     CMP    Byte Ptr [8D97],00
+3DBD 75F8           JNZ    3DB7
+3DBF A0928D         MOV    AL,[8D92]
+3DC2 E8D002         CALL   4095
+3DC5 742E           JZ     3DF5
+3DC7 8B1E9A8D       MOV    BX,[8D9A]
+3DCB E81C01         CALL   3EEA
+3DCE 7402           JZ     3DD2
+3DD0 F9             STC
+3DD1 C3             RET
+
+3DD2 33DB           XOR    BX,BX
+3DD4 1E             PUSH   DS
+3DD5 8E1E798D       MOV    DS,[8D79]
+3DD9 C7071A00       MOV    Word Ptr [BX],001A
+3DDD 1F             POP    DS
+3DDE FF069A8D       INC    Word Ptr [8D9A]
+3DE2 C606989000     MOV    Byte Ptr [9098],00
+3DE7 A19A90         MOV    AX,[909A]
+3DEA 03069A8D       ADD    AX,[8D9A]
+3DEE 7205           JB     3DF5
+3DF0 3D0100         CMP    AX,0001
+3DF3 740A           JZ     3DFF
+3DF5 E8F200         CALL   3EEA
+3DF8 75D6           JNZ    3DD0
+3DFA 833E9A9000     CMP    Word Ptr [909A],+00
+3DFF 7503           JNZ    3E04
+3E01 E98A00         JMP    3E8E
+3E04 8B1ED88F       MOV    BX,[8FD8]
+3E08 8B0EA290       MOV    CX,[90A2]
+3E0C 8B16A090       MOV    DX,[90A0]
+3E10 803E979000     CMP    Byte Ptr [9097],00
+3E15 7431           JZ     3E48
+3E17 B42C           MOV    AH,2C                         ;','
+3E19 CD21           INT    21               ; poskytnut¡ syst‚mov‚ho ‡asu
+3E1B D0E1           SHL    CL,1
+3E1D D0E1           SHL    CL,1
+3E1F D1E1           SHL    CX,1
+3E21 D1E1           SHL    CX,1
+3E23 D1E1           SHL    CX,1
+3E25 D0EE           SHR    DH,1
+3E27 0ACE           OR     CL,DH
+3E29 51             PUSH   CX
+3E2A B42A           MOV    AH,2A                         ;'*'
+3E2C CD21           INT    21               ; poskytnut¡ syst‚mov‚ho data
+3E2E 81E9BC07       SUB    CX,07BC
+3E32 86E9           XCHG   CH,CL
+3E34 D1E1           SHL    CX,1
+3E36 D0E6           SHL    DH,1
+3E38 D0E6           SHL    DH,1
+3E3A D0E6           SHL    DH,1
+3E3C D0E6           SHL    DH,1
+3E3E D0E6           SHL    DH,1
+3E40 80D500         ADC    CH,00
+3E43 0AD6           OR     DL,DH
+3E45 8AF5           MOV    DH,CH
+3E47 59             POP    CX
+3E48 83FB00         CMP    BX,+00
+3E4B 7E37           JLE    3E84
+3E4D B80157         MOV    AX,5701
+3E50 CD21           INT    21               ; nastaven¡ data a ‡asu souboru
+3E52 721A           JB     3E6E
+3E54 B80242         MOV    AX,4202
+3E57 33D2           XOR    DX,DX
+3E59 8BCA           MOV    CX,DX
+3E5B CD21           INT    21               ; ukazatel na konec souboru
+3E5D 0BD0           OR     DX,AX
+3E5F 9C             PUSHF
+3E60 B80044         MOV    AX,4400
+3E63 CD21           INT    21               ; poskytnut¡ informac¡ o souboru
+3E65 52             PUSH   DX
+3E66 B43E           MOV    AH,3E                         ;'>'
+3E68 CD21           INT    21               ; uzav©en¡ souboru
+3E6A 5A             POP    DX
+3E6B 7309           JNB    3E76
+3E6D 9D             POPF
+3E6E E86000         CALL   3ED1
+3E71 E82C00         CALL   3EA0
+3E74 EB12           JMP    3E88
+3E76 9D             POPF
+3E77 750B           JNZ    3E84
+3E79 F7C28000       TEST   DX,0080
+3E7D 7505           JNZ    3E84
+3E7F E81E00         CALL   3EA0
+3E82 EB04           JMP    3E88
+3E84 FF06A18D       INC    Word Ptr [8DA1]
+3E88 FE06978D       INC    Byte Ptr [8D97]
+3E8C F8             CLC
+3E8D C3             RET
+
+3E8E 8B1ED88F       MOV    BX,[8FD8]
+3E92 E8B3FF         CALL   3E48
+3E95 E80800         CALL   3EA0
+3E98 C706A18D0000   MOV    Word Ptr [8DA1],0000
+3E9E EBEC           JMP    3E8C
+3EA0 BA818F         MOV    DX,8F81
+3EA3 B441           MOV    AH,41                         ;'A'
+3EA5 CD21           INT    21               ; zru¨en¡ souboru
+3EA7 C3             RET
+
+3EA8 56             PUSH   SI
+3EA9 A1AB90         MOV    AX,[90AB]
+3EAC BE3E90         MOV    SI,903E
+3EAF 2BC6           SUB    AX,SI
+3EB1 BFE48F         MOV    DI,8FE4
+3EB4 03C7           ADD    AX,DI
+3EB6 A3E18F         MOV    [8FE1],AX
+3EB9 880EE08F       MOV    [8FE0],CL
+3EBD 41             INC    CX
+3EBE F3             REPZ
+3EBF A4             MOVSB
+3EC0 883EE38F       MOV    [8FE3],BH
+3EC4 5E             POP    SI
+3EC5 8BC5           MOV    AX,BP
+3EC7 E8CB01         CALL   4095
+3ECA E89EE9         CALL   286B
+3ECD E8C501         CALL   4095
+3ED0 C3             RET
+
+3ED1 803EE89000     CMP    Byte Ptr [90E8],00
+3ED6 7511           JNZ    3EE9
+3ED8 E8B5DE         CALL   1D90
+3EDB C706658F818F   MOV    Word Ptr [8F65],8F81 ; adresa jm‚na souboru p©i chybˆ
+3EE1 C606158201     MOV    Byte Ptr [8215],01 ; ‡¡slo parametru hl ¨en¡
+3EE6 E82111         CALL   500A
+3EE9 C3             RET
+
+3EEA A08C8D         MOV    AL,[8D8C]
+3EED 50             PUSH   AX
+3EEE E80600         CALL   3EF7
+3EF1 58             POP    AX
+3EF2 3A068C8D       CMP    AL,[8D8C]
+3EF6 C3             RET
+
+3EF7 C6069C9000     MOV    Byte Ptr [909C],00
+3EFC 803E968D00     CMP    Byte Ptr [8D96],00
+3F01 7403           JZ     3F06
+3F03 E99900         JMP    3F9F
+3F06 E8A601         CALL   40AF
+3F09 E8FF03         CALL   430B
+3F0C 7519           JNZ    3F27
+3F0E 803E3D9000     CMP    Byte Ptr [903D],00
+3F13 7512           JNZ    3F27
+3F15 803E8C8D00     CMP    Byte Ptr [8D8C],00
+3F1A BA3C82         MOV    DX,823C
+3F1D 7503           JNZ    3F22
+3F1F E91701         JMP    4039
+3F22 C606989001     MOV    Byte Ptr [9098],01
+3F27 B8006C         MOV    AX,6C00
+3F2A BE818F         MOV    SI,8F81
+3F2D BB2100         MOV    BX,0021
+3F30 33C9           XOR    CX,CX
+3F32 BA0101         MOV    DX,0101
+3F35 803E989000     CMP    Byte Ptr [9098],00
+3F3A 7503           JNZ    3F3F
+3F3C BA1201         MOV    DX,0112
+3F3F CD21           INT    21               ; otev©en¡/vytvo©en¡ souboru
+3F41 7311           JNB    3F54
+3F43 E84ADE         CALL   1D90
+3F46 C706658F818F   MOV    Word Ptr [8F65],8F81 ; adresa jm‚na souboru p©i chybˆ
+3F4C C606158201     MOV    Byte Ptr [8215],01 ; ‡¡slo parametru hl ¨en¡
+3F51 E9E500         JMP    4039
+3F54 A3D88F         MOV    [8FD8],AX
+3F57 C606968D01     MOV    Byte Ptr [8D96],01
+3F5C 8BD8           MOV    BX,AX
+3F5E B80044         MOV    AX,4400
+3F61 CD21           INT    21               ; poskytnut¡ informac¡ o za©¡zen¡
+3F63 8816DA8F       MOV    [8FDA],DL
+3F67 F6C280         TEST   DL,80
+3F6A 7433           JZ     3F9F
+3F6C A0928D         MOV    AL,[8D92]
+3F6F 240C           AND    AL,0C
+3F71 7509           JNZ    3F7C
+3F73 A09D90         MOV    AL,[909D]
+3F76 0A069990       OR     AL,[9099]
+3F7A 7419           JZ     3F95
+3F7C 7A21           JPE    3F9F
+3F7E A808           TEST   AL,08
+3F80 741D           JZ     3F9F
+3F82 B80144         MOV    AX,4401
+3F85 32F6           XOR    DH,DH
+3F87 80CA20         OR     DL,20                         ;' '
+3F8A 8816DA8F       MOV    [8FDA],DL
+3F8E CD21           INT    21               ; nastaven¡ informac¡ o za©¡zen¡
+3F90 EB0D           JMP    3F9F
+3F92 E9A400         JMP    4039
+3F95 C6069D9004     MOV    Byte Ptr [909D],04
+3F9A 800E979004     OR     Byte Ptr [9097],04
+3F9F 803E989000     CMP    Byte Ptr [9098],00
+3FA4 7524           JNZ    3FCA
+3FA6 803EDB8E01     CMP    Byte Ptr [8EDB],01
+3FAB 741D           JZ     3FCA
+3FAD E85B03         CALL   430B
+3FB0 7518           JNZ    3FCA
+3FB2 803E3D9000     CMP    Byte Ptr [903D],00
+3FB7 7511           JNZ    3FCA
+3FB9 BA3F82         MOV    DX,823F
+3FBC E84B10         CALL   500A
+3FBF C7069A8D0000   MOV    Word Ptr [8D9A],0000
+3FC5 FE069C90       INC    Byte Ptr [909C]
+3FC9 C3             RET
+
+3FCA 8B1ED88F       MOV    BX,[8FD8]
+3FCE 33C9           XOR    CX,CX
+3FD0 870E9A8D       XCHG   CX,[8D9A]
+3FD4 E3F3           JCXZ   3FC9
+3FD6 FF069A90       INC    Word Ptr [909A]
+3FDA 803E989000     CMP    Byte Ptr [9098],00
+3FDF 7535           JNZ    4016
+3FE1 33D2           XOR    DX,DX
+3FE3 1E             PUSH   DS
+3FE4 8E1E798D       MOV    DS,[8D79]
+3FE8 B440           MOV    AH,40                         ;'@'
+3FEA CD21           INT    21               ; z pis do souboru
+3FEC 1F             POP    DS
+3FED BA2782         MOV    DX,8227
+3FF0 7303           JNB    3FF5
+3FF2 E94EFF         JMP    3F43
+3FF5 2BC8           SUB    CX,AX
+3FF7 74D0           JZ     3FC9
+3FF9 F606DA8F80     TEST   Byte Ptr [8FDA],80
+3FFE 7439           JZ     4039
+4000 F606DA8F20     TEST   Byte Ptr [8FDA],20            ;' '
+

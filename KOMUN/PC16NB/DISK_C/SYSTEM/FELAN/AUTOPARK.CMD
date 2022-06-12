@@ -1,0 +1,3 @@
+DMO T:
+UNP DISKC
+DELP 1

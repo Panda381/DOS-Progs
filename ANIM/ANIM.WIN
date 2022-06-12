@@ -1,0 +1,291 @@
+
+                          Struktura programu
+                        ----------------------
+
+
+Èasti programu (poøadí je závazné):
+
+1.-  Definice  promìnných  pomocí  BYTE  nebo  WORD. Každé promìnné se
+     pøiøadí  definicí  hodnota, s kterou bude program odstartován. Na
+     promìnnou  se  lze  odkazovat  indexovanì (pokud má více položek)
+     nebo bez udání indexu - odpovídá indexu 0 (napø. u promìnných s 1
+     položkou). Hranice indexu se nekontrolují. Tato  deklaraèní  èást
+     slouží k rezervování místa pro promìnné na zaèátku programu.
+
+2.-  Definice  procedur.  Pomocí  PROC  se nadefinují jednotlivé èásti
+     programu  (procedury).  Poøadí definice procedur musí být takové,
+     aby  vnoøené  procedury  byly  vyvolávány  až po jejich pøedchozí
+     definici  (tj.  nejdøíve  jsou  definovány  procedury na nejnižší
+     úrovni).
+
+3.-  Definice  hlavní  procedury. Tato procedura musí mít jméno MAIN a
+     musí  být definována na konci za všemi procedurami. Program touto
+     procedurou zaèíná a jejím ukonèením konèí.
+
+4.-  Definice  souborù  pøipojovaných za konec programu (jako objekty;
+     není nutné zavádìní pomocí LOAD).
+
+
+                                Symboly
+                               ---------
+
+     Symboly  slouží k symbolickým odkazùm na promìnné, procedury nebo
+vnitøní  funkce.  Symbol  sestává z èíslic, písmen, znaku podtrhovátka
+(_) nebo znakù s kódem nad 127 (tj. napø. znaky národní abecedy). Mùže
+mít  maximální  délku  64  znakù  a nesmí zaèínat èíslicí. U písmen se
+nerozlišuje  mezi  malým  a velkým písmenem - to však neplatí u písmen
+národní abecedy (s diakritikou).
+
+
+                                Výrazy
+                               --------
+
+     Všechny  èíselné  operace  probíhají na úrovni slova (16 bitù = 2
+bajty).  Pokud  je promìnná typu BYTE, provádí se automaticky konverze
+bez  kontroly  pøeteèení  rozsahu.  Ani  pøi  výpoètech  se  neprovádí
+kontrola   pøeteèení   rozsahu,  pøeteèení  musí  být  proto  ošetøeno
+programovì (jsou ošetøena pouze "trvdá" pøeteèení typu dìlení nulou).
+
+èíselný výraz: INTEGER (-32768 až +32767)
+
+logický výraz: 0 = FALSE ($0000)
+              -1 = TRUE ($FFFF)
+
+promìnná:             jméno                 odkaz na 1.položku tabulky
+                      jméno(index)          odkaz na položku danou indexem
+                      jméno(index1..index2) odkaz na položku v intervalu
+
+konstanty:           -32768 až 32767        dekadická soustava
+                      0 až $FFFF            hexadecimální soustava
+                      0 až %111111111111    binární soustava
+                      "text"                textová konstanta
+
+
+                          Operátory
+                         -----------
+
+spojení øetìzcù        &                    spojení textových øetìzcù
+
+
+závorky                ()
+unární znaménko        + -                  unární znaménko
+                        ^                   mocnina
+aritmetické operátory  * / MOD SHL SHR      aritmetický násobek, podíl, modulo
+                                            rotace vlevo a vpravo
+                       + -                  aritmetický souèet a rozdíl
+porovnávací operátory   =, <>, <, >, <=, >= shoda, neshoda, menší, vìtší, ...
+                                            (poskytují 0=TRUE, -1=FALSE)
+logické operátory      NOT                  logická negace
+                       AND                  logický souèin
+                       OR XOR               logický souèet, výhradní logický souèet
+
+IF NOT a=2*b^3 AND b<c+2*3 OR (23 AND $ff) = 32 THEN ...
+   |       +-+           |     |        |     |
+   +---------+           |     +--------+     |
+   +---------------------+     +--------------+
+
+
+
+                         Klíèová slova, pøíkazy
+                        ------------------------
+
+*******************************************************************************
+                          Vnitøní øízení programu
+*******************************************************************************
+
+-------------------------------------------------------------------------------
+         { poznámka }                       poznámka (mezi párovými závorkami)
+-------------------------------------------------------------------------------
+         LINK jméno_objektu,soubor;         pøipojení objektu do souboru
+-------------------------------------------------------------------------------
+         INCLUDE soubor;                    vnoøený zdrojový soubor programu
+-------------------------------------------------------------------------------
+         navìští:                           návìští v programu
+-------------------------------------------------------------------------------
+         IF podmínka THEN                   podmínìný pøíkaz
+                   pøíkazy;
+         ELSE                               IF a=c THEN c=d; ELSE e=34; ENDIF;
+                   pøíkazy;
+         ENDIF;
+-------------------------------------------------------------------------------
+         DO                                 podmínìný cyklus
+                   pøíkazy;
+         WHILE podmínka                     DO WHILE a=b+2 a=b; ENDDO
+                   pøíkazy;
+         ENDDO;
+-------------------------------------------------------------------------------
+         CASE výraz                         vìtvení podle hodnoty výrazu
+         IN intervaly: pøíkazy;
+         ....                               CASE a*3;
+         OUT pøíkazy;                       IN 2..3: e=3;
+         ENDCASE;                           ENDCASE;
+-------------------------------------------------------------------------------
+         EXIT návìští;                      pøedèasné ukonèení podmínky,
+                                            cyklu nebo vìtvení se skokem na
+                                            návìští (není-li zadáno, na konec)
+-------------------------------------------------------------------------------
+         PROC jméno:                        definice procedury
+                   pøíkazy;
+                   RETURN(výraz);           RETURN - návrat s kódem
+         ENDPROC
+-------------------------------------------------------------------------------
+         BYTE promìnná:=seznam konstant     definice promìnné po bajtech
+         WORD promìnná:=seznam konstant     definice promìnné po slovech
+                                               seznam tvoøí èísla oddìlená
+                                               èárkami, lze vnoøovat podseznamy
+                                               s opakováním pomocí DUP:
+                                            BYTE pole:=(1, 2, 21 dup(3,6), 12 dup(0));
+                                            WORD èítaè:=0, poèet:=0, mód:=0;
+         STRING promìnná:="øetìzec"         definice øetìzcové promìnné
+-------------------------------------------------------------------------------
+         :=                                 pøiøazení hodnoty promìnné
+-------------------------------------------------------------------------------
+
+
+
+
+*******************************************************************************
+                          Øízení displeje
+*******************************************************************************
+
+         CARD                               funkce - navrací typ videokarty
+-------------------------------------------------------------------------------
+         VIDEO výraz;                       nastavení videomódu
+-------------------------------------------------------------------------------
+         GETVIDEO                           funkce - navrací aktivní videomód
+-------------------------------------------------------------------------------
+         MODE výraz;                        speciální øízení módu displeje
+-------------------------------------------------------------------------------
+         PAGE výraz1, výraz2;               definice aktivní a výstupní stránky
+-------------------------------------------------------------------------------
+         XPAGE;                             zámìna aktivní a výstupní stránky
+-------------------------------------------------------------------------------
+         WINDOW x1,y1,x2,y2;                definice výstupního okna
+-------------------------------------------------------------------------------
+         PALETE seznam_palet;               nastavení palet displeje
+-------------------------------------------------------------------------------
+         XCOLOR barva1, barva2;             pøedefinování barvy v oknì
+-------------------------------------------------------------------------------
+         SETCURS pozice, øádek;             nastavení pozice kurzoru
+-------------------------------------------------------------------------------
+         CURSOFF;                           vypnutí kurzoru
+-------------------------------------------------------------------------------
+
+
+*******************************************************************************
+                          Obsluha objektù
+*******************************************************************************
+
+         LOAD objekt,soubor;                naètení objektu ze souboru
+-------------------------------------------------------------------------------
+         OBJECT pozice, øádek, jméno;       zobrazení objektu
+-------------------------------------------------------------------------------
+         UNLOAD jméno;                      zrušení objektu z pamìti
+-------------------------------------------------------------------------------
+         TEXT pozice,øádek,barva,"text";    zobrazení textu (BIOS)
+-------------------------------------------------------------------------------
+         POINT pozice,øádek,barva;          zobrazení bodu
+-------------------------------------------------------------------------------
+         LINE pozice1,øádek1,pozice2,øádek2,barva;      zobrazení èáry
+-------------------------------------------------------------------------------
+         RLINE pozice2,øádek2,barva;        relativní zobrazení èáry
+-------------------------------------------------------------------------------
+         BOX  pozice1,øádek1,pozice2,øádek2,barva; zobrazení obdélníku
+-------------------------------------------------------------------------------
+         FBOX pozice1,øádek1,pozice2,øádek2,barva; zobrazení plného obdélníku
+-------------------------------------------------------------------------------
+         CIRC pozice,øádek,polomìr,barva;   zobrazení kružnice
+-------------------------------------------------------------------------------
+         FCIRC pozice,øádek,polomìr,barva;  zobrazení kružnice s výplní
+-------------------------------------------------------------------------------
+
+*******************************************************************************
+                          Obsluha klávesnice
+*******************************************************************************
+
+-------------------------------------------------------------------------------
+         PRESS klávesa                      funkce - zda je držena klávesa
+-------------------------------------------------------------------------------
+         ISKEY                              funkce - zda je nìjaká klávesa
+-------------------------------------------------------------------------------
+         GETKEY                             funkce - vstup znaku z klávesnice
+-------------------------------------------------------------------------------
+         FLUSHKEY;                          vyprázdnìní bufferu klávesnice
+-------------------------------------------------------------------------------
+         INPUT promìnná;                    vstup textu nebo èísla z klávesnice
+-------------------------------------------------------------------------------
+
+
+*******************************************************************************
+                   Obsluha zvukového generátoru
+*******************************************************************************
+
+-------------------------------------------------------------------------------
+         SOUND dìlicí_pomìr;                zapnutí zvukového generátoru
+-------------------------------------------------------------------------------
+         SOUNDOFF;                          vypnutí zvukového generátoru
+-------------------------------------------------------------------------------
+         TON frekvence,doba;                zahrání tónu zadané frekvence a doby
+-------------------------------------------------------------------------------
+         MUSIC promìnná;                    zahrání melodie (textová promìnná)
+-------------------------------------------------------------------------------
+         STOPMUS;                           zastavení melodie
+-------------------------------------------------------------------------------
+
+
+*******************************************************************************
+                   Obsluha hodin
+*******************************************************************************
+
+-------------------------------------------------------------------------------
+         WAIT doba;                         èekání po dobu v 1/18 sekundy
+-------------------------------------------------------------------------------
+         SYSHOUR                            promìnná - hodina systémového èasu
+-------------------------------------------------------------------------------
+         SYSMIN                             promìnná - minuta systémového èasu
+-------------------------------------------------------------------------------
+         SYSSEC                             promìnná - sekunda systémového èasu
+-------------------------------------------------------------------------------
+         SYSYEAR                            promìnná - rok systémového èasu
+-------------------------------------------------------------------------------
+         SYSMON                             promìnná - mìsíc systémového èasu
+-------------------------------------------------------------------------------
+         SYSDAY                             promìnná - den systémového èasu
+-------------------------------------------------------------------------------
+         SYSWEEK                            promìnná - den v týdnu syst. èasu
+-------------------------------------------------------------------------------
+
+
+*******************************************************************************
+                   Obsluha myši
+*******************************************************************************
+
+-------------------------------------------------------------------------------
+         MOUSE                              funkce - zda je myš instalována
+-------------------------------------------------------------------------------
+         MOUSEON;                           zapnutí myši
+-------------------------------------------------------------------------------
+         MOUSEOFF;                          vypnutí myši
+-------------------------------------------------------------------------------
+         WINMOUSE pozice1,øádek1,pozice2,øádek2; definice okna pro myš
+-------------------------------------------------------------------------------
+         CURMOUSE jméno;                    definice kurzoru myši jako objekt
+-------------------------------------------------------------------------------
+         MOUSEX                             funkce - pozice myši
+-------------------------------------------------------------------------------
+         MOUSEY                             funkce - øádek myši
+-------------------------------------------------------------------------------
+         MOUSEKEY                           funkce - tlaèítko
+-------------------------------------------------------------------------------
+
+
+*******************************************************************************
+                          Speciální funkce
+*******************************************************************************
+
+-------------------------------------------------------------------------------
+         EXEC "pøíkaz";                     provedení pøíkazu DOS
+-------------------------------------------------------------------------------
+         RND                                funkce - náhodné èíslo v intervalu
+-------------------------------------------------------------------------------
+

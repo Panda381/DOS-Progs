@@ -1,0 +1,1 @@
+@seznam psc.dat

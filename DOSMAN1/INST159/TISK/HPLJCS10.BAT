@@ -1,0 +1,3 @@
+@echo off
+echo €ekejte, prob¡h  instalace fontu 1/10 pro tisk rnu...
+copy /b hpljcs10.bin prn > nul

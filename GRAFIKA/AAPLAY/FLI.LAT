@@ -1,0 +1,136 @@
+
+;
+;                                                                      RPR940811
+; Popis form tu soubor… .FLI 320x200 bod…, 256 barev generovan‚ho programy
+; Autodesk Animator V1.0 a Autodesk 3D Studio V1.0 zjiçtØnì na z kladØ
+; experiment… s vytvoýenìmi soubory.
+;
+
+
+; ******************************************************************************
+; Form t souboru:
+         80h  Z hlav¡
+         ??   Paket1
+         ??   Paket2
+              ...
+         ??   PaketN
+
+
+; ==============================================================================
+; ------ Z hlav¡ souboru
+         dd   D‚lka souboru v bajtech
+         dw   0AF11h - Identifik tor FLI form tu
+         dw   PoŸet obr zk… v souboru
+         dw   RozmØr obrazovky X
+         dw   RozmØr obrazovky Y
+         dd   Identifik tor programu, ve kter‚m byl soubor vytvoýen
+         dw   Prodleva mezi obr zky *10 ms (5 = 20 obr zk… za sekundu)
+         db   110 dup (?) - Koment ý, kopyrajt nebo podobnØ
+
+; ==============================================================================
+; ------ Paket
+         dd   D‚lka paketu v bajtech
+         dw   0F1FAh - Identifik tor FLI paketu
+         dw   PoŸet superblok… v paketu
+         dw   0,0,0,0
+
+         ??   Superblok 1
+       [ ??   Superblok 2 ]
+
+
+; ------ Superblok
+         dd   D‚lka superbloku v bajtech
+         dw   Typ superbloku: 0Bh = Definice palety
+                              0Ch = Delta - obr zek
+                              0Dh = Celoobrazovkovì obr zek
+         ??   Data podle typu superbloku
+
+
+; ------------------------------------------------------------------------------
+; ------ Superblok definice palety 0Bh
+         dd   D‚lka superbloku v bajtech
+         dw   Typ superbloku 0Bh = Definice palety
+         dw   1
+         db   Prvn¡ pýedefinovan  barva
+         db   PoŸet barev k pýedefinov n¡ (0 = vçech 256)
+         ??   Paleta RGB 3*8 bit…
+
+
+; ------------------------------------------------------------------------------
+; ------ Superblok delta - obr zku 0Ch
+         dd   D‚lka superbloku v bajtech
+         dw   Typ superbloku 0Ch = Delta - obr zek
+         dw   PoŸ teŸn¡ linka na obrazovce
+         dw   PoŸet linek
+
+         ??   ü dek1
+         ??   ü dek2
+              ...
+         ??   ü dekN
+
+
+; ------ ü dek delta - obr zku
+         db   PoŸet blok… na ý dku
+
+         ??   Blok1
+         ??   Blok2
+              ...
+         ??   BlokN
+
+; ------ Jeden blok ý dku delta - obr zku
+         db   Mezera (poŸet bod…, kter‚ nebudou zmodifikov ny)
+         db   D‚lka:   1..127 -> PoŸet bajt… nekomprimovanìch dat
+                     128..255 -> DoplnØk (0-X) k poŸtu opakov n¡
+                                 n sleduj¡c¡ho bajtu
+         ??   Data
+
+
+; ------------------------------------------------------------------------------
+; ------ Superblok celoobrazovkov‚ho obr zku - 0Fh
+         dd   D‚lka superbloku v bajtech
+         dw   Typ superbloku 0Fh = Celoobrazovkovì obr zek
+         ??   200 ý dk… komprimovanìch dat
+
+; ------ ü dek celoobrazovkov‚ho obr zku
+         db   PoŸet blok… na ý dku
+
+         ??   Blok1
+         ??   Blok2
+              ...
+         ??   BlokN
+
+; ------ Jeden blok ý dku celoobrazovkov‚ho obr zku
+         db   D‚lka:   1..127 -> PoŸet opakov n¡ n sleduj¡c¡ho bajtu
+                     128..255 -> DoplnØk (0-X) k poŸtu bajt…
+                                 nekomprimovanìch dat
+         ??   Data
+
+
+
+; ******************************************************************************
+; Pý¡klad uspoý d n¡ .FLI souboru:
+
+  Z hlav¡ souboru s rychlost¡ prom¡t n¡, rozmØrem a poŸtem obr zk…
+  Paket 02
+    Superblok palety 0Bh                       ; Nastaven¡ palety
+      Definice barev 0-255
+    Superblok celoobrazovkov‚ho obr zku 0Fh    ; évodn¡ vykreslen¡ sc‚ny
+      200 ü dk…, na ka§d‚m nØkolik blok… dat
+  Paket 01
+    Superblok delta - obr zku 0Ch              ; Animace
+      NØkolik ý dk… s rozd¡ly oproti pýedeçl‚mu obr zku
+  Paket 01
+    Superblok delta - obr zku 0Ch
+      NØkolik ý dk… s rozd¡ly oproti pýedeçl‚mu obr zku
+
+  Paket 00                                     ; Prodleva
+  Paket 00
+  Paket 00
+
+  Paket 01
+    Superblok palety 0Bh                       ; Napý. rotace palety
+      NØkolik ý dk… s rozd¡ly oproti pýedeçl‚mu obr zku
+  Paket 01
+    Superblok palety 0Bh
+      NØkolik ý dk… s rozd¡ly oproti pýedeçl‚mu obr zku
+

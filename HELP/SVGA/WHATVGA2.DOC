@@ -1,0 +1,527 @@
+
+                WHATVGA version 1.50  17/jan/94
+
+
+         Copyright 1991,92,93,94   Finn Th›gersen
+         All Rights Reserved
+
+
+
+
+
+
+
+Command line switches:
+
+  whatvga [+acumos] [-ncr] [=1024] [/a]
+
+  where +chipset  forces WHATVGA to proceed as if this chipset was found.
+                  The test for this chip set will be executed in order
+                  to check for memory and revision.
+                  No other chipsets will be tested.
+
+        -chipset  ensures that the tests for this chipset will NOT be
+                  executed. Useful if a chipset is misidentified
+                  or some earlier test gives problems.
+
+        =kbytes   Forces the number of Kbytes of video RAM on the
+                  adapter to the specified value.
+        
+        /a        Run automatic test and write results to a file.
+                  The user responds with Y or N to each test and can
+                  enter comments to the individual tests.
+                  On startup you may be asked to select the video system
+                  to test (say if you have a VESA driver loaded).
+                  If the program seems to halt for more than a few seconds
+                  try to press the enter key.
+
+                  The recommanded way to use the program is to start it
+                  with no command line parameters and play with it a bit.
+                  See that the chipset, memory and DAC are ID'd properly
+                  and that you can display at least some super VGA modes.
+                  Then run the program with /a to do the full test.
+                  For the /a test, the system should be as "clean" as
+                  possible, as TSRs (including mouse and keyboard drivers)
+                  and memory managers can sometimesaffect the results.
+                  Try booting from a floppy.
+
+                  Comments should only be entered when something is wrong
+                  or needs clarification. Ie. there is no need to enter
+                  "Fine" or "All ok" thats what the yes/no queries are for.
+                  When something is wrong try to be as descriptive as
+                  possible (remember, I can't see the screen).
+
+Note that the files CHIPS.LST and WHATVGA.LST must be in the current
+directory for WHATVGA to functiion.
+
+If you have problems with the identification/startup:
+
+ - The screen goes blank or all white...
+   Try to run: WHATVGA /d
+   This will display the name of each chipset and waits for
+   you to press the Enter key BEFORE the chipset is tested.
+   When you have found the offending chipsets, try to run:
+     WHATVGA -Chips&Tech     (assuming Chips&Tech is the one)
+   Report the problem.
+
+ - The chipset is misidentified.
+   Try to run: WHATVGA -chipset
+   where chipset is one of the following:
+     Chips&Tech    Chips & Technologies
+     Paradise      Paradise/Western Digital
+     Video7        Video7
+     ET3000        Tseng Et3000
+     ET4000        Tseng ET4000, ET4000/W32
+     Trident       Trident 8800/8900/9000
+     Everex        Everex
+     ATI           ATI VGA Wonder/Graphics Ultra +/Pro
+     Genoa
+     Oak           Oak 37/67/77/87
+     Cirrus        Cirrus 5x0/6x0
+     Ahead         Ahead A&B
+     NCR           NCR 77c2x
+     Yamaha        Yamaha 6388
+     S3            S3 86c series
+     AL2101        Avance Logic ALG2101
+     MXIC          MXIC 860x0
+     Realtek       Realtek
+     PRIMUS        Primus P2000
+     Cirrus54      Cirrus CL-GD54xx
+     Cirrus64      Cirrus CL-GD64xx
+     Weitek        Weitek W5x86
+     COMPAQ        Compaq IVGA/AVGA/QVision
+     UMC           UMC 85c408
+     HMC           HMC HM86304
+
+ - Memory Size is identified wrong.
+   Run WHATVGA =2048    (or how many Kbytes you have)
+   Report the problem.
+
+
+Whatvga has 6 options in the main menu:
+
+  1 Test standard VGA
+
+    Allows you to test the standard VGA video modes.
+    Draws a test pattern, including a color palette
+    and writes basic information as text on the display.
+
+    See 2) for the details.
+
+  2 Test extended modes
+
+    Allows you to test the extended video modes of the adapter.
+    Draws a test pattern, including a color palette
+    and writes basic information as text on the display.
+    On the upper and left edge every hundred pixels is marked.
+
+    when you press a key the testpattern is drawn again, this time
+    in the largest size the available video memory will support
+    ("Virtual Screen"), allowing you to scroll around in the display
+    using the arrow keys. You should be able to move in the entire
+    pattern, but not to move so far right or down that the display wraps. 
+    If you can move past the right edge (or can't reach it) then the
+    scroll function probably needs a factor 2 (divide or multiply)
+    in the SetVStart function.
+
+    When you press the Enter key a textscreen is shown with the
+    statistics for the mode, this screen also shown if the rutine
+    to analyse the mode from the register values (AnalyseMode) reaches
+    the same result. If not the values are shown as "Calculated".
+
+    By pressing "d" or "D" you can see a dump of all the VGA (and extended)
+    registers. The registers can be saved (appended) to the file REGISTER.VGA
+    by pressing "f" or "F".
+
+  3 Search for modes
+
+    Sequentially attempts to set modes 14h to 7Fh, each time testing
+    if the mode was succesfully set. If so the testpattern is drawn
+    and the mode is analysed.
+    
+
+  5 Hardware Cursor test
+
+    This item attempts to place a 32x32 hardware Cursor in the
+    selected mode. The cursor can be moved around on the screen
+    with the arrow keys.
+
+  6 BitBLT test
+
+    This item first draws the testpattern, then draws the color palette
+    with BitBLT operations, then makes two blockcopies via BitBLT of
+    the two palettes, and finally draws a series of rectangles each smaller
+    than the last to test precision (you need to press a key for each box)
+
+
+  7 Line Draw test
+
+    This item attempts to draw lines from the center of the screen
+    in a "wheel" using different colors.
+
+  8 Read/Write bank test
+
+    This item copies the area with the color palette to the lower half
+    of the screen using seperate read/write banks.
+
+  0 Exit
+
+  Items 5-8 are only present if I believe the adapter supports the function,
+  though you can always try the test by pressing the key.
+
+
+  Special functions for test purposes (may hang your PC or worse):
+
+  B Register Bit test.
+
+    You are asked for the base register (such as 3C0h, 3C4h, 3CEh or
+    3d4h), starting index and starting bit number (0-7).
+    Then you select the mode for the test.
+
+    Now the test pattern is drawn in the desired mode, but using the
+    entire video memory (like the "virtual screen").
+    The selected bit will be changed for ~0.5 sec, then restored for
+    another 0.5 sec. This repeats until another bit is selected by
+    -, + or * or the test is stopped by the Esc key.
+
+    This can be used figure out the function of individual bits, the
+    Display Start extension bits being the obvious example (and the
+    intended target), but also clock bits etc.
+
+    !!NOTE!! this may hang your PC or expose your video card or monitor
+    to conditions beoynd their intended operational specifications.
+    While damage to your monitor or video card is extremely unlikely
+    (I haven't heard of a confirmed case since the old IBM MDA monitor),
+    it is theoretically possible and my insurence company refuses to
+    recognize any responsibility what so ever :-).
+
+    Hanging your PC is however a very real possibility.
+    Note the bit you were testing, reboot (power off may be required)
+    and restart from the NEXT bit.
+
+  D DAC 6/8 bit test
+
+    A test pattern is drawn in the selected 256color mode.
+    The palette is set up to use the full 256 of 16m palette (256
+    shades of each basic color). When the DAC is in 6bit mode there
+    are only 64 shades, thus the color bars will "break".
+    The keys 6 and 8 switches between 6bit and 8bit DAC mode
+    (if the 8bit DAC mode works :-) ).
+    Esc or Enter terminater the test.
+    Currently this only works for the AT&T,Brooktree and Sierra 24bit DACs.
+
+
+
+The tests:
+
+ID:      Is the Chip Set, DAC and video memory identified correctly?
+
+Xres:    Are the modes (standard and extended) displayed correctly?
+         Display type, Switch settings and BIOS versions can cause
+         some modes to be unavailable or out of sync.
+
+Scrl:    Can you display and scroll in the Virtual Screen ?
+         You should be able to move in the entire virtual screen,
+         but not to move so far right or down that the display wraps.
+         If you can move past the right edge (or can't reach it)
+         we probably miss a factor of two in the SetVStart function.
+         If the display wraps when the start crosses the middle (or 1/4)
+         of memory we have a problem with the high bits (the Y variable)
+         in the SetVStart function or with an enable bit.
+         Also part of video memory can be inaccessible in modes that
+         normally only use <half the memory causing the testpattern to
+         be overwritten.
+    
+Anal:    Are the modes (particularly the extended ones) analysed
+         correctly (Ie are there no "Calculated" fields) ?        
+         Some modes, such as 2 and 4 color and mode 13h are
+         hard to ID on many adapters.
+
+Cur:     Is the HardWare cursor shown correctly and can it be moved
+         around the display with the arrow keys ?
+         The cursor should look like a snipers sights with a dot in the
+         upper left corner.
+
+Blit:    Is the second palette drawn correctly ? Are the palettes
+         copied correctly ? Are the boxes placed correctly
+         (each one pixels smaller in each direction) ?
+
+Line:    Are the lines drawn from the middle to fill a rectangle ?
+
+RWbank:  Is the palette (and text) copied correctly ?
+
+
+Adapters tested:
+
+
+                ID: Xres: Scrl:  Anal:  Cur:  Blit:  Line:  RWbank:
+
+Acumos:  See Cirrus 5401 and 5402
+Ahead:
+  A
+  B             Ok  Ok*   Ok     Ok                         Ok
+ATI:
+  18800         Ok  Ok    Ok     Ok                         N/A
+  18800-1
+  28800-2       Ok  Ok    Ok     Ok                         Ok
+  28800-4
+  28800-5
+  68800         Ok  Ok*   Ok     Ok                         Ok
+Avance Logic:   .   .     .      .      .     .      .      .
+  AL2101        Ok  Ok    Ok     Ok     Ok*   Ok%    Ok%    Ok
+Chips&Tech:
+  82c450
+  82c451
+  82c452        Ok  Ok*   Ok     Ok     Ok
+  82c453
+  82c455
+  82c456
+  82c457
+  F65520
+  F65530
+Cirrus:         .   .     .      .      .     .      .      .
+  510/520       Ok                            N/A    N/A    N/A
+  610/620                                     N/A    N/A    N/A
+  5401(AVGA1)   No
+  5402(AVGA2)   Ok  Ok    Ok     Ok     Ok
+  5410
+  5420          Ok  Ok    Ok     Ok     Ok%^  N/A    N/A    N/A
+  5422          Ok  Ok    Ok     Ok     Ok^   N/A    N/A    N/A
+  5424          Ok  Ok    Ok     Ok     Ok^   N/A    N/A    N/A
+  5426          Ok  Ok    Ok     Ok     Ok^                 N/A
+  5428
+  543x
+  6205
+  6215
+  6225
+  6235
+  6410          Ok  Ok    Ok     Ok
+  6412
+  6420          Ok  Ok*   Ok     Ok                         No
+  6440
+Compaq:
+  IVGS
+  AVGA
+  QVGA          Ok  Ok    Ok*    *      Ok    Ok*^
+  QVGA1280
+Everex:
+Genoa:          .   .     .      .      .     .      .      .
+  51/5200
+  53/5400
+  6100
+  62/6300
+  64/6600
+  7900
+HMC:
+  HM86304       Ok  Ok*   Ok     Ok
+IIT:
+  AGX-14
+  AGX-15
+MXIC:
+  86000         Ok  Ok    Ok     Ok                         Ok
+  86010         Ok  Ok    Ok     Ok                         Ok
+NCR:
+  77C20
+  77C21
+  77C22E        Ok  Ok    Ok     Ok     Ok#                 Ok
+  77C22E+
+Oak:            .   .     .      .      .     .      .      .
+  OTI-37C       Ok
+  OTI-067       Ok  Ok    Ok     Ok                         Ok
+  OTI-077       Ok  Ok*   Ok     Ok                         Ok
+  OTI-087       Ok  Ok*   Ok     OK                         OK
+Paradise/Western Digital:
+  PVGA1A        Ok  Ok
+  WD90C00       Ok  Ok    Ok     Ok
+  WD90C10
+  WD90C11
+  WD90C2x
+  WD90C30       Ok  Ok    Ok     Ok                         Ok
+  WD90C31       Ok  Ok    Ok     Ok     Ok*   Ok*           Ok
+  WD90c33       Ok  Ok    Ok*    Ok     Ok*                 Ok
+Primus:
+  P2000         Ok  Ok    Ok*    Ok           Ok%           Ok
+Realtek:
+  RT3106        Ok  Ok    Ok     Ok                         Ok
+S3:             .   .     .      .      .     .      .      .
+  86c911                                                    N/A
+  86c911A/24    Ok  Ok    Ok     Ok     Ok    Ok     Ok     N/A
+  86c801                                                    N/A
+  86c805                                                    N/A
+  86c928                                                    N/A
+Trident:
+  8800BR                                                    N/A
+  8800CS                                                    N/A
+  8900B         Ok  Ok    Ok*    Ok                         N/A
+  8900C         Ok  Ok    Ok*    OK                         N/A
+  9000                                                      N/A
+  8900CL        Ok  Ok    Ok     Ok
+  9000i         Ok  Ok    Ok     Ok
+Tseng:          .   .     .      .      .     .      .      .
+  ET3000        Ok  Ok*   Ok     Ok                         Ok
+  ET4000        Ok  Ok    Ok     Ok                         Ok
+  ET4000W32     Ok  Ok    Ok     Ok     Ok%^                Ok
+  ET4000W32i
+UMC:
+  UMC85c408     Ok  Ok    Ok     Ok                         Ok
+Video7/Headland:
+  HT-208
+  HT-216
+Weitek:
+  W5086
+  W5186         Ok* Ok    Ok*    Ok
+  W5286
+  P9000
+Yamaha:
+  6388
+
+
+* Note
+# Not in 16 color modes
+$ Not in 256 color modes
+% Not in 32k/64k color modes
+^ Not in 16m color modes
+
+
+ATI Graphics Ultra Pro:
+Mode 13h has problems above 64Kb.
+Can't get the cursor to work yet
+
+Avance Logic AL2101:
+In interlaced modes the cursor is twice the normal size.
+While copy via BitBLT works in HiColor modes, Fill does not.
+LIne draw doesn't work in HiColor modes.
+
+Chips&Tech 82c450:
+There appears to be problems identifying this chipset
+(black screen...).
+
+Chips&Tech 82c452:
+Mode 13h apparently can't cross the 64k line
+
+Cirrus CL-GD54xx:
+Mode 13h can't cross the 64k limit
+Cursor OK except 16m modes (Hardware limitation ?)
+
+Cirrus CL-GD6420.
+Mode 13h has problems at the 128K and 256K borders.
+Read/Write bank doesn't appear to work
+
+Compaq Qvision 1024:
+Cursor ok except 16m modes.
+Scroll ok except 1024x768x16c
+The BIOS hangs when mode 4Fh is set.
+
+HMC HM86304:
+Mode 13h can not cross 64k. 4 color modes don't work yet
+
+MXIC 86000:
+The detection of MX86000/86010 appears to work, but let me know if
+you see otherwise.
+
+Oak-077:
+Mode 13h has problems beoynd 64k.
+
+Oak-087:
+The scroll rutine is only tested to 1MB.
+Mode 13h has problems beoynd 64k.
+
+Primus P2000:
+Scroll has problems crossing the 1MB line in some modes.
+Sympthom: An image from the 1st is overlayed on the image from the
+2nd MB resulting in lots of flicker.
+While copy via BitBLT works in HiColor modes, Fill does not.
+
+Trident 8900B, 8900C:
+In Mode 13h (and the 16color modes) the display can't cross the 512K
+border, though once the display start is set>=512 it works.
+
+Tseng ET3000:
+Some 16color modes (640x480x16 and 800x600x16) has problems enabling
+the upper 256KB.
+
+WD90c31:
+The hardware cursor is only XOR, and doesn't work properly in HiColor.
+BitBlt sometimes skips blocks in 16c modes, and HiColor fill doesn't work
+
+WD90c33:
+The WD90c33 was only tested with 1mb, so the extra bits for accessing
+and scrolling beoynd 1MB has not been tested.
+The hardware cursor is only XOR.
+
+Weitek:
+The Weitek chip tested was the VGA part of a P9000 card with only 256K
+VGA memory. The 5x86 will all be ID'd as 5186.
+
+
+Generel Problems:
+
+I can't tell the difference between the Sierra "Mark2" SC11482/3/4
+(15 bits) and the "Mark3" SC11485/7/9 (15/16 bits) RAMDACs.
+
+Search for modes doesn't understand 2 and 4 color modes.
+In general 2 and 4 color modes are only supported partially.
+
+Mode 0Fh and 11h (and other 2 color modes) has problems in some cases.
+
+Mode 13h has a pixel double function. Most chips use Master Clock/2
+(3C4h index 1 bit 3) for this, but some chips has their own system.
+
+Some of the extended modes may only be implemented on
+some otherwise similar boards, depending on make and BIOS rev.
+
+
+Utilities:
+
+DMPMEM:
+
+  DMPMEM dumps the ROMs to files named DMPxxxx.ROM (where xxxx is
+  the hex address of the ROM Ie. DMPC000.ROM for VGA).
+  Interrupt and Font addresses are saved to the file VECTORS.ROM
+  As Mouse drivers, national keyboard drivers, memory managers
+  etc can obscure the results the program should be run on a clean
+  system (empty CONFIG.SYS and AUTOEXEC.BAT say from a floppy).
+
+
+TABLE:
+
+  Takes the register sets dumped to the file REGISTER.VGA and writes
+  them to REGISTER.TBL. If a register has the same value in all register
+  sets, the value is only shown the first time.
+  As the same file names are used every time you will have to delete
+  and rename the files as needed.
+
+
+VESALIE:
+
+  Can change the version and amount of memory reported by your VESA driver.
+  Can also hide the VESA driver, so other applications don't see it.
+  Parameters:  /0 /1 /2  Makes the VESA driver report a specific VESA
+                         VBE version (1.00, 1.01 or 1.02).
+               /on /off  Turns the VESA VBE on or off. By turning the
+                         VBE off you can prevent applications from using
+                         the VESA interface. Also if you try to load
+                         another VESA driver, it may refuse to install
+                         while the original driver is visible.
+               /Mxx      Forces the VESA driver to report the specified
+                         amount (in Kbytes) of video memory.
+               /U        Unload the VESALIE program.
+
+  Note that this NOT a VESA driver, it just changes the behavior of
+  an already installed driver.
+
+
+SHOWTEST:
+
+  Analyses the results in the .tst files generated when WHATVGA is
+  run with the /a option (WHVGAxxx.TST).
+  Parameters: SHOWTEST [tstfil] [outfil] [/r]
+  When run without parameters it lists the test files in the current
+  directory, showing the filename, chipset, memory, DAC and chipname.
+  When run with the name of a test file, the test results in this file
+  are written to the outfile. If no outfile is specified, the name of
+  the test file is used, with the extension changed to .txt
+  If the /r switch is used the register dumps for each mode is written
+  to the outfile (or to .reg).
+
+

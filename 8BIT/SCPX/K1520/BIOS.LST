@@ -1,0 +1,2486 @@
+CONTEXT   0 241   1   0  67
+                                                - # -
+; --------------------------------------------------------------------------
+;
+;                       Modul BIOS operaán°ho systÇmu SCPX
+;
+; --------------------------------------------------------------------------
+
+
+0000:  c3 03 de                jp      wboot          ; skok na horkò start systÇmu
+
+0004:                          db      0              ; I/O bajt
+0005:  c3 06 d0                jp      bdos           ; skok na obsluhu sluëeb BDOS
+
+
+
+003e:  03 de                   dw      wboot          ; adresa horkÇho startu systÇmu
+
+
+
+0080:                                                 ; ukl†dac° adresa DMA
+
+
+
+de00:  c3 95 df        BIOS:                          ; studenò start systÇmu = BOOT
+                               jp      boot           ; inicializace OS, zaveden° CCP a BDOS
+                                                      ; VùSTUP: skok do CCP
+                                                      ;         C = I/O bajt
+ ......................................................
+de03:  c3 f5 df        WBOOT:                         ; reset systÇmu = BDOS00
+                               jp      wboot          ; reset systÇmu - znovuzaveden° CCP a BDOS
+                                                      ; VùSTUP: skok do CCP
+                                                      ;         C = I/O bajt
+ ......................................................
+de06:  c3 a0 e0        CONST:                         ; status konzoly
+                               jp      const          ; zji®tàn° p©ipravenosti znaku z konzoly
+                                                      ; VùSTUP: A=0, Z=1 - nen° p©ipraven znak
+                                                      ;         A=ffh, Z=0 - je p©ipraven znak
+ ......................................................
+de09:  c3 79 e0        CONIN:                         ; znak z konzoly (áek†)
+                               jp      conin          ; vstup znaku
+                                                      ; VùSTUP: A=znak; A=0 - neplatnò znak
+ ......................................................
+de0c:  c3 70 e1        CONOUT:                        ; vòstup znaku na konzolu
+                               jp      conout         ; vòstup znaku na konzolu
+                                                      ; VSTUP: C=znak
+ ......................................................
+de0f:  c3 ba e2        LIST:                          ; vòstup znaku na tisk†rnu = BDOS05
+                               jp      list           ; vòstup znaku na tisk†rnu
+                                                      ; VSTUP: C=znak
+ ......................................................
+de12:  c3 c9 e3        PUNCH:                         ; vydàrov†n° znaku = BDOS04
+                               jp      punch          ; vydàrov†n° znaku
+                                                      ; VSTUP: C=znak
+ ......................................................
+de15:  c3 cb e3        READER: jp      reader         ; p©eáten° znaku ze sn°maáe
+                                                      ; VùSTUP: A=1ah nen° dàrovaá
+ ......................................................
+de18:  c3 ce e3        HOME:   jp      home           ; nastaven° hlavy na stopu 0
+ ......................................................
+de1b:  c3 dd e3        SELDSK: jp      seldsk         ; vòbàr akt.disku
+                                                      ; VSTUP: C=á°slo disku 0...
+                                                      ; VùSTUP: HL=adresa tabulky parametrñ disku
+                                                      ;         HL=0 - neplatnÇ zad†n° disku
+ ......................................................
+de1e:  c3 f3 e3        SETTRK: jp      settrk         ; nastaven° stopy
+                                                      ; VSTUP: BC=poëadovan† stopa
+ ......................................................
+de21:  c3 f9 e3        SETSEC: jp      setsec         ; nastaven° sektoru
+                                                      ; VSTUP: C=poëadovanò sektor
+ ......................................................
+de24:  c3 0d e4        SETDMA: jp      setdma         ; nastaven° adresy DMA
+                                                      ; VSTUP: BC=nov† adresa DMA
+ ......................................................
+de27:  c3 13 e4        READ:   jp      read           ; p©eáten° sektoru
+ ......................................................
+de2a:  c3 45 e4        WRITE:  jp      write          ; z†pis sektoru
+                                                      ; VSTUP: C=zpñsob uzav°r†n° fyzickòch sektorñ
+ ......................................................
+de2d:  c3 e3 e2        LISTST: jp      listst         ; dotaz na stav tisk†rny
+                                                      ; VùSTUP: A=0 nen° p©ipravena
+                                                      ;         A<>0 je p©ipravena
+ ......................................................
+de30:  c3 fe e3        SECTRN: jp      sectrn         ; p©eveden° log.á°sla sektoru na fyzickÇ
+                                                      ; VSTUP: BC=poëadovanÇ á°slo logickÇho sektoru
+                                                      ;        HL=tabulka diskovòch parametrñ
+                                                      ; VùSTUP: HL=fyzickÇ á°slo logickÇho sektoru
+ ......................................................
+de33:                          db      "BW 12"        ; verze BIOS
+
+de38:                  ddw37:  dw      f850h          ; pozice kurzoru
+de3a:                          dw      e675h          ; n†vrat z obsluhy z†pisu sektoru
+de3c:                          dw      eb79h          ; tabulka parametrñ diskovòch operac°
+de3e:                          dw      de66h          ; tabulka pro zaveden° systÇmu ze stopy 1
+de40:                          dw      f740h          ; konec operaán°ho systÇmu
+de42:                          dw      e679h          ; naáten° z†znamu od adresy DE podle tabulky HL
+de44:                  adrtab: dw      de84h          ; adresa tabulky diskovòch parametrñ
+de46:                  ddb32:  db      8              ; maxim†ln° poáet pokusñ pro diskovou operaci
+de47:                  ddw8:   dw      e04ah          ; adresa inicializace systÇmu
+de49:                          db      0,0,0,0,0,0,0
+de50:                          dw      df79h          ; tabulka pro p©evod logickòch sektorñ
+
+                                                      ; pracovn° tabulka k naáten° z†znamu z disku
+de52:                  ddb30:  db      0              ; p©°znakovÇ bity pro diskovou operaci
+                                                      ; bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ; bit 0 = áten° v°ce sektorñ
+de53:                  ddb31:  db      0              ; fyzick† mechanika pro operaci
+                                                      ; bit 4 = je povrch 1
+de54:                  dtb33:  db      0              ; aktu†ln° á°slo v†lce
+de55:                          db      0              ; aktu†ln° á°slo povrchu
+de56:                          db      0              ; aktu†ln° á°slo sektoru
+de57:                          db      0              ; ©†d fyzickÇho sektoru
+de58:                          db      0              ; posledn° sektor na stopà
+de59:                          db      0              ; poáet oddàlovac°ch bajtñ za hlaviákou sektoru - 7
+de5a:                  dtb34:  db      0              ; poáet sektorñ k naáten°
+de5b:                          db      0              ; stopa k p©epnut° z†znamovÇho proudu
+de5c:                          db      0              ; vòstupn° bajt pro kan†l 12h
+de5d:                          db      0
+de5e:                          db      0              ; doba pro áek†n° na p©ipravenost mechaniky
+
+de5f:                          db      efa6h          ; adresa pro naáten° sektoru
+de61:                  ddw27:  dw      0000h          ; adresa DMA pro diskovÇ p©enosy
+de63:                          dw      0040h
+
+de65:                  disk:   db      5              ; poáet logickòch diskñ celkem
+
+                                                      ; tabulka pro zaveden° CCP a BDOS-á†st1
+de66:                  dtb67:  db      6              ; p©°znakovÇ bity pro diskovou operaci
+                                                      ; bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ; bit 0 = áten° v°ce sektorñ
+de67:                          db      0              ; fyzick† mechanika pro operaci
+de68:                          db      0              ; á°slo v†lce k zaveden° z†znamu
+de69:                          db      0              ; á°slo strany k zaveden°
+de6a:                          db      5              ; poá†teán° sektor k zaveden° systÇmu
+de6b:                          db      0              ; ©†d fyzickÇho sektoru
+de6c:                          db      1ah            ; posledn° sektor na stopà
+de6d:                          db      4              ; poáet oddàlovac°ch bajtñ za hlaviákou sektoru - 7
+de6e:                          db      16h            ; poáet sektorñ k naáten°
+de6f:                          db      27h            ; stopa k p©epnut° z†znamovÇho proudu
+de70:                          db      84h            ; vòstupn° bajt pro kan†l 12h
+de71:                          db      4
+de72:                          db      15h            ; doba pro áek†n° na p©ipravenost mechaniky
+de73:                  adrccp: dw      c800h          ; zaá†tek CCP
+
+                                                      ; tabulka pro zaveden° BDOS-á†st 2
+de75:                  dtb69:  db      46h            ; p©°znakovÇ bity pro diskovou operaci
+                                                      ; bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ; bit 0 = áten° v°ce sektorñ
+de76:                          db      0              ; fyzick† mechanika pro operaci
+de77:                          db      1              ; á°slo v†lce k zaveden° z†znamu
+de78:                          db      0              ; á°slo strany k zaveden°
+de79:                          db      1              ; poá†teán° sektor k zaveden° systÇmu
+de7a:                          db      3              ; ©†d fyzickÇho sektoru
+de7b:                          db      8              ; posledn° sektor na stopà
+de7c:                          db      0fh            ; poáet oddàlovac°ch bajtñ za hlaviákou sektoru-7
+de7d:                          db      2              ; poáet sektorñ k naáten°
+de7e:                          db      27h            ; stopa k p©epnut° z†znamovÇho proudu
+de7f:                          db      80h            ; vòstupn° bajt pro kan†l 12h
+de80:                          db      4              
+de81:                          db      15h            ; doba pro áek†n° na p©ipravenost mechaniky
+de82:                          dw      d300h          ; adresa k uloëen° modulu BDOS-á†st 2
+
+                       DISPAR:                        ; parametry disku A
+de84:                  dtb27:  dw      df79h          ; adresa tabulky pro p©evod sektorñ
+de86:                          dw      0000h          ; skuteánò poáet poloëek adres†©e
+de88:                          dw      0000h          ; nastaven† stopa disku
+de8a:                          dw      0000h          ; nastavenò sektor disku
+de8c:                          dw      f3bfh          ; pracovn° ukl†dac° adresa pro diskovÇ p©enosy
+de8e:                          dw      ded4h          ; adresa bloku diskovòch parametrñ
+de90:                          dw      f5bbh          ; adresa vektoru kontroln°ch souátñ
+de92:                          dw      f43fh          ; adresa alokaán°ho vektoru
+
+                                                      ; parametry disku B
+de94:                          dw      df79h          ; adresa tabulky pro p©evod sektorñ
+de96:                          dw      0000h          ; skuteánò poáet poloëek adres†©e
+de98:                          dw      0000h          ; nastaven† stopa disku
+de9a:                          dw      0000h          ; nastavenò sektor disku
+de9c:                          dw      f3bfh          ; pracovn° ukl†dac° adresa pro diskovÇ p©enosy
+de9e:                          dw      def5h          ; adresa bloku diskovòch parametrñ
+dea0:                          dw      f5fbh          ; adresa vektoru kontroln°ch souátñ
+dea2:                          dw      f48bh          ; adresa alokaán°ho vektoru
+
+                                                      ; parametry disku C
+dea4:                          dw      df79h          ; adresa tabulky pro p©evod sektorñ
+dea6:                          dw      0000h          ; skuteánò poáet poloëek adres†©e
+dea8:                          dw      0000h          ; nastaven† stopa disku
+deaa:                          dw      0000h          ; nastavenò sektor disku
+deac:                          dw      f3bfh          ; pracovn° ukl†dac° adresa pro diskovÇ p©enosy
+deae:                          dw      df16h          ; adresa bloku diskovòch parametrñ
+def0:                          dw      f63bh          ; adresa vektoru kontroln°ch souátñ
+deb2:                          dw      f4d7h          ; adresa alokaán°ho vektoru
+
+                                                      ; parametry disku D
+deb4:                          dw      df79h          ; adresa tabulky pro p©evod sektorñ
+deb6:                          dw      0000h          ; skuteánò poáet poloëek adres†©e
+deb8:                          dw      0000h          ; nastaven† stopa disku
+deba:                          dw      0000h          ; nastavenò sektor disku
+debc:                          dw      f3bfh          ; pracovn° ukl†dac° adresa pro diskovÇ p©enosy
+debe:                          dw      df37h          ; adresa bloku diskovòch parametrñ
+dec0:                          dw      f67bh          ; adresa vektoru kontroln°ch souátñ
+dec2:                          dw      f523h          ; adresa alokaán°ho vektoru
+
+                                                      ; parametry disku E
+dec4:                          dw      df7bh          ; adresa tabulky pro p©evod sektorñ
+dec6:                          dw      0000h          ; skuteánò poáet poloëek adres†©e
+dec8:                          dw      0000h          ; nastaven† stopa disku
+deca:                          dw      0000h          ; nastavenò sektor disku
+decc:                          dw      f3bfh          ; pracovn° ukl†dac° adresa pro diskovÇ p©enosy
+dece:                          dw      df58h          ; adresa bloku diskovòch parametrñ
+ded0:                          dw      f6bbh          ; adresa vektoru kontroln°ch souátñ
+ded2:                          dw      f56fh          ; adresa alokaán°ho vektoru
+
+                                                      ; blok diskovòch parametrñ disku A
+ded4:                          dw      0040h          ; +00h poáet logickòch sektorñ na stopu
+ded6:                          db      4              ; +02h ©†d dÇlky bloku
+ded7:                          db      0fh            ; +03h maska dÇlky bloku
+ded8:                          db      0              ; +04h maska extentu
+ded9:                          dw      012bh          ; +05h celkovò poáet alokaán°ch blokñ disku
+dedb:                          dw      007fh          ; +07h maxim†ln° poáet poloëek v adres†©i
+dedd:                          dw      00c0h          ; +09h mapa zaplnàn° adres†©e
+dedf:                          dw      0020h          ; +0bh poá†teán° sektor dat
+dee1:                          dw      0002h          ; +0dh poáet systÇmovòch stop
+dee3:                          db      3              ; +0fh ©†d fyzickÇ dÇlky sektoru
+dee4:                          db      22h            ; +10h poáet systÇmovòch sektorñ
+dee5:                          db      1              ; +11h poáet fyzickòch sektorñ pro operaci áten°/z†pis
+dee6:                          db      1              ; +12h p©°znak fyzickÇho disku
+dee7:                          dw      de5fh          ; +13h adresa ukazatele pro ukl†d†n° dat
+dee9:                          db      0eh            ; +15h moënÇ form†ty diskety
+                                                      ;      bit 0 = umoë§uje dva povrchy
+deea:                          db      46h            ; +16h p©°znakovÇ bity pro diskovou operaci
+                                                      ;      bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ;      bit 0 = áten° v°ce sektorñ
+deeb:                          db      0              ; +17h fyzick† mechanika
+deec:                          db      3              ; +18h ©†d fyzickÇho sektoru
+deed:                          db      8              ; +19h posledn° sektor na stopà
+deee:                          db      0fh            ; +1ah poáet oddàlovac°ch bajtñ za hlaviákou sektoru-7
+deef:                          db      27h            ; +1bh stopa k p©epnut° z†znamovÇho proudu
+def0:                          db      80h            ; +1ch vòstupn° bajt pro kan†l 12h
+def1:                          db      4              ; +1dh
+def2:                          db      15h            ; +1eh doba pro áek†n° na p©ipravenost mechaniky
+def3:                          db      8              ; +1fh poáet fyzickòch sektorñ na stopu
+def4:                          db      4ch            ; +20h á°slo posledn° stopy
+
+                                                      ; blok diskovòch parametrñ disku B
+def5:                          dw      0040h          ; +00h poáet logickòch sektorñ na stopu
+def7:                          db      4              ; +02h ©†d dÇlky bloku
+def8:                          db      0fh            ; +03h maska dÇlky bloku
+def9:                          db      0              ; +04h maska extentu
+defa:                          dw      012bh          ; +05h celkovò poáet alokaán°ch blokñ disku
+defc:                          dw      007fh          ; +07h maxim†ln° poáet poloëek v adres†©i
+defe:                          dw      00c0h          ; +09h mapa zaplnàn° adres†©e
+df00:                          dw      0020h          ; +0bh poá†teán° sektor dat
+df02:                          dw      0002h          ; +0dh poáet systÇmovòch stop
+df04:                          db      3              ; +0fh ©†d fyzickÇ dÇlky sektoru
+df05:                          db      22h            ; +10h poáet systÇmovòch sektorñ
+df06:                          db      1              ; +11h poáet fyzickòch sektorñ pro operaci áten°/z†pis
+df07:                          db      1              ; +12h p©°znak fyzickÇho disku
+df08:                          dw      de5fh          ; +13h adresa ukazatele pro ukl†d†n° dat
+df0a:                          db      0eh            ; +15h moënÇ form†ty diskety
+                                                      ;      bit 0 = umoë§uje dva povrchy
+df0b:                          db      46h            ; +16h p©°znakovÇ bity pro diskovou operaci
+                                                      ;      bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ;      bit 0 = áten° v°ce sektorñ
+df0c:                          db      1              ; +17h fyzick† mechanika
+df0d:                          db      3              ; +18h ©†d fyzickÇho sektoru
+df0e:                          db      8              ; +19h posledn° sektor na stopà
+df0f:                          db      0fh            ; +1ah poáet oddàlovac°ch bajtñ za hlaviákou sektoru-7
+df10:                          db      27h            ; +1bh stopa k p©epnut° z†znamovÇho proudu
+df11:                          db      80h            ; +1ch vòstupn° bajt pro kan†l 12h
+df12:                          db      4              ; +1dh
+df13:                          db      15h            ; +1eh doba pro áek†n° na p©ipravenost mechaniky
+df14:                          db      8              ; +1fh poáet fyzickòch sektorñ na stopu
+df15:                          db      4ch            ; +20h á°slo posledn° stopy
+
+                                                      ; blok diskovòch parametrñ disku C
+df16:                          dw      0040h          ; +00h poáet logickòch sektorñ na stopu
+df18:                          db      4              ; +02h ©†d dÇlky bloku
+df19:                          db      0fh            ; +03h maska dÇlky bloku
+df1a:                          db      0              ; +04h maska extentu
+df1b:                          dw      012bh          ; +05h celkovò poáet alokaán°ch blokñ disku
+df1d:                          dw      007fh          ; +07h maxim†ln° poáet poloëek v adres†©i
+df1f:                          dw      00c0h          ; +09h mapa zaplnàn° adres†©e
+df21:                          dw      0020h          ; +0bh poá†teán° sektor dat
+df23:                          dw      0002h          ; +0dh poáet systÇmovòch stop
+df25:                          db      3              ; +0fh ©†d fyzickÇ dÇlky sektoru
+df26:                          db      22h            ; +10h poáet systÇmovòch sektorñ
+df27:                          db      1              ; +11h poáet fyzickòch sektorñ pro operaci áten°/z†pis
+df28:                          db      1              ; +12h p©°znak fyzickÇho disku
+df29:                          dw      de5fh          ; +13h adresa ukazatele pro ukl†d†n° dat
+df2b:                          db      0eh            ; +15h moënÇ form†ty diskety
+                                                      ;      bit 0 = umoë§uje dva povrchy
+df2c:                          db      46h            ; +16h p©°znakovÇ bity pro diskovou operaci
+                                                      ;      bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ;      bit 0 = áten° v°ce sektorñ
+df2d:                          db      2              ; +17h fyzick† mechanika
+df2e:                          db      3              ; +18h ©†d fyzickÇho sektoru
+df2f:                          db      8              ; +19h posledn° sektor na stopà
+df30:                          db      0fh            ; +1ah poáet oddàlovac°ch bajtñ za hlaviákou sektoru-7
+df31:                          db      27h            ; +1bh stopa k p©epnut° z†znamovÇho proudu
+df32:                          db      80h            ; +1ch vòstupn° bajt pro kan†l 12h
+df33:                          db      4              ; +1dh
+df34:                          db      15h            ; +1eh doba pro áek†n° na p©ipravenost mechaniky
+df35:                          db      8              ; +1fh poáet fyzickòch sektorñ na stopu
+df36:                          db      4ch            ; +20h á°slo posledn° stopy
+
+                                                      ; blok diskovòch parametrñ disku D
+df37:                          dw      0040h          ; +00h poáet logickòch sektorñ na stopu
+df39:                          db      4              ; +02h ©†d dÇlky bloku
+df3a:                          db      0fh            ; +03h maska dÇlky bloku
+df3b:                          db      0              ; +04h maska extentu
+df3c:                          dw      012bh          ; +05h celkovò poáet alokaán°ch blokñ disku
+df3e:                          dw      007fh          ; +07h maxim†ln° poáet poloëek v adres†©i
+df40:                          dw      00c0h          ; +09h mapa zaplnàn° adres†©e
+df42:                          dw      0020h          ; +0bh poá†teán° sektor dat
+df44:                          dw      0002h          ; +0dh poáet systÇmovòch stop
+df46:                          db      3              ; +0fh ©†d fyzickÇ dÇlky sektoru
+df47:                          db      22h            ; +10h poáet systÇmovòch sektorñ
+df48:                          db      1              ; +11h poáet fyzickòch sektorñ pro operaci áten°/z†pis
+df49:                          db      1              ; +12h p©°znak fyzickÇho disku
+df4a:                          dw      de5fh          ; +13h adresa ukazatele pro ukl†d†n° dat
+df4c:                          db      0eh            ; +15h moënÇ form†ty diskety
+                                                      ;      bit 0 = umoë§uje dva povrchy
+df4d:                          db      46h            ; +16h p©°znakovÇ bity pro diskovou operaci
+                                                      ;      bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ;      bit 0 = áten° v°ce sektorñ
+df4e:                          db      3              ; +17h fyzick† mechanika
+df4f:                          db      3              ; +18h ©†d fyzickÇho sektoru
+df50:                          db      8              ; +19h posledn° sektor na stopà
+df51:                          db      0fh            ; +1ah poáet oddàlovac°ch bajtñ za hlaviákou sektoru-7
+df52:                          db      27h            ; +1bh stopa k p©epnut° z†znamovÇho proudu
+df53:                          db      80h            ; +1ch vòstupn° bajt pro kan†l 12h
+df54:                          db      4              ; +1dh
+df55:                          db      15h            ; +1eh doba pro áek†n° na p©ipravenost mechaniky
+df56:                          db      8              ; +1fh poáet fyzickòch sektorñ na stopu
+df57:                          db      4ch            ; +20h á°slo posledn° stopy
+
+                                                      ; blok diskovòch parametrñ disku E
+df58:                          dw      001ah          ; +00h poáet logickòch sektorñ na stopu
+df5a:                          db      3              ; +02h ©†d dÇlky bloku
+df5b:                          db      7              ; +03h maska dÇlky bloku
+df5c:                          db      0              ; +04h maska extentu
+df5d:                          dw      00f2h          ; +05h celkovò poáet alokaán°ch blokñ disku
+df5f:                          dw      003fh          ; +07h maxim†ln° poáet poloëek v adres†©i
+df61:                          dw      00c0h          ; +09h mapa zaplnàn° adres†©e
+df63:                          dw      0010h          ; +0bh poá†teán° sektor dat
+df65:                          dw      0002h          ; +0dh poáet systÇmovòch stop
+df67:                          db      0              ; +0fh ©†d fyzickÇ dÇlky sektoru
+df68:                          db      0              ; +10h poáet systÇmovòch sektorñ
+df69:                          db      1              ; +11h poáet fyzickòch sektorñ pro operaci áten°/z†pis
+df6a:                          db      0              ; +12h p©°znak fyzickÇho disku
+df6b:                          dw      de61h          ; +13h adresa ukazatele pro ukl†d†n° dat
+df6d:                          db      0              ; +15h moënÇ form†ty diskety
+                                                      ;      bit 0 = umoë§uje dva povrchy
+df6e:                          db      6              ; +16h p©°znakovÇ bity pro diskovou operaci
+                                                      ;      bit 6 = zvl†®tn° form†t stopy (jinò kontroln° souáet)
+                                                      ;      bit 0 = áten° v°ce sektorñ
+df6f:                          db      3              ; +17h fyzick† mechanika
+df70:                          db      0              ; +18h ©†d fyzickÇho sektoru
+df71:                          db      1ah            ; +19h posledn° sektor na stopà
+df72:                          db      4              ; +1ah poáet oddàlovac°ch bajtñ za hlaviákou sektoru-7
+df73:                          db      ffh            ; +1bh stopa k p©epnut° z†znamovÇho proudu
+df74:                          db      84h            ; +1ch vòstupn° bajt pro kan†l 12h
+df75:                          db      4              ; +1dh
+df76:                          db      15h            ; +1eh doba pro áek†n° na p©ipravenost mechaniky
+df77:                          db      1ah            ; +1fh poáet fyzickòch sektorñ na stopu
+df78:                          db      4ch            ; +20h á°slo posledn° stopy
+
+df79:                  lab468: db      0,0            ; tabulka pro p©evod sektorñ - nep©ev†d° se
+df7b:                        * db      1,7,0dh,13h,19h ; tabulka pro p©evod sektorñ 26x128 B
+df80:                          db      5,0bh,11h,17h,3
+df85:                          db      9,0fh,15h,2,8
+df8a:                          db      0eh,14h,1ah,6,0ch
+df8f:                          db      12h,18h,4,0ah,10h
+df94:                          db      16h
+
+df95:  f3              boot:                          ; inicializace OS, zaveden° CCP a BDOS
+                               di
+df96:  3e f7                   ld      a,0f7h         ; nastaven° vektoru p©eru®en°
+df98:  ed 47                   ld      i,a
+df9a:  21 40 f7                ld      hl,ddw31       ; zaá†tek tabulky p©eru®en°
+df9d:  11 41 f7                ld      de,ddw31+1
+dfa0:  01 bf 00                ld      bc,0bfh        ; dÇlka tabulky p©eru®en° - 1
+dfa3:  af                      xor     a
+dfa4:  77                      ld      (hl),a         ; nulovac° bajt
+dfa5:  ed b0                   ldir                   ; vymaz†n° tabulky p©eru®en°
+dfa7:  21 00 00                ld      hl,0           ; zaá†tek pamàti RAM
+dfaa:  11 01 00                ld      de,1
+dfad:  01 ff 07                ld      bc,7ffh
+dfb0:  77                      ld      (hl),a         ; nulovac° bajt
+dfb1:  ed b0                   ldir                   ; vymaz†n° oblasti 0000H aë 0100H
+dfb3:  31 00 01                ld      sp,100h        ; z†sobn°k
+dfb6:  fb                      ei
+dfb7:  32 ef e2                ld      (dtb60),a
+dfba:  21 50 f8                ld      hl,0f850h      ; nastaven° kurzoru na zaá†tek 2.©†dku
+dfbd:  22 38 de                ld      (ddw37),hl     ; pozice kurzoru
+dfc0:  cd b6 eb                call    lab456         ; inicializace kl†vesnice
+dfc3:  21 d8 df                ld      hl,dtb80       ; text SCPX...
+dfc6:  cd cc df                call    lab309         ; vòpis textu v (HL) po bajt 0
+dfc9:  c3 44 e0                jp      lab311         ; inicializace systÇmu, skok do CCP
+ ......................................................
+dfcc:  7e              lab309:                        ; vòpis textu v (HL) po bajt 0
+                               ld      a,(hl)
+dfcd:  b7                      or      a
+dfce:  c8                      ret     z              ; je koncovò znak 00 - n†vrat
+dfcf:  4f                      ld      c,a            ; znak k vòstupu
+dfd0:  e5                      push    hl
+dfd1:  cd 70 e1                call    conout         ; vòstup znaku na konzolu
+dfd4:  e1                      pop     hl
+dfd5:  23                      inc     hl
+dfd6:  18 f4                   jr      lab309         ; dal®° znak k vòstupu
+ ......................................................
+dfd8:                  dtb80:  db      14h            ; £vodn° text
+dfd9:                          db      "SCPX 1526 - V 1.2  (52K)"
+dff1:                          db      0dh,0ah,0ah,0
+
+dff5:  31 80 00        wboot:                         ; reset systÇmu - znovuzaveden° CCP a BDOS
+                               ld      sp,80h         ; z†sobn°k
+dff8:  21 66 de                ld      hl,dtb67       ; adresa tabulky pro zaveden° CCP a BDOS
+dffb:  ed 5b 73 de             ld      de,(adrccp)    ; zaá†tek CCP
+dfff:  cd 32 e0                call    loaddt         ; nahr†n° dat podle tabulky (HL)
+e002:  20 16                   jr      nz,lab308      ; chyba - hl†®en° "NO SYSTEM"
+e004:  21 75 de                ld      hl,dtb69       ; tabulka k zaveden° BDOS-á†st 2
+e007:  ed 5b 82 de             ld      de,(0de82h)    ; adresa k uloëen° modulu BDOS-á†st 2
+e00b:  cd 32 e0                call    loaddt         ; nahr†n° dat podle tabulky (HL)
+e00e:  20 0a                   jr      nz,lab308      ; chyba - hl†®en° "NO SYSTEM"
+e010:  2a 01 c8                ld      hl,(0c801h)    ; adresa vnit©n°ho skoku v CCP
+e013:  11 6c cb                ld      de,cb6ch       ; p©edpokl†dan† adresa
+e016:  ed 52                   sbc     hl,de          ; kontrola adresy
+e018:  28 2a                   jr      z,lab311       ; v po©†dku - modul CCP je spr†vnò
+e01a:  21 26 e0        lab308:                        ; hl†®en° "NO SYSTEM"
+                               ld      hl,dtb68       ; adresa textu NO SYSTEM
+e01d:  cd cc df                call    lab309         ; vòpis textu v (HL) po bajt 0
+e020:  3e ff                   ld      a,0ffh         ; zru®en° vòbàru mechanik
+e022:  d3 18           lab310: out     (18h),a
+e024:  18 fc                   jr      lab310         ; stop programu p©i chybà systÇmu
+ ......................................................
+e026:                  dtb68:  db      0dh,14h        ; chybovÇ hl†®en° NO SYSTEM
+e028:                          db      "NO SYSTEM"
+e031:                          db      0
+e032:  d5              loaddt:                        ; naáten° dat podle tabulky (HL)
+                               push    de             ; adresa pro naáten° dat
+e033:  11 52 de                ld      de,ddb30       ; pracovn° tabulka pro zaveden° dat
+e036:  d5                      push    de             ; tabulka pro zaveden° dat
+e037:  01 0d 00                ld      bc,0dh         ; poáet bajtñ tabulky
+e03a:  ed b0                   ldir                   ; p©enos tabulky z HL do DE
+e03c:  e1                      pop     hl             ; pracovn° tabulka pro naáten° dat
+e03d:  d1                      pop     de             ; adresa pro naáten° dat
+e03e:  cd 79 e6                call    lab190         ; naáten° dat od adr.(DE) podle tab.(HL)
+e041:  78                      ld      a,b            ; n†vratovò k¢d - poáet sektorñ
+e042:  b7                      or      a
+e043:  c9                      ret
+ ......................................................
+                                                      ; pokraáov†n° inicializace systÇmu (CCP v pamàti)
+e044:  21 06 d0        lab311: ld      hl,dtb12       ; adresa obsluhy sluëeb v BDOS
+e047:  22 06 00                ld      (6),hl         ; nastaven° adresy skoku do BDOS
+e04a:  3e c3                   ld      a,0c3h         ; nastaven° skoku JP WBOOT
+e04c:  32 00 00                ld      (0),a          ; instrukce skoku
+e04f:  21 03 de                ld      hl,WBOOT       ; reset systÇmu = BDOS00
+e052:  22 01 00                ld      (1),hl         ; skok JP WBOOT
+e055:  22 3e 00                ld      (3eh),hl       ; adresa horkÇho startu systÇmu
+e058:  32 05 00                ld      (5),a          ; instrukce skoku pro skok do BDOS
+e05b:  01 80 00                ld      bc,80h         ; adresa DMA
+e05e:  cd 0d e4                call    setdma         ; nastaven° adresy DMA na 80h
+e061:  3e df                   ld      a,0dfh
+e063:  32 eb f7                ld      (0f7ebh),a
+e066:  cd 12 e1                call    lab312         ; nastaven° a inicializace kl†vesnice
+e069:  af                      xor     a
+e06a:  32 ad f3                ld      (ddb18),a
+e06d:  32 af f3                ld      (ddb22),a      ; dÇlka bloku
+e070:  3a 04 00                ld      a,(4)          ; I/O bajt
+e073:  4f                      ld      c,a            ; I/O bajt -> C
+e074:  c3 00 c8                jp      CCP            ; start CCP
+ ......................................................
+e077:                  dtb61:  db      0              ; inicializaán° bajt kl†vesnice
+e078:                          db      2              ; vòstupn° znak na kl†vesnici
+
+                       conin:                         ; vstup znaku z konzoly (áek†)
+
+e079:  3a fb f6                ld      a,(ddb47)      ; z†sobn°k znakñ z kl†vesnice
+e07c:  b7                      or      a              ; je jië p©ipraven znak ?
+e07d:  28 fa                   jr      z,conin        ; áek†n° na znak
+e07f:  11 fb f6                ld      de,ddb47       ; z†sobn°k znakñ z kl†vesnice
+e082:  21 fc f6                ld      hl,ddb47+1
+e085:  01 0f 00                ld      bc,0fh         ; dÇlka z†sobn°ku
+e088:  f3                      di
+e089:  ed b0                   ldir                   ; posunut° z†sobn°ku (vyjmut° znaku)
+e08b:  fb                      ei
+e08c:  fe 90                   cp      90h            ; je ©°dic° znak ?
+e08e:  d8                      ret     c              ; nen° - n†vrat z obsluhy
+e08f:  21 47 e1                ld      hl,dtb56       ; tabulka pro p©ek¢dov†n° ©°dic°ch znakñ
+e092:  06 14                   ld      b,14h          ; poáet znakñ v tabulce
+e094:  be              lab264: cp      (hl)           ; porovn†n° se znakem v tabulce
+e095:  28 06                   jr      z,lab263       ; znak nalezen
+e097:  23                      inc     hl
+e098:  23                      inc     hl
+e099:  10 f9                   djnz    lab264         ; dal®° znak
+e09b:  af                      xor     a              ; znak nenalezen - zru®en° kl†vesy
+e09c:  c9                      ret
+e09d:  23              lab263: inc     hl
+e09e:  7e                      ld      a,(hl)         ; nahrazuj°c° k¢d kl†vesy
+e09f:  c9                      ret
+ ......................................................
+
+                 const:                               ; zji®tàn° p©ipravenosti znaku z konzoly
+e0a0:  3a fb f6                ld      a,(ddb47)      ; z†sobn°k znakñ z kl†vesnice
+e0a3:  b7                      or      a              ; p©i®el jië znak ?
+e0a4:  c8                      ret     z              ; nen° znak
+e0a5:  3e ff                   ld      a,0ffh         ; p©°znak p©ipravenosti znaku
+e0a7:  c9                      ret
+ ......................................................
+                                                      ; obsluha p©eru®en° z kl†vesnice
+e0a8:  ed 73 10 e1     dtb79:  ld      (dtb11),sp     ; £schova ukazatele z†sobn°ku z programu
+e0ac:  31 10 e1                ld      sp,dtb11       ; pracovn° z†sobn°k
+e0af:  fb                      ei
+e0b0:  f5                      push    af
+e0b1:  e5                      push    hl
+e0b2:  21 44 00                ld      hl,44h
+e0b5:  7e                      ld      a,(hl)
+e0b6:  b7                      or      a
+e0b7:  28 01                   jr      z,lab128
+e0b9:  35                      dec     (hl)
+e0ba:  2b              lab128: dec     hl
+e0bb:  34                      inc     (hl)
+e0bc:  3e 64                   ld      a,64h
+e0be:  96                      sub     (hl)
+e0bf:  20 24                   jr      nz,lab133
+e0c1:  77                      ld      (hl),a
+e0c2:  2b                      dec     hl
+e0c3:  7e                      ld      a,(hl)
+e0c4:  3c                      inc     a
+e0c5:  27                      daa
+e0c6:  77                      ld      (hl),a
+e0c7:  d6 60                   sub     60h
+e0c9:  20 1a                   jr      nz,lab133
+e0cb:  77                      ld      (hl),a
+e0cc:  2b                      dec     hl
+e0cd:  7e                      ld      a,(hl)
+e0ce:  3c                      inc     a
+e0cf:  27                      daa
+e0d0:  77                      ld      (hl),a
+e0d1:  d6 60                   sub     60h
+e0d3:  20 10                   jr      nz,lab133
+e0d5:  77                      ld      (hl),a
+e0d6:  3e 84                   ld      a,84h
+e0d8:  32 43 00                ld      (43h),a
+e0db:  2b                      dec     hl
+e0dc:  7e                      ld      a,(hl)
+e0dd:  3c                      inc     a
+e0de:  27                      daa
+e0df:  77                      ld      (hl),a
+e0e0:  d6 24                   sub     24h
+e0e2:  20 01                   jr      nz,lab133
+e0e4:  77                      ld      (hl),a
+e0e5:  db 5d           lab133: in      a,(5dh)        ; ©°d°c° port kl†vesnice
+e0e7:  e6 01                   and     1
+e0e9:  20 08                   jr      nz,lab134      ; je p©ipraven znak - p©°jem znaku
+e0eb:  e1              lab147: pop     hl             ; n†vrat z p©eru®en°
+e0ec:  f1                      pop     af
+e0ed:  ed 7b 10 e1             ld      sp,(dtb11)     ; n†vrat ukazatele z†sobn°ku
+e0f1:  ed 4d                   reti
+                                                      ; p©°jem znaku
+e0f3:  c5              lab134: push    bc
+e0f4:  06 0f                   ld      b,0fh          ; dÇlka tabulky
+e0f6:  21 fb f6                ld      hl,ddb47       ; z†sobn°k vstupuj°c°ch znakñ
+e0f9:  7e              lab156: ld      a,(hl)         ; hled†n° volnÇho m°sta v bufferu znakñ
+e0fa:  b7                      or      a
+e0fb:  28 06                   jr      z,lab145       ; nalezeno volnÇ m°sto v bufferu
+e0fd:  23                      inc     hl
+e0fe:  10 f9                   djnz    lab156         ; dal®° poloëka bufferu
+e100:  c1              lab146: pop     bc
+e101:  18 e8                   jr      lab147         ; nenalezeno volnÇ m°sto - znak nep©ijat
+
+e103:  db 5c           lab145: in      a,(5ch)        ; p©°jem znaku z kl†vesnice
+e105:  77                      ld      (hl),a         ; uloëen° znaku do bufferu
+e106:  18 f8                   jr      lab146
+
+e108:                          db      0,0,0,0,0,0,0,0 ; pracovn° z†sobn°k pro obsluhu kl†vesnice
+e110:                  dtb11:  db      0,0            ; £schova z†sobn°ku pro p©eru®en° kl†vesnic°
+
+;  ......................................................
+
+e112:  af              lab312:                        ; nastaven° a inicializace kl†vesnice
+                               xor     a
+e113:  32 77 e0                ld      (dtb61),a
+e116:  18 1c                   jr      lab313
+ ......................................................
+e118:  e1              BEEP:                          ; p°pnut° kl†vesnice
+                               pop     hl
+e119:  3e 44                   ld      a,44h          ; znak pro p°pnut° kl†vesnice
+e11b:  18 17                   jr      lab313         ; vòstup znaku na kl†vesnici
+ ......................................................
+e11d:  21 77 e0        lab298: ld      hl,dtb61       ; vòstupn° bajt na kl†vesnici
+e120:  cb 46                   bit     0,(hl)         ; je nastavena kl†vesnice ?
+e122:  c0                      ret     nz             ; nen° nastavena
+e123:  cb c6                   set     0,(hl)         ; nastaven°
+e125:  18 08                   jr      lab299
+ ......................................................
+                                                      ; n†vrat indik†torñ kl†vesnice
+e127:  21 77 e0        lab293: ld      hl,dtb61       ; vòstupn° bajt na kl†vesnici
+e12a:  cb 46                   bit     0,(hl)
+e12c:  c8                      ret     z
+e12d:  cb 86                   res     0,(hl)
+e12f:  3e 55           lab299: ld      a,55h
+e131:  f3                      di
+e132:  d3 5c                   out     (5ch),a
+e134:  f3              lab313: di
+e135:  d3 5c                   out     (5ch),a        ; áek†n° na potvrzen° p©ipravenosti kl†vesnice
+e137:  db 5d           lab294: in      a,(5dh)        ; áek†n° na p©°jem znaku z kl†vesnice
+e139:  e6 01                   and     1
+e13b:  28 fa                   jr      z,lab294
+e13d:  db 5c                   in      a,(5ch)
+e13f:  e6 f0                   and     0f0h
+e141:  fe 80                   cp      80h
+e143:  20 f2                   jr      nz,lab294
+e145:  fb                      ei
+e146:  c9                      ret
+ ......................................................
+
+                       dtb56:                         ; tabulka k¢dñ kl†ves
+e147:                          db      91h,9          ; ƒƒ>≥
+e149:                          db      94h,1ah        ; /\
+e14b:                          db      95h,0ah        ; \/
+e14d:                          db      96h,8          ; <ƒƒ
+e14f:                          db      97h,15h        ; ƒƒ>
+e151:                          db      9ah,0dh        ; <ƒƒŸ
+e153:                          db      9bh,8          ; <ƒƒ
+e155:                          db      9ch,0ch        ; ^\
+e157:                          db      9fh,8          ; ≥<ƒƒ¥
+e159:                          db      0b0h,3         ; M
+e15b:                          db      0b3h,18h       ; DELL
+e15d:                          db      0b9h,18h       ; CE
+e15f:                          db      0bbh,7fh       ; DEL
+e161:                          db      0c0h,0dh       ; ENTER
+e163:                          db      0feh,0dh       ; ET2
+e165:                          db      0ffh,0dh       ; ET1
+e167:                          db      0,0
+e169:                          db      0,0
+e16b:                          db      0,0
+e16d:                          db      0,0
+
+e16f:                          db      1
+
+; ......................................................
+
+e170:  18 32           conout:                        ; vòstup znaku na konzolu
+                               jr      lab268
+
+                       dtb58:                         ; tabulka ©°dic°ch znakñ
+e172:                          db      0dh            ; zaá†tek ©†dku
+e173:                          db      0ah            ; posun o ©†dek dolñ
+e174:                          db      8              ; posun o pozici vlevo
+e175:                          db      0ch            ; vymaz†n° obrazovky
+e176:                          db      1              ; zaá†tek obrazovky
+e177:                          db      1ah            ; posun o ©†dek nahoru
+e178:                          db      7fh            ; vymaz†n° znaku nad kurzorem
+e179:                          db      14h            ; vymaz†n° zbytku obrazovky
+e17a:                          db      15h            ; posun o pozici vpravo
+e17b:                          db      16h            ; vymaz†n° zbytku ©†dku
+e17c:                          db      18h            ; vymaz†n° ©†dku
+e17d:                          db      1bh            ; nastaven° pozice kurzoru
+e17e:                          db      7              ; p°pnut° kl†vesnice
+e17f:                          db      82h            ; zapnut° kurzoru
+e180:                          db      83h            ; vypnut° kurzoru
+e181:                          db      80h            ; test kl†vesy BREAK
+
+e182:                  ddb48:  db      0              ; á°taá znakñ pro absolutn° tabel†tor
+e183:                  ddb65:  db      80h            ; p©°znak kurzoru
+
+                                                      ; adresy tabulky ©°dic°ch znakñ
+e184:                          dw      e238h          ; 0dh - zaá†tek ©†dku
+e186:                          dw      e248h          ; 0ah - posun o ©†dek dolñ
+e188:                          dw      e256h          ; 8   - posun o pozici vlevo
+e18a:                          dw      e25fh          ; 0ch - vymaz†n° obrazovky
+e18c:                          dw      e274h          ; 1   - zaá†tek obrazovky
+e18e:                          dw      e278h          ; 1ah - posun o ©†dek nahoru
+e190:                          dw      e255h          ; 7fh - vymaz†n° znaku nad kurzorem
+e192:                          dw      e262h          ; 14h - vymaz†n° zbytku obrazovky
+e194:                          dw      e1beh          ; 15h - posun o pozici vpravo
+e196:                          dw      e288h          ; 16h - vymaz†n° zbytku ©†dku
+e198:                          dw      e284h          ; 18h - vymaz†n° ©†dku
+e19a:                          dw      e297h          ; 1bh - absolutn° tabel†tor
+e19c:                          dw      e118h          ; 7   - p°pnut° kl†vesnice
+e19e:                          dw      e29dh          ; 82h - zapnut° kurzoru
+e1a0:                          dw      e2a1h          ; 83h - vypnut° kurzoru
+e1a2:                          dw      e2a6h          ; 80h - test kl†vesy BREAK
+
+                                                      ; vòstup znaku na displej
+e1a4:  21 e1 e1        lab268: ld      hl,dtb57       ; n†vratov† adresa z programu
+e1a7:  e5                      push    hl             ; n†vratov† adresa -> z†sobn°k
+e1a8:  2a 38 de                ld      hl,(ddw37)     ; pozice kurzoru
+e1ab:  cb be                   res     7,(hl)         ; zru®en° kurzoru
+e1ad:  3a 82 e1                ld      a,(ddb48)      ; á°taá znakñ pro absolutn° tabel†tor
+e1b0:  b7                      or      a
+e1b1:  20 37                   jr      nz,lab269      ; je absolutn° tabel†tor - parametry
+e1b3:  79                      ld      a,c
+e1b4:  fe 20                   cp      20h            ; je znak men®° neë 20H ?
+e1b6:  38 57                   jr      c,lab274       ; men®° neë 20h - ©°dic° znak
+e1b8:  fe 7f                   cp      7fh            ; je znak vàt®° neë 76h ?
+e1ba:  30 53                   jr      nc,lab274      ; je vàt®° neë 76h - ©°dic° znak
+e1bc:  77              lab277: ld      (hl),a         ; uloëen° znaku na obrazovku
+e1bd:  eb                      ex      de,hl
+e1be:  13              STEP:   inc     de             ; zvò®en° pozice, --->
+e1bf:  21 80 00                ld      hl,80h         ; doplnàk adresy konce videopamàti do ffffh
+e1c2:  19                      add     hl,de          ; test - posledn° znak na obrazovce ?
+e1c3:  eb                      ex      de,hl
+e1c4:  d0                      ret     nc             ; n†vrat - nebyl p©ekroáen posledn° znak
+e1c5:  11 30 ff                ld      de,0ff30h      ; prvn° pozice na posledn°m ©†dku
+e1c8:  d5              lab158: push    de
+e1c9:  21 50 f8                ld      hl,0f850h      ; prvn° pozice na p©edposledn°m ©†dku
+e1cc:  11 00 f8                ld      de,0f800h      ; pozice 0, ©†dek 0
+e1cf:  01 30 07                ld      bc,730h        ; poáet znakñ
+e1d2:  ed b0                   ldir                   ; rolov†n° obrazovky nahoru
+e1d4:  2b                      dec     hl             ; vymaz†n° posledn°ho ©†dku
+e1d5:  36 00                   ld      (hl),0         ; nulovac° bajt
+e1d7:  11 7e ff                ld      de,0ff7eh
+e1da:  01 4f 00                ld      bc,4fh         ; dÇlka ©†dku - 1
+e1dd:  ed b8                   lddr
+e1df:  e1                      pop     hl             ; nov† pozice - prvn° pozice posledn°ho ©†dku
+e1e0:  c9                      ret
+ ......................................................
+                                                      ; n†vrat z obsluhy vòstupu na displej
+e1e1:  22 38 de        dtb57:  ld      (ddw37),hl     ; uloëen° novÇ pozice kurzoru
+e1e4:  3a 83 e1                ld      a,(ddb65)      ; p©°znak kurzoru
+e1e7:  b6                      or      (hl)           ; nastaven° kurzoru
+e1e8:  77                      ld      (hl),a         ; nastaven° kurzoru
+e1e9:  c9                      ret
+ ......................................................
+
+e1ea:  cb b9           lab269:                        ; absolutn° tabel†tor
+                               res     7,c            ; zru®en° 7. bitu znaku
+e1ec:  3d                      dec     a
+e1ed:  32 82 e1                ld      (ddb48),a      ; sn°ëen° á°taáe znakñ
+e1f0:  28 13                   jr      z,lab270       ; je druhò znak - pozice na ©†dku
+e1f2:  3e 17                   ld      a,17h          ; omezen° poátu ©†dkñ na 24
+e1f4:  b9                      cp      c
+e1f5:  38 01                   jr      c,lab272
+e1f7:  79                      ld      a,c
+e1f8:  21 00 f8        lab272: ld      hl,0f800h      ; vòpoáet ©†dku
+e1fb:  b7                      or      a
+e1fc:  c8                      ret     z
+e1fd:  11 50 00                ld      de,50h         ; dÇlka ©†dku
+e200:  47                      ld      b,a            ; poáet ©†dkñ
+e201:  19              lab273: add     hl,de          ; vòpoáet novÇ pozice kurzoru
+e202:  10 fd                   djnz    lab273
+e204:  c9                      ret
+ ......................................................
+e205:  3e 4f           lab270: ld      a,4fh          ; omezen° poátu znakñ na 80
+e207:  b9                      cp      c
+e208:  30 01                   jr      nc,lab271
+e20a:  4f                      ld      c,a
+e20b:  06 00           lab271: ld      b,0
+e20d:  09                      add     hl,bc          ; p©iáten° vodorovnÇ pozice
+e20e:  c9                      ret
+ ......................................................
+e20f:  eb              lab274:                        ; ©°dic° znaky
+                               ex      de,hl
+e210:  21 72 e1                ld      hl,dtb58       ; tabulka ©°dic°ch znakñ
+e213:  01 10 00                ld      bc,10h
+e216:  ed b1                   cpir                   ; nalezen° znaku
+e218:  28 0f                   jr      z,lab275       ; ©°dic° znak nalezen
+e21a:  eb                      ex      de,hl
+e21b:  fe 84                   cp      84h
+e21d:  d8                      ret     c
+e21e:  fe 88                   cp      88h
+e220:  38 03                   jr      c,lab276
+e222:  fe b0                   cp      0b0h
+e224:  d8                      ret     c              ; ©°dic° znaky pro nastaven° barvy p°sma
+e225:  cb bf           lab276: res     7,a            ; zru®en° 7.bitu
+e227:  18 93                   jr      lab277         ; uloëen° znaku na displej
+ ......................................................
+e229:  21 a3 e1        lab275: ld      hl,dtb59       ; tabulka adres ©°dic°ch znakñ
+e22c:  af                      xor     a
+e22d:  ed 42                   sbc     hl,bc          ; vòpoáet adresy skoku na obsluhu
+e22f:  ed 42                   sbc     hl,bc
+e231:  46                      ld      b,(hl)         ; p©eáten° adresy skoku
+e232:  2b                      dec     hl
+e233:  4e                      ld      c,(hl)
+e234:  c5                      push    bc             ; adresa obsluhy
+e235:  6b                      ld      l,e
+e236:  62                      ld      h,d            ; souáasn† adresa znaku
+e237:  c9                      ret                    ; skok na ©°dic° instrukci
+ ......................................................
+e238:  01 50 00        CR:                            ; n†vrat na zaá†tek ©†dku
+                               ld      bc,50h         ; dÇlka ©†dku
+e23b:  21 7f ff                ld      hl,0ff7fh      ; posledn° pozice obrazovky
+e23e:  ed 42           lab157: sbc     hl,bc          ; nalezen° zaá†tku ©†dku
+e240:  e5                      push    hl
+e241:  ed 52                   sbc     hl,de
+e243:  e1                      pop     hl
+e244:  30 f8                   jr      nc,lab157
+e246:  23                      inc     hl             ; nastaven° pozice 0
+e247:  c9                      ret
+ ......................................................
+e248:  21 2f ff        LF:                            ; ©†dek dolñ
+                               ld      hl,0ff2fh      ; konec p©edposledn°ho ©†dku
+e24b:  ed 52                   sbc     hl,de          ; kontrola p©ekroáen° posledn°ho znaku
+e24d:  da c8 e1                jp      c,lab158       ; p©ekroáen° - rolov†n° obrazovky
+e250:  21 50 00                ld      hl,50h         ; dÇlka ©†dku
+e253:  19                      add     hl,de          ; nov† pozice (dal®° ©†dek)
+e254:  c9                      ret
+ ......................................................
+e255:  12              DELCH:                         ; vymaz†n° znaku
+                               ld      (de),a         ; vymaz†n° znaku
+e256:  21 00 f8        BS:                            ; pozice zpàt
+                               ld      hl,0f800h      ; zaá†tek obrazovky
+e259:  ed 52                   sbc     hl,de          ; kontrola zaá†tku obrazovky
+e25b:  eb                      ex      de,hl
+e25c:  c8                      ret     z              ; je zaá†tek obrazovky - n†vrat
+e25d:  2b                      dec     hl             ; sn°ëen° pozice
+e25e:  c9                      ret
+ ......................................................
+e25f:  11 00 f8        CLS:                           ; vymaz†n° obrazovky
+                               ld      de,0f800h      ; zaá†tek obrazovky
+e262:  21 7f ff        CTRL_T:                        ; vymaz†n° zbytku obrazovky
+                               ld      hl,0ff7fh      ; posledn° znak obrazovky
+e265:  ed 52                   sbc     hl,de          ; poáet znakñ do konce obr.
+e267:  eb                      ex      de,hl          ; souáasn† pozice na obrazovce
+e268:  77                      ld      (hl),a         ; vymaz†n° znaku
+e269:  c8                      ret     z              ; n†vrat - je stejn† pozice
+e26a:  e5                      push    hl             ; pozice znaku
+e26b:  42                      ld      b,d            ; poáet znakñ k vymaz†n°
+e26c:  4b                      ld      c,e
+e26d:  54                      ld      d,h            ; pozice znaku
+e26e:  5d                      ld      e,l
+e26f:  13                      inc     de             ; n†sleduj°c° pozice
+e270:  ed b0                   ldir                   ; vymaz†n° zbytku obrazovky
+e272:  e1                      pop     hl             ; pñvodn° pozice
+e273:  c9                      ret
+ ......................................................
+e274:  21 00 f8        HM:                            ; na zaá†tek obrazovky
+                               ld      hl,0f800h      ; poá†teán° adresa obrazovky
+e277:  c9                      ret
+ ......................................................
+e278:  21 4f f8        LB:                            ; ©†dek zpàt
+                               ld      hl,0f84fh      ; posledn° pozice prvn°ho ©†dku
+e27b:  ed 52                   sbc     hl,de          ; kontrola zaá†tku obrazovky
+e27d:  eb                      ex      de,hl
+e27e:  d0                      ret     nc             ; p©ekroáen° zaá†tku obrazovky
+e27f:  11 b0 ff                ld      de,0ffb0h
+e282:  19                      add     hl,de          ; odeáten° 50h - p©ede®lò ©†dek
+e283:  c9                      ret
+ ......................................................
+e284:  cd 38 e2        CE:                            ; vymaz†n° ©†dku
+                               call    CR             ; n†vrat na zaá†tek ©†dku
+e287:  eb                      ex      de,hl
+e288:  d5              CTRL_V:                        ; vymaz†n° zbytku ©†dku
+                               push    de
+e289:  cd 38 e2                call    CR             ; n†vrat na zaá†tek ©†dku
+e28c:  09                      add     hl,bc          ; vòpoáet n†sleduj°c°ho ©†dku
+e28d:  af                      xor     a
+e28e:  ed 52                   sbc     hl,de
+e290:  12              lab160: ld      (de),a         ; vymaz†n° ©†dku
+e291:  13                      inc     de
+e292:  2d                      dec     l
+e293:  20 fb                   jr      nz,lab160
+e295:  e1                      pop     hl             ; pñvodn° pozice
+e296:  c9                      ret
+ ......................................................
+e297:  3e 02           ESC:                           ; nastaven° kurzoru (absolutn° tabel†tor)
+                               ld      a,2            ; budou n†sledovat 2 znaky parametrñ
+e299:  32 82 e1                ld      (ddb48),a      ; á°taá znakñ pro tabel†tor
+e29c:  c9                      ret
+ ......................................................
+e29d:  3e 80           KURON:                         ; zapnut° kurzoru
+                               ld      a,80h          ; p©°znak kurzoru
+e29f:  18 01                   jr      lab161
+ ......................................................
+e2a1:  af              KUROFF:                        ; vypnut° kurzoru
+                               xor     a
+e2a2:  32 83 e1        lab161: ld      (ddb65),a      ; p©°znak kurzoru
+e2a5:  c9                      ret
+ ......................................................
+e2a6:  cd 1d e1        BREAK:                         ; test kl†vesy BREAK
+                               call    lab298         ; nastaven° kl†vesnice
+e2a9:  cd 79 e0                call    conin          ; p©eáten° znaku z konzoly (áek†)
+e2ac:  5f                      ld      e,a            ; uloëen° znaku z konzoly
+e2ad:  cd 27 e1                call    lab293         ; zru®en° testu kl†vesnice
+e2b0:  7b                      ld      a,e            ; znak z konzoly
+e2b1:  fe 03                   cp      3              ; je znak BREAK ?
+e2b3:  ca 00 00                jp      z,0            ; je - skok na WBOOT
+e2b6:  e1                      pop     hl             ; pñvodn° pozice kurzoru
+e2b7:  c9                      ret
+ ......................................................
+e2b8:                          db      e2e9h          ; adresa potvrzen° p©ipravenosti tisk†rny
+
+e2ba:  59              list:                          ; vòstup znaku na tisk†rnu
+                               ld      e,c            ; znak k tisku
+e2bb:  21 ef e2                ld      hl,dtb60       ; tabulka pro nastaven° SIO tisk†rny
+e2be:  7e                      ld      a,(hl)         ; k¢d nastaven° tisk†rny
+e2bf:  36 01                   ld      (hl),1         ; oznaáen° - tisk†rna nastavena
+e2c1:  b7                      or      a
+e2c2:  cc eb e2                call    z,lab280       ; nen° nastavena - inicializace portñ a tisk†rny
+e2c5:  01 00 00                ld      bc,0           ; doba áekac° smyáky
+e2c8:  0b              lab297: dec     bc             ; áek†n° na potvrzen° p©ipravenosti
+e2c9:  cd e9 e2                call    lab282         ; potvrzen° p©ijmut° znaku
+e2cc:  b7                      or      a
+e2cd:  20 0a                   jr      nz,lab292      ; byl p©ijmut znak
+e2cf:  78                      ld      a,b
+e2d0:  b1                      or      c
+e2d1:  20 f5                   jr      nz,lab297      ; dal®° áekac° smyáka
+e2d3:  cd 1d e1                call    lab298         ; nastaven° kl†vesnice na test (zapnut indik†tor)
+e2d6:  03                      inc     bc
+e2d7:  18 ef                   jr      lab297         ; dal®° áekac° cyklus
+ ......................................................
+                                                      ; byl p©ijmut znak
+e2d9:  78              lab292: ld      a,b
+e2da:  b1                      or      c
+e2db:  cc 27 e1                call    z,lab293       ; p©ekroáena áekac° smyáka - n†vrat stavu kl†vesnice
+e2de:  21 ef e2                ld      hl,dtb60       ; tabulka pro nastaven° SIO tisk†rny
+e2e1:  18 0a                   jr      lab295         ; vòstup znaku na tisk†rnu
+ ......................................................
+e2e3:  3a ef e2        listst:                        ; dotaz na stav tisk†rny
+                               ld      a,(dtb60)
+e2e6:  ee 01                   xor     1
+e2e8:  c0                      ret     nz             ; je p©ipravena tisk†rna
+e2e9:  18 12           lab282: jr      lab283         ; potvrzen° p©ipravenosti tisk†rny
+ ......................................................
+e2eb:  18 37           lab280: jr      lab281         ; inicializace tisk†rny a portñ
+ ......................................................
+e2ed:  18 49           lab295: jr      lab296         ; vòstup znaku na tisk†rnu
+ ......................................................
+e2ef:                  dtb60:  db      0,49h,1        ; nastaven° CTC
+e2f2:                          db      0,18h,1,0,3,41h,4,45h,5,28h ; nastaven° SIO tisk†rny
+e2fc:                          db      7fh            ; inicializace tisk†rny
+
+e2fd:  db 5e           lab283: in      a,(5eh)        ; vstup z tisk†rny
+e2ff:  e6 7f                   and     7fh
+e301:  fe 11                   cp      11h            ; znak p©ipravenosti ON LINE
+e303:  28 17                   jr      z,lab284       ; byl p©ijat znak p©ipravenosti
+e305:  fe 13                   cp      13h            ; buffer tisk†rny zaplnàn
+e307:  20 03                   jr      nz,lab285
+e309:  3e 00           lab286: ld      a,0            ; nen° p©ipravena
+e30b:  c9                      ret
+ ......................................................
+e30c:  fe 14           lab285: cp      14h            ; znak zaplnàn° bufferu tisk†rny
+e30e:  20 f9                   jr      nz,lab286      ; nen° ë†dnò znak - nen° p©ipravena
+e310:  d5                      push    de
+e311:  18 2b                   jr      lab287         ; test stavu tisk†rny
+ ......................................................
+e313:  0e 80           lab291: ld      c,80h          ; test kl†vesy BREAK
+e315:  cd 70 e1                call    conout         ; vòstup znaku na konzolu
+e318:  d1                      pop     de
+e319:  01 ff ff                ld      bc,0ffffh
+e31c:  db 5f           lab284: in      a,(5fh)        ; ©°d°c° port SIO tisk†rny
+e31e:  e6 04                   and     4              ; test odesl†n° znaku
+e320:  c8                      ret     z              ; znak nebyl odesl†n - vys°lac° buffer nen° pr†zdnò
+e321:  3e 01                   ld      a,1            ; znak byl vysl†n
+e323:  c9                      ret
+ ......................................................
+                                                      ; inicializace portñ tisk†rny
+e324:  3e 05           lab281: ld      a,5
+e326:  d3 58                   out     (58h),a        ; nastaven° á°taáe (©°dic° port)
+e328:  0e 58                   ld      c,58h          ; adresa á°taáe
+e32a:  23                      inc     hl
+e32b:  23                      inc     hl
+e32c:  ed a3                   oti                    ; nastaven° á°taáe
+e32e:  0e 5f                   ld      c,5fh          ; adresa ©°dic°ho portu SIO tisk†rny
+e330:  06 0a                   ld      b,0ah          ; poáet znakñ pro nastaven° SIO
+e332:  ed b3                   otir                   ; nastaven° SIO tisk†rny
+e334:  0d                      dec     c              ; adresa datovÇho portu SIO
+e335:  ed a3                   oti                    ; vòstup inicializaán°ho bajtu 7fh na tisk†rnu
+e337:  c9                      ret
+ ......................................................
+                                                      ; vòstup znaku na tisk†rnu
+e338:  7b              lab296: ld      a,e            ; znak k tisku
+e339:  cb bf                   res     7,a            ; zru®en° 7.bitu
+e33b:  d3 5e                   out     (5eh),a        ; vòstup znaku
+e33d:  c9                      ret
+ ......................................................
+                                                      ; test stavu tisk†rny
+e33e:  01 5b 1b        lab287: ld      bc,1b5bh       ; znaky pro vysl†n° na tisk†rnu
+e341:  11 6e 35                ld      de,356eh
+e344:  db 5f           lab288: in      a,(5fh)        ; ©°d°c° port SIO tisk†rny
+e346:  cb 57                   bit     2,a
+e348:  28 fa                   jr      z,lab288       ; áek†n° na vysl†n° znaku
+e34a:  78                      ld      a,b
+e34b:  06 00                   ld      b,0
+e34d:  b7                      or      a
+e34e:  20 12                   jr      nz,lab289      ; vysl†n° znaku 1BH (=<ESC>)
+e350:  79                      ld      a,c
+e351:  0e 00                   ld      c,0
+e353:  b7                      or      a
+e354:  20 0c                   jr      nz,lab289      ; vysl†n° znaku 5BH ("[")
+e356:  7a                      ld      a,d
+e357:  16 00                   ld      d,0
+e359:  b7                      or      a
+e35a:  20 06                   jr      nz,lab289      ; vysl†n° znaku 35h ("5")
+e35c:  7b                      ld      a,e
+e35d:  1e 00                   ld      e,0
+e35f:  b7                      or      a
+e360:  28 04                   jr      z,lab290       ; vysl†n° znaku 6eh ("n")
+e362:  d3 5e           lab289: out     (5eh),a        ; vysl†n° znaku na tisk†rnu
+e364:  18 de                   jr      lab288
+ ......................................................
+e366:  db 5f           lab290: in      a,(5fh)
+e368:  cb 47                   bit     0,a
+e36a:  28 fa                   jr      z,lab290       ; áek†n° na p©°jet° znaku
+e36c:  db 5e                   in      a,(5eh)        ; vstup znaku od tisk†rnu
+e36e:  e6 7f                   and     7fh
+e370:  fe 6e                   cp      6eh            ; je znak "n" ?
+e372:  20 f2                   jr      nz,lab290      ; nen° znak "n" - dal®° áek†n°
+e374:  18 9d                   jr      lab291
+ ......................................................
+e376:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e37d:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e384:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e38b:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e392:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e399:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e3a0:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e3a7:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e3ae:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e3b5:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e3bc:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+e3c3:                          db      0c7h,0c7h,0c7h,0c7h,0c7h,0c7h
+ ......................................................
+e3c9:  79              punch:                         ; vydàrov†n° znaku
+                               ld      a,c            ; znak k vydàrov†n°
+e3ca:  c9                      ret
+ ......................................................
+e3cb:  3e 1a           reader:                        ; p©eáten° znaku ze sn°maáe
+                               ld      a,1ah
+e3cd:  c9                      ret
+ ......................................................
+e3ce:  01 00 00        home:                          ; nastaven° hlavy na stopu 0
+                               ld      bc,0           ; poëadovanÇ á°slo stopy
+e3d1:  cd f3 e3                call    settrk         ; nastaven° stopy
+e3d4:  3a ae f3                ld      a,(ddb17)      ; p©°znak uzav©en° sektoru
+e3d7:  b7                      or      a
+e3d8:  c0                      ret     nz
+e3d9:  32 ad f3                ld      (ddb18),a
+e3dc:  c9                      ret
+ ......................................................
+e3dd:  21 65 de        seldsk:                        ; vòbàr aktivn°ho disku
+                               ld      hl,disk        ; poáet logickòch diskñ
+e3e0:  79                      ld      a,c            ; á°slo disku
+e3e1:  be                      cp      (hl)           ; kontrola á°sla disku
+e3e2:  21 00 00                ld      hl,0           ; parametr - neexistuj°c° disk
+e3e5:  d0                      ret     nc             ; disk neexistuje
+e3e6:  32 a6 f3                ld      (ddb16),a      ; poëadovanò logickò disk
+e3e9:  6f                      ld      l,a
+e3ea:  29                      add     hl,hl          ; á°slo disku * 16
+e3eb:  29                      add     hl,hl
+e3ec:  29                      add     hl,hl
+e3ed:  29                      add     hl,hl
+e3ee:  11 84 de                ld      de,dtb27       ; tabulka diskovòch parametrñ
+e3f1:  19                      add     hl,de          ; vòpoáet adresy diskovòch parametrñ
+e3f2:  c9                      ret
+ ......................................................
+e3f3:  60              settrk:                        ; nastaven° stopy
+                               ld      h,b
+e3f4:  69                      ld      l,c
+e3f5:  22 a7 f3                ld      (ddw21),hl     ; á°slo poëadovanÇ stopy
+e3f8:  c9                      ret
+ ......................................................
+e3f9:  79              setsec:                        ; nastaven° sektoru
+                               ld      a,c
+e3fa:  32 a9 f3                ld      (ddb20),a      ; á°slo poëadovanÇho sektoru
+e3fd:  c9                      ret
+ ......................................................
+e3fe:  eb              sectrn:                        ; p©eveden° log.á°sla sektoru na fyzickÇ
+                               ex      de,hl
+e3ff:  7e                      ld      a,(hl)         ; adresa tabulky pro p©evod sektorñ
+e400:  23                      inc     hl
+e401:  b6                      or      (hl)
+e402:  2b                      dec     hl
+e403:  28 05                   jr      z,lab159
+e405:  09                      add     hl,bc          ; vòpoáet adresy sektoru v tabulce
+e406:  6e                      ld      l,(hl)         ; p©evod sektoru
+e407:  26 00                   ld      h,0
+e409:  c9                      ret
+ ......................................................
+e40a:  60              lab159: ld      h,b            ; p©evod je 0 - fyzickò sektor roven logickÇmu
+e40b:  69                      ld      l,c
+e40c:  c9                      ret
+ ......................................................
+e40d:  69              setdma:                        ; nastaven° adresy DMA
+                               ld      l,c
+e40e:  60                      ld      h,b
+e40f:  22 61 de                ld      (ddw27),hl     ; nov† ukl†dac° adresa pro diskovÇ operace
+e412:  c9                      ret
+ ......................................................
+
+e413:  cd 8e e5        read:                          ; áten° sektoru
+                               call    lab170         ; vòpoáet absolutn°ho á°sla sektoru
+e416:  dd cb 12 46             bit     0,(ix+12h)     ; p©°znak fyzickÇho disku
+e41a:  20 0f                   jr      nz,lab177      ; je fyzickò disk
+e41c:  32 b8 f3                ld      (ddb29),a      ; vy®®° bajt absolutn°ho á°sla sektoru
+e41f:  22 b9 f3                ld      (ddw30),hl     ; á°slo absolutn°ho logickÇho sektoru
+e422:  3a a6 f3                ld      a,(ddb16)      ; poëadovanò logickò disk
+e425:  32 b4 f3                ld      (ddb28),a      ; á°slo poëadovanÇho logickÇho disku
+e428:  c3 ce e5                jp      lab181         ; áten° sektoru z logickÇho disku
+ ......................................................
+e42b:  32 aa f3        lab177:                        ; fyzickò disk
+                               ld      (ddb21),a      ; á°slo poëadovanÇho fyzickÇho sektoru
+e42e:  22 ab f3                ld      (ddw28),hl     ; á°slo poëadovanÇho fyzickÇho sektoru
+e431:  af                      xor     a
+e432:  32 af f3                ld      (ddb22),a      ; p©°znak fyzickÇho sektoru
+e435:  3e 01                   ld      a,1
+e437:  32 bd f3                ld      (ddb23),a      ; p©°znak áten° sektoru
+e43a:  32 bc f3                ld      (ddb24),a      ; p©°znak - nen° p©eáten fyzickò sektor
+e43d:  3e 02                   ld      a,2
+e43f:  32 be f3                ld      (ddb25),a      ; p©°znak neuzav©enÇho fyz. sektoru
+e442:  c3 d0 e4                jp      lab178         ; áten° sektoru z fyzickÇho disku
+ ......................................................
+e445:  21 be f3        write:                         ; z†pis sektoru
+                               ld      hl,ddb25       ; p©°znak zpñsobu uzav°r†n° fyzickòch sektorñ
+e448:  71                      ld      (hl),c         ; nastaven° p©°znaku zpñsobu uzav°r†n° sektorñ
+e449:  cd 8e e5                call    lab170         ; vòpoáet absolutn° adresy logickÇho sektoru na disketà
+e44c:  dd cb 12 46             bit     0,(ix+12h)     ; p©°znak fyzickÇho sektoru
+e450:  20 0f                   jr      nz,lab373      ; je fyzickò disk
+e452:  32 b8 f3                ld      (ddb29),a      ; vy®®° bajt logickÇho á°sla sektoru
+e455:  22 b9 f3                ld      (ddw30),hl     ; á°slo sektoru
+e458:  3a a6 f3                ld      a,(ddb16)      ; poëadovanò logickò disk
+e45b:  32 b4 f3                ld      (ddb28),a      ; á°slo poëadovanÇho logickÇho disku
+e45e:  c3 d9 e5                jp      lab225         ; z†pis sektoru na logickò disk
+ ......................................................
+                                                      ; z†pis na fyzickò disk
+e461:  32 aa f3        lab373: ld      (ddb21),a      ; á°slo poëadovanÇho fyzickÇho sektoru
+e464:  22 ab f3                ld      (ddw28),hl     ; á°slo poëadovanÇho fyzickÇho sektoru
+e467:  af                      xor     a
+e468:  32 bd f3                ld      (ddb23),a      ; p©°znak z†pisu sektoru
+e46b:  3a be f3                ld      a,(ddb25)      ; p©°znak uzav°r†n° sektoru
+e46e:  fe 02                   cp      2
+e470:  c2 8c e4                jp      nz,lab374      ; nen° uzav°r†n° po operaci
+e473:  dd 7e 03                ld      a,(ix+3)       ; maska dÇlky logickÇho bloku
+e476:  3c                      inc     a
+e477:  32 af f3                ld      (ddb22),a      ; dÇlka bloku
+e47a:  3a a6 f3                ld      a,(ddb16)      ; poëadovanò logickò disk
+e47d:  32 b0 f3                ld      (dtb71),a      ; aktivn° logickò disk
+e480:  3a aa f3                ld      a,(ddb21)      ; á°slo poëadovanÇho fyzickÇho sektoru
+e483:  2a ab f3                ld      hl,(ddw28)     ; á°slo poëadovanÇho fyzickÇho sektoru
+e486:  32 b1 f3                ld      (ddb56),a      ; pracovn° ukazatel poëadovanÇho fyzickÇho sektoru
+e489:  22 b2 f3                ld      (ddw40),hl     ; pracovn° ukazatel poëadovanÇho fyzickÇho sektoru
+e48c:  3a af f3        lab374: ld      a,(ddb22)      ; dÇlka bloku
+e48f:  b7                      or      a
+e490:  ca c8 e4                jp      z,lab375
+e493:  3d                      dec     a
+e494:  32 af f3                ld      (ddb22),a      ; sn°ëen° ukazatele sektorñ
+e497:  3a a6 f3                ld      a,(ddb16)      ; poëadovanò logickò disk
+e49a:  21 b0 f3                ld      hl,dtb71       ; aktivn° logickò disk
+e49d:  be                      cp      (hl)           ; je shoda ?
+e49e:  c2 c8 e4                jp      nz,lab375      ; je zmàna disku
+e4a1:  3a b1 f3                ld      a,(ddb56)      ; pracovn° ukazatel poëadovanÇho fyzickÇho sektoru
+e4a4:  21 aa f3                ld      hl,ddb21       ; pracovn° ukazatel poëadovanÇho fyzickÇho sektoru
+e4a7:  be                      cp      (hl)
+e4a8:  20 1e                   jr      nz,lab375      ; nen° stejnò fyzickò sektor
+e4aa:  2a ab f3                ld      hl,(ddw28)     ; á°slo poëadovanÇho fyzickÇho sektoru
+e4ad:  ed 5b b2 f3             ld      de,(ddw40)     ; á°slo sektoru
+e4b1:  b7                      or      a
+e4b2:  ed 52                   sbc     hl,de
+e4b4:  20 12                   jr      nz,lab375      ; je zmàna sektoru
+e4b6:  21 01 00                ld      hl,1
+e4b9:  19                      add     hl,de          ; zvò®en° ukazatele sektoru
+e4ba:  ce 00                   adc     a,0
+e4bc:  32 b1 f3                ld      (ddb56),a      ; pracovn° ukazatel poëadovanÇho fyzickÇho sektoru
+e4bf:  22 b2 f3                ld      (ddw40),hl     ; pracovn° ukazatel poëadovanÇho fyzickÇho sektoru
+e4c2:  af                      xor     a
+e4c3:  32 bc f3                ld      (ddb24),a      ; p©°znak - je p©eáten sektor v pamàti
+e4c6:  18 08                   jr      lab178         ; áten° sektoru
+ ......................................................
+                                                      ; je zmàna sektoru
+e4c8:  af              lab375: xor     a
+e4c9:  32 af f3                ld      (ddb22),a      ; dÇlka bloku
+e4cc:  3c                      inc     a
+e4cd:  32 bc f3                ld      (ddb24),a      ; p©°znak - nen° p©eáten fyz. sektor
+e4d0  af               lab178:                        ; áten° a z†pis sektoru na fyzickò disk
+                               xor     a
+e4d1:  32 bb f3                ld      (ddb26),a      ; p©°znak spr†vnosti p©eáten° sektoru
+e4d4:  2a ab f3                ld      hl,(ddw28)     ; á°slo poëadovanÇho fyzickÇho sektoru
+e4d7:  3e 07                   ld      a,7            ; maska fyz. sektoru
+e4d9:  2f                      cpl                    ; = f8h
+e4da:  a5                      and     l
+e4db:  6f                      ld      l,a            ; poáet logickòch sektorñ
+e4dc:  dd 46 0f                ld      b,(ix+0fh)     ; ©†d fyzickÇho sektoru
+e4df:  3a aa f3                ld      a,(ddb21)      ; á°slo poëadovanÇho fyzickÇho sektoru
+e4e2:  04                      inc     b
+e4e3:  05                      dec     b
+e4e4:  28 08                   jr      z,lab179       ; ©†d sektoru = 0 (dÇlka=1 log. sektor)
+e4e6:  cb 3f           lab228: srl     a              ; p©epoáet na fyzickÇ sektory
+e4e8:  cb 1c                   rr      h              ; á°slo sektoru / 2
+e4ea:  cb 1d                   rr      l
+e4ec:  10 f8                   djnz    lab228
+e4ee:  32 b5 f3        lab179: ld      (ddb27),a      ; á°slo aktu†ln°ho fyzickÇho sektoru
+e4f1:  22 b6 f3                ld      (ddw29),hl     ; á°slo aktu†ln°ho fyzickÇho sektoru
+e4f4:  21 ad f3                ld      hl,ddb18
+e4f7:  7e                      ld      a,(hl)         ; = 0
+e4f8:  36 01                   ld      (hl),1
+e4fa:  b7                      or      a
+e4fb:  28 25                   jr      z,lab180
+e4fd:  3a a6 f3                ld      a,(ddb16)      ; poëadovanò logickò disk
+e500:  21 b4 f3                ld      hl,ddb28       ; á°slo nastavenÇho log. disku
+e503:  be                      cp      (hl)           ; porovn†n° s nastavenòm diskem
+e504:  20 15                   jr      nz,lab226
+e506:  3a b5 f3                ld      a,(ddb27)      ; á°slo aktu†ln°ho fyzickÇho sektoru
+e509:  21 b8 f3                ld      hl,ddb29       ; absolutn° á°slo logickÇho sektoru
+e50c:  be                      cp      (hl)           ; kontrola se souáasnòm sektorem
+e50d:  20 0c                   jr      nz,lab226      ; nesouhlas° nejvy®®° bajt abs. á°sla sektoru
+e50f:  ed 5b b6 f3             ld      de,(ddw29)     ; á°slo aktu†ln°ho fyzickÇho sektoru
+e513:  2a b9 f3                ld      hl,(ddw30)     ; absolutn° á°slo logickÇho sektoru
+e516:  b7                      or      a
+e517:  ed 52                   sbc     hl,de          ; kontrola abs. á°sla sektoru s logickòm
+e519:  28 24                   jr      z,lab227       ; souhlas° abs. á°slo sektoru a disk
+e51b:  3a ae f3        lab226: ld      a,(ddb17)      ; nesouhlas° disk nebo log. a fyz. sektor
+e51e:  b7                      or      a              ; p©°znak otev©en° fyz. sektoru
+e51f:  c4 d9 e5                call    nz,lab225      ; z†pis starÇho fyz. sektoru
+e522:  3a a6 f3        lab180: ld      a,(ddb16)      ; poëadovanò logickò disk
+e525:  32 b4 f3                ld      (ddb28),a      ; á°slo disku (logickò disk)
+e528:  3a b5 f3                ld      a,(ddb27)      ; á°slo aktu†ln°ho fyzickÇho sektoru
+e52b:  2a b6 f3                ld      hl,(ddw29)     ; á°slo aktu†ln°ho fyzickÇho sektoru
+e52e:  32 b8 f3                ld      (ddb29),a      ; absolutn° á°slo sektoru
+e531:  22 b9 f3                ld      (ddw30),hl     ; absolutn° á°slo sektoru
+e534:  3a bc f3                ld      a,(ddb24)      ; = 1 - p©°znak nenaáten° fyz. sektoru
+e537:  b7                      or      a
+e538:  c4 ce e5                call    nz,lab181      ; áten° novÇho fyz. sektoru
+e53b:  af                      xor     a
+e53c:  32 ae f3                ld      (ddb17),a      ; p©°znak uzav©en° sektoru
+e53f:  3a ab f3        lab227: ld      a,(ddw28)      ; á°slo logickÇho sektoru absolutnà
+e542:  e6 07                   and     7
+e544:  1f                      rra
+e545:  67                      ld      h,a
+e546:  2e 00                   ld      l,0
+e548:  cb 1d                   rr      l              ; vòpoáet relativn° adresy log. sektoru ve fyz. sektoru
+e54a:  11 a6 ef                ld      de,dtb49       ; poá†tek fyz. sektoru v pamàti
+e54d:  19                      add     hl,de          ; vòpoáet zaá†tku log. sektoru v pamàti
+e54e:  ed 5b 61 de             ld      de,(ddw27)     ; vnàj®° adresa DMA
+e552:  01 80 00                ld      bc,80h         ; poáet bajtñ k p©enosu
+e555:  3a bd f3                ld      a,(ddb23)      ; p©°znak áten° sektoru
+e558:  b7                      or      a
+e559:  20 06                   jr      nz,lab224      ; je áten°
+e55b:  3e 01                   ld      a,1            ; otev©en° sektoru p©i z†pisu
+e55d:  32 ae f3                ld      (ddb17),a      ; p©°znak neuzav©en° fyz. sektoru
+e560:  eb                      ex      de,hl          ; z†màna smàru p©enosu
+e561:  ed b0           lab224: ldir                   ; p©enos logickÇho sektoru
+e563:  3a be f3                ld      a,(ddb25)      ; p©°znak uzav°r†n° fyz. sektoru
+e566:  fe 01                   cp      1
+e568:  3a bb f3                ld      a,(ddb26)      ; p©°znak spr†vnosti p©eáten° sektoru
+e56b:  c0                      ret     nz             ; p©°znak nen° otev©en po z†pisu
+e56c:  b7                      or      a
+e56d:  c0                      ret     nz             ; sektor nebyl spr†vnà p©eáten
+e56e:  af                      xor     a
+e56f:  32 ae f3                ld      (ddb17),a      ; zru®en° otev©enosti sektoru
+e572:  cd d9 e5                call    lab225         ; z†pis fyzickÇho sektoru na disk
+e575:  3a bb f3                ld      a,(ddb26)      ; p©°znak spr†vnÇho áten° sektoru
+e578:  c9                      ret
+ ......................................................
+                                                      ; nastaven° adresy bloku diskovòch parametrñ (->IX,DE)
+e579:  21 7e de        lab171:                        ; nastaven° adresy bloku diskovòch parametrñ
+                               ld      hl,dtb32       ; tabulka diskovòch parametrñ + 10 - 16
+e57c:  11 10 00                ld      de,10h
+e57f:  19              lab172: add     hl,de          ; vòpoáet adresy bloku diskovòch parametrñ
+e580:  d6 01                   sub     1
+e582:  30 fb                   jr      nc,lab172
+e584:  5e                      ld      e,(hl)         ; p©eáten° adresy bloku diskovòch parametrñ
+e585:  23                      inc     hl
+e586:  56                      ld      d,(hl)
+e587:  dd 21 00 00             ld      ix,0
+e58b:  dd 19                   add     ix,de          ; adresa do IX
+e58d:  c9                      ret
+ ......................................................
+e58e:  3a a6 f3        lab170:                        ; vòpoáet absolutn°ho á°sla sektoru
+                               ld      a,(ddb16)      ; poëadovanò logickò disk
+e591:  cd 79 e5                call    lab171         ; nastaven° adresy bloku diskovòch parametrñ
+e594:  dd 7e 10                ld      a,(ix+10h)     ; poáet systÇmovòch sektorñ
+e597:  b7                      or      a
+e598:  2a a7 f3                ld      hl,(ddw21)     ; á°slo poëadovanÇ stopy
+e59b:  28 08                   jr      z,lab173       ; nejsou systÇmovÇ sektory
+e59d:  dd 5e 0d                ld      e,(ix+0dh)     ; poáet systÇmovòch stop
+e5a0:  dd 56 0e                ld      d,(ix+0eh)     ; poáet systÇmovòch stop
+e5a3:  ed 52                   sbc     hl,de          ; relativn° adresa stop od zaá†tku datovÇ oblasti
+e5a5:  eb              lab173: ex      de,hl          ; DE = á°slo stopy
+e5a6:  dd 46 00                ld      b,(ix+0)       ; poáet logickòch sektorñ na stopu
+e5a9:  af                      xor     a
+e5aa:  67                      ld      h,a
+e5ab:  6f                      ld      l,a            ; HL = 0
+e5ac:  4f                      ld      c,a            ; C = 0
+e5ad:  cb 38           lab175: srl     b              ; poáet logickòch sektorñ na stopu
+e5af:  30 02                   jr      nc,lab174      ; n†sleduje vòpoáet CDE x B --> AHL (poáet sektorñ poá†tku stopy)
+e5b1:  19                      add     hl,de
+e5b2:  89                      adc     a,c
+e5b3:  cb 23           lab174: sla     e
+e5b5:  cb 12                   rl      d
+e5b7:  cb 11                   rl      c
+e5b9:  04                      inc     b
+e5ba:  05                      dec     b
+e5bb:  20 f0                   jr      nz,lab175
+e5bd:  ed 5b a9 f3             ld      de,(ddb20)     ; á°slo poëadovanÇho sektoru
+e5c1:  16 00                   ld      d,0
+e5c3:  dd cb 12 46             bit     0,(ix+12h)     ; p©°znak fyzickÇho disku
+e5c7:  20 01                   jr      nz,lab176      ; je fyzickò disk
+e5c9:  1b                      dec     de             ; korekce á°slov†n° log. sektorñ
+e5ca:  19              lab176: add     hl,de          ; p©iáten° á°sla logickÇho sektoru
+e5cb:  ce 00                   adc     a,0            ; p©enos
+e5cd:  c9                      ret
+ ......................................................
+===============================================================================
+                                                      ; nastaven° parametrñ pro sektorovÇ diskovÇ operace
+                                                      ; s logickòmi disky, proveden° operac°
+==============================================================================
+
+e5ce:  3a b4 f3        lab181:                        ; áten° sektoru logickÇho disku
+                               ld      a,(ddb28)      ; á°slo logickÇho disku
+e5d1:  cd 79 e5                call    lab171         ; nastaven° adresy bloku diskovòch parametrñ
+e5d4:  dd 7e 16                ld      a,(ix+16h)     ; p©°znakovÇ bity pro diskovou operaci
+e5d7:  18 0a                   jr      lab182
+ ......................................................
+                                                      ; z†pis sektoru na logickò disk
+e5d9:  3a b4 f3        lab225: ld      a,(ddb28)      ; á°slo poëadovanÇho logickÇho disku
+e5dc:  cd 79 e5                call    lab171         ; nastaven° adresy bloku diskovòch parametrñ
+e5df:  dd 7e 16                ld      a,(ix+16h)     ; p©°znakovÇ bity pro diskovou operaci
+e5e2:  3d                      dec     a
+                                                      ; diskov† operace s logickòm diskem
+e5e3:  32 52 de        lab182: ld      (ddb30),a      ; p©°znakovÇ bity pro diskovou operaci
+e5e6:  af                      xor     a
+e5e7:  5f                      ld      e,a            ; E <- 0
+e5e8:  0e ff                   ld      c,0ffh
+e5ea:  dd 56 1f                ld      d,(ix+1fh)     ; poáet fyzickòch sektorñ na stopu
+e5ed:  2a b9 f3                ld      hl,(ddw30)     ; absolutn° á°slo sektoru
+e5f0:  06 08                   ld      b,8            ; poáet rotac°
+e5f2:  cb 01           lab184: rlc     c              ; n†sleduje vòpoáet á°sla stopy s poëad. sektorem
+                                                      ; (vydàlen° HL/DE -> C, zbytek HL)
+e5f4:  cb 3a                   srl     d
+e5f6:  cb 1b                   rr      e
+e5f8:  ed 52                   sbc     hl,de
+e5fa:  30 03                   jr      nc,lab183
+e5fc:  cb 81                   res     0,c            ; bit pod°lu
+e5fe:  19                      add     hl,de          ; zpàtn† korekce
+e5ff:  10 f1           lab183: djnz    lab184
+e601:  55                      ld      d,l            ; zbytek po dàlen° - sektor na stopà
+e602:  21 54 de                ld      hl,dtb33       ; á°slo stopy
+e605:  71                      ld      (hl),c         ; aktu†ln° á°slo v†lce
+e606:  dd 7e 10                ld      a,(ix+10h)     ; poáet systÇmovòch sektorñ
+e609:  b7                      or      a
+e60a:  28 05                   jr      z,lab185       ; nen° ë†dnò systÇmovò sektor
+e60c:  dd 7e 0d                ld      a,(ix+0dh)     ; poáet systÇmovòch stop
+e60f:  81                      add     a,c            ; p©iáten° systÇmovòch stop
+e610:  77                      ld      (hl),a         ; á°slo stopy
+e611:  14              lab185: inc     d              ; á°slo sektoru ve stopà
+e612:  7b                      ld      a,e            ; poáet fyzickòch sektorñ ve stopà
+e613:  dd cb 15 46             bit     0,(ix+15h)     ; moënÇ form†ty disket
+e617:  28 09                   jr      z,lab186       ; neumoë§uje dva povrchy
+e619:  1f                      rra                    ; poáet sektorñ na v†lec / 2
+e61a:  ba                      cp      d              ; je prvn° nebo druh† strana ?
+e61b:  30 05                   jr      nc,lab186      ; je prvn° strana
+e61d:  04                      inc     b              ; povrch 1
+e61e:  92                      sub     d              ; vòpoáet á°sla sektoru na povrchu 1
+e61f:  ed 44                   neg
+e621:  57                      ld      d,a
+e622:  23              lab186: inc     hl
+e623:  70                      ld      (hl),b         ; á°slo povrchu disku
+e624:  48                      ld      c,b
+e625:  23                      inc     hl
+e626:  72                      ld      (hl),d         ; á°slo fyzickÇho sektoru pro diskovou operaci
+e627:  06 03                   ld      b,3
+e629:  23              lab187: inc     hl             ; p©enos ©†du fyz. sektoru, poátu sektorñ na stopu
+e62a:  dd 23                   inc     ix             ;   a poátu oddàlovac°ch bajtñ za hlaviákou sektoru
+e62c:  dd 7e 17                ld      a,(ix+17h)
+e62f:  77                      ld      (hl),a
+e630:  10 f7                   djnz    lab187
+e632:  3a b4 f3                ld      a,(ddb28)      ; á°slo logickÇho disku
+e635:  cd 79 e5                call    lab171         ; nastaven° adresy bloku diskovòch parametrñ
+e638:  dd 7e 17                ld      a,(ix+17h)     ; fyzick† mechanika
+e63b:  cb 41                   bit     0,c            ; je povrch á°slo 1 ?
+e63d:  28 02                   jr      z,lab188       ; je povrch 0
+e63f:  f6 04                   or      4              ; p©°znak povrchu 1
+e641:  32 53 de        lab188: ld      (ddb31),a      ; fyzick† mechanika pro operaci
+e644:  21 5a de                ld      hl,dtb34       ; poáet sektorñ k naáten° z disku
+e647:  dd 7e 11                ld      a,(ix+11h)     ; nastaven° poátu sektorñ pro diskovou operaci (=1)
+e64a:  77                      ld      (hl),a
+e64b:  06 04                   ld      b,4
+e64d:  23              lab189: inc     hl             ; p©enesen° ostatn°ch parametrñ pro operaci
+e64e:  dd 23                   inc     ix
+e650:  dd 7e 1a                ld      a,(ix+1ah)
+e653:  77                      ld      (hl),a
+e654:  10 f7                   djnz    lab189
+                                                      ; zde se vyvol† diskov† operace áten°/z†pis
+e656:  3a b4 f3        lab222: ld      a,(ddb28)      ; á°slo logickÇho disku pro operaci
+e659:  cd 79 e5                call    lab171         ; nastaven° adresy bloku diskovòch parametrñ
+e65c:  dd 6e 13                ld      l,(ix+13h)     ; adresa ukl†dac° adresy sektoru
+e65f:  dd 66 14                ld      h,(ix+14h)
+e662:  5e                      ld      e,(hl)         ; ukl†dac° adresa sektoru
+e663:  23                      inc     hl
+e664:  56                      ld      d,(hl)
+e665:  21 52 de                ld      hl,ddb30       ; pracovn° tabulka pro nahr†n° dat
+e668:  cd 79 e6                call    lab190         ; nahr†n° dat od adr.(DE) podle tab.(HL)
+e66b:  78                      ld      a,b            ; n†vratovò k¢d z diskovÇ operace
+e66c:  fe 52                   cp      52h
+e66e:  28 e6                   jr      z,lab222       ; novÇ áten° - mechanika nep©ipravena
+e670:  b7                      or      a              ; chybovò k¢d
+e671:  28 02                   jr      z,lab223       ; n†vratovò k¢d OK
+e673:  3e 01                   ld      a,1            ; chyba operace
+e675:  32 bb f3        lab223: ld      (ddb26),a      ; nastaven° parametru spr†vnosti áten° sektoru
+e678:  c9                      ret
+
+======================================================================================
+                                                      ; fyzick† operace áten°/z†pis
+======================================================================================
+
+e679:  ed 53 77 eb     lab190:                        ; nahr†n° dat od adr.(DE) podle tab.(HL)
+                               ld      (ddw5),de      ; pracovn° ukl†dac° adresa sektoru
+e67d:  e5                      push    hl             ; tabulka pro zaveden° dat
+e67e:  dd e1                   pop     ix             ; tabulka pro zaveden° dat
+e680:  21 83 eb                ld      hl,dtb35       ; á°taá indexovòch impulsñ
+e683:  36 06                   ld      (hl),6         ; poáet indexovòch impulsñ = 6
+e685:  2b                      dec     hl             ; poáet pokusñ diskovÇ operace
+e686:  3a 46 de                ld      a,(ddb32)      ; maxim†ln° poáet pokusñ pro diskovou operaci
+e689:  77                      ld      (hl),a         ; nastaven° á°taáe pokusñ pro diskovÇ operace
+e68a:  2b                      dec     hl
+e68b:  af                      xor     a
+e68c:  77                      ld      (hl),a
+e68d:  dd 7e 01        lab169: ld      a,(ix+1)       ; fyzick† mechanika pro operaci
+e690:  e6 03                   and     3              ; max. 4 mechaniky
+e692:  11 73 eb                ld      de,dtb36       ; tabulka bajtñ nastavenòch stop
+e695:  47                      ld      b,a            ; poëadovan† mechanika
+e696:  3e ee                   ld      a,0eeh         ; vòstupn° bajt pro vòbàr mechaniky
+e698:  28 0c                   jr      z,lab191       ; byla mechanika 0
+e69a:  07                      rlca
+e69b:  cb 38                   srl     b
+e69d:  13                      inc     de
+e69e:  28 06                   jr      z,lab191       ; je mechanika 1
+e6a0:  13                      inc     de
+e6a1:  30 02                   jr      nc,lab221      ; je mechanika 2
+e6a3:  13                      inc     de             ; je mechanika 3
+e6a4:  07                      rlca
+e6a5:  07              lab221: rlca
+e6a6:  d3 18           lab191: out     (18h),a        ; vòbàr mechaniky
+e6a8:  f5                      push    af
+e6a9:  21 f9 ea                ld      hl,dtb37       ; podprogram p©eru®en° indexem
+e6ac:  f3                      di                     ; p©eru®en° od indexu
+e6ad:  22 40 f7                ld      (ddw31),hl     ; adresa obsluhy p©eru®en° indexem
+e6b0:  3e 40                   ld      a,40h          ; adresa p©eru®en° od PIO=f740h
+e6b2:  d3 11                   out     (11h),a        ; nastaven° offsetu vektoru p©eru®en° indexem
+e6b4:  3e 97                   ld      a,97h          ; ©°d°c° slovo p©eru®en° - n†sleduje maska
+e6b6:  d3 11                   out     (11h),a
+e6b8:  3e ff                   ld      a,0ffh         ; maska p©eru®en° - ë†dnòm bitem
+e6ba:  d3 11                   out     (11h),a
+e6bc:  fb                      ei
+e6bd:  3e 0b                   ld      a,0bh
+e6bf:  32 09 eb                ld      (0eb09h),a     ; nastaven° instrukce pro pokraáov†n° áten°
+e6c2:  dd 7e 09                ld      a,(ix+9)       ; stopa k p©epnut° z†znamovÇho proudu
+e6c5:  32 f4 e6                ld      (ddb34),a      ; stopa k p©epnut° z†znamovÇho proudu
+e6c8:  dd 7e 0a                ld      a,(ix+0ah)     ; vòstupn° bajt pro kan†l 12h
+e6cb:  32 f6 e6                ld      (ddb35),a      ; vòstupn° bajt pro kan†l 12h
+e6ce:  cb 7f                   bit     7,a            ; polarita sign†lu /RDYL
+e6d0:  0e 38                   ld      c,38h
+e6d2:  06 09                   ld      b,9            ; instrukce JR C,e82ch
+e6d4:  20 04                   jr      nz,lab192
+e6d6:  0e 30                   ld      c,30h
+e6d8:  06 21                   ld      b,21h          ; instrukce JR NC,e844h
+e6da:  ed 43 21 e8     lab192: ld      (0e821h),bc    ; nastaven° instrukce
+e6de:  dd 7e 0b                ld      a,(ix+0bh)     ; áas.konstanta pro vystavovac° motor
+e6e1:  32 31 e7                ld      (0e731h),a     ; áasovac° konstanta pro krok.motor
+e6e4:  dd 7e 0c                ld      a,(ix+0ch)     ; doba pro áek†n° na p©ipravenost mechaniky
+e6e7:  32 18 e8                ld      (ddb37),a      ; doba pro áek†n° na p©ipravenost mechaniky
+e6ea:  dd 6e 02                ld      l,(ix+2)       ; á°slo v†lce
+e6ed:  dd 66 03                ld      h,(ix+3)       ; á°slo povrchu
+e6f0:  22 7a eb                ld      (ddw32),hl     ; á°slo v†lce a á°slo povrchu
+e6f3:  3e 19           ddb34-1:ld      a,19h          ; stopa k p©epnut° proudu
+e6f5:  06 04           ddb35-1:ld      b,4            ; vòstupn° bajt pro kan†l 12h
+e6f7:  bd                      cp      l              ; je stopa k p©epnut° proudu ?
+e6f8:  30 02                   jr      nc,lab193      ; stopa nad hranic°
+e6fa:  cb d8                   set     3,b            ; nastaven° p©ep°naáe stop
+e6fc:  78              lab193: ld      a,b
+e6fd:  d3 12                   out     (12h),a        ; sign†l SP - nastaven° st©edu stopy
+e6ff:  ed 53 71 eb             ld      (ddw42),de     ; adresa bajtu mechaniky á°taáe stop
+e703:  db 12                   in      a,(12h)        ; ©°zen° AMF - vstup
+e705:  07                      rlca                   ; stopa 0 ?
+e706:  38 02                   jr      c,lab194       ; nen° stopa 0
+e708:  af                      xor     a              ; je stopa 0
+e709:  12                      ld      (de),a         ; nastaven° stopy
+e70a:  1a              lab194: ld      a,(de)
+e70b:  67                      ld      h,a            ; max. poáet krokñ
+e70c:  7d                      ld      a,l            ; poëadovan† stopa - poáet krokñ
+e70d:  12                      ld      (de),a
+e70e:  94                      sub     h
+e70f:  18 02                   jr      lab195         ; rozd°l stop
+ ......................................................
+                                                      ; nastaven° stopy
+e711:  7d              lab220: ld      a,l            ; poëadovan† stopa
+e712:  b7                      or      a              ; je nastaven° na stopu 0 ?
+e713:  1e a9           lab195: ld      e,0a9h         ; vòstupn° bajt pro smàr krokov†n° nahoru
+e715:  28 23                   jr      z,lab196       ; je shoda poëadovanÇ a skuteánÇ stopy
+e717:  67                      ld      h,a            ; poáet krokñ
+e718:  30 0a                   jr      nc,lab217      ; krokovat dolñ
+e71a:  ed 44                   neg
+e71c:  67                      ld      h,a            ; krokovat nahoru - poáet krokñ (korekce hodnoty)
+e71d:  1e 89                   ld      e,89h          ; vòstupn° bajt pro smàr dolñ
+e71f:  db 12           lab219: in      a,(12h)        ; vstup ©°dic°ho portu ©adiáe
+e721:  07                      rlca                   ; je stopa 0 ?
+e722:  30 ed                   jr      nc,lab220      ; je stopa 0
+e724:  7b              lab217: ld      a,e            ; ©°zen° - hlaviáka spu®tàna, nastaveno áten°
+e725:  d3 10                   out     (10h),a        ; nastaven° vòchoz°ho klidovÇho stavu portu
+e727:  e6 7f                   and     7fh            ; nulov†n° sign†lu /ST (krok motoru)
+e729:  d3 10                   out     (10h),a        ; proveden° kroku
+e72b:  f6 80                   or      80h            ; nastaven° sign†lu /ST (krok motoru)
+e72d:  d3 10                   out     (10h),a        ; n†vrat portu do pñvodn°ho stavu
+e72f:  01 00 00                ld      bc,0           ; áekac° smyáka pro krokovò motor
+e732:  0d              lab218: dec     c              ; (konstanta se nastavuje z adresy e6deh)
+e733:  20 fd                   jr      nz,lab218
+e735:  10 fb                   djnz    lab218         ; cyklus áekac° smyáky
+e737:  25                      dec     h              ; dal®° krok
+e738:  20 e5                   jr      nz,lab219
+                                                      ; zde je jië stopa nastavena
+e73a:  dd 5e 04        lab196: ld      e,(ix+4)       ; poëadovanò poá†teán° sektor
+e73d:  dd 56 05                ld      d,(ix+5)       ; ©†d velikosti fyzickÇho sektoru
+e740:  ed 53 7c eb             ld      (dtb42),de     ; poëadovanò sektor a ©†d velikosti sektoru
+e744:  dd 4e 08                ld      c,(ix+8)       ; poáet fyz. sektorñ ke áten°
+e747:  dd 46 06                ld      b,(ix+6)       ; posledn° sektor ke áten°
+e74a:  ed 43 7f eb             ld      (ddb66),bc     ; posledn° sektor, poáet sektorñ
+e74e:  7a                      ld      a,d            ; ©†d velikosti fyzickÇho sektoru
+e74f:  51                      ld      d,c            ; poáet sektorñ ke áten°
+e750:  d5                      push    de             ; poáet sektorñ ke áten°, poëadovanò sektor
+e751:  b7                      or      a              ; ©†d velikosti fyz. sektoru
+e752:  21 5a eb                ld      hl,dtb38       ; tabulka adres pro nastaven° programu
+e755:  11 2e eb                ld      de,dtb39       ; tabulka pro form†t stop 128 bajtñ
+e758:  28 0f                   jr      z,lab197       ; je ©†d sektoru 0 (= 128 bajtñ)
+e75a:  cb 3f                   srl     a              ; A/2
+e75c:  11 39 eb                ld      de,dtb46       ; tabulka pro form†t stop 256 bajtñ
+e75f:  28 08                   jr      z,lab197       ; je ©†d sektoru 1 (= 256 bajtñ)
+e761:  11 44 eb                ld      de,dtb47       ; tabulka pro form†t stop 512 bajtñ
+e764:  30 03                   jr      nc,lab197      ; je ©†d sektoru 2 (= 512 bajtñ)
+e766:  11 4f eb                ld      de,dtb48       ; tabulka pro form†t stop 1024 bajtñ
+e769:  06 0b           lab197: ld      b,0bh          ; poáet bajtñ tabulky = 11
+e76b:  c5              lab198: push    bc
+e76c:  4e                      ld      c,(hl)         ; adresa v programu ke zmànà
+e76d:  23                      inc     hl
+e76e:  46                      ld      b,(hl)
+e76f:  23                      inc     hl
+e770:  1a                      ld      a,(de)         ; bajt ke zmànà z tabulky form†tu
+e771:  13                      inc     de
+e772:  02                      ld      (bc),a         ; zmàna bajtu programu na danÇ adrese
+e773:  c1                      pop     bc
+e774:  10 f5                   djnz    lab198         ; dal®° bajt
+e776:  dd 7e 07                ld      a,(ix+7)       ; poáet oddàlovac°ch bajtñ za hlaviákou - 7
+e779:  32 c9 e9                ld      (0e9c9h),a     ; nastaven° poátu oddàlovac°ch bajtñ mezi hlaviákou a daty
+e77c:  3e 85                   ld      a,85h          ; vòstupn° bajt pro áten°
+e77e:  dd 56 00                ld      d,(ix+0)       ; p©°znakovÇ bity pro diskovou operaci
+e781:  1e 40                   ld      e,40h          ; adresa skoku pro z†pis MFM
+e783:  cb 72                   bit     6,d
+e785:  01 b4 cd                ld      bc,cdb4h       ; poá†teán° hodnota kontroln°ho souátu pro áten°
+e788:  20 0b                   jr      nz,lab199      ; je zvl†®tn° form†t stopy
+e78a:  3e 04                   ld      a,4            ; potvrzen° p©ipravenosti
+e78c:  d3 12                   out     (12h),a        ; nastaven° st©edu stopy
+e78e:  3e 87                   ld      a,87h          ; vòstupn° bajt pro z†pis
+e790:  01 ff ff                ld      bc,0ffffh      ; poá†teán° hodnota kontroln°ho souátu pro z†pis
+e793:  1e 00                   ld      e,0            ; adresa skoku pro z†pis FM
+e795:  ed 43 d0 ea     lab199: ld      (0ead0h),bc    ; nastaven° poá†teán° hodnoty kontroln°ho souátu
+e799:  32 7e eb                ld      (ddb39),a      ; nastaven° vòstupn°ho bajtu na port 10h
+e79c:  cb 42                   bit     0,d            ; p©°znak áten° v°ce sektorñ
+e79e:  28 30                   jr      z,lab200       ; áten° v°ce sektorñ
+e7a0:  7b                      ld      a,e
+e7a1:  32 d3 e9                ld      (0e9d3h),a     ; nastaven° adresy skoku pro FM nebo MFM
+e7a4:  db 12                   in      a,(12h)        ; ochrana z†pisu ?
+e7a6:  cb 6f                   bit     5,a
+e7a8:  28 20                   jr      z,lab210       ; je ochrana z†pisu
+e7aa:  21 88 eb                ld      hl,dtb45       ; kontroln° souáet dat sektoru
+e7ad:  d1                      pop     de             ; poáet sektorñ ke áten°, poá†teán° sektor
+e7ae:  d5                      push    de
+e7af:  d5                      push    de
+e7b0:  cd a8 ea                call    lab212         ; kontroln° souáet sektoru
+e7b3:  71              lab216: ld      (hl),c         ; uloëen° kontroln°ho souátu sektoru
+e7b4:  23                      inc     hl
+e7b5:  70                      ld      (hl),b
+e7b6:  23                      inc     hl
+e7b7:  23                      inc     hl
+e7b8:  23                      inc     hl
+e7b9:  d1                      pop     de             ; poáet sektorñ ke áten°, poá†teán° sektor
+e7ba:  3a 80 eb                ld      a,(ddb43)      ; posledn° sektor pro operaci áten°
+e7bd:  bb                      cp      e              ; poá†teán° sektor
+e7be:  28 19                   jr      z,lab214
+e7c0:  1c                      inc     e              ; zvò®en° ukazatele sektorñ
+e7c1:  15                      dec     d              ; sn°ëen° á°taáe sektorñ
+e7c2:  28 15                   jr      z,lab214
+e7c4:  d5                      push    de
+e7c5:  cd be ea                call    lab215         ; kontroln° souáet dat dal®°ho sektoru
+e7c8:  18 e9                   jr      lab216
+ ......................................................
+e7ca:  06 53           lab210: ld      b,53h          ; chyba ochrany z†pisu
+e7cc:  f1                      pop     af
+e7cd:  d1                      pop     de
+e7ce:  18 5a                   jr      lab211         ; konec z†pisu
+ ......................................................
+                                                      ; áten° v°ce sektorñ
+e7d0:  3e 70           lab200: ld      a,70h
+e7d2:  32 d3 e9                ld      (0e9d3h),a     ; nastaven° skoku pro áten° sektoru
+e7d5:  af                      xor     a
+e7d6:  32 72 ea                ld      (0ea72h),a     ; nastaven° áten° dal®°ho sektoru
+                                                      ; áten°
+e7d9:  3e fe           lab214: ld      a,0feh         ; poá†teán° bajt pro kontroln° souáet
+e7db:  32 79 eb                ld      (ddb42),a      ; identifikaán° bajt hlaviáky sektoru
+e7de:  21 86 eb                ld      hl,0eb86h      ; kontroln° souáet hlaviáky sektoru
+e7e1:  1e 05           lab209: ld      e,5            ; poáet bajtñ hlaviáky sektoru
+e7e3:  fd 21 79 eb             ld      iy,ddb42       ; identifikaán° bajt hlaviáky sektoru
+e7e7:  cd cf ea                call    lab201         ; vòpoáet kontroln°ho souátu hlaviáky sektoru
+e7ea:  71                      ld      (hl),c         ; uloëen° kontroln°ho souátu hlaviáky sektoru
+e7eb:  23                      inc     hl
+e7ec:  70                      ld      (hl),b
+e7ed:  23                      inc     hl
+e7ee:  23                      inc     hl
+e7ef:  23                      inc     hl
+e7f0:  d1                      pop     de
+e7f1:  e5                      push    hl
+e7f2:  21 7c eb                ld      hl,dtb42       ; á°slo poëadovanÇho sektoru, ©†d velikosti sektoru
+e7f5:  3a 80 eb                ld      a,(ddb43)      ; posledn° sektor pro operaci áten°
+e7f8:  34                      inc     (hl)           ; zvò®en° ukazatele sektoru
+e7f9:  be                      cp      (hl)           ; je posledn° sektor ?
+e7fa:  38 07                   jr      c,lab203       ; spoáten° kontroln°ch souátñ ostatn°ch sektorñ
+e7fc:  15                      dec     d              ; dal®° sektor ?
+e7fd:  28 04                   jr      z,lab203       ; byl jië posledn° sektor
+e7ff:  e1                      pop     hl
+e800:  d5                      push    de
+e801:  18 de                   jr      lab209         ; kontroln° souáet dal®°ho sektoru
+ ......................................................
+e803:  73              lab203: ld      (hl),e         ; n†vrat poá†teán°ho sektoru
+e804:  e1                      pop     hl
+e805:  21 83 eb                ld      hl,dtb35       ; á°taá indexovòch impulsñ
+e808:  3e ad                   ld      a,0adh
+e80a:  d3 10                   out     (10h),a        ; spu®tàn° hlaviáky
+e80c:  3a 70 eb                ld      a,(ddb44)
+e80f:  47                      ld      b,a
+e810:  f1                      pop     af
+e811:  b8                      cp      b
+e812:  28 30                   jr      z,lab204       ; obsluha z†pisu/áten° sektoru
+e814:  32 70 eb                ld      (ddb44),a
+e817:  06 08           ddb37-1:ld      b,8            ; áasovac° konstanta pro áek†n° na p©ipravenost mechaniky
+e819:  0d              lab205: dec     c
+e81a:  20 fd                   jr      nz,lab205
+e81c:  10 fb                   djnz    lab205
+e81e:  db 12           lab207: in      a,(12h)
+e820:  0f                      rrca                   ; bit p©ipravenosti mechaniky
+e821:  38 09                   jr      c,lab206       ; nebo JR NC,e844h (viz e6d0h)
+e823:  0d                      dec     c
+e824:  20 f8                   jr      nz,lab207      ; dal®° test
+e826:  10 f6                   djnz    lab207
+e828:  06 52                   ld      b,52h
+e82a:  18 0c           lab211: jr      lab208         ; mechanika nep©ipravena
+ ......................................................
+e82c:  7e              lab206: ld      a,(hl)         ; mechanika pracuje
+e82d:  fe 06                   cp      6
+e82f:  20 13                   jr      nz,lab204      ; obsluha z†pisu/áten° sektoru
+e831:  0d                      dec     c
+e832:  20 f8                   jr      nz,lab206
+e834:  10 f6                   djnz    lab206
+e836:  06 52                   ld      b,52h          ; mechanika nep©ipravena
+e838:  3e ff           lab208: ld      a,0ffh         ; konec vòbàru mechaniky
+e83a:  32 70 eb                ld      (ddb44),a
+e83d:  d3 18                   out     (18h),a
+e83f:  3e 03                   ld      a,3
+e841:  d3 11                   out     (11h),a
+e843:  c9                      ret
+ ......................................................
+                                                      ; obsluha z†pisu/áten° sektoru
+e844:  21 72 e9        lab204: ld      hl,dtb43       ; podprogram z†pisu/áten° sektoru
+e847:  ed 4b 01 00     lab279: ld      bc,(1)         ; £schova skoku z adresy 1
+e84b:  22 01 00                ld      (1),hl         ; nastaven° skoku do programu pro CPU2
+e84e:  af                      xor     a
+e84f:  d3 14                   out     (14h),a        ; vòstup dat - uvolnàn° poëadavku
+e851:  d3 04                   out     (4),a          ; nastaven° procesoru 2 - reset
+e853:  3e ff                   ld      a,0ffh
+e855:  d3 17                   out     (17h),a        ; PIO2-B bitovò vstup/vòstup
+e857:  d3 17                   out     (17h),a        ; v®echny bity jako vstup
+e859:  3e a1                   ld      a,0a1h         ; p©°kaz pro spu®tàn° hlaviáky
+e85b:  d3 10                   out     (10h),a        ; spu®tàn° hlaviáky
+e85d:  3e 7f                   ld      a,7fh
+e85f:  d3 17                   out     (17h),a        ; z†kaz p©eru®en° od PIO2-B
+e861:  db 16                   in      a,(16h)        ; áten° bajtu dat z ©adiáe
+e863:  ed 43 01 00             ld      (1),bc         ; n†vrat adresy skoku (reset je jië proveden)
+e867:  3e 03                   ld      a,3
+e869:  32 83 eb                ld      (dtb35),a      ; á°taá indexovòch impulsñ - dobàhovÇ impulsy
+e86c:  3a 7e eb                ld      a,(ddb39)      ; vòstupn° bajt na port 10h
+e86f:  d3 10                   out     (10h),a        ; bajt k ukonáen°
+e871:  01 78 e8                ld      bc,dtb44       ; adresa pokraáov†n°
+e874:  ed 43 84 eb             ld      (ddw34),bc     ; adresa skoku do dal®°ho programu
+e878:  2a 84 eb        dtb44:  ld      hl,(ddw34)     ; adresa skoku do dal®°ho programu
+e87b:  af                      xor     a
+e87c:  ed 42                   sbc     hl,bc
+e87e:  28 f8                   jr      z,dtb44        ; áek†n° na proveden° akce - aë se zmàn° adresa skoku
+e880:  2a 84 eb                ld      hl,(ddw34)     ; adresa skoku do dal®°ho programu
+e883:  e9                      jp      (hl)           ; skok na dal®° akci
+ ......................................................
+                                                      ; kontrola kontroln°ho souátu p©i áten°
+e884:  21 88 eb        dtb90:  ld      hl,dtb45       ; kontroln° souáet dat sektoru
+e887:  cd a8 ea        lab259: call    lab212         ; kontroln° souáet sektoru
+e88a:  79                      ld      a,c
+e88b:  be                      cp      (hl)           ; kontrola kontroln°ho souátu
+e88c:  20 26                   jr      nz,lab165      ; chyba kontroln°ho souátu
+e88e:  23                      inc     hl
+e88f:  78                      ld      a,b
+e890:  be                      cp      (hl)
+e891:  20 21                   jr      nz,lab165
+e893:  fd 22 77 eb             ld      (ddw5),iy      ; pracovn° ukl†dac° adresa sektoru
+e897:  dd 34 04                inc     (ix+4)         ; dal®° sektor
+e89a:  dd 35 08                dec     (ix+8)         ; sn°ëen° poátu sektorñ
+e89d:  23                      inc     hl
+e89e:  23                      inc     hl
+e89f:  23                      inc     hl
+e8a0:  3a 80 eb                ld      a,(ddb43)      ; posledn° sektor pro operaci áten°
+e8a3:  28 19                   jr      z,lab237       ; je posledn° sektor
+e8a5:  dd be 04                cp      (ix+4)         ; sektor
+e8a8:  30 dd                   jr      nc,lab259
+e8aa:  dd 34 02        lab266: inc     (ix+2)         ; zvò®en° á°sla stopy
+e8ad:  dd 36 04 01             ld      (ix+4),1       ; prvn° sektor stopy
+e8b1:  c3 8d e6        lab168: jp      lab169         ; dal®° áten°
+ ......................................................
+                                                      ; chybovò n†vrat
+e8b4:  06 43           lab165: ld      b,43h
+e8b6:  21 82 eb        lab278: ld      hl,dtb26       ; á°taá pokusñ pro diskovou operaci
+e8b9:  35                      dec     (hl)           ; dal®° pokus o diskovou operaci
+e8ba:  28 10                   jr      z,lab166       ; byl posledn° pokus - konec
+e8bc:  18 f3                   jr      lab168         ; dal®° pokus
+ ......................................................
+e8be:  06 00           lab237: ld      b,0            ; p©°znak ukonáen° operace
+e8c0:  dd be 04                cp      (ix+4)         ; á°slo sektoru
+e8c3:  30 07                   jr      nc,lab166      ; nen° posledn° sektor stopy
+e8c5:  dd 34 02                inc     (ix+2)         ; dal®° stopa
+e8c8:  dd 36 04 01             ld      (ix+4),1       ; 1. sektor dal®° stopy
+e8cc:  21 83 eb        lab166: ld      hl,dtb35       ; á°taá indexovòch impulsñ
+e8cf:  36 10                   ld      (hl),10h       ; á°taá indexñ (po 16 indexech ukonáen° vòbàru)
+e8d1:  af                      xor     a
+e8d2:  32 09 eb                ld      (0eb09h),a     ; nastaven° ukonáen° vòbàru
+e8d5:  c9                      ret
+ ......................................................
+                                                      ; nastaven° kontroln°ho áten° sektoru
+e8d6:  dd cb 00 5e     dtb86:  bit     3,(ix+0)       ; p©°znakovÇ bity pro diskovou operaci
+e8da:  ed 5b 77 eb             ld      de,(ddw5)      ; pracovn° ukl†dac° adresa sektoru
+e8de:  20 19                   jr      nz,lab260      ; verifikace
+e8e0:  21 6d e9                ld      hl,dtb81       ; kontrola áten° sektoru pro CPU2
+e8e3:  3e 25                   ld      a,25h
+e8e5:  32 72 ea                ld      (0ea72h),a
+e8e8:  3e 70                   ld      a,70h
+e8ea:  32 d3 e9                ld      (0e9d3h),a
+e8ed:  dd 7e 08                ld      a,(ix+8)       ; poáet sektorñ
+e8f0:  32 7f eb                ld      (ddb66),a      ; poáet sektorñ ke áten°
+e8f3:  c3 47 e8                jp      lab279         ; áten° sektoru
+ ......................................................
+e8f6:  11 a6 eb        dtb89:  ld      de,dtb82       ; ukl†dac° adresa pro kontroln° áten°
+e8f9:  2a 77 eb        lab260: ld      hl,(ddw5)      ; pracovn° ukl†dac° adresa sektoru
+e8fc:  01 80 00        lab262: ld      bc,80h         ; poáet bajtñ sektoru
+                                                      ; (hodnota mànàna na 0080,0100,0200,0400)
+e8ff:  1a              lab267: ld      a,(de)         ; verifikace sektoru (adresa eba6 aë efa5)
+e900:  ed a1                   cpi
+e902:  13                      inc     de
+e903:  e2 0c e9                jp      po,lab261
+e906:  28 f7                   jr      z,lab267       ; chyba ovà©en° sektoru
+                                                      ; chyba kontroln°ho souátu dat sektoru
+e908:  06 4b           dtb88:  ld      b,4bh
+e90a:  18 aa                   jr      lab278
+ ......................................................
+e90c:  22 77 eb        lab261: ld      (ddw5),hl      ; pracovn° ukl†dac° adresa sektoru
+e90f:  dd 34 04                inc     (ix+4)         ; zvò®en° á°taáe sektorñ
+e912:  dd 35 08                dec     (ix+8)         ; sn°ëen° poátu fyz. sektorñ
+e915:  3a 80 eb                ld      a,(ddb43)      ; posledn° sektor pro operaci áten°
+e918:  28 a4                   jr      z,lab237       ; byl posledn° sektor
+e91a:  dd be 04                cp      (ix+4)         ; á°slo sektoru
+e91d:  30 dd                   jr      nc,lab262      ; nen° posledn° sektor
+e91f:  18 89                   jr      lab266
+ ......................................................
+e921:  1e 05           dtb87:  ld      e,5            ; 5 bajtñ
+e923:  fd 21 79 eb             ld      iy,ddb42       ; identifikaán° bajt hlaviáky sektoru
+e927:  cd cf ea                call    lab201         ; kontroln° souáet hlaviáky sektoru
+e92a:  2a 7e eb                ld      hl,(ddb39)     ; kontroln° souáet
+e92d:  7c                      ld      a,h
+e92e:  65                      ld      h,l
+e92f:  6f                      ld      l,a
+e930:  ed 42                   sbc     hl,bc
+e932:  06 56                   ld      b,56h
+e934:  20 80                   jr      nz,lab278      ; chyba - nesouhlas° kontroln° souáet hlaviáky sektoru
+e936:  3a 7a eb                ld      a,(ddw32)      ; á°slo stopy
+e939:  2a 71 eb                ld      hl,(ddw42)     ; adresa bajtu mechaniky
+e93c:  be                      cp      (hl)
+e93d:  28 8d                   jr      z,lab166       ; konec
+e93f:  77                      ld      (hl),a         ; nastaven° stopy
+e940:  c3 b6 e8                jp      lab278         ; chybovò n†vrat
+ ......................................................
+e943:  06 49           dtb92:  ld      b,49h
+e945:  21 81 eb                ld      hl,dtb83
+e948:  35                      dec     (hl)
+e949:  28 81                   jr      z,lab166
+e94b:  36 01                   ld      (hl),1
+e94d:  21 53 e9                ld      hl,dtb84
+e950:  c3 47 e8                jp      lab279
+ ......................................................
+                                                      ; start programu CPU2
+e953:  01 16 05        dtb84:  ld      bc,516h        ;
+e956:  2e 18                   ld      l,18h          ; instrukce JR ...
+e958:  26 b9                   ld      h,0b9h         ; instrukce CP C
+e95a:  22 a7 e9                ld      (ddw43),hl     ; nastaven° instrukc°
+e95d:  21 7b eb                ld      hl,dtb85
+e960:  18 25                   jr      lab301
+ ......................................................
+e962:  ed b2                   inir
+e964:  32 7a eb                ld      (ddw32),a      ; adresa stopy
+e967:  11 21 e9                ld      de,dtb87
+e96a:  c3 91 ea                jp      lab477
+ ......................................................
+                                                      ; start programu CPU2 pro kontroln° áten° sektoru
+e96d:  21 a6 eb        dtb81:  ld      hl,dtb82       ; ukl†dac° adresa pro kontroln° áten°
+e970:  18 09                   jr      lab478
+ ......................................................
+                                                      ; start programu CPU2 pro z†pis/áten° sektoru
+e972:  21 b9 20        dtb43:  ld      hl,20b9h       ; instrukce CP C; JR NZ,...
+e975:  22 a7 e9                ld      (ddw43),hl     ; nastaven° instrukc°
+e978:  2a 77 eb                ld      hl,(ddw5)      ; pracovn° ukl†dac° adresa sektoru
+e97b:  31 86 eb        lab478: ld      sp,0eb86h      ; kontroln° souáet hlaviáky sektoru
+e97e:  d1                      pop     de             ; kontroln° souáet hlaviáky sektoru
+e97f:  d9                      exx
+e980:  2a 7c eb                ld      hl,(dtb42)     ; á°slo poëadovanÇho sektoru, ©†d sektoru
+e983:  ed 4b 7a eb             ld      bc,(ddw32)     ; á°slo poëadovanÇ stopy, á°slo povrchu
+e987:  11 a1 fe        lab301: ld      de,0fea1h      ; identifikaán° znaáka, synchronizaán° bajt
+e98a:  3e bd           lab475: ld      a,0bdh
+e98c:  d3 10                   out     (10h),a        ; spu®tàn° p©°tlaku hlavy, hled†n° znaáky MK
+e98e:  d9                      exx
+e98f:  d9              lab316: exx
+e990:  3e b5           lab307: ld      a,0b5h         ;
+e992:  d3 10                   out     (10h),a        ; start operace hled†n° znaáky MK
+e994:  3a 7e eb        lab476: ld      a,(ddb39)      ; vòstupn° bajt na port 10h
+e997:  d3 10                   out     (10h),a
+e999:  db 16                   in      a,(16h)        ; áten° bajtu
+e99b:  d3 14                   out     (14h),a        ; zru®en° poëadavku vòstupu
+e99d:  db 16           lab306: in      a,(16h)        ; áten° bajtu
+e99f:  bb                      cp      e              ; = A1 (u z†pisu MFM)
+e9a0:  28 fb                   jr      z,lab306       ; synchronizace na A1 (MFM)
+e9a2:  ba                      cp      d              ; = FE identifikaán° znaáka hlaviáky sektoru
+e9a3:  db 16                   in      a,(16h)
+e9a5:  20 e9                   jr      nz,lab307      ; áek†n° na hlaviáku sektoru
+e9a7:  b9              ddw43:  cp      c              ; kontrola á°sla stopy
+e9a8:  20 e6                   jr      nz,lab307      ; (instrukce JR...z adr. E95A) nesouhlas° stopa
+e9aa:  db 16                   in      a,(16h)
+e9ac:  b8                      cp      b              ; kontrola á°sla povrchu
+e9ad:  20 e1                   jr      nz,lab307      ; nesouhlas° á°slo povrchu - dal®° sektor
+e9af:  db 16                   in      a,(16h)
+e9b1:  bd                      cp      l              ; kontrola adresy sektoru
+e9b2:  20 dc                   jr      nz,lab307      ; nesouhlas° á°slo sektoru - dal®° sektor
+e9b4:  db 16                   in      a,(16h)
+e9b6:  bc                      cp      h              ; kontrola ©†du velikosti sektoru
+e9b7:  20 d7                   jr      nz,lab307      ; nesouhlas° ©†d velikosti sektoru
+e9b9:  db 16                   in      a,(16h)
+e9bb:  d9                      exx
+e9bc:  ba                      cp      d              ; kontrola vy®®°ho bajtu kontroln°ho souátu hlaviáky
+e9bd:  db 16                   in      a,(16h)
+e9bf:  20 ce                   jr      nz,lab316      ; nen° shoda kontroln°ho souátu hlaviáky
+e9c1:  bb                      cp      e              ; kontrola nië®°ho bajtu kontroln°ho souátu hlaviáky
+e9c2:  db 16                   in      a,(16h)
+e9c4:  20 c9                   jr      nz,lab316      ; nen° shoda kontroln°ho souátu hlaviáky
+e9c6:  db 16                   in      a,(16h)        ; 1. oddàlovac° bajt
+e9c8:  06 04                   ld      b,4            ; poáet oddàlovac°ch bajtñ za hlaviákou
+e9ca:  1e 80                   ld      e,80h          ; poáet bajtñ k z†pisu/áten°
+                                                      ; (hodnota mànàna na 80h,0,0 nebo 0)
+e9cc:  db 16           lab317: in      a,(16h)        ; 2. aë 5. oddàlovac° bajt za hlaviákou
+e9ce:  10 fc                   djnz    lab317         ; p©ekroáen° oddàlovac°ch bajtñ
+e9d0:  db 16                   in      a,(16h)        ; 6. oddàlovac° bajt za hlaviákou
+e9d2:  18 00                   jr      lab318         ; pro áten° je zde JR ea44h
+ ......................................................
+                                                      ; z†pis dat FM
+e9d4:  db 16           lab318: in      a,(16h)        ; 7. oddàlovac° bajt za hlaviákou
+e9d6:  16 fb                   ld      d,0fbh         ; identifikaán° bajt dat sektoru
+e9d8:  db 16                   in      a,(16h)        ; 8. oddàlovac° bajt za hlaviákou
+e9da:  01 10 a4                ld      bc,0a410h      ; adresa ©°d°c°ho portu, p©°kaz pro z†pis dat bez znaáky
+e9dd:  db 16                   in      a,(16h)        ; 9. oddàlovac° bajt za hlaviákou
+e9df:  ed 41                   out     (c),b          ; zapnut° z†pisu dat se znaákou MK
+e9e1:  db 16                   in      a,(16h)        ; 10. oddàlovac° bajt za hlaviákou
+e9e3:  af                      xor     a              ; 11. oddàlovac° bajt se p©eskoá°
+e9e4:  d3 14                   out     (14h),a        ; z†pis 1. synchronizaán°ho bajtu p©ed daty
+e9e6:  01 14 04                ld      bc,414h        ; 4 bajty
+e9e9:  d3 14           lab371: out     (14h),a        ; z†pis 2. aë 5. synchronizaán°ho bajtu p©ed daty
+e9eb:  10 fc                   djnz    lab371
+e9ed:  3e b6                   ld      a,0b6h         ; p©°kaz pro z†pis znaáky MK a MK1
+e9ef:  ed 41                   out     (c),b          ; z†pis 6. synchronizaán°ho bajtu p©ed daty
+e9f1:  d3 10                   out     (10h),a        ; nastaven° z†pisu znaáky MK
+e9f3:  3e a4                   ld      a,0a4h         ; p©°kaz pro z†pis dat bez znaáky
+e9f5:  ed 51                   out     (c),d          ; z†pis bajtu FB se znaákou MK
+e9f7:  43                      ld      b,e            ; poáet bajtñ k z†pisu
+e9f8:  d3 10                   out     (10h),a        ; zapnut° z†pisu dat bez znaáky
+e9fa:  ed a3           lab480: oti                    ; (instrukce mànàna na OTI,OTI,OTI,OTIR)
+e9fc:  ed a3                   oti                    ; (instrukce mànàna na OTI,OTI,OTI,OTIR)
+e9fe:  ed a3                   oti                    ; (instrukce mànàna na OTI,OTI,OTR,OTIR)
+ea00:  ed b3                   otir                   ; z†pis dat sektoru
+ea02:  d1                      pop     de             ; kotroln° souáet dat sektoru
+ea03:  ed 51                   out     (c),d          ; z†pis vy®®°ho bajtu kontroln°ho souátu sektoru
+ea05:  ed 59                   out     (c),e          ; z†pis nië®°ho bajtu kontroln°ho souátu sektoru
+ea07:  3e b1                   ld      a,0b1h         ; p©°kaz pro ukonáen° z†pisu
+ea09:  ed 41                   out     (c),b          ; z†pis koncovÇho bajtu 00
+ea0b:  ed 41                   out     (c),b          ; z†pis koncovÇho bajtu 00
+ea0d:  d3 10                   out     (10h),a        ; ukonáen° z†pisu
+ea0f:  11 d6 e8                ld      de,dtb86       ; adresa nastaven° kontroln°ho áten° sektoru
+ea12:  18 65                   jr      lab372         ;
+ ......................................................
+                                                      ; z†pis dat MFM
+ea14:  db 16                   in      a,(16h)        ; 7. oddàlovac° bajt za hlaviákou
+ea16:  16 a1                   ld      d,0a1h         ; identifikaán° bajt
+ea18:  db 16                   in      a,(16h)        ; 8. oddàlovac° bajt za hlaviákou
+ea1a:  01 10 b4                ld      bc,0b410h      ; adresa ©°d°c°ho portu, p©°kaz pro z†pis dat bez znaáek
+ea1d:  db 16                   in      a,(16h)        ; 9. oddàlovac° bajt za hlaviákou
+ea1f:  ed 41                   out     (c),b          ; zapnut° z†pisu dat bez znaáky
+ea21:  db 16                   in      a,(16h)        ; 10. oddàlovac° bajt za hlaviákou
+ea23:  af                      xor     a              ; 11. oddàlovac° bajt se p©eskoá°
+ea24:  d3 14                   out     (14h),a        ; z†pis 1. synchronizaán°ho bajtu p©ed daty
+ea26:  01 14 0a                ld      bc,0a14h       ; 10 bajtñ pro synchronizaci
+ea29:  d3 14           lab479: out     (14h),a        ; z†pis 2. aë 11. bajtu pro synchronizaci p©ed daty
+ea2b:  10 fc                   djnz    lab479
+ea2d:  3e b6                   ld      a,0b6h         ; p©°kaz pro z†pis znaáky MK
+ea2f:  ed 41                   out     (c),b          ; z†pis 12. synchronizaán°ho bajtu p©ed daty
+ea31:  d3 10                   out     (10h),a        ; nastaven° z†pisu znaáky MK
+ea33:  ed 51                   out     (c),d          ; z†pis bajtu A1 se znaákou MK
+ea35:  43                      ld      b,e            ; poáet bajtñ k z†pisu
+ea36:  1e fb                   ld      e,0fbh
+ea38:  ed 51                   out     (c),d          ; z†pis 2. bajtu A1 se znaákou MK
+ea3a:  3e b4                   ld      a,0b4h         ; p©°kaz pro z†pis dat bez znaáky MK
+ea3c:  ed 51                   out     (c),d          ; z†pis 3. bajtu A1 se znaákou MK
+ea3e:  d3 10                   out     (10h),a        ; zapnut° z†pisu dat bez znaáky MK
+ea40:  ed 59                   out     (c),e          ; z†pis identifikaán°ho bajtu FB bez znaáky
+ea42:  18 b6                   jr      lab480         ; z†pis dat sektoru
+ ......................................................
+                                                      ; áten° dat (FM i MFM)
+ea44:  db 16                   in      a,(16h)        ; 7. oddàlovac° bajt za hlaviákou
+ea46:  06 06                   ld      b,6
+ea48:  db 16           lab481: in      a,(16h)        ; 8. aë 13. oddàlovac° bajt za hlaviákou
+ea4a:  10 fc                   djnz    lab481
+ea4c:  3e b5                   ld      a,0b5h         ; p©°kaz pro hled†n° znaáky MK
+ea4e:  d3 10                   out     (10h),a        ; start hled†n° znaáky MK
+ea50:  3a 7e eb                ld      a,(ddb39)      ; vòstupn° bajt na port 10h
+ea53:  43                      ld      b,e            ; poáet bajtñ sektoru ke áten°
+ea54:  0e 16                   ld      c,16h          ; vstupn° datovò port
+ea56:  1e a1                   ld      e,0a1h         ; £vodn° znaáka MFM
+ea58:  d3 10                   out     (10h),a
+ea5a:  db 16                   in      a,(16h)
+ea5c:  db 16           lab482: in      a,(16h)
+ea5e:  bb                      cp      e              ; je identifikaán° bajt A1 ?
+ea5f:  28 fb                   jr      z,lab482       ; ano, je A1 - p©eskoáen°
+ea61:  ed a2                   ini                    ; (instrukce mànàna na INI,INI,INI,INIR)
+ea63:  ed a2                   ini                    ; (instrukce mànàna na INI,INI,INI,INIR)
+ea65:  ed a2                   ini                    ; (instrukce mànàna na INI,INI,INIR,INIR)
+ea67:  ed b2                   inir                   ; naáten° dat sektoru
+ea69:  ed 50                   in      d,(c)          ; vy®®° bajt kontroln°ho souátu
+ea6b:  ed 58                   in      e,(c)          ; nië®° bajt kontroln°ho souátu
+ea6d:  3e b5                   ld      a,0b5h
+ea6f:  d3 10                   out     (10h),a        ; ukonáen° áten° sektoru
+ea71:  18 25                   jr      lab483         ; p©°padnÇ áten° dal®°ho sektoru
+ ......................................................
+                                                      ; áten° dal®°ho sektoru
+ea73:  c1                      pop     bc
+ea74:  d5                      push    de
+ea75:  d1                      pop     de
+ea76:  11 84 e8                ld      de,dtb90       ; adresa kontroly kontroln°ho souátu
+ea79:  d9              lab372: exx
+ea7a:  3a 80 eb                ld      a,(ddb43)      ; posledn° sektor pro operaci áten°
+ea7d:  bd                      cp      l              ; dosaëen posledn° sektor ?
+ea7e:  28 10                   jr      z,lab469       ; konec áten°
+ea80:  3a 7f eb                ld      a,(ddb66)      ; sn°ëen° á°taáe sektorñ
+ea83:  3d                      dec     a
+ea84:  32 7f eb                ld      (ddb66),a
+ea87:  28 07                   jr      z,lab469       ; byl posledn° sektor
+ea89:  d9                      exx
+ea8a:  d1                      pop     de
+ea8b:  d9                      exx
+ea8c:  2c                      inc     l              ; zvò®en° á°taáe sektorñ
+ea8d:  c3 94 e9                jp      lab476         ; áten° dal®°ho sektoru
+ ......................................................
+ea90:  d9              lab469: exx                    ; byl posledn° sektor
+ea91:  ed 53 84 eb     lab477: ld      (ddw34),de     ; adresa skoku do dal®°ho programu
+ea95:  c3 8a e9                jp      lab475
+ ......................................................
+                                                      ; kontrola kontroln°ho souátu sektoru po áten°
+ea98:  eb              lab483: ex      de,hl          ; HL <- kontroln° souáet
+ea99:  c1                      pop     bc             ; kontroln° souáet dat sektoru
+ea9a:  af                      xor     a
+ea9b:  ed 42                   sbc     hl,bc          ; kontrola kontroln°ho souátu dat sektoru
+ea9d:  eb                      ex      de,hl
+ea9e:  11 08 e9                ld      de,dtb88       ; adresa skoku p©i chybà kontroln°ho souátu dat
+eaa1:  20 ee                   jr      nz,lab477      ; chyba verifikace
+eaa3:  11 f6 e8                ld      de,dtb89       ; konec áten° sektoru
+eaa6:  18 d1                   jr      lab372         ; áten° dal®°ho sektoru
+ ......................................................
+eaa8:  3e fb           lab212:                        ; kontroln° souáet dat sektoru
+                               ld      a,0fbh         ; identifikaán° bajt dat sektoru
+eaaa:  32 79 eb                ld      (ddb42),a      ; identifikaán° bajt dat sektoru
+eaad:  fd 21 79 eb             ld      iy,ddb42       ; identifikaán° bajt dat sektoru
+eab1:  1e 01                   ld      e,1            ; poáet bajtñ = 1
+eab3:  cd cf ea                call    lab201         ; kontroln° souáet identifikaán°ho bajtu sektoru
+eab6:  ed 43 86 eb             ld      (0eb86h),bc    ; kontroln° souáet hlaviáky sektoru
+eaba:  fd 2a 77 eb             ld      iy,(ddw5)      ; pracovn° ukl†dac° adresa sektoru
+                                                      ; kontroln° souáet dat dal®°ho sektoru
+eabe:  1e 80           lab215: ld      e,80h          ; poáet bajtñ sektoru
+                                                      ; (hodnota mànàna na 80h,0,0 nebo 0)
+eac0:  3e 01                   ld      a,1            ; poáet opakov†n° souátñ
+                                                      ; (hodnota mànàna na 1,1,2 nebo 4)
+eac2:  ed 4b 86 eb             ld      bc,(0eb86h)    ; kontroln° souáet hlaviáky sektoru
+eac6:  f5              lab213: push    af
+eac7:  cd d2 ea                call    lab202         ; vòpoáet kontroln°ho souátu dat sektoru
+eaca:  f1                      pop     af
+eacb:  3d                      dec     a              ; dal®° á†st ?
+eacc:  20 f8                   jr      nz,lab213      ; dal®° á†st sektoru
+eace:  c9                      ret
+ ......................................................
+                                                      ; vòpoáet kontroln°ho souátu
+eacf:  01 ff ff        lab201: ld      bc,0ffffh      ; poá†teán° hodnota kontroln°ho souátu
+ead2:  fd 7e 00        lab202: ld      a,(iy+0)       ; bajt k souátu
+ead5:  a8                      xor     b
+ead6:  47                      ld      b,a
+ead7:  0f                      rrca
+ead8:  0f                      rrca
+ead9:  0f                      rrca
+eada:  0f                      rrca
+eadb:  e6 0f                   and     0fh
+eadd:  a8                      xor     b
+eade:  47                      ld      b,a
+eadf:  0f                      rrca
+eae0:  0f                      rrca
+eae1:  0f                      rrca
+eae2:  57                      ld      d,a
+eae3:  e6 1f                   and     1fh
+eae5:  a9                      xor     c
+eae6:  4f                      ld      c,a
+eae7:  7a                      ld      a,d
+eae8:  0f                      rrca
+eae9:  e6 f0                   and     0f0h
+eaeb:  a9                      xor     c
+eaec:  4f                      ld      c,a
+eaed:  7a                      ld      a,d
+eaee:  e6 e0                   and     0e0h
+eaf0:  a8                      xor     b
+eaf1:  41                      ld      b,c
+eaf2:  4f                      ld      c,a
+eaf3:  fd 23                   inc     iy
+eaf5:  1d                      dec     e
+eaf6:  20 da                   jr      nz,lab202      ; dal®° bajt
+eaf8:  c9                      ret
+ ......................................................
+
+eaf9:  ed 73 2c eb     dtb37:                         ; podprogram p©eru®en° pro obsluhu indexu
+
+                               ld      (dtb91),sp     ; £schova ukazatele z†sobn°ku
+eafd:  31 2c eb                ld      sp,dtb91       ; vlastn° z†sobn°k
+eb00:  e5                      push    hl
+eb01:  f5                      push    af
+eb02:  21 83 eb                ld      hl,dtb35       ; á°taá indexovòch impulsñ
+eb05:  35                      dec     (hl)           ; sn°ëen° á°taáe indexovòch impulsñ
+eb06:  20 17                   jr      nz,lab484      ; nen° dosud dosaëeno 0
+eb08:  18 0b                   jr      lab485         ; je konec operace
+
+eb0a:  3e ff                   ld      a,0ffh
+eb0c:  d3 18                   out     (18h),a        ; zru®en° vòbàru disku
+eb0e:  32 70 eb                ld      (ddb44),a
+eb11:  3e 03                   ld      a,3
+eb13:  d3 11                   out     (11h),a        ; zablokov†n° p©eru®en° od PIO ©adiáe
+eb15:  3e bd           lab485: ld      a,0bdh
+eb17:  d3 10                   out     (10h),a        ; zru®en° operac° áten°/z†pis
+eb19:  21 43 e9                ld      hl,dtb92       ; n†vrat z obsluhy
+eb1c:  22 84 eb                ld      (ddw34),hl     ; adresa skoku do dal®°ho programu
+eb1f:  f1              lab484: pop     af
+eb20:  e1                      pop     hl
+eb21:  ed 7b 2c eb             ld      sp,(dtb91)     ; n†vrat ukazatele z†sobn°ku
+eb25:  fb                      ei
+eb26:  ed 4d                   reti
+ ......................................................
+eb28:                          db      0,0,0,0        ; z†sobn°k pro obsluhu p©eru®en° indexem
+eb2c:                  dtb91:  dw      0              ; £schova ukazatele z†sobn°ku p©i obsluze indexu
+
+                                                      ; tabulky pro nastaven° programu na form†ty stop
+eb2e:                  dtb39:                         ; sektor 128 bajtñ
+                               db      80h
+                               db      1
+                               db      80h
+                               db      0a2h
+                               db      0a2h
+                               db      0a2h
+                               db      0a3h
+                               db      0a3h
+                               db      0a3h
+                               db      0
+                               db      80h
+                                                      ; sektor 256 bajtñ
+eb39:                  dtb46:  db      0
+                               db      1
+                               db      0
+                               db      0a2h
+                               db      0a2h
+                               db      0a2h
+                               db      0a3h
+                               db      0a3h
+                               db      0a3h
+                               db      1
+                               db      0
+                                                      ; sektor 512 bajtñ
+eb44:                  dtb47:  db      0
+                               db      2
+                               db      0
+                               db      0a2h
+                               db      0a2h
+                               db      0b2h
+                               db      0a3h
+                               db      0a3h
+                               db      0b3h
+                               db      2
+                               db      0
+                                                      ; sektor 1024 bajtñ
+eb4f:                  dtb48:  db      0
+                               db      4
+                               db      0
+                               db      0b2h
+                               db      0b2h
+                               db      0b2h
+                               db      0b3h
+                               db      0b3h
+                               db      0b3h
+                               db      4
+                               db      0
+                                                      ; tabulka adres pro nastaven° programu
+eb5a:                  dtb38:  dw      eabfh
+                               dw      eac1h
+                               dw      e9cbh
+                               dw      ea62h
+                               dw      ea64h
+                               dw      ea66h
+                               dw      e9fbh
+                               dw      e9fdh
+                               dw      e9ffh
+                               dw      e8feh
+                               dw      e8fdh
+eb70:                  ddb44:  db      0ffh
+eb71:                  ddw42:  dw      0000           ; adresa bajtu mechaniky pro á°tac° bajty stop
+eb73:                  dtb36:  db      0a0h,0a0h,0a0h,0a0h ; á°taáe nastavenòch stop
+eb77:                  ddw5:   dw      0              ; pracovn° ukl†dac° adresa sektoru
+
+                                                      ; n†sleduj° data pro CPU2
+eb79:                  ddb42:  db      0fah           ; identifikaán° bajt hlaviáky nebo dat sektoru
+eb7a:                  ddw32:  db      0              ; á°slo v†lce v hlaviáce sektoru
+eb7b:                  dtb85:  db      0              ; á°slo povrchu v hlaviáce sektoru
+eb7c:                  dtb42:  db      0              ; á°slo sektoru v hlaviáce sektoru
+eb7d:                          db      0              ; ©†d sektoru v hlaviáce sektoru
+eb7e:                  ddb39:  db      0              ; vòstupn° bajt na port 10h
+eb7f:                  ddb66:  db      0              ; poáet fyzickòch sektorñ ke áten°
+eb80:                  ddb43:  db      0              ; posledn° sektor pro operaci áten°
+eb81:                  dtb83:  db      0
+eb82:                  dtb26:  db      0              ; á°taá pokusñ pro diskovou operaci
+eb83:                  dtb35:  db      0              ; á°taá indexovòch impulsñ
+eb84:                  ddw34:  dw      0000           ; adresa skoku do dal®°ho programu
+eb86:                          dw      0000           ; kontroln° souáet hlaviáky sektoru
+eb88:                  dtb45:  dw      0000           ; kontroln° souáet dat sektoru
+                                                      ; tabulka kontroln°ch souátñ sektorñ
+eb8a:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eb99:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0
+                                                      ; EBA6 aë EFA5 - ukl†dac° buffer pro kontroln° áten°
+eba6:                  dtb82:  db      0
+eba7:                  dtb78:  db      0,18h,2,8,1,0,4 ; tabulka pro nastaven° SIO kl†vesnice
+                               db      44h,5,68h,3,0c1h
+ebb3:                  ddb64:  db      5dh            ; adresa ©°d°c°ho portu SIO kl†vesnice
+ebb4:                  ddb67:  db      5ch            ; adresa datovÇho portu SIO kl†vesnice
+ebb5:                  dtb77:  db      58h            ; adresa á°taáe pro kl†vesnici
+
+                                                      ; inicializace kl†vesnice
+ebb6:  06 03           lab456: ld      b,3            ; áasov† prodleva pro start kl†vesnice
+ebb8:  11 00 00        lab458: ld      de,0
+ebbb:  1b              lab457: dec     de
+ebbc:  7a                      ld      a,d
+ebbd:  b3                      or      e
+ebbe:  20 fb                   jr      nz,lab457
+ebc0:  10 f6                   djnz    lab458
+ebc2:  3a b3 eb        lab465: ld      a,(ddb64)      ; nastaven° adresy ©°dic°ho portu z kl†vesnice
+ebc5:  32 38 e1                ld      (0e138h),a
+ebc8:  32 e6 e0                ld      (0e0e6h),a
+ebcb:  3a b4 eb                ld      a,(ddb67)
+ebce:  32 04 e1                ld      (0e104h),a     ; nastaven° portu kl†vesnice
+ebd1:  32 36 e1                ld      (0e136h),a
+ebd4:  32 33 e1                ld      (0e133h),a
+ebd7:  32 3e e1                ld      (0e13eh),a
+ebda:  21 b5 eb                ld      hl,dtb77
+ebdd:  4e                      ld      c,(hl)         ; á°taá pro kl†vesnici
+ebde:  3e 05                   ld      a,5
+ebe0:  ed 79                   out     (c),a          ; nastaven° á°taáe kl†vesnice
+ebe2:  3e 01                   ld      a,1
+ebe4:  ed 79                   out     (c),a
+ebe6:  21 b3 eb                ld      hl,ddb64       ; ©°dic° port kl†vesnice
+ebe9:  4e                      ld      c,(hl)
+ebea:  06 0c                   ld      b,0ch          ; 12 znakñ k vysl†n°
+ebec:  21 a7 eb                ld      hl,dtb78       ; tabulka pro nastaven° SIO kl†vesnice
+ebef:  ed b3                   otir                   ; nastaven° SIO kl†vesnice
+ebf1:  21 b4 eb                ld      hl,ddb67
+ebf4:  4e                      ld      c,(hl)
+ebf5:  af                      xor     a
+ebf6:  ed 79                   out     (c),a          ; inicializace kl†vesnice
+ebf8:  06 03                   ld      b,3
+ebfa:  11 00 00        lab462: ld      de,0
+ebfd:  21 b3 eb                ld      hl,ddb64       ; ©°dic° port kl†vesnice
+ec00:  4e              lab467: ld      c,(hl)         ; áek†n° na p©ijet° znaku z kl†vesnice
+ec01:  ed 78                   in      a,(c)
+ec03:  cb 47                   bit     0,a
+ec05:  20 05                   jr      nz,lab459
+ec07:  1b                      dec     de
+ec08:  7a                      ld      a,d
+ec09:  b3                      or      e
+ec0a:  20 f4                   jr      nz,lab467
+ec0c:  21 b4 eb        lab459: ld      hl,ddb67
+ec0f:  4e                      ld      c,(hl)         ; vstupn° port z kl†vesnice
+ec10:  ed 78                   in      a,(c)          ; p©ijet° znaku z kl†vesnice
+ec12:  e6 f0                   and     0f0h
+ec14:  fe 80                   cp      80h            ; potvrzena p©ipravenost ?
+ec16:  28 2b                   jr      z,lab460       ; je potvrzena p©ipravenost kl†vesnice
+ec18:  05                      dec     b
+ec19:  20 df                   jr      nz,lab462      ; dal®° pokus o p©ijet° znaku
+ec1b:  21 b5 eb                ld      hl,dtb77       ; adresa á°taáe pro kl†vesnici
+ec1e:  7e                      ld      a,(hl)
+ec1f:  fe 4a                   cp      4ah
+ec21:  28 fe           lab463: jr      z,lab463       ; byly vyzkou®eny v®echny kan†ly - stop
+ec23:  36 59                   ld      (hl),59h       ; adresa á°taáe 59
+ec25:  fe 58                   cp      58h
+ec27:  28 06                   jr      z,lab464
+ec29:  36 5a                   ld      (hl),5ah       ; adresa á°taáe 5a
+ec2b:  fe 59                   cp      59h
+ec2d:  20 09                   jr      nz,lab466
+ec2f:  2b              lab464: dec     hl             ; adresa portu kl†vesnice
+ec30:  36 52                   ld      (hl),52h       ; adresa portu vstupu z kl†vesnice
+ec32:  2b                      dec     hl
+ec33:  36 53                   ld      (hl),53h       ; adresa ©°dic°ho portu kl†vesnice
+ec35:  c3 c2 eb                jp      lab465         ; dal®° zkou®ka inicializace
+ ......................................................
+ec38:  36 4a           lab466: ld      (hl),4ah       ; nastaven° kan†lñ kl†vesnice
+ec3a:  2b                      dec     hl
+ec3b:  36 4e                   ld      (hl),4eh
+ec3d:  2b                      dec     hl
+ec3e:  36 4f                   ld      (hl),4fh
+ec40:  c3 c2 eb                jp      lab465
+ ......................................................
+ec43:  f3              lab460: di                     ; nastaven° á°taáe
+ec44:  3e f8                   ld      a,0f8h
+ec46:  d3 0c                   out     (0ch),a
+ec48:  3e a5                   ld      a,0a5h
+ec4a:  d3 0e                   out     (0eh),a
+ec4c:  3e 60                   ld      a,60h
+ec4e:  d3 0e                   out     (0eh),a
+ec50:  21 a8 e0                ld      hl,dtb79       ; adresa obsluhy p©eru®en° z kl†vesnice
+ec53:  22 fc f7                ld      (0f7fch),hl    ; nastaven° vektoru p©eru®en°
+ec56:  06 10                   ld      b,10h          ; poáet znakñ bufferu = 16
+ec58:  21 fb f6                ld      hl,ddb47       ; z†sobn°k vstupuj°c°ch znakñ
+ec5b:  af                      xor     a
+ec5c:  77              lab461: ld      (hl),a         ; vymaz†n° vstupn°ho bufferu znakñ
+ec5d:  23                      inc     hl
+ec5e:  10 fc                   djnz    lab461
+ec60:  fb                      ei
+ec61:  c9                      ret
+ ......................................................
+ec62:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ec73:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ec84:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ec95:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eca6:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ecb7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ecc8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ecd9:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ecea:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ecfb:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed0c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed1d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed2e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed3f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed50:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed61:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed72:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed83:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ed94:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eda5:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+edb6:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+edc7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+edd8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ede9:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+edfa:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee0b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee1c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee2d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee3e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee4f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee60:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee71:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee82:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ee93:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eea4:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eeb5:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eec6:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eed7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eee8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+eef9:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef0a:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef1b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef2c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef3d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef4e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef5f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef70:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef81:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ef92:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+efa3:                          db      0,0,0
+                                                      ; EFA6 aë F3A5 - buffer pro z†znam sektoru
+efa6:                  dtb49:  db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+efb7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+efc8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+efd9:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+efea:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+effb:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f00c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f01d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f02e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f03f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f050:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f061:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f072:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f083:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f094:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f0a5:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f0b6:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f0c7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f0d8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f0e9:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f0fa:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f10b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f11c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f12d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f13e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f14f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f160:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f171:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f182:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f193:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f1a4:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f1b5:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f1c6:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f1d7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f1e8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f1f9:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f20a:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f21b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f22c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f23d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f24e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f25f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f270:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f281:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f292:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f2a3:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f2b4:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f2c5:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f2d6:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f2e7:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f2f8:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f309:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f31a:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f32b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f33c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f34d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f35e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f36f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f380:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f391:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f3a2:                          db      0,0,0,0
+
+f3a6:                  ddb16:  db      0              ; poëadovanò logickò disk
+f3a7:                  ddw21:  db      0              ; á°slo poëadovanÇ stopy
+f3a8:                          db      0              ; á°slo poëadovanÇho povrchu
+f3a9:                  ddb20:  db      0              ; á°slo poëadovanÇho sektoru
+
+                                                      ; á°slo poëadovanÇho fyzickÇho sektoru
+f3aa:                  ddb21:  db      0              ; vy®®° bajt á°sla logickÇho sektoru absolutnà
+f3ab:                  ddw28:  dw      0              ; á°slo logickÇho sektoru absolutnà
+
+f3ad:                  ddb18:  db      0
+f3ae:                  ddb17:  db      0              ; p©°znak neuzav©en° fyzickÇho sektoru
+f3af:                  ddb22:  db      0
+f3b0:                  dtb71:  db      0              ; aktivn° logickò disk
+
+                                                      ; pracovn° ukazatel poëadovanÇho fyzickÇho sektoru
+f3b1:                  ddb56:  db      0              ; vy®®° bajt á°sla logickÇho sektoru absolutnà
+f3b2:                  ddw40:  dw      0              ; á°slo logickÇho sektoru absolutnà
+
+f3b4:                  ddb28:  db      0              ; á°slo logickÇho disku
+
+                                                      ; á°slo aktu†ln°ho fyzickÇho sektoru
+f3b5:                  ddb27:  db      0              ; vy®®° bajt absolutn°ho á°sla fyz.sektoru
+f3b6:                  ddw29:  dw      0              ; absolutn° á°slo fyz.sektoru
+
+f3b8:                  ddb29:  db      0              ; logickò disk
+f3b9:                  ddw30:  dw      0              ; á°slo sektoru
+
+f3bb:                  ddb26:  db      0
+f3bc:                  ddb24:  db      0              ; p©°znak naáten° sektoru (1=nen° naáten, 0=je naáten)
+f3bd:                  ddb23:  db      0
+f3be:                  ddb25:  db      0              ; p©°znak zpñsobu uzav°r†n° sektorñ
+                                                      ; pracovn° DMA 128 bajtñ
+f3bf:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f3cf:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f3e0:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f3f1:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f402:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f413:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f424:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f435:                          db      0,0,0,0,0,0,0,0,0,0
+                                                      ; alokaán° vektor A
+f43f:                          db      0,0,0,0,0,0,0
+f446:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f457:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f468:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f479:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f48a:                          db      0
+                                                      ; alokaán° vektor B
+f48b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f49b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f4ac:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f4bd:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f4ce:                          db      0,0,0,0,0,0,0,0,0
+                                                      ; alokaán° vektor C
+f4d7:                          db      0,0,0,0,0,0,0,0
+f4df:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f4f0:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f501:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f512:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                                      ; alokaán° vektor D
+f523:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f534:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f545:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f556:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f567:                          db      0,0,0,0,0,0,0,0
+                                                      ; alokaán° vektor E
+f56f:                          db      0,0,0,0,0,0,0,0,0
+f578:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f589:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f59a:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f5ab:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                                      ; vektor kontroln°ch souátñ A
+f5bb:                          db      0
+f5bc:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f5cd:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f5de:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f5ef:                          db      0,0,0,0,0,0,0,0,0,0,0,0
+                                                      ; vektor kontroln°ch souátñ B
+f5fb:                          db      0,0,0,0,0
+f600:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f611:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f622:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f633:                          db      0,0,0,0,0,0,0,0
+                                                      ; vektor kontroln°ch souátñ C
+f63b:                          db      0,0,0,0,0,0,0,0,0
+f644:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f655:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f666:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f677:                          db      0,0,0,0
+                                                      ; vektor kontroln°ch souátñ D
+f67b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0
+f688:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f699:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f6aa:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                                      ; vektor kontroln°ch souátñ E
+f6bb:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f6cc:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f6dd:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f6ee:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0
+f6fb:                  ddb47:                         ; z†sobn°k znakñ z kl†vesnice
+                               db      0
+f6fc:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f70d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f71e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f72f:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f740:                  ddw31:                         ; tabulka p©eru®en° (f740h aë f7ffh)
+                               dw      0              ; adresa p©eru®en° indexem
+f742:                          dw      0
+f744:                          dw      0
+f746:                          dw      0
+f748:                          dw      0
+d74a:                          dw      0
+f74c:                          dw      0
+f74e:                          dw      0
+f750:                          dw      0
+f752:                          dw      0
+f754:                          dw      0
+f756:                          dw      0
+f758:                          dw      0
+f75a:                          dw      0
+f75c:                          dw      0
+f75e:                          dw      0
+f760:                          dw      0
+f762:                          dw      0
+f764:                          dw      0
+f766:                          dw      0
+f768:                          dw      0
+.......... ....... ........ ........ ........
+
+f7eb:                          dw      00dfh
+f7fc:                          dw      e0a8h           ; obsluha kl†vesnice
+

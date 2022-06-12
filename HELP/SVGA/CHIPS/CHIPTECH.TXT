@@ -1,0 +1,1136 @@
+  Chips and Technologies Super VGA Chip Sets:
+
+
+    82c450    1M VRAM    A '453 with VRAM
+    82c451  256k DRAM    max 800x600 16col
+    82c452    1M DRAM    max 640x480 256col, 1024x768 16col
+    82c453    1M DRAM    max 800x600 256 col
+    82c455  256k DRAM    Flat Panel version
+    82c456  256k DRAM    do
+    82c457               do. Full color. 
+    F65520   1M  D/VRAM  do. Full color. max 1280x1024 16c & 800x600 256 col
+    F65530   1M  D/VRAM  do. Full color. max 1280x1024 16c & 800x600 256 col
+                         Supports Local Bus.    
+    F65510    ?
+
+
+ 94h (R/W):  Setup Control Register for Microchannel boards
+bit 0-2  Reserved
+      3  Enables Adapter VGA if set
+      4  Enters Setup Mode if set
+    5-7  Reserved
+Note: This is the same register as 46E8h.
+
+100h (R):  Microchannel ID low
+bit 0-7  Bit 0-7 of Microchannel Card ID
+
+101h (R):  Microchannel ID high
+bit 0-7  Bit 8-15 of Microchannel Card ID
+
+102h (R/W):  Global Enable
+bit   0  VGA is enabled if set.
+
+103h (R/W):  Multiple Enable
+bit 0-3  Multiple VGA Enable
+      4  Must be 0 for proper operation of 82c455/6/7.
+      6  Extension registers at 3B6h/7h if set,
+         3D6h/7h if not.
+      7  Extension Registers Access Enable.
+         VGA Extension registers at 3d7h can only be
+         accessed if this bit is set.
+Note: This register only available in Setup Mode.  
+
+104h (R):  Global ID (Setup)     
+bit 0-7  Chip I/D.  0A5h if Chips and Tech Chip set.
+Note: this register can only be read if the chip is in setup mode (46E8h/94h
+      bit 4 is set)
+
+3C3h (R/W):  Setup Control PS/2
+bit   0  Enables motherboard VGA if set
+      4  Enters Setup mode if set
+
+3d4h index 22h (R/W):  CPU Data Latch or Color Compare from last read
+
+3d4h index 24h (R/W):  Attribute Controller flip/flop
+
+3d6h index  0  (R):  Chip Version
+bit 0-3  Revision number
+    4-7  Chipcode:
+          0: 451  1:452  2:455  3:453  4: 450, 5:456  6:457
+          7: 65520, 8:65530, 9: 65510
+
+3d6h index  1  (R):  DIP Switch Register
+bit 0-6  State of the DIP switches.
+    0-7  (655x0) Read from Memory Address bus A on Reset.
+         Bit 0-1: CPU Bus type    
+                   0=PI bus, 1=MC bus, 2=Local bus (65530 only), 3=ISA bus.
+               2: Pixel Clock Source (OSC/)
+                   0: CLK0-CLK3 are pixel clock inputs. 
+                      CLK0 or CLK1 is MCLK input.
+                   1: CLK0 is MCLK input.
+                      CLK1 is pixel clock input.
+                      CLK2 is CLKSEL0 output.
+                      CLK3 is CLKSEL1 output.   
+               3: Memory Clock Source (56M/)
+                    0: MCLK = 56.644 MHz (80ns RAM)
+                       If bit 2 is 0:
+                         CLK0 is 50.350 MHz
+                         CLK1 is 56.644 MHz (MCLK source)
+                         CLK2 is 40.000 MHz
+                         CLK3 is 44.900 MHz
+                       If bit 2 is 1:
+                         MCLK (CLK0) is 56.644 MHz
+                         Clock Select 0 is 40.000 MHz
+                         Clock Select 1 is 50.350 MHz
+                         Clock Select 2 is user defined
+                         Clock Select 3 is 44.900 MHz
+                    1: MCLK = 50.350 MHz (100ns RAM)
+                       If bit 2 is 0:
+                         CLK0 is 50.350 MHz
+                         CLK1 is 28.322 MHz (MCLK source)
+                         CLK2 is 40.000 MHz
+                         CLK3 is 44.900 MHz
+                       If bit 2 is 1:
+                         MCLK (CLK0) is 50.350 MHz
+                         Clock Select 0 is 40.000 MHz
+                         Clock Select 1 is 28.322 MHz
+                         Clock Select 2 is user defined
+                         Clock Select 3 is 44.900 MHz
+               4: Transceiver Control
+                  If set there are no external transceivers (pin 69 is
+                  VGARD output), if clear there are external transceivers
+                  (pin 69 is ENAVEE/ output).
+
+3d6h index  2  (R/W):  CPU Interface
+bit   0  16bit memory enabled if set
+      1  (82c450-453) 16 bit I/O if set
+         (82c453,0 Only) Fast Font Enable   ???
+            The byte written to memory is used as a mask
+            for painting foreground color to the pixels
+            with the corresponding bit set and background
+            color to the rest.
+         (655x0 Only) Digital Monitor Clock Mode
+            0: CLK0 = 25 MHz, CLK1 = 28 MHz
+            1: CLK0 = 14 MHz (56MHz /4 or 28MHz /2)
+               CLK1 = 16 MHz (50MHz /3)
+      2  (82c450-3,5) Fast MCA buscycle decoding if set
+    3-4  (82c450,3 and 455-457) Attribute port pairing
+            0: Normal Attribute addressing
+            1: 3C1h is both read and write, 8 and 16 bit.
+            2: 3C1h is both read and write, 8 bit only.
+      5  (Not 82c451/2) 10 bit I/O decoding if set, 16 bit else
+      6  (82c450,3 Only) Pel Panning Control
+         (655x0 Only) If set external palette registers can be addressed
+                     at 83C6h-83C9h. (Brooktree/Sierra type DACs).
+      7  (Read Only) Attribute flip-flop status. If set the Attribute
+                    register (3C0h) is currently in Data mode.
+
+3d6h index  3  (R/W):  ROM Interface                               (not 655x0)
+bit   0  Disable on-card ROM if set.
+         Enable ROM at C0000h-C7FFFh if clear.
+
+3d6h index  4  (R/W):  Memory Mapping           
+bit 0-1  (82c452/3/) Display Memory Size:  0: 256Kb, 1: 512Kb, 2: 1Mb.
+         (655x0) Memory Configuration
+                  0: 2 x 256Kx4 D/VRAM  256K tot   8 bit datapath
+                  1: 4 x 256Kx4 D/VRAM  512K tot  16 bit datapath
+                  3: 2 x 512Kx8   DRAM    1M tot  16 bit datapath
+      2  (82c451/5/6/7) Enable bank access if set
+         (82c452/3, 655x0) If set CRTC Address can cross bank boundaries.
+      3  (82c457) If set DRAM timing is for 64Kx16 (4 WE, 1 CAS)
+                  if clear for 64Kx4 (4 CAS, 1 WE).
+         (655x0)  Enables bank addressing if set.
+      4  (655x0)  If set VRAM interface, else DRAM interface.
+      5  (655x0)  If set CPU memory write buffer is enabled.
+      6  (655x0)  If set enables 0WS capability.
+      7  (655x0)  If set allows faster 0WS cycle timing.
+
+3d6h index  5h (R/W):  Sequencer Control                        (452/3/7 only)
+bit   2  (82c457)  Clock Pin Polarity.
+                   If set CLK0 is defined as a common clock and CLK1/S0
+                   and CLK2/S1 are select outputs. If clear one of CLK0,
+                   CLK1 and CLK2 is selected as the display clock.
+
+3d6h index  6h (R/W):  DRAM Interface                            (82c452 only)
+
+3d6h index  6h (R/W):  Palette Control Register                   (655x0 only)
+bit   0  If set enables external DAC if 3d6h index 6 bit 0 is 0.
+      1  If set disables the internal DAC.
+         Causes the DAC to power down and tri-states the outputs. 
+      2  If set enables 16 bit/pixel operation.
+         Timing to an external DAC will be SC11486 (Tseng) compatible.
+         (Two bytes output per pixel, one on the rising edge of PCLK
+         and one on the falling edge).
+      3  If set 16 bit pixels are 5 red-6 green-5 blue.
+         If clear they are 5 bits of each.
+      4  If set the Sense Status bit (3C2h bit 4) is driven by the SENSE
+         pin from external logic.
+      5  If set bypasses the internal RAMDAC.
+         This bit should always be clear.
+    6-7  Color Reduction Select. 
+         In flat panel modes these bits determine the algorithm used to
+         reduce 18 bit color data to 6 bits for mono panels.
+          0: NTSC weighting, 1: Equivalent weight, 2: Green only, 3: Color.
+
+3d6h index  8h (R/W):  General Purpose Output Select B Register.
+                                                            (451/2/5/6/7 only)
+bit   0  Select bit B for ERMIN/ pin.
+      1  Select bit B for TRAP/ pin.
+      2  (82c457) If set PNL14 pin outputs panel data bit 14,
+         if clear PNL14 pin outputs DATEN/.   
+
+3d6h index  9h (R/W):  General Purpose Output Select A Register.
+                                                            (451/2/5/6/7 only)
+bit   0  Select bit A for ERMIN/ pin.
+      1  Select bit A for TRAP/ pin.
+         Select A and B determine the output on the pin:
+           B      A        Output
+         clear  clear      Normal
+         clear   set       3-State
+          set   clear      Force low
+          set    set       Force high 
+
+3d6h index  Ah (R/W):  Cursor Address Top                      (82c452/3 Only)
+bit 0-1  Cursor Address bit 16,17
+    2-7  Reserved
+
+3d6h index  Bh (R/W):  CPU Paging                          (82c451/5/6/7 only)
+bit 0-1  Bank number in 64k chunks.
+Note: This Bank register is used if in a 256 color mode and
+      the chip is a 82c451/5/6/7.
+
+3d6h index  Bh (R/W):  Memory Paging Register           (82c452/3, 655x0 only)
+bit   0  Enable extended paging (256 color paging) if set
+      1  If set Dual Pages are enabled. A0000h-A7FFFh uses 3d6h 
+         index 10h, A8000h-AFFFFh uses 3d6h index 11h.
+      2  CPU Address divide by 4 (256 color addressing)
+      3  (655x0) If set CPU address divide by 2 is enabled.
+      4  (65530) If set Memory is mapped as 1MB linear Memory.
+
+3d6h index  Ch (R/W):  Start Address Top                (82c452/3, 655x0 Only)
+bit 0-1  Display Start Address bit 16,17.
+
+3d6h index  Dh (R/W):  Auxiliary Offset Register
+bit   0  Bit 8 of Offset field. If set each line is >255 words.
+      1  Bit 8 of simulated Offset field.
+
+3d6h index  Eh (R/W):  Text Mode                          (82c452, 655x0 Only)
+bit   0  (82c452) Extended text Mode Control ??
+      1  (82c452) Enable anti-aliased fonts if set
+      2  (655x0)  If set cursor is non-blinking.
+      3  (655x0)  If set Cursor style is Exclusive-Or.
+
+3d6h index  Fh (R/W):  Software Flags 2                           (655x0 only)
+bit 0-7  Software flags. 
+
+3d6h index 10h (R/W):  Single/Low Map                   (82c452/3, 655x0 Only)
+bit 0-5  (82c452) Bank no in 4K/16K chunks.
+    0-7  (82c453) Bank no in 1K/4K chunks.
+Note: This Bank register is used if in single-paging mode or if addressing the
+      lower half (32 or 64Kb) of the adapters address range.
+
+3d6h index 11h (R/W):  High Map                         (82c452/3, 655x0 Only)
+bit 0-5  (82c452) Bank no in 4K/16K chunks.
+    0-7  (82c453) Bank no in 1K/4K chunks.
+Note: This Bank register is used if addressing the upper half (32 or 64Kb) of
+      the adapters address range.
+
+3d6h index 14h (R/W):  Emulation Mode Register
+bit 0-1  Emulation Mode:
+          0=VGA/EGA, 1=CGA, 2=MDA and 3=Hercules.
+      2  (R) Hercules Configuration (3BFh) bit 0 Readback.
+         If set it is possible to set the Graphics Mode bit (3B8h bit 1).
+      3  (R) Hercules Configuration (3BFh) bit 1 Readback.
+         If set it is possible to set the Graphics Page bit (3B8h bit 7).
+      4  Display Enable Status Mode.
+         If set bit 0 of the Input Status Register 1 (3dAh)
+         shows the Hsync Status (as MDA/Hercules), if clear the
+         Display Enable is shown (as CGA/VGA). 
+      5  Vertical Retrace Status Mode.
+         If set bit 3 of the Input Status Register 1 (3dAh)
+         shows the Video signal (as MDA/Hercules), if clear the
+         Vertical Retrace status is shown (as CGA/VGA). 
+      6  Vsync Status Mode.
+         If clear bit 7 of the Input Status Register 1 (3dAh)
+         shows the Vsync Status (as MDA/Hercules).
+      7  Interrupt Output Function.
+         If clear the IRQ pin will always 3-state, if set it
+         will 3-state only when interrupts are disabled.  
+
+3d6h index 15h (R/W):  Write Protect Register.
+bit   0  Write Protect Group 1 Registers.
+         If set the Sequencer (3C4h), Graphics Controller (3CEh)
+         and Attribute Controller (3C0h) registers are write protected.
+      1  Write Protect Group 2 Registers.
+         If set the Cursor Size Register (3d4h index 9 bits 0-4) 
+         and the Character Height registers (3d4h index 0Ah and 0Bh)
+         are write protected.
+      2  Write Protect Group 3 Registers.
+         If set CRT registers (3d4h) index: 7 bit 4, 8, 11h bits 4-5,
+         13h, 14h, 17h bits 0-1 and 3-7, 18h are write protected.
+      3  Write Protect Group 4 Registers.
+         If set CRT registers (3d4h) index: 9 bits 5-7, 10h, 11h bits 0-3
+         and 6-7, 12h, 15h, 16h, 17h bit 2 are write protected.
+      4  Write Protect Group 5 Register.
+         If set the Miscellaneous Output (3C2h) and Feature Control
+         (3dAh) registers are write protected.
+      5  Write Protect Group 6 Registers.
+         If set the DAC registers (3C6h-3C9h) are write protected.
+      6  Write Protect Group 0 Registers.
+         If set CRT registers (3d4h) index: 0, 1, 2, 3, 4, 5, 6,
+         7 bits 0-3 and 5-7 are write protected.
+
+3d6h index 16h (R/W):  Trap Enable Register.                       (not 655x0)
+bit   0  If set accesses to registers 3B4h or 3B5h cause a Trap.
+      1  If set accesses to registers 3B8h or 3BFh cause a Trap.
+      2  If set accesses to registers 3C0h-3CFh cause a Trap.
+      3  If set accesses to registers 3D4h or 3D5h cause a Trap.
+      4  If set accesses to registers 3D8h or 3D9h cause a Trap.
+      5  If set accesses to registers 3d4h index 0-0Bh and 10h-18h
+         cause a Trap.
+
+3d6h index 17h (R/W):  Trap Status Register.                       (not 655x0)
+bit   0  If set a trap occurred due to access to registers 3B4h or 3B5h.
+      1  If set a trap occurred due to access to registers 3B8h or 3BFh.
+      2  If set a trap occurred due to access to registers 3C0h-3CFh.
+      3  If set a trap occurred due to access to registers 3D4h or 3D5h.
+      4  If set a trap occurred due to access to registers 3D8h or 3D9h.
+      5  If set a trap occurred due to access to registers 
+         3d4h index 0-0Bh or 10h-18h.
+Note: Any bits in this register can be cleared by writing a 1 bit to them. 
+
+3d6h index 18h (R/W):  Alternate Horizontal Display Enable End Register
+bit 0-7  This register replaces the Horizontal Display Enable End Register
+         (3d4h index 1) in low resolution CGA text and graphics modes,
+         Hercules Graphics and all flat panel modes.
+Note: Probably doesn't exist in the 82c451/2/3.
+
+3d6h index 19h (R/W):  Alternate Horizontal Sync Start Register
+bit 0-7  This register replaces the Horizontal Sync Start Register
+         (3d4h index 4) in low resolution CGA text and graphics modes,
+         Hercules Graphics and all flat panel modes.
+Note: Probably doesn't exist in the 82c451/2/3.
+
+3d6h index 1Ah (R/W):  Alternate Horizontal Sync End Register
+bit 0-4  Alternate Horizontal Sync End. Replaces 3d4h index 5 bits 0-4.
+    5-7  Alternate Horizontal Sync Delay. 
+         For CRTs replaces 3d4h index 5 bits 5-6.
+Note: This register replaces the Horizontal Sync End Register (3d4h index 5)
+      in low resolution CGA text and graphics modes, Hercules Graphics and
+      all flat panel modes.
+Note: Probably doesn't exist in the 82c451/2/3.
+
+3d6h index 1Bh (R/W):  Alternate Horizontal Total Register
+bit 0-7  This register replaces the Horizontal Total Register
+         (3d4h index 0) in low resolution CGA text and graphics modes,
+         Hercules Graphics and all flat panel modes.
+Note: Probably doesn't exist in the 82c451/2/3.
+
+3d6h index 1Ch (R/W):  Alternate Horizontal Blank Start Register         (CRT)
+bit 0-7  Alternate Horizontal Blank Start.
+Note: For CRT systems this register replaces the Horizontal Blank Start
+      Register (3d4h index 2) in low resolution CGA text and graphics
+      modes and Hercules Graphics mode.
+Note: Probably doesn't exist in the 82c451/2/3.
+Note: This register has different meaning for CRT and Plat Panel systems.
+
+3d6h index 1Ch (R/W):  Alternate Horizontal Blank End Register    (Flat Panel)
+bit 0-7  For Flat Panel systems this value specifies the end of Horizontal
+         Blank in terms of character clocks.
+Note: Probably doesn't exist in the 82c451/2/3.
+Note: This register has different meaning for CRT and Plat Panel systems.
+
+3d6h index 1Dh (R/W):  Alternate Horizontal Blank End Register           (CRT)
+bit 0-4  Alternate Horizontal Blank End
+    5-6  Alternate Display Enable Skew Control. 
+Note: For CRT systems this register replaces the Horizontal Blank End
+      Register (3d4h index 3) in low resolution CGA text and graphics
+      modes, and Hercules Graphics mode.
+Note: Probably doesn't exist in the 82c451/2/3.
+Note: This register has different meaning for CRT and Plat Panel systems.
+
+3d6h index 1Dh (R/W):  Alternate Horizontal Blank Start Register (Flat Panel)
+bit 0-7  Alternate Horizontal Blank Start.
+Note: For Flat Panel systems this register replaces the Horizontal Blank
+      Start Register (3d4h index 2).
+Note: Probably doesn't exist in the 82c451/2/3.
+Note: This register has different meaning for CRT and Plat Panel systems.
+
+3d6h index 1Eh (R/W):  Alternate Offset Register
+bit 0-7  Alternate Offset.
+Note: This register replaces the Offset Register (3d4h index 13h) in low
+      resolution CGA text and graphics modes and Hercules Graphics mode.
+Note: Probably doesn't exist in the 82c451/2/3.
+
+3d6h index 1Fh (R/W):  Virtual EGA Switch Register                (655x0 only)
+bit 0-3  If bit 7 is 1 one of these bits is read back in the Input Status
+         Register 0 (3C2h bit 4) depending on Miscellaneous Output bits 2-3:
+          0: bit 3, 1: bit 2, 2: bit 1, 3:bit 0.
+      7  If set one of bits 0-3 is read back in the Input Status Register
+         (3C2h) bit 4.
+
+3d6h index 20h (R/W):  Sliding Unit Delay                         (452/3 only)
+
+3d6h index 21h (R/W):  Sliding Hold A                               (452 only)
+
+3d6h index 22h (R/W):  Sliding Hold B                               (452 only)
+
+3d6h index 23h (R/W):  Write Mask Control                         (452/3 Only)
+bit   0  Enable VRAM Write Mask function if set
+    1-2  Write Bit Mask Select:
+          0: Write Bit Mask Pattern Register (3d6h index 24h)
+          1: Graphics Controller Bit Mask    (3CEh index 8)
+          2: Rotated CPU byte
+      3  Enable Fast Read/Modify/Write function if set
+
+3d6h index 24h (R/W):  Write Bit Mask Pattern                  (82c452/3 only)
+bit 0-7  Write Bit Mask (if 3d6h index 23h bit 1-2 =0)
+
+3d6h index 24h (R/W):  Alternate Maximum Scanline Register        (655x0 only)
+bit 0-4  Number of scanlines -1 per character row of TallFont.
+Note: Used in Flat Panel text modes when TallFont is enabled.
+
+3d6h index 25h (R/W):  FP AltGrHVirtPanel Size               (453, 655x0 only)
+bit 0-7  Should be: (9/8)*(3d6h index 1Ch +1) -1.
+
+3d6h index 26h (R/W):  Configuration                             (82c453 Only)
+bit   0  PC/AT if set, PS/2 else
+    1-2  VRAM memory
+          0: 512k   16 chips of  64k x4
+          1: 512k    4 chips of 256k x4
+          2:   1M    8 chips of 256k x4
+          3: 512k    8 chips of  64k x4  ?????  maybe 256k ??
+
+3d6h index 27h (R/W):  Force Sync State
+
+3d6h index 28h (R/W):  Video Interface
+bit   0  BLANK/Display Enable Polarity.
+         Positive if set, Negative if clear.
+      1  Blank /Display Enable Select (CRT).
+         If set the BLANK/ pin outputs DE, if clear BLANK/
+      2  Shut Off Video.
+         If set the video signal is forced to default video
+         (3d6h index 2bh) during the blanking interval. 
+      3  Shut Off Blank.
+         If set the BLANK/ output is forced active
+         during the blanking interval.
+         (655x0)  Read/writable, but has no function.
+      4  (655x0)  256 Color Video Path. 
+         If set Video Data Path is 8 bits rather than 4 bits.
+      5  (655x0)  Interlace Video. CRT graphics modes only.
+         If set Video is interlaced.
+      6  (655x0)  8-bit Video Pixel Panning.
+         If set 3C0h index 13h bits 0-2 are used to control
+         pixel panning rather than bits 1-2.
+      7  (655x0)  Read/writable, but has no function.
+
+3d6h index 29h (R/W):  External Sync Control                        (452 only)
+
+3d6h index 2Ah (R/W):  Frame Interrupt Count                        (452 Only)
+bit 0-4  Generate Vertical Interrupt every (n+1) frames
+
+3d6h index 2Bh (R/W):  Default Video Register                        (not 453)
+bit 0-7  On CRTs this is the color displayed during blank time.
+
+3d6h index 2Ch (R/W):  FP Vsync (FLM) Delay Register.
+bit 0-7  Number of Hsync pulses between internal Vsync and the
+         rising edge of First Line Marker (FLM).
+Note: Only used in Flat Panel modes when 3d6h index 2Fh bit 7 is 0..
+
+3d6h index 2Dh (R/W):  FP Hsync (LP) Delay Register.
+bit 0-7  Number of character clocks between the FP Blank inactive
+         edge and the rising edge of the LP.
+Note: Only used in Flat Panel modes when 3d6h index 2Fh bit 6 is 0 and
+      graphics mode horizontal compression is disabled.
+
+3d6h index 2Eh (R/W):  FP Hsync (LP) Delay Register.
+bit 0-7  Number of character clocks between the FP Blank inactive
+         edge and the rising edge of the LP.
+Note: Only used in Flat Panel modes when 3d6h index 2Fh bit 6 is 0
+      and 9 dot text mode is used.
+
+3d6h index 2Fh (R/W):  FP Hsync (LP) Width Register
+bit 0-3  Width of the LP output pulse in number of character clocks.
+         Only in 8 dot text modes on Flat Panels.
+      4  Bit 8 of the FP Hsync (LP) Delay Register (3d6h index 2Eh).
+      5  Bit 8 of the FP Hsync (LP) Delay Register (3d6h index 2Dh).
+      6  FP Hsync (LP) Delay Disable.
+         If set the FP Hsync (LP) active edge will coincide with the
+         FP Blank inactive edge.
+      7  FP Vsync (FLM) Delay Disable.
+         If set the external FP Vsync (FLM) will coincide with 
+         the internal FP Vsync (FLM) active edge.
+
+3d6h index 30h (R/W):  Graphics Cursor Start Address High           (452 only)
+bit 0-7  Bit 8-15 of the Cursor Start Address.
+
+3d6h index 31h (R/W):  Graphics Cursor Start Address Low            (452 only)
+bit 0-7  Lowest 8 bits of the Cursor Start address. 3d6h index 30h and index
+         Ah forms the upper 10 bits. In 256 color modes this address has a
+         granularity of 16 bytes and 4 bytes in 16 color modes.
+
+3d6h index 32h (R/W):  Graphics Cursor End Address                  (452 only)
+bit 0-7  End address of the cursor bit map.
+
+3d6h index 33h (R/W):  Graphics Cursor X Position High              (452 only)
+bit 0-3  Bits 8-11 of the X co-ordinate of the cursor.
+
+3d6h index 34h (R/W):  Graphics Cursor X Position Low               (452 only)
+bit 0-7  Lower 8 bits of the X co-ordinate of the cursor.
+
+3d6h index 35h (R/W):  Graphics Cursor Y Position High              (452 only)
+bit 0-3  Bits 8-11 of the Y co-ordinate of the cursor.
+
+3d6h index 36h (R/W):  Graphics Cursor Y Position Low
+bit 0-7  Lower 8 bits of the cursor Y co-ordinate.
+
+3d6h index 37h (R/W):  Graphics Cursor Mode                         (452 only)
+bit   0  Cursor Enabled if set
+      1  Cursor Status enable
+      2  Horizontal Zoom. Zoom to 64 pixels wide if set.
+         (Normally 32 pixels wide).
+      3  Cursor Blink enabled if set
+      4  Cursor Blink Rate. 8 frames if clear, 16 if set
+
+3d6h index 38h (R/W):  Graphics Cursor Plane Mask                   (452 only)
+bit   0  Enables graphics cursor in bit plane 0 if set
+      1  Enables graphics cursor in bit plane 1 if set
+      2  Enables graphics cursor in bit plane 2 if set
+      3  Enables graphics cursor in bit plane 3 if set
+
+3d6h index 39h (R/W):  Graphics Cursor Color 0                      (452 only)
+bit 0-7  Background color of Graphics Cursor.
+
+3d6h index 3Ah (R/W):  Graphics Cursor Color 1                      (452 only)
+bit 0-7  Foreground color of Graphics Cursor.
+
+3d6h index 44h (R/W):  Scratch #0 Register                (82c453, 655x0 Only)
+bit 0-7  Available
+
+3d6h index 45h (R/W):  Scratch #1/Foreground Color               (82c453 Only)
+bit 0-7  Used as foreground color if in Fast Font Paint mode,
+         Available as scratch else.
+
+3d6h index 50h (R/W):  Panel Format                          (82c455/6/7 Only)
+bit 0-1  Frame Rate Control
+          0: No grey scale simulated for mono,
+             8 colors simulated for color panels.
+          1: 4 simulated colors for color panels only
+             (64 colors displayed).
+          2: (82c455/6) 64 grey levels simulated for mono. panels only.
+             (82c457)   16 levels simulated for each color output.
+                        4096 colors simulated.
+          3: (82c457)   3 levels simulated for each color output.
+                        27 colors simulated.
+    2-3  Pulse Width Modulation
+          0: No grey scales for mono or color systems.
+          1: 4 colors supported by the color panels only
+             (64 colors displayed).
+          2: 16 grey levels supported by the mono panels only.
+          3: 256 grey levels supported by the
+             color single panels only.
+             (655x0) Dither Enable.
+               0: Disable Dither.
+               1: Enable dither for 256 color modes.
+               2: Enable dither for all modes. 
+    4-5  Clock Divide (CD).
+          0: Shift Clock = Dot Clock
+          1: Shift Clock = Dot Clock/2
+          2: Shift Clock = Dot Clock/4
+          3: (655x0) Shift Clock = Dot Clock/8.
+      7  Shift Clock Mask.
+         If set the Shift Clock stops outside the
+         Display Enable interval.
+    6-7  (655x0)  VAM/FRC Control
+           0: bit 2-3 determine the dither:
+               0: 6 bpp VAM (dither bits 0-1).
+               1: 4 bpp VAM (dither bits 0-1).
+               2: 2 bpp VAM (dither bits 2-3).
+               3: 1 bpp VAM (dither bits 4-5).
+           1: 3 Bits/Pixel VAM (dither bits 1-2).
+              Use with bit 2-3=0 or 1 for mono panels,
+              Use with bit 2-3=0 for color panels.
+           2: (65530) 2-Frame FRC
+              3 level grey scale simulation without dither or
+              9 level grey scale simulation with dither.
+           3: (65530) 3 Bits/Pixel VAM + 2-Frame FRC.
+              15-level grey scale simulation without dithering and
+              56 level grey scale simulation with dithering.
+
+3d6h index 51h (R/W):  Panel Type                     (82c455/6/7, 655x0 Only)
+bit   0  (82c455/6) Double drive if set, single else
+      1  Double panel if set, single else
+    2-3  Type of display
+          0=LCD, 1=CRT, 2=Plasma or Electrolum.
+      2  (655x0) Display Type. 0=CRT, 1=Flat Panel.
+      3  (655x0) 8/16 bit FP Video Interface.
+         If set the Flat Panel Video interface is 16 bit.
+    4-5   0=Color panel 3 bit data pack
+          1=Color Panel 1 bit data pack
+          2=(82c455/6) Monochrome Panel
+          3=(82c457)   Extended 4-bit pack
+      4  (655x0) Video Skew. 
+         If set Video data is delayed 1 shift clock cycle.
+      5  (655x0) Shift Clock Mask (SM). Flat Panel mode only.
+         If set the shift clock is forced low outside the display
+         interval. If clear it also toggles outside the interval.
+      6  Flat Panel Compatibility enabled if set
+      7  Text Video output polarity
+
+3d6h index 52h (R/W):  Panel Size                            (82c455/6/7 Only)
+bit 0-1  Horizontal Size of panel
+          1=640 pixels, 2=720 pixels
+    3-6  Vertical Size of panel
+          1=200 lines, 2=350, 4=400, 8=480 lines
+
+3d6h index 52h (R/W):  Power Down Control Register.               (655x0 only)
+bit 0-2  FP Normal Refresh Count. Flat Panel modes only.
+         Number of memory refresh cycles to perform per scanline.
+      3  Panel Off Mode. If set the CRT/FP interface is inactive.
+      4  Panel Off Control Bit 0. Only effective if bit 3 is set.
+         If set the Video data, CRT and Flat Panel timing signals
+         are forced inactive, rather than only the Video data.
+      5  Panel Off Control bit 1. Only effective if bit 3 is set.
+         If set inactive video data and/or timing pins are tri-stated
+         rather than being driven.
+      6  Standby Control. Only effective if the STNDBY/ is low.
+         In standby mode the video output, timings and CPU interface
+         are inactive. If set the Display memory refresh is derived
+         from the 32kHz input. If clear the DRAMs are self-refreshed.
+      7  CRT Mode Panel Off. Only effective in CRT modes.
+         If set Video data and timing signals are tri-stated. 
+
+3d6h index 53h (R/W):  Override Register              (82c455/6/7, 655x0 Only) 
+bit   0  Disable AR10D2. If set the ninth pixel of characters is
+         controlled by this register, if clear it is controlled 
+         by the Mode Control Register (3C0h index 10h) bit 2.
+      1  Alternate Line Graphics Character Code.
+         Only effective if bit 0 is set.
+         If set the ninth pixel of a character is forced to the same value
+         as the 8th pixel. If clear it is forced to the background color.
+      2  (655x0) FRC option 1.
+      3  (655x0) FRC option 2.
+    4-5  (65530) Pixel Packing. Only effective for Color STN panels.
+            0: 3-bit Pack. 3d6h index 50h bits 4-5 can be 0,1 or 2.
+            1: 4-bit Pack. 3d6h index 50h bits 4-5 can be 1 or 1.
+            3: Extended 4-bit Pack. 3d6h index 50h bits 4-5 must be 1.
+      7  (65530) High Color Mode Flat Panel Operation.
+         If set Hi-Color operation is enabled in hi-res modes on
+         Flat panel. If clear it is enabled in low-res modes.
+
+3d6h index 54h (R/W):  Alternate Miscellaneous Output Register
+                                                             (82c455/6/7 Only)
+bit   0  Panel Video Skew
+    2-3  Clock Select Bits
+      6  Hsync. Negative if set, Positive if clear.  
+      7  Vsync. Negative if set, Positive if clear.  
+Note: For Flat Panel systems this register replaces the Miscellaneous
+      Output Register (3C2h).
+
+3d6h index 54h (R/W):  FP Interface Register                      (655x0 Only)
+bit   0  FP Blank Polarity.
+         If set the BLANK/ pin has negative polarity.
+      1  If set the BLANK/ pin outputs only the FP Horizontal Blank
+         signal, if clear it outputs both Vertical and Horizontal
+         Blank signals.
+    2-3  FP Clock Select Bits 0-1.
+         In Flat Panel modes these bits replace 3C2h bits 2-3.
+    4-5  FP Feature Control bits 0-1.
+         In Flat Panel modes these bits replace 3dAh bits 0-1.
+      6  FP HSync (LP) Polarity.
+         If set the HSync (LP) pin has negative polarity.
+      7  FP VSync (FLM) Polarity.
+         If set the Vsync (FLM) pin has negative polarity. 
+Note: This register is only effective in Flat Panel modes.
+
+3d6h index 55h (R/W):  Text Mode 350_A                       (82c455/6/7 Only)
+bit 0-3  (Number of blank lines)-1 inserted between text rows
+         I.e.  if 5, insert 6 blank lines after a text line.
+      4  If clear lines are inserted.
+Note: This register is used if in a 350 line text mode
+      and fonts are larger than 8 lines.
+
+3d6h index 55h (R/W):  Horizontal Compensation Register           (655x0 Only)
+bit   0  Enable Horizontal Compensation (EHCP)
+         If set Horizontal compensation is enabled.
+      1  Enable Automatic Horizontal Centring (EAHC)
+         If set (and bit 0 is set) EAHC is enabled.
+         Horizontal left and right borders will be computed
+         automatically.
+      2  Enable Text Mode Horizontal Compression (ETHC).
+         If set, bit 0 is set and we are in a Flat Panel Text
+         mode ETHC is enabled.
+         9-dot text modes will be forced to 8-bit.
+      5  Enable Automatic Horizontal Doubling (EAHD).
+         If set and bit 0 is set, EAHD is enabled.
+         If Horizontal Display Width (3d4h index 1) is less
+         than or equal to half the Horizontal Panel Size
+         (3d6h index 18h) horizontal pixel doubling will be forced.
+      6  Alternate CRT Hsync Polarity. Negative if set, Positive if clear.
+      7  Alternate CRT Vsync Polarity. Negative if set, Positive if clear. 
+
+3d6h index 56h (R/W):  Text Mode 350_B                       (82c455/6/7 Only)
+bit 0-3  (Number of blank lines)-1 inserted between text rows
+      4  If clear lines are inserted.
+Note: This register is used if in a 350 line text mode
+      and fonts are smaller than or equal to 8 lines.
+
+3d6h index 56h (R/W):  Horizontal Centring Register               (655x0 Only)
+bit 0-7  Horizontal Left Border. Size of the left border in pixels  -1.
+         Only used if in a Flat Panel mode and non-automatic
+         horizontal centring is enabled.
+
+3d6h index 57h (R/W):  Text Mode 400                         (82c455/6/7 Only)
+bit 0-3  (Number of blank lines)-1 inserted between text rows
+      4  If clear lines are inserted.
+Note: This register is used if in a 400 line text mode.
+
+3d6h index 57h (R/W):  Vertical Compensation Register             (655x0 Only)
+bit   0  Enable Vertical Compensation if set.
+      1  Enable Automatic Vertical Centring.
+         If set and bit 0 set, the image will automatically
+         be centred vertically.
+      2  Enable Text Mode Vertical Stretching.
+         If set and bit 0 set, text mode vertical
+         stretching is enabled. 
+    3-4  Text Mode Vertical Stretching. If bit 0 & 2 set.
+           0 = Double Scanning (DS) and Line Insertion (LI)
+               with priority: DS+li, DS, LI.
+           1 = Double Scanning (DS) and Line Insertion (LI)
+               with priority: DS+LI, LI, DS.
+           2 = Double Scanning (DS) and TallFont (TF)
+               with priority: DS+TF, DS, TF.
+           3 = Double Scanning (DS) and TallFont (TF)
+               with priority: DS+TF, TF, DS.
+      5  Enable Vertical Stretching if set and bit 0 set.
+      6  Vertical Stretching. If bits 0 and 5 set.
+           0 = Double Scanning (DS) and Line Replication (LR)
+               with priority: DS+LR, DS, LR.
+           1 = Double Scanning (DS) and Line Replication (LR)
+               with priority: DS+LR, LR, DS.
+
+3d6h index 58h (R/W):  Graphics Mode 350                     (82c455/6/7 Only)
+bit 0-3  Number of scan lines between stretch/delete
+      4  Enable vertical Stretching if set
+      5  Enable vertical deletion if set
+      6  If set the value in bits 0-3 is incremented every other period.
+Note: This register is used if in a 350 line graphics mode.
+
+3d6h index 58h (R/W):  Vertical Centring Register                 (655x0 Only)
+bit 0-7  Vertical Top Border LSBs.
+         Lower 8 bits of the Vertical Top Border.
+         Bits 8-9 are in 3d6h index 59h bits 5-6.
+Note: used only in Flat panel modes when non-automatic
+      vertical centring is enabled.
+
+3d6h index 59h (R/W):  Graphics Mode 400                     (82c455/6/7 Only)
+bit 0-3  Number of scan lines between stretch/delete
+      4  Enable vertical Stretching if set
+      5  Enable vertical deletion if set
+      6  If set the value in bits 0-3 is incremented every other period.
+Note: This register is used if in a 400 line graphics mode.
+
+3d6h index 59h (R/W):  Vertical Line Insertion Register           (655x0 Only)
+bit 0-3  Vertical line Insertion Height.
+         Number of lines -1 to insert between text rows.
+    5-6  Bits 8-9 of the Vertical Top Border (3d6h index 58h).
+Note: This register is only used in Flat Panel text modes.
+
+3d6h index 5Ah (R/W):  Flat Panel Vertical Display Start_400 (82c455/6/7 Only)
+bit 0-7  For 400 line Flat Panel modes  these are the lower 8 bits of the 
+         Vertical Display Start (in scanlines). The upper 2 bits are in the
+         Flat Panel Vertical Overflow 2 Register (3d6h index 6Bh) bits 2-3.
+
+3d6h index 5Ah (R/W):  Vertical Line Replication Register.        (655x0 Only)
+bit 0-3  Vertical line Replication Height.
+         Number of lines-1 between replicated lines. 
+         Double scanned lines are also counted.
+Note: This register is only used when in Flat Panel text modes
+      and Line Replication is enabled.
+
+3d6h index 5Bh (R/W):  Flat Panel Vertical Display End_400   (82c455/6/7 Only)
+bit 0-7  For 400 line Flat Panel modes these are the lower 8 bits of the 
+         Vertical Display End (in scanlines). The upper 2 bits are in the
+         Flat Panel Vertical Overflow 2 Register (3d6h index 6Bh) bits 6-7.
+
+3d6h index 5Bh (R/W):  Panel Power Sequencing Delay register      (65530 Only)
+bit 0-3  Panel Power Down sequencing Delay in 32ms counts. (0-480ms)
+    4-7  Panel Power Up Sequencing Delay in 4ms counts. (0-60ms)
+Note: This register is used only when the Panel power Sequencing
+      feature is enabled. Default to 81h for compatibility with 65520.
+
+3d6h index 5Ch (R/W):  Weight Clock Control Register A         (82c455/6 only)
+bit 0-5  This register is used in Flat Panel mode when bit 7 of the Panel
+         Format Register (3d6h index 50h) is set and bits 2-3 of the same
+         register is either 1 or 2.
+         The time from Hsync to the first pulse on the WGTCLK is this
+         value*4 dot clocks.  See also 3d6h index 5Dh and 6Ch.
+
+3d6h index 5Dh (R/W):  Weight Clock Control Register B         (82c455/6 only)
+bit 0-5  This register is used in Flat Panel mode when bit 7 of the Panel
+         Format Register (3d6h index 50h) is set and bits 2-3 of the same
+         register is either 1 or 2.
+         The time between WGTCLK pulses is this value*4 dot clocks.
+         See also 3d6h index 5Ch and 6Ch.
+
+3d6h index 5Eh (R/W):  ACDCLK Control Register        (82c455/6/7, 655x0 only)
+bit 0-6  ACDCLK Count. Number of Hsync pulses between changes in ACDCLK.
+      7  If set the ACDCLK phase inverts every frame, if clear the ACDCLK
+         changes phase when the number of Hsync pulses specified in 
+         bits 0-6 have elapsed.
+
+3d6h index 5Fh (R/W):  Power Down Mode Refresh Register
+                                                      (82c455/6/7, 655x0 only)
+bit 0-7  (82c455/6/7) Sleep Mode Refresh Frequency.
+         A refresh will happen for every (4*this value)+8 dot clocks.
+    0-1  (655x0) Power Down Refresh Frequency.
+         Refresh happens every xx micro seconds:  
+           0=16usek, 1=32 usek, 2=64 usek and 3=128 usek.
+
+3d6h index 60h (R/W):  Blink Rate Control             (82c455/6/7, 655x0 Only)
+bit 0-5  Blink Rate.
+         Character Blink Freq = Vertical sync Freq * (Blink rate+1)
+         Cursor blink freq = Character Blink Freq *2.
+    6-7  Blink Cycle  1=25%, 2=50%, 3=75%
+
+3d6h index 61h (R/W):  Smartmap Control                 (82c455/6, 655x0 Only)
+bit   0  If set enables Smartmap and bypasses internal color lookup table.
+    1-4  Threshold for (Foreground - Background) diff
+         if diff less than the threshold the foreground and
+         background colors will be spread (See 3d6h index 62h).
+      5  Smartmap Saturation value.
+         If set the result is calculated modulo 16, 
+         if clear it is rounded to min. or max. values (0 and 0Fh).
+      6  (82c456, 655x0) Enhanced text if set
+         (reverses attributes 7h and Fh)
+      7  (655x0) Text Video Output Polarity (TVP) if set.
+         Only effective in Flat Panel modes. 
+
+3d6h index 62h (R/W):  Smartmap Shift Parameter         (82c455/6, 655x0 Only)
+bit 0-3  Number of levels to shift foreground color
+         when too little difference (See 3d6h index 61h bit 1-4).
+    4-7  Number of levels to shift background color.
+
+3d6h index 63h  (R/W): Graphics Color Mapping Control          (82c455/6 Only)
+bit 0-3  Threshold color value for mono output.
+         All colors >= this value will be set to 1,
+         all lower to 0.
+      4  Use upper 4 bits of 256 color if set, lower if not.
+      5  Enable internal color lookup table if set
+      6  Write protect internal color look up table if set
+      7  Graphics output polarity
+
+3d6h index 63h  (R/W): Smartmap Color Mapping Control             (655x0 only)
+bit 0-5  Color Threshold. Used for mapping 6 bit color to 1 bit.
+         Color values greater than or equal than this value
+         are mapped to 1, and lower values are mapped to 0.
+      6  Must be set to 1.
+      7  Graphics Video Output Polarity
+         Inverted polarity if set, normal if clear.
+         Graphics video output only.
+
+3d6h index 64h  (R/W): Alternate Vertical Total       (82c455/6/7, 655x0 only)
+bit 0-7  Alternate Vertical Total
+Note: For Flat Panel modes this register replaces the Vertical Total Register
+      (3d4h index 6).
+
+3d6h index 65h  (R/W): Alternate Overflow             (82c455/6/7, 655x0 only)
+bit   0  Alternate Vertical Total bit 8
+      1  (455/6/7) Alternate Vertical Display End bit 8.
+         (655x0)   Alternate Vertical Panel Size bit 8.
+      2  Alternate Vertical Sync Start bit 8.
+      3  (655x0) Alternate Vertical Sync Start bit 10.
+      4  (655x0) Alternate Vertical Total bit 10.
+      5  Alternate Vertical Total bit 9
+      6  (455/6/7) Alternate Vertical Display End bit 9.
+         (655x0)   Alternate Vertical Panel Size bit 9.
+      7  Alternate Vertical Sync Start bit 9.
+
+3d6h index 66h  (R/W): Alternate Vertical Sync Start  (82c455/6/7, 655x0 only)
+bit 0-7  Alternate Vertical Sync Start
+Note: For Flat Panel modes this register replaces the Vertical
+      Sync Start Register (3d4h index 10h).
+
+3d6h index 67h  (R/W): Alternate Vertical Sync End    (82c455/6/7, 655x0 only)
+bit 0-3  Alternate Vertical Sync End
+Note: For Flat Panel modes this register replaces the Vertical
+      Sync End Register (3d4h index 11h).
+
+3d6h index 68h  (R/W): Alternate Vertical Display Enable     (82c455/6/7 only)
+bit 0-7  Alternate Vertical Display Enable
+Note: For Flat Panel modes this register replaces the Vertical Display Enable
+      Register (3d4h index 12h)
+
+3d6h index 69h  (R/W): Vertical Panel Size Register.              (655x0 only)
+bit 0-7  Vertical Panel Size. Number of scan lines per frame.
+
+3d6h index 69h  (R/W): Flat Panel Vertical Display Start_350 (82c455/6/7 only)
+bit 0-7  For 350 line Flat Panel modes these are the lower 8 bits of the 
+         Vertical Display Start (in scanlines). The upper 2 bits are in the
+         Flat Panel Vertical Overflow 2 Register (3d6h index 6Bh) bits 0-1.
+
+3d6h index 6Ah  (R/W): Flat Panel Vertical Display End_350   (82c455/6/7 only)
+bit 0-7  For 350 line Flat Panel modes these are the lower 8 bits of the 
+         Vertical Display End (in scanlines). The upper 2 bits are in the
+         Flat Panel Vertical Overflow 2 Register (3d6h index 6Bh) bits 4-5.
+
+3d6h index 6Bh  (R/W): Flat Panel Vertical Overflow 2        (82c455/6/7 only)
+bit 0-1  Bits 8-9 of the Vertical Display Start_350 Register (3d6h index 69h)
+    2-3  Bits 8-9 of the Vertical Display Start_400 Register (3d6h index 5Ah
+    4-5  Bits 8-9 of the Vertical Display End_350 Register (3d6h index 6Ah)
+    6-7  Bits 8-9 of the Vertical Display End_400 Register (3d6h index 5Bh)
+
+3d6h index 6Ch  (R/W): Weight Clock Control Register         (82c455/6/7 only)
+bit 0-5  Weight Clock Control Pulse Count.
+         Total number of pulses on the Weight Clock.
+         See Also 3d6h index 5Ch and 5Dh.
+
+3d6h index 6Ch  (R/w): Programmable Output Drive Register         (655x0 only)
+bit   0  Input Level Sense Selection Mode.
+         If set bit 1 is used to determine input threshold.
+         If clear chip detects VCC voltage internally.
+      1  Input Level Sense Selection Voltage.
+         If set VCC for internal logic is 3.3V
+         if clear it is 5V.
+      2  Flat Panel Interface Output Drive Select
+         If set Higher drive, if clear Lower drive.
+      3  Bus Interface Output Drive Select.
+         If set Higher drive, if clear Lower drive.
+      4  Memory Interface output Drive Select.
+         If set Higher drive, if clear Lower drive.
+
+3d6h index 6Dh  (R/W): FRC and Palette Control                 (82c456/7 Only)
+bit   3  Enable Frame Rate Control
+    4-5  Maximum number of grey levels.
+           0: 64 level FRC
+           1: 16 level FRC with dither for 256 color modes.
+           2: 64 level FRC with dither for low grey levels.
+           3: 16 level FRC only.
+    6-7  Usage of External Palette:
+           0: Bypass
+           1: Bypass for 16 color modes, use for 256 color.
+           2: Always use
+           3: 16 grays for 16 color modes, 64 for 256 color.
+
+3d6h index 6Eh (R/W):  Polynomial FRC Control           (82c456/7, 655x0 Only)
+bit 0-3  Polynomial N value for Frame Rate Control
+    4-7  Polynomial M value.
+
+3d6h index 6Fh (R/W):  Frame Buffer Control register              (655x0 only)
+bit   0  Frame Buffer Enable. External Frame Buffer enabled if set.
+      1  Frame Accelerator enabled if set.
+      2  Frame Buffer memory Type.
+         If set Frame Buffer consists of 256Kx4 VRAM.
+         If clear Frame Buffer consists of 64Kx4 VRAM
+    3-5  Frame Buffer Refresh Count.
+    6-7  Reserved. Must be set to 0. 
+Note: This register effective in Flat Panel mode only.
+
+3d6h index 70h (R/W):  Setup/Disable Control Register.            (655x0 only)
+bit   7  3C3/46E8 Register Disabled if set.
+
+3d6h index 7Dh (R/W):  FP Compensation Diagnostic Register        (655x0 only)
+bit 0-7  Reserved. returns 0.
+
+3d6h index 7Eh (R/W):  CGA Color Select
+     This is a copy of the CGA Color Select Register at 3D9h.
+     The copy at 3D9h is only visible in CGA emulation mode.
+     This register is always visible.
+
+3d6h index 7Fh (R/W):  Diagnostic 
+bit   0  if set 3-states pins: PALRD/, PALWR/, WR46E8/, HSYNC, VSYNC,
+         ACDCLK, BLANK/, P0-7, RDY, DATEN/ AND IRQ/.
+      1  If set 3-states pins: WE/, RAS/, CAS0/, CAS1/,
+         CAS2/, CAS3/, AA0-7 AND BA0-7.
+    2-5  Test Function Pins. Should be 0.
+      6  (655x0) Test Function Enabled if set.
+      7  (655x0) Special Test Function. Should be set to 0.
+
+46E8h (R/W):  Setup Control PC/AT Register
+bit 0-2  Reserved
+      3  Enables Adapter VGA if set
+      4  Enters Setup Mode if set
+    5-7  Reserved
+Note: This is the same register as 94h.
+
+
+Most every index of 3d6h is used by one one or more chip.
+
+
+Bank Switching:
+
+Bank switching is dependent on Chip version:
+
+                              16 color modes       256 color modes
+   Chip         #bank regs   #Banks Granularity   #banks Granularity
+   82c451/5/6      1                                  4    64Kbytes
+   82c452          2            64     4Kbytes       64    16Kbytes
+   82c453/0        2           256     1Kbytes      256     4Kbytes
+
+    For the 82c452 & 3  the window to display memory can start on
+    any boundary fitting the granularity of the chip/display mode.
+    When using 2 bank registers, the address range available to the
+    adapter is split equally between the two bank registers. I.e.
+    A000h-A7FFh uses one bank, and A800h-AFFFh the other.
+    (Or A000h-AFFFh and B000h-BFFFh respectively if using the full
+    128 Kbytes range).
+
+
+
+  ID Chips and Technologies Chip Set:
+
+  vio($5F00);
+  if rp.al=$5F then
+    case rp.bl shr 4 of
+      0:Chip&Tech 82c451 !!!
+      1:Chip&Tech 82c452 !!!   
+      2:Chip&Tech 82c455 !!!
+      3:Chip&Tech 82c453 !!!
+      4:Chip&Tech 82c450 !!!
+      5:Chip&Tech 82c456 !!!
+      6:Chip&Tech 82c457 !!!
+      7:Chip&Tech F65520 !!!
+      8:Chip&Tech F65530 !!!
+      9:Chip&Tech F65510 !!!
+    end;
+
+
+
+  Video Modes:
+
+   60h T  132   25  16  (8x16)
+   61h T  132   50  16  (8x8)
+   6Ah G  800  600  16  PL4
+   70h G  800  600  16  PL4
+   71h G  960  720  16  PL4   Cardinal only!
+   72h G 1024  768  16  PL4
+   78h G  640  400 256  P8    Not documented/not all boards
+   79h G  640  480 256  P8
+   7Ah G  720  540 256  P8    Not documented/not all boards
+   7Bh G  800  600 256  P8
+   7Ch G  800  600 256  P8    (82c453 Only)
+   7Eh G 1024  768 256  P8    (82c453 Only)  
+
+  Bios Extensions:
+----------105F00-----------------------------
+INT 10 - Get Controller Information       (Chips and Technologies Super VGA)
+        AX = 5F00h
+Return: AL = 5F  If extended VGA control function supported
+        BL = CHIP Type:
+             Bits 4-7:
+               0: 82c451
+               1: 82c452
+               2: 82c455
+               3: 82c453
+               4: 82c450
+               5: 82c456
+               6: 82C457
+               7: F65520
+               8: F65530
+           Bits 0-3:  Revision Number
+        BH = Video Memory Size
+               0=256 Kbytes
+               1=512 Kbytes
+               2=1 Megabyte
+        CX = Miscellaneous Information
+             Bit 0  Dac Size. 0=6bit, 1=8bit
+                 1  System Environment. 0=PC/AT, 1=PS/2
+                 2  Extended text modes supported by BIOS
+                 3  Reserved
+                 4  Extended graphics modes supported by BIOS
+                 5  Reserved
+                 6  Graphics Cursor supported by BIOS
+                 7  Anti Alias font supported by BIOS
+                 8  Preprogrammed emulation supported by BIOS
+                 9  Auto emulation supported by BIOS
+                10  Variable mode set at cold boot supported by BIOS
+                11  Variable mode set at warm boot supported by BIOS
+                12  Emulation mode set at cold boot supported by BIOS
+                13  Emulation mode set at warm boot supported by BIOS
+             14-15  Reserved
+----------105F01-----------------------------
+INT 10 - Set Emulation Mode               (Chips and Technologies Super VGA)
+        AX = 5F01h
+        BL = Operation Mode
+               0-1 Reserved
+                 2 Enable CGA Emulation
+                 3 Enable MDA Emulation
+                 4 Enable Hercules Emulation
+                 5 Enable EGA Emulation
+                 6 Enable VGA Emulation
+Return: AL = 5Fh  If function supported
+        AH = Return Status
+               1 If Function Successful, 0 else
+----------105F02-----------------------------
+INT 10 - Auto Emulation Control           (Chips and Technologies Super VGA)
+        AX = 5F02h
+        BL = Selection
+               0= Enable Auto Emulation
+               1= Disable Auto Emulation
+Return: AL = 5Fh  If function supported
+        AH = Return Status
+               1 If Function Successful, 0 else
+----------105F03-----------------------------
+INT 10 - Set Power-on Video Configuration (Chips and Technologies Super VGA)
+        AX = 5F03h
+        BL = Configuration
+               0:  Set display mode as specified in the CX register
+                   at power-up.
+
+                   CL=Display Mode
+                   CH=Bits 0-1 Scanlines
+                                 0=200 Lines
+                                 1=350 Lines
+                                 2=400 Lines
+                      Bit    7 Performance
+                                 0= Reset after next boot
+                                 1= Set until changed
+
+               1:  Set Emulation mode as specified in the CX register
+                   at power-up.
+
+                   CL=Emulation Mode (See 5F01h)
+                   CH=Bit 7 Performance
+                        0= Reset after next boot
+                        1= Set until changed
+
+Return: AL = 5Fh  If function supported
+        AH = Return Status
+               1 If Function Successful, 0 else
+----------105F90-----------------------------
+INT 10 - Return Save/Restore buffer size  (Chips and Technologies Super VGA)
+        AX = 5F90h
+        CX = Mask State
+             Bit 0  Save/Restore video hardware
+                 1  Save/Restore BIOS data state
+                 2  Save/Restore DAC state
+                15  Save/Restore type
+                      0= Save/Restore All state information
+                      1= Save/Restore super state information
+
+Return: AL = 5Fh  If function supported
+        BX = Number of 64byte blocks required
+----------105F91-----------------------------
+INT 10 - Save State                       (Chips and Technologies Super VGA)
+        AX = 5F91h
+        CX = Mask State
+             Bit 0  Save video hardware
+                 1  Save BIOS data state
+                 2  Save DAC state
+                15  Save type
+                      0= Save All state information
+                      1= Save super state information
+        ES:BX -> Buffer to save in.
+Return: AL = 5Fh  If function supported
+----------105F92-----------------------------
+INT 10 - Restore State                    (Chips and Technologies Super VGA)
+        AX = 5F92h
+        CX = Mask State
+             Bit 0  Restore video hardware
+                 1  Restore BIOS data state
+                 2  Restore DAC state
+                15  Restore type
+                      0= Restore All state information
+                      1= Restore super state information
+        ES:BX -> Buffer to restore from.
+Return: AL = 5Fh  If function supported

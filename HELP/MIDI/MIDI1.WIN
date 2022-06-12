@@ -1,0 +1,451 @@
+Dokument è.MIDI 1.0
+Datum: 5.8.1983
+
+Úvod
+
+     MIDI je zkratka MUSICAL INSTRUMENTS DIGITAL INTERFACE (digitální
+interface hudebních nástrojù). MIDI umoòuje vzájemné spojení syntetizérù,
+sekvencerù, osobních poèítaèù, rytmerù atd. Kadı nástroj vybavenı MIDI
+vìtšinou obsahuje vysílaè a pøijímaè. Nìkteré nástroje mohou mít jen vysílaè
+nebo pøijímaè. Pøijímaè pøijímá data v MIDI formátu a provádí je. Sestává
+z optoizolátoru, obvodu UART(USART) a dalších souèástek potøebnıch k provedení
+zamıšlenıch funkcí. Vysílaè vyrábí data a povely v MIDI formátu a vysílá je
+pomocí UART a linkového budièe. V této normì je definován MIDI standardní
+hardware a formát dat.
+
+     Poznámky:
+- formát statu a dat v tabulkách I-IV je v binární soustavì
+- èísla, za kterımi je písmeno H, jsou v hexadecimální soustavì
+- všechna ostatní èísla jsou v decimální soustavì
+
+Hardawre
+
+     Interface pracuje na kmitoètu 31.25(+ - 1%)KBaud, asynchronnì, jeden blok
+tvoøí start bit, osm databitù (D0-D7) a stop bit, tedy 10bitù v periodì 320
+mikrosec pro sériovı byt. Proudová smyèka 5 mA. Logická nula je proud zapnutı.
+Jeden vıstup mùe øídit pouze jeden vstup. Pøijímaè musí bıt oddìlen optickou
+vazbou a vyaduje ménì ne 5 mA k zapnutí. Pøijatelné jsou optoizolátory SHARP
+PC-900 nebo HP-6N138. Uspokojující mohou bıt i jiné optoizolátory s vysokou
+rychlostí. Nábìh a dobìh by mìl bıt menší ne 2 mikrosec. Konektory DIN 5
+kontaktù (úhel 180 st mezi kontakty). Konektory by mìli bıt oznaèeny MIDI IN
+a MIDI OUT. Upozoròujeme, e kontakty 1 a 3 nejsou zapojeny a mìly by zùstat
+nepøipojeny v pøijímaèi i vysílaèi. Kabely smí mít maximálnì délku 15m a musí
+bıt zakonèeny na kadé stranì odpovídajícím DIN 5 kontaktním konektorem (napø.
+SWITCHCRAFT 05GM5M). Kabel by mìl bıt dvojitı, stínìnı, se stínìním pøipojenım
+na kontakt 2 na obou stranách kabelu. Mùe bıt pøidán i vıstup MIDI THRU, na
+kterém je pøímá kopie dat pøicházejících do MIDI IN. Pro velmi dlouhá øetìzová
+spojení nástrojù (více ne 3 nástroje) musí bıt pouity optoizolátory s vyšší
+rychlostí pøenosu, aby se zabránilo pøípadnım chybám v systému (zkreslení
+dat).
+
+Formát dat
+
+     Všechno v MIDI komunikaci je provádìno mnohoslovními povely,
+sestávajícími z jednoho stavového byte následovaného jedním nebo dvìma
+datovımi byte (mimo povelù o reálném èase a zvláštních informací). Informace
+se dìlí na dvì hlavní kategorie:
+
+A. Kanálové informace
+
+     Obsahují ètyøbitové èíslo ve stavovém byte, které adresuje povely zvláš
+pro kadı z 16 kanálù. Na další informace za tímto èíslem reagují jenom
+nástroje, nastavené na stejnı kanál. Existují dva typy kanálovıch informací:
+
+1. Hlasové - øídí jednotlivé nástroje (stisknutí a puštìní klávesy, polyfonní
+rychlostní citlivost kláves, ovládání spínaèù a potenciometrù nástroje,
+pøepínání rejstøíkù, zmìny nastavení kotouèovıch ovladaèù).
+
+
+2. Reimové - definují reakci nástroje na pøijaté hlasové povely, jsou
+posílány po jednotlivıch kanálech nezávisle.
+
+
+B. Systémové informace
+
+     Nejsou kódovány èísly kanálù, platí tedy pro všechny kanály spoleènì.
+Existují 3 typy tìchto dat:
+
+1. Common povely -  pro všechny pøístroje a nástroje v systému
+
+2. Povely o reálném èase - pro všechny pøístroje v systému. Obsahují jenom
+stavovı byt, ádná data. Mohou bıt vysílány kdykoliv, dokonce i mezi byte
+povelù, které mají jinı stavovı byt. V takovém pøípadì je povel o reálném èase
+buï ignorován, nebo pùsobí, a se pøijímací proces vrátí k pøedchozímu stavu.
+
+3. Zvláštní informace - mohou obsahovat libovolnı poèet databyte a jsou
+zakonèeny byte EOX (konec zvláštních informací) nebo libovolnım stavovım byte.
+Tyto informace mají na zaèátku identifikaèní èíslo (ID). Pokud pøijímaè
+nerozezná toto èíslo jako svoje, bude data ignorovat. Aby jiní vırobci mohli
+zcela vyuít MIDI nástroje, mìli by nástroje obsahovat popis formátu dat
+následujících jejich ID èíslo. Jenom vırobce mùe doplnit nebo modernizovat
+formát dat následujících jejich ID.
+
+
+Typy dat
+
+A.   Stavové byte
+
+     Osmibitová binární èísla, ve kterıch je MSB(nejvyšší bit) roven 1.
+Stavové byte slouí k rozeznávání typù informací, to je, úèelu datovıch byte
+následujících za nimi. Kromì informací o reálném èase bude vdycky novı
+stavovı byte pøikazovat pøijímaèi, aby ho provedl, i kdy bude pøijat pøed
+tím, ne je poslední povel ukonèen.
+
+1. Trvající status - platí pouze pro informace hlasové a reimové. Pokud je
+pøijat a provádìn nìjakı status byte, pøijímaè zùstane v tomto stavu, dokud
+nebude pøijat jinı status. Staèí posílat správnı poèet data byte. U trvajícího
+statu sestávají informace pouze z urèitıch data byte posílanıch v urèitém
+poøádku. Tento zpùsob je zvláštì uiteènım pro pøedávání dlouhıch øetìzcù
+informací "klávesa stisknuta (puštìna)", kde povel "klávesa stisknuta
+rychlostí 0" je pouito ve vıznamu "klávesa vypnuta". Speciální stavovı byte
+"klávesa puštìna" je samozøejmì také monı. Trvající status bude zastaven,
+kdy bude pøijat jinı statut, vyjma informace o reálném èase, které jej
+jen na okamik pøeruší.
+
+2. Ignorovanı status - pokud je pøijat nìjakı stavovı byte, kterım není
+pøijímaè vybaven, bude ignorován spolu s daty, která za ním následují.
+
+3. Nedefinovanı stavovı byt - nesmí bıt pouit. Mìla by bıt vìnována péèe
+tomu, aby se zabránilo vysílání takovıch byte, napø. pøi zapnutí nebo vypnutí
+nástroje. Pokud jsou takové byte pøijaty, mìly by bıt ignorovány spolu s daty
+za nimi.
+
+B    Datové byte
+
+     Za stavovım byte následují (s vyjímkou povelù o reálném èase) jeden nebo
+dva datové byte, které nesou obsah povelu. Jsou to osmibitová slova, ve
+kterıch je MSB roven 0. Poèet a rozsah datovıch byte, které musí následovat
+kadı stavovı byte, jsou popsány v následujících tabulkách. Pro kadı stavovı
+byte musí bıt vyslán vdy správnı poèet data byte. Pøijímaè èeká na poslední
+datovı byte urèenı stavovım byte, teprve pak povel zpracuje a provede.
+Pøijímaè bude ignorovat data, která nebyla správnì uvedena platnım stavovım
+byte (s vyjímkou trvajícího statu, popsaného vıše).
+
+Kanálové reimy
+
+     Syntetizéry obsahují zvuk generující jednotky zvané hlasy. Vyvolání hlasù
+je algoritmickı proces øazení informací z klaviatury k jednotlivım hlasùm,
+take odpovídající tóny zní pøesnì v rytmu stiskù kláves. Pokud je nástroj
+vybaven MIDI, musí bıt definován vztah mezi 16 dostupnımi kanály MIDI
+a pøiøazení hlasù nástroje. Je proto urèeno nìkolik reimovıch povelù. Jsou to
+OMNI (zapnuto/vypnuto), POLY a MONO. POLY a MONO se vzájemnì vyluèují, tzn.
+volba POLY vypne MONO a naopak. Zapnuté OMNI umoòuje, e pøijímaè pøijímá na
+všech kanálech bez vyjímky. Pokud je OMNI vypnuto, pøijímaè reaguje pouze na
+informace ze zvoleného kanálu (nebo kanálù). Pokud je zapnuto MONO. zuuje se
+pøíjem hlasù jen na jeden hlas na kanál. Pøi zapnutém POLY (MONO tedy
+vypnuto), poèet hlasù mùe bıt pøidìlen normálním pøiøazovacím algoritmem
+pøijímacího nástroje. Pro pøijímaè nastavenı na kanále N jsou tedy moné
+následující kombinace (vdy z hlediska pøijímaèe a vysílaèe):
+
+Reim 1 - OMNI zapnuto, POLY
+
+ Hlasové informace jsou pøijímány na všech kanálech a pøiøazovány polyfonnì ke
+hlasùm nástroje.
+
+ Všechny hlasové informace jsou vysílány na kanálu N.
+
+Reim 2 - OMNI zapnuto, MONO
+
+ Hlasové  informace jsou  pøijímány na  všech kanálech  a øídí  jen jeden hlas
+(monofonnì).
+
+ Hlasové informace pro jeden hlas jsou posílány na kanál N.
+
+Reim 3 - OMNI vypnuto, POLY
+
+ Hlasové  informace  jsou  pøijímány  na  kanálu  N  a  jsou  pøiøazeny hlasùm
+polyfonnì.
+
+ Hlasové informace jsou posílány na kanál N.
+
+Reim 4 - OMNI vypnuto, MONO
+
+ Hlasové informace jsou pøijímány na kanálech  N a N+M-1 a pøiøazeny monofonnì
+ke hlasùm 1 a M. Poèet hlasù M je urèen tøetím byte povelu MONO reim.
+
+ Hlasové informace pro hlasy 1 a M jsou vysílány na kanálech N a N+M-1, vdy
+jeden hlas pro jeden kanál.
+
+     MIDI pøijímaè nebo vysílaè mùe vdy pracovat jen v jednom reimu v èase.
+Obyèejnì vysílaè  a pøijímaè jsou  ve stejném reimu.  Pokud reim nemùe  bıt
+pøijímaèem  splnìn,  budou  povely  a  data  ignorovány,  nebo  bude  nastaven
+automaticky do reimu 1. Reimové povely budou pøijímaèem rozeznány, jen pokud
+jsou  zaslány  na  kanálu,  na  kterı  je  pøijímaè  nastaven,  bez  ohledu na
+probíhající reim. Hlasové povely mohou bıt pøijímány na základním kanálu a na
+jinıch kanálech (nazıvanıch hlasové kanály), které potom jsou v urèitém pomìru
+k základnímu kanálu podle vıše uvedeného  pravidla, v závislosti na nastaveném
+reimu. MIDI pøijímaè mùe bıt pøiøazen  k jednomu nebo více základním kanálùm
+zapnutím proudu nebo uivatelem. Napø.  osmihlası syntetizér mùe bıt pøiøazen
+pøi  zapnutí nástroje  automaticky ke  kanálu 1.  Uivatel mùe  potom nástroj
+nastavit  manuálnì  tak,  e  vzniknou  dvì  ètyøhlasé  sekce, kadá pøiøazená
+k jinému základnímu  kanálu. Oddìlené reimové povely  budou potom zasílány ke
+kadému ètyøhlasému systému, jako kdyby to byly dva rùzné nástroje.
+
+Automatické nastavení pøi zapnutí
+
+     Pøi zapnutí se nástroj automaticky nastaví do reimu 1. S vyjímkou statu
+klávesa zapnuta/vypnuta by mìlo bıt znemonìno vysílání všech hlasovıch
+povelù. Náhodné nebo nedefinované vysílání musí bıt potlaèeno.
+
+
+TABULKA I
+
+Seznam stavovıch byte
+
++--------------+-----------------+-------------------------------------------+
+| Status D7-D0 | Poèet data byte |   Popis                                   |
++--------------+-----------------+-------------------------------------------+
+| Kanálové hlasové informace                                                 |
+|                                                                            |
+|  1000nnnn            2           Klávesa vypnuta                           |
+|  1001nnnn            2           Klávesa stisknuta(rychlost 0=tón vypnut)  |
+|  1010nnnn            2           Polyfonní citlivost kláves na tlak        |
+|  1011nnnn            2           Zmìna ovládacích prvkù                    |
+|  1100nnnn            1           Zmìna èísla pamìti (rejstøíku)            |
+|  1101nnnn            1           Kanálová citlivost na tlak                |
+|  1110nnnn            2           Zmìna kotouèového ovladaèe vıšky          |
++----------------------------------------------------------------------------+
+| Kanálové reimové informace                                                |
+|                                                                            |
+|  1011nnnn            2           Vybírá kanálovı reim                     |
++----------------------------------------------------------------------------+
+| Systémové informace                                                        |
+|                                                                            |
+|  11110000         aaaaaaaa       Zvláštní informaèní sekvence dat          |
+|  11110sss           0-2          Spoleèné systémové informace              |
+|  11111ttt            0           Informace o reálném èase                  |
++----------------------------------------------------------------------------+
+| Poznámky:                                                                  |
+|                                                                            |
+| nnnn     N-1, kde N je èíslo kanálu (0000 je kanál 1 a 1111 je kanál 16)  |
+| aaaaaaaa 0iiiiiii,data,data,...,EOX  kde iiiiiii je identifikaèní èíslo    |
+| sss      1-7                                                               |
+| ttt      0-7                                                               |
++----------------------------------------------------------------------------+
+
+TABULKA II
+
++--------------+-----------------+-------------------------------------------+
+| Status       | Data byte       |   Popis                                   |
++--------------+-----------------+-------------------------------------------+
+| Kanálové hlasové informace                                                 |
+|                                                                            |
+|  1000nnnn      0kkkkkkk          Klávesa vypnuta (viz poznámky 1-4)        |
+|                0vvvvvvv          vvvvvvv je rychlost uvolnìní klávesy      |
+|  1001nnnn      0kkkkkkk          Klávesa zapnuta (viz poznámky 1-4)        |
+|                0vvvvvvv          vvvvvvv je rychlost stisku klávesy        |
+|                                  vvvvvvv = 0000000, klávesa vypnuta        |
+|  1010nnnn      0kkkkkkk          Polyfonní citlivost na domáèknutí         |
+|                0vvvvvvv          vvvvvvv je hodnota tlaku                  |
+|  1011nnnn      0ccccccc          Zmìna ovládacího prvku (viz. pozn.5-8)    |
+|                0vvvvvvv                                                    |
+|  1100nnnn      0ppppppp          Zmìna èísla pamìti ppppppp je 0-127       |
+|  1101nnnn      0vvvvvvv          Kanálová citlivost na tlak                |
+|                                  vvvvvvv je hodnota tlaku                  |
+|  1110nnnn      0vvvvvvv          Zmìna kotouèového ovladaèe vıšky - data1  |
+|                0vvvvvvv          - data2 (viz. poznámka 10)                |
++----------------------------------------------------------------------------+
+| Poznámky:                                                                  |
+|                                                                            |
+| 1. nnnn        èíslo kanálu (1-16)                                         |
+| 2. kkkkkkk     èíslo klávesy (0-127), støední C na klaviatuøe je 60        |
+| 3. vvvvvvv     rychlost stisku klávesy, doporuèené je logaritmické mìøítko |
+|                pro nástroj bez snímání rychlosti stisku je vvvvvvv 64      |
+|                pro vvvvvvv - 0, klávesa vypnuta rychlostí 64               |
+| 4. Všechna data "klávesa stisknuta" musí bıt pozdìji vyvaovány daty       |
+|    "klávesa vypnuta" pro tu samou klávesu na stejném kanále                |
+| 5. ccccccc     èíslo ovládacího prvku podle následující tabulky            |
+|    0           potenciometr 0, první data byte                             |
+|    1           potenciometr 1, první data byte (ovladaè modulace)          |
+|    a                                                                      |
+|    31          potenciomter 31, první data byte                            |
+|    32          potenciometr 0, druhı data byte                             |
+|                                                                            |
+|    33          potenciometr 1, druhı data byte (ovladaè modulace)          |
+|    a                                                                      |
+|    63          potenciomter 31, druhı data byte                            |
+|                                                                            |
+|    64-95       spínaèe (zapnuto/vypnuto)                                   |
+|    96-121      nedefinováno                                                |
+|    122-127     rezervováno pro informace o kanálovıch reimech (TAB.III)   |
+| 6. Ovládací prvky nejsou konkrétnì urèeny a sám vırobce pøiøadí tato       |
+|    ke skuteènım ovládacím prvkùm podle potøeby                             |
+| 7. Kontinuální ovládací prvky (potenciometry) jsou dìleny na dva data byte |
+|    pokud staèí k rozlišení poloh ovladaèe jen 7bitù, je posílán jen první  |
+|    pokud se hodnota mìní hrubì, mùe bıt posílán pouze druhı data byte.    |
+| 8. vvvvvvv     hodnota nastavení pro potenciometry  0 = min ... 127 = max  |
+|                hodnota nastavení pro spínaèe 0 = vypnuto , 127 = zapnuto   |
+| 9. Jakékoliv datové byte, které jsou posílány za ji vyslanım stavovım     |
+|    byte, mohou bıt vyslány bez stavového byte, není-li ho potøeba zmìnit.  |
+|10. Citlivost ohıbání tónù je volena na pøijímaèi. Støední poloha (ádná    |
+|    zmìna vıšky) má hodnotu 2000H, vyslat je tedy tøeba EnnnnH 00H 20H.     |
+|                                                                            |
++----------------------------------------------------------------------------+
+
+TABULKA III
+
++--------------+-----------------+-------------------------------------------+
+| Status       | Data byte       |                                           |
++--------------+-----------------+-------------------------------------------+
+| Informace o kanálovıch reimech                                            |
+|                                                                            |
+|  1011nnnn      0ccccccc                                                    |
+|                0vvvvvvv                                                    |
++----------------------------------------------------------------------------+
+| Popis                                                                      |
+|                                                                            |
+| ccccccc                                                   vvvvvvv          |
+| 122      intérní øízení                           0-vypnuto, 127-zapnuto   |
+| 123      všechny klávesy doèasnì vypnuty                     0             |
+| 124      OMNI reim vypnut, všechny klávesy                  0             |
+|          doèasnì vypnuty                                                   |
+| 125      OMNI reim vypnut, všechny klávesy                  0             |
+|          doèasnì vypnuty                                                   |
+| 126      MONO zapnut, POLY vypnut, všechny                   M             |
+|          klávesy doèasnì vypnuty                                           |
+| 127      POLY zapnut, MONO vypnut, všechny                   0             |
+|          klávesy doèasnì vypnuty                                           |
++----------------------------------------------------------------------------+
+| Poznámky:                                                                  |
+|                                                                            |
+| 1. nnnn  èíslo kanálu (1-16)                                               |
+| 2. M     poèet kanálù, pro M=0 je poèet kanálù rovnı poètu hlasù, jedná    |
+|          se o poèet kanálù, po kterıch mají bıt posílány informace o       |
+|          monofónních hlasech. Toto èíslo M je v rozsahu (0)1-16. Uitı     |
+|          kanál nebo kanály budou pak právì nastavenı základní kanál N a   |
+|          N+M-1 maximálnì.                                                  |
+| 3. Informace 123 a 127 fungují také jako povely "všechny klávesy vypnout" |
+|    Vypnou se všechny hlasy øízené nastavenım kanálem. S vyjímkou povelu    |
+|    123 by nemìly bıt posílány pravidelnì, ale jen pro zvláštní úèel.       |
+|    V ádném pøípadì by nemìly bıt pouívány jako náhraka povelu "klávesa  |
+|    vypnuta" k  vypínání kláves. Tyto povely (123-127) mohou bıt            |
+|    pøijímaèem, na kterém nezní ádné tóny, ignorovány, protoe kadá       |
+|    informace "klávesa stisknuta" musí mít odpovídající informaci "klávesa  |
+|    vypnuta".                                                               |
+| 4. Povel 122,intérní øízení, je nezávaznì pouíván k pøerušení vnitøní     |
+|    øídící cesty napø. mezi klaviaturou a obvody generujícími zvuk. Pokud   |
+|    je pøijat data byte 0, toto spojení je pøerušeno, data z klaviatury     |
+|    jdou jenom ven do MIDI a zvukové obvody jsou øízeny jenom vstupními     |
+|    MIDI daty. Po pøijetí data byte 127, je obnoven normální provoz.        |
++----------------------------------------------------------------------------+
+
+TABULKA IV
+
++--------------+-----------------+-------------------------------------------+
+| Status       | Data byte       |   Popis                                   |
++--------------+-----------------+-------------------------------------------+
+| Spoleèné systémové informace                                               |
+|                                                                            |
+|  11110001                        nedefinováno                              |
+|  11110010      0lllllll          ukazatel na pozici skladby - první byt    |
+|                0hhhhhhh          druhı byt (viz. poznámka 1)               |
+|  11110011      0sssssss          vıbìr skladby sssssss                     |
+|  11110100                        nedefinováno                              |
+|  11110101                        nedefinováno                              |
+|  11110110                        pouíváno u A syntetizérù (viz pozn.3)    |
+|  11110111                        EOX                                       |
++----------------------------------------------------------------------------+
+| Poznámky:                                                                  |
+|                                                                            |
+| 1. Ukazatel na pozici ve skladbì je vnitøní registr, kterı si pamatuje     |
+|    poèet MIDI impulsù (1 - impuls se rovná 6 impulsù MIDI hodinového       |
+|    signálu) od zaèátku skladby. Pøi zapnutí sekvenceru je nastaven na 0,   |
+|    po stisku START pøijímá impulsy a do stisku STOP. Funkce CONTINUE pak  |
+|    pokraèuje ve skladbì od místa, kde bylo pøehrávání naposledy zastaveno. |
+| 2. Vıbìr skladby - urèuje, která skladba bude hrána po pøíjmu povelu START.|
+| 3. Povel k ladìní - uíván ve spojení s Analog. syntetizéry.               |
+| 4. End Of Exclusive - pouíván jako konec pøenosu zvláštních dat (TAB VI)  |
++----------------------------------------------------------------------------+
+
+TABULKA V
+
++--------------+-------------------------------------------------------------+
+| Status       | Popis                                                       |
++--------------+-------------------------------------------------------------+
+| Informace o reálném èase                                                   |
+|                                                                            |
+|  11111000      èasovací hodiny - synchronizaèní byte                       |
+|  11111001      nedefinováno                                                |
+|  11111010      start                                                       |
+|  11111011      pokraèování (continue)                                      |
+|  11111100      stop                                                        |
+|  11111101      nedefinováno                                                |
+|  11111110      aktivní snímání                                             |
+|  11111111      nastavení systému                                           |
+|                                                                            |
++----------------------------------------------------------------------------+
+| Poznámky:                                                                  |
+|                                                                            |
+| 1. Tyto povely zajišují synchronizaci celého systému v reálném èase       |
+| 2. Mohou bıt vysílány kdykoliv. Kadá více bytová informace lze mùe bıt   |
+|    rozdìlena pro vloení tìchto synchronizaèních informací.                |
+| 3. Èasovací hodiny (F8H) - celı systém je synchronizován tìmito povely,    |
+|    jejich frekvence je 24 impulsù ve ètvrové notì.                       |
+| 4. Start - po stisku START na hlavní øídící jednotce a odeslání povelu     |
+|    (FAH) zaène hrát systém od zaèátku.                                     |
+| 5. Stop - povel (FCH) zastaví pøehrávání.                                  |
+| 6. Pokraèování (FBH) - pøehrávání pokraèuje od místa posledního zastavení. |
+| 7. Aktivní snímání - jde o vyslání fiktivního (prázdného) stavového byte   |
+|    kadıch 300msec, kdykoliv není na MIDI sbìrnici jiná èinnost. Pøijímaè  |
+|    bude pracovat normálnì, pokud neobdrí povel FEH. Pak bude oèekávat     |
+|    pøíjem dalšího FEH nebo jiného typu informace kadıch 300msec. Pokud    |
+|    v dobì 300msec nepøijme ádnou informaci, vypne hlasy a vrátí se do     |
+|    normálního stavu.                                                       |
+| 8. Nastavení systému (FFH) inicializuje celı systém do stavu, v jakém se   |
+|    nachází vdy hned po zapnutí pøístrojù. Mìl by bıt pouíván zøídka,     |
+|    nejlépe manuálnì ovládanım povelem.                                     |
++----------------------------------------------------------------------------+
+
+TABULKA VI
+
++--------------+-----------------+-------------------------------------------+
+| Status       | Data byte       |   Popis                                   |
++--------------+-----------------+-------------------------------------------+
+| Informace zvláštního systému                                               |
+|                                                                            |
+|  11110000      0iiiiiii          Zvláštní funkce, napø. vıpis celé pamìti. |
+|               /0aaaaaaa/         funkce mùe obsahovat libovolnı poèet     |
+|                   .              datovıch byte, pokud je MSB 0.            |
+|                   .                                                        |
+|               /0aaaaaaa/                                                   |
+|  11110111                        EOX                                       |
++----------------------------------------------------------------------------+
+| Poznámky:                                                                  |
+|                                                                            |
+| iiiiiii        identifikace ID (0-127) pro speciální funkce rùznıch firem  |
+|                                                                            |
+| 1. ID pøidìluje MIDI vıbor (viz. TAB. VII).                                |
+| 2. V ádném pøípadì nesmí bıt do informací zvláštního systému vkládány     |
+|    jiné stavové nebo datové byte (s vyjímkou informací reálného èasu),     |
+|    nehledì na to, zda jejich ID bylo rozeznáno.                            |
+| 3. EOX nebo jinı stavovı byte, s vyjímkou informací o reálném èase,        |
+|    zakonèí pøenos zvláštních informací. Mohou bıt vyslány bezprostøednì    |
+|    po jeho uzavøení.                                                       |
++----------------------------------------------------------------------------+
+
+TABULKA VII
++----------------------------------------------------------------------------+
+| ID (Identifikaèní èísla) nìkterıch vırobcù                                 |
++--------+---------------------------+-------+-------------------------------+
+|    ID  |  Firma                    |   ID  |  Firma                        |
++--------+---------------------------+-------+-------------------------------+
+|    01    Sequential Circuits,Inc.  |   10    Oberheim                      |
+|    02    Big Briar                 |   20    Bon Tempi                     |
+|    03    Octave Plateau            |   30    SIEL                          |
+|    04    MOOG Music                |   40    KAWAI                         |
+|    05    Passport Designs          |   41    Roland                        |
+|    06    Lexicon                   |   42    KORG                          |
+|                                    |   43    YAMAHA                        |
++------------------------------------+---------------------------------------+
+
+
+1.8.1991 v Brnì                              Na základì podkladù od  D. Forró
+                                             zpracoval a naukal Ing.O.Mihula
+                                               (kontakt (05)522298 - voice)
+
+
+     Pozn. Tento pøeklad a úplnı vıpis MIDI normy by mìl pomoci programátorùm,
+kteøí hodlají vytváøet software s podporou MIDI. Hlavnì je urèen pro majitele
+PC karty SoundBlaster ...
+
+(Neprošlo jazykovou ani ádnou jinou cenzurou)

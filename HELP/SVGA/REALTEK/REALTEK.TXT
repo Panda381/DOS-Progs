@@ -1,0 +1,120 @@
+  Realtek RT 3106    -  Upto 1 Mbyte.
+
+
+
+3CEh index 0Ah (R/W):
+
+3CEh index 0Bh (R/W):
+bit 0-1  Timing ?
+
+3CEh index  Ch (R/W):
+bit   2  Always set ??
+      4  If set doubles the number of pixels in a "character clock"
+           Pixels per character clock:
+                                  clear         set
+            16color modes           8           16
+           256color modes           4            8
+      5  Set if >1024 pixels in a scanline ??
+      6  ??
+
+
+3CEh index  Fh (R/W): Extended Function.
+bit   2  Single/Dual bank.
+         If set 3D6h is the read bank number and 3D7h is the write bank
+         number. if clear 3D7h is used for both read and write operations.
+
+3d4h index 19h (R/W):
+bit   0  Interlace enabled if set. If set the display offset in 3d4h index 13h
+         is the number for two scanlines, rather than one.
+      1  Enable memory beyond 64K (256colors)
+      4  Display Start Address bit 16.
+      5  Enables display to cross 256K boundary if set
+      6  Display Start Address bit 17.
+      7  Enables display to cross 512K boundary if set
+
+3d4h index 1Ah:
+bit 6-7  Chip version.
+           0 = Version 0  (RTG3103 ?)
+           1 = Version 1  (RTG31030/RTG3105 ?)
+           2 = Version 2  (RTG3106)
+           3 = Version x ??
+
+3d4h index 1Eh:
+bit 0-1  Video Ram. If Chip version =0: 0=256k, 1=512k, 2=768k and 3=1MB
+                    If chip version >0: 0=256k, 1=512k, 2=1MB and 3=2MB.
+      2  
+    4-7  
+
+3D4h index 1Fh (R/W):
+bit 0-1  Emulation mode: 0=VGA, 1=EGA, 2=CGA, 3=MDA
+    2-5
+
+3D6h (R/W): Bank register
+bit 0-3  64k Bank register   (Read bank if 3CEh index Fh bit 2 set)
+
+3D7h (R/W): Bank Register
+bit 0-3  64k bank number.    (Write/single bank)
+
+
+Test for Realtek Chip:
+
+if testinx2(base,$1F,$3F) and tstrg($3D6,$F) and tstrg($3D7,$F) then
+  case rdinx(base,$1A) shr 6 of
+    0:Realtek RT3103
+    1:Realtek RT3105
+    2:Realtek RT3106
+  end;
+
+
+  Video modes:
+
+    18h  T     80   30  16  (9x16)
+    19h  T     80   43  16  (9x11)
+    1Ah  T     80   60  16  (9x8)
+    1Bh  T    132   25  16  (9x14)
+    1Ch  T    132   30  16  (9x16)
+    1Dh  T    132   43  16  (9x11)
+    1Eh  T    132   60  16  (9x8)
+    1Fh  G    800  600  16  PL4
+    20h  G    960  720  16  PL4
+    21h  G   1024  768  16  PL4
+    22h  G    768 1024  16  PL4
+    23h  G   1024  768   4  PL2
+    24h  G    512  512 256  P8
+    25h  G    640  400 256  P8
+    26h  G    640  480 256  P8
+    27h  G    800  600 256  P8
+    28h  G   1024  768 256  P8
+    29h  G   1024 1024 256  P8
+    2Ah  G   1280 1024  16  PL4
+    38h  G    320  200 64K  P16
+    39h  G    512  512 64K  P16
+    3Ah  G    640  400 64K  P16
+    3Bh  G    640  480 64K  P16
+    3Ch  G    800  600 64K  P16
+
+----------105F00------------------
+INT 10 - VIDEO - Realtek VGA - RETURN CHIP VERSION
+        AX = 5F00h
+Return: AH = 00h if successful
+        AL = Chip version
+               00h  RTG3103 ?
+               01h  RTG31030/RTG3105
+               02h  RTG3106 ?
+               3Fh  Not a Realtek chip
+----------105F01------------------
+INT 10 - VIDEO - Realtek VGA - GET RTVGA BIOS STRING
+        AX = 5F01h
+        ES:DI -> buffer to receive BIOS ID string
+Return: AL = 00h if successful
+        ES:DI -> buffer with zero terminated BIOS ID string
+----------105F02------------------
+INT 10 - VIDEO - Realtek VGA - GET VIDEO MEMORY SIZE
+        AX = 5F02h
+Return: AH = 00h if successful
+        AL = Memory size. 0: 256K, 1: 512K, 2: 768K, 3: 1024K
+----------105F03------------------
+INT 10 - VIDEO - Realtek VGA - SET ??
+        AX = 5F03h
+        BL = 0-3 ??
+Return: AH = 00h if successful

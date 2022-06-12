@@ -1,0 +1,3 @@
+@echo off
+echo Cekejte, probiha instalace fontu 1/10 pro tiskarnu...
+copy /b hpljcs10.bin prn > nul

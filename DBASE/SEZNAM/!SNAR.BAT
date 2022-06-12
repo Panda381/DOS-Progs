@@ -1,0 +1,1 @@
+@seznam snar.dat

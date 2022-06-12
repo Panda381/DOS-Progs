@@ -1,0 +1,244 @@
+Avance Logic ALG Graphics Accelerator
+
+The ALG chips is a VGA controller with a built in graphics coprocessor (COP).
+The ALG chips only works in AT and better systems as it uses 16 bit I/O addresses.
+
+ALG2101  2Mb, 1280x1024x256c, 800x600x64k
+ALG2201
+ALG2228  2MB, 1280x1024x256c, 1024x768x32k/64k, 800x600x16m
+
+
+Support chips:
+
+
+ALG1101   16bit DAC
+ALG3102   Clock chip
+
+
+3C0h index 15h (R/W):  Cursor Foreground
+bit  0-7  The HW cursor foreground color
+
+3C0h index 16h (R/W):  Cursor Background
+bit  0-7  The HW cursor background color
+Note: When updating index 15h and 16h it may be necessary to explicitly
+      preserve index 11h and 12h.
+
+3CEh index  Ah
+
+3CEh index  Bh
+
+3CEh index  Ch (R/W): 
+bit    4  (256/65k color modes) If set the Display Start Address (3d4h index
+          Ch-Dh + 20h) and the Offset (3D4h index 13h) are in units of 8
+          bytes. If clear in units of 4 bytes and the pixels are doubled on
+          the screen (Mode 13h).
+       5  ?
+       6  ?
+
+3CEh index  Dh (R/W): Fill Color
+bit  0-7  Used as fill color by Coprocessor.
+
+3CEh index  Fh (R/W):
+bit    2  Set to enable the Read bank.
+
+3d4h index 19h (R/W):
+bit    0  Interlace enabled if set.
+       1  If set enables access to video memory above 256K.
+       4  HiColor mode if set
+
+3d4h index 1Ah (R/W):
+bit    1  If set display wraps at 512K ??
+       4  If set enables access to extended registers
+
+3d4h index 1Bh
+
+3d4h index 1Ch
+
+3d4h index 1Eh (R/W): 
+bit  0-1  Video memory. 0=256k, 1=512k, 2=1M, 3=2Mbytes.
+     6-7  Max Horizontal Frequency:  0=38kHz, 1=48kHz, 2=56kHz, 3=64kHz.
+
+3d4h index 1Fh (R/W):
+bit  0-1  Emulation. 0=VGA, 1=EGA, 2=CGA,3=MDA 
+
+3d4h index 20h (R/W):
+bit  0-2  Display start address bit 16-18.
+Note: if 3CEh index Ch bit 4 is set, the display start is in units of 8 bytes,
+      rather than 4 as in std vga.
+
+3d4h index 21h (R/W):  Cursor X position
+bit  0-7  Bits 3-10 of the HW cursor X position. The lower bits are in index
+          25h.
+
+3d4h index 23h (R/W):  Cursor Y position
+bit  0-7  Bits 1-8 of the HW cursor Y position. The upper bits are in index
+          25h.
+Note: in non-interlaced modes (3d4h index 19h bit 0 is 0) the Y co-ordinate
+      should be multiplied by 2.
+
+3d4h index 25h (R/W):  Cursor control
+bit  0-1  Bit 9-10 of the HW cursor Y position. The lower bits are in index
+          23h
+     2-4  Bits 0-2 of the HW cursor X position. The upper bits are in index
+          21h
+       5  If set enables the HW cursor. To preserve the stability of the
+          cursor, this bit should be set with each update of this register.
+       6  Bit 0 of the HW cursor Y position. (see note on interlace).
+
+3d4h index 27h W(R/W):  Cursor Map address
+bit 0-10  The address in video memory where the HW cursor map starts.
+          In planar modes this address is in units of 256 bytes,
+          in packed modes in units of 1024 bytes.
+          The HW cursor is a 64x64 bitmap imposed on the display.
+          The cursor map is stored as a 64x64x2bit array, where each pixel is:
+             0: Background color (3C0h index 16h)
+             1: Foreground color (3C0h index 15h)
+             2: The screen data (transparent cursor).
+             3: Inverted screen data (XOR cursor)
+Note: in interlaced modes the cursor is shown double height.
+
+3D6h (R/W):  Read Bank Register
+bit  0-4  64k Read bank number. If 3CEh index Fh bit 2 is set all reads use
+          this bank number, if clear all accesses use 3D7h.
+
+3D7h (R/W):  Single/Write Bank Register
+bit  0-4  64k Bank number. If 3CEh index Fh bit 2 is clear all accesses use
+          this bank number, if set writes use this bank and reads use 3D6h.
+
+8280h W(R/W): Source address low
+bit 0-15  The lower 16 bits of the pixel address of the source area.
+
+8282h (R/W): Source address high
+bit  0-7  The upper 8 bits of the pixel address of the source area.
+          Calculated as (line no.)*(pixels per line)+(pixel no. in line).
+
+8284h W(R/W): Source area scanline width.
+bit 0-15  The number of pixels in a scanline at the source.
+
+8286h W(R/W): Destination address low.
+bit 0-15  Lower 16 bits of the pixel address of the destination area.
+
+8288h (R/W): Start pixel high.
+bit  0-7  The upper 8 bits of the pixel address of the destination area.
+          Calculated as (line no.)*(pixels per line)+(pixel no. in line).
+
+828Ah W(R/W): Destination area scanline width
+bit 0-15  Number of pixels in a scanline at the destination.
+
+828Ch W(R/W): Width of op.
+bit 0-15  Width of the blit area in pixels.
+
+828Eh W(R/W): Height of op.
+bit 0-15  Number of lines in the blit area. 
+
+8290h (R/W): 
+bit  0-5  7 If moving towards higher co-ordinates, 1 if moving towards lower.
+          0 (or don't care) for line draws
+       6  If set drawing only happens within the rectangle defined by
+          8294h-9Ah.
+          X co-ordinate must be >= 8294h and <=8296h.
+          Y co-ordinate must be >= 8298h and <=829Ah.
+
+8292h W(R/W): 
+bit  0-7  always 0Dh ???
+       8  (Line Draw) If set the final position is to the left of the start
+       9  (Line Draw) If set the final position is above the start
+      10  (Line Draw) If set (Delta X) and (Delta Y) are swapped when
+          calculating the Bresenham constants in 82A2h-A6h.
+      11  ??
+      12  Set if moving towards lower co-ordinates, clear if not.
+
+8294h W(R/W):  Clipping left
+bit 0-15  If 8290h bit 6 is set drawing only happens if the X-co-ordinate is
+           >= this value
+
+8296h W(R/W):  Clipping right
+bit 0-15  If 8290h bit 6 is set drawing only happens if the X-co-ordinate is
+           <= this value
+
+8298h W(R/W):  Clipping top
+bit 0-15  If 8290h bit 6 is set drawing only happens if the Y-co-ordinate is
+           >= this value
+
+829Ah W(R/W):  Clipping bottom
+bit 0-15  If 8290h bit 6 is set drawing only happens if the Y-co-ordinate is
+           <= this value
+
+829Ch W(R/W): Start X co-ordinate
+bit 0-15  Starting X co-ordinate of the destination area.
+
+829Eh W(R/W): Start Y co-ordinate
+bit 0-15  Starting Y co-ordinate of the destination area
+
+82A0h W(R/W): 
+bit 0-15  Always set to 0 ??
+
+82A2h W(R/W):  Bresenham Constant 1
+bit 0-15  The Bresenham Constant 1 used for line drawing
+          Calculated as  2*(Delta Y). If 8292h bit 10 is set 2*(Delta X) is
+          used.
+
+82A4h W(R/W):  Bresenham Constant 2
+bit 0-15  The Bresenham Constant 2 used for line drawing
+          Calculated as  2*((Delta Y) - (Delta X)). If 8292h bit 10 is set
+          (Delta Y) and (Delta X) are swapped in the calculation.
+
+82A6h W(R/W):  Bresenham Error Term
+bit 0-15  The Bresenham Error Term used for line drawing.
+          Calculated as  2*(Delta Y) + (Delta X). If 8292h bit 10 is set
+          (Delta Y) and (Delta X) are swapped in the calculation.
+
+82A8h W(R/W):
+bit 0-15  (Line draw) Pattern mask. Only the set bits are drawn.
+
+82AAh (R/W): COP status/instruction
+bit  0-3  (R) When 0 the COP is free.
+     0-7  (W) Graphics instruction:
+               1: Fill rectangle  
+               2: Copy rectangle
+               4: ?
+               8: Line draw
+
+
+ID Avance Logic AL2101:
+
+  old:=rdinx($3d4,$1A);
+  clrinx($3d4,$1A,$10);            {Disable extensions}
+  if not testinx($3d4,$19) then
+  begin
+    setinx($3d4,$1A,$10);          {Enable extensions}
+    if testinx($3d4,$19) and testinx2($3d4,$1A,$3F) then
+       Avance Logic AL2101 !!
+  end;
+  wrinx($3d4,$1A,old);
+
+
+
+  Video modes:
+
+    20h  T   132   25  16
+    21h  T   132   30  16
+    22h  T   132   43  16
+    23h  T   132   60  16
+    24h  T    80   30  16
+    25h  T    80   43  16
+    26h  T    80   60  16
+    27h  G   960  720  16  PL4
+    28h  G   512  512 256  P8
+    29h  G   640  400 256  P8
+    2Ah  G   640  480 256  P8
+    2Bh  G   800  600  16  PL4
+    2Ch  G   800  600 256  P8
+    2Dh  G   768 1024  16  Pl4
+    2Eh  G   768 1024 256  P8
+    2Fh  G  1024  768   4  
+    30h  G  1024  768  16  PL4
+    31h  G  1024  768 256  P8
+    33h  G  1024 1024 256  P8
+    36h  G  1280 1024  16  PL4
+    37h  G  1280 1024 256  P8
+    40h  G   320  200 64k  P16
+    41h  G   512  512 64k  P16
+    42h  G   640  400 64k  P16
+    43h  G   640  480 64k  P16
+    44h  G   800  600 64k  P16

@@ -1,0 +1,83 @@
+                                 Kl vesnice AT
+
+
+Konektor:     1  HODINY (otevıenì kolektor)
+--------      2  DATA (otevıenì kolektor)
+              3  RESET kl vesnice (pou§¡v  pouze XT)
+              4  ZEM
+              5  + 5 V
+
+Po  zapnut¡  nap jen¡  (nebo  pıi  syst‚mov‚m testu kl vesnice) zablokuje ıadiŸ
+kl vesnici  zta§en¡m HODIN na 0. Po testu jsou vodiŸe HODIN a DAT uvolnØny. Pıi
+provozu  kl vesnice vys¡l  kl vesnice data na datovou sbØrnici (s‚riovØ, 1=+5V,
+0=0V),  data  jsou  synchonizov na hodinami vys¡lanìmi z kl vesnice (AT: 33.144
+kHz, XT: 30 ?s v "0" + 70 ?s v "1").
+
+
+Protokol:     1 bit  - START bit
+--------      8 bit… - DATA
+              1 bit  - paritn¡ bit (lich  parita)
+              1 bit  - STOP bit
+
+
+          |    |    |    |    |    |    |    |    |    |    |    |
+ "1" ÄÄÄÄÄ¿    ÚÄÄÄÄ¿    ÚÄÄÄÄ¿    ÚÄÄÄÄ¿    ÚÄÄÄÄ¿    ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+          ³    ³    ³    ³    ³    ³    ³    ³    ³    ³    |    |
+ "0"      ÀÄÄÄÄÙ    ÀÄÄÄÄÙ    ÀÄÄÄÄÙ    ÀÄÄÄÄÙ    ÀÄÄÄÄÙ
+          START  D0   D1   D2   D3   D4   D5   D6   D7 PARITA STOP
+
+
+Po  vysl n¡ bajtu z kl vesnice se Ÿek  na potvrzen¡ od ıadiŸe. Pıi chybØ pı¡jmu
+je vysl n povel pro opakov n¡ pıenosu FEh.
+
+
+Vys¡l n¡ dat ke kl vesnici:
+--------------------------
+Pokud kl vesnice vys¡l  data, ale nedos hla jeçtØ 10. impulsu hodin, m…§e ıadiŸ
+pıeruçit  vys¡l n¡ od kl vesnice sta§en¡m HODIN na "0". Pokud ji§ bylo dosa§eno
+10. impulsu hodin, mus¡ ıadiŸ pıenos pıijat.
+
+Na  zaŸ tku  pıenosu  st hne  ıadiŸ sign l HODINY po dobu v¡ce ne§ 60 ?s na "0"
+(z kaz  pıenosu dat z kl vesnice). Pokud je ıadiŸ pıipraven k vys¡l n¡, nastav¡
+sign l  DATA  na  £roveå "0" (= START bit) a uvoln¡ sign l HODINY na "1". Tento
+stav je kl vesnic¡ detekov n jako po§adavek k vys¡l n¡. Kl vesnice testuje stav
+veden¡  HODINY  a  DATA  v intervalech zhruba 60 ms. Pıi detekov n¡ po§adavku k
+vys¡l n¡  naŸ¡t   kl vesnice 11 bit…. Po 10. bitu st hne kl vesnice sign l DATA
+na  "0".  Tato  operace  ohl s¡ syst‚mu, §e kl vesnice pıijala data. Po pıijet¡
+tohoto sign lu se navr t¡ ıadiŸ do stavu pıipravenosti.
+
+
+Vysl n¡ dat z kl vesnice:
+------------------------
+Kl vesnice  pıed  vys¡l n¡m nejdı¡ve zkontroluje stav veden¡ HODINY a DATA, zda
+nen¡  po§adavek  od  ıadiŸe k vys¡l n¡. Jsou-li oba vodiŸe na £rovni "1", vyçle
+kl vesnice  START  bit  (£roveå  "0"),  8  datovìch  bit…, 1 paritn¡ bit (lich 
+parita)  a  1 STOP bit (£roveå "1"). Data jsou platn  po vzestupn‚ hranØ a pıed
+sestupnou hranou veden¡ HODINY. BØhem pıenosu testuje kl vesnice veden¡ HODINY,
+zda  nen¡  po§adavek  ıadiŸe  k  pıeruçen¡  pıenosu.  Pokud  pıijde po§adavek k
+pıeruçen¡  pıed  n bØ§nou hranou des t‚ho bitu (paritn¡ bit), uvoln¡ kl vesnice
+oba vodiŸe na "1", jinak dokonŸ¡ pıenos.
+
+
+Povely ke kl vesnici:
+--------------------
+FF - reset
+FE - opakov n¡ pıenosu
+F6 - standardn¡ nastaven¡ parametr… kl vesnice
+F5 - jako F6, kl vesnice Ÿek  na dalç¡ povel
+F4 - uvolnØn¡ kl vesnice (+ vypr zdnØn¡ buffer…)
+F3 - nastaven¡ RATE a DELAY (n sleduje bajt parametr…)
+EE - echo (kl vesnice navr t¡ EE - diagnostika)
+ED - nastaven¡ indik tor… (n sleduje bajt parametr…)
+
+
+Povely od kl vesnice:
+--------------------
+FE - opakov n¡ pıenosu
+FD - chyba diagnostiky
+FA - potvrzen¡ pı¡jmu povelu (jin‚ho ne§ EE nebo FE) od ıadiŸe
+F0 - uvolnØn¡ kl vesy (n sleduje SCAN k¢d kl vesy)
+EE - opakov n¡ echa EE z ıadiŸe
+AA - dokonŸen inicializaŸn¡ test kl vesnice (pıi chybØ vyçle FC)
+00 - pıeteŸen¡ bufferu kl vesnice
+

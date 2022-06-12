@@ -1,0 +1,2314 @@
+
+
+                                                 ; start programu na adr. 0448h
+
+AX=0000  BX=0000  CX=2400  DX=0000  SP=0200  BP=0000  SI=0000  DI=0000
+DS=25B3  ES=25B3  SS=27D1  CS=25C3  IP=0448   NV UP EI PL NZ NA PO NC 
+25C3:0448 FA             CLI
+
+; -----------------------------------------------------------------------------
+;        uloëen° novÇ definice do z†sobn°ku tahñ
+; -----------------------------------------------------------------------------
+
+25C3:0000 8B16CC09       MOV     DX,[09CC]       ; ukazatel v z†sobn°ku tahñ
+25C3:0004 8D1EAA09       LEA     BX,[09AA]       ; konec z†sobn°ku tahñ
+25C3:0008 3BD3           CMP     DX,BX           ; je z†sobn°k jië plnò ?
+25C3:000A 733A           JNB     0046            ; z†sobn°k je jië plnò
+25C3:000C 8B1ECA09       MOV     BX,[09CA]
+25C3:0010 8916CA09       MOV     [09CA],DX
+25C3:0014 8917           MOV     [BX],DX
+25C3:0016 F606D00908     TEST     Byte Ptr [09D0],08
+25C3:001B 7505           JNZ     0022
+25C3:001D 800ED10910     OR     Byte Ptr [09D1],10
+
+25C3:0022 8BDA         * MOV     BX,DX
+25C3:0024 C7070000       MOV     Word Ptr [BX],0000 ; bodov†n° tahu
+25C3:0028 A0B209         MOV     AL,[09B2]
+25C3:002B 884702         MOV     [BX+02],AL
+25C3:002E A0B409         MOV     AL,[09B4]       ; pozice p©i pokusu o tah
+25C3:0031 884703         MOV     [BX+03],AL
+25C3:0034 A0D109         MOV     AL,[09D1]       ; pñvodn° obsah novÇho pol°áka
+25C3:0037 884704         MOV     [BX+04],AL
+25C3:003A C6470500       MOV     Byte Ptr [BX+05],00
+25C3:003E 83C306         ADD     BX,+06     ; zvò®en° ukazatele v z†sobn°ku
+25C3:0041 891ECC09       MOV     [09CC],BX  ; ukazatel v z†sobn°ku tahñ
+25C3:0045 C3             RET
+
+25C3:0046 C7070000     * MOV     Word Ptr [BX],0000 ; ohodnocen° - nic
+25C3:004A C3             RET
+
+                         db     0
+
+23C3:004C 8036CF0980     XOR    Byte Ptr [09CF],80
+23C3:0051 7904           JNS    0057
+25C3:0053 FE0ED409       DEC     Byte Ptr [09D4] ; á°taá tahñ
+25C3:0057 FF0EC609     * DEC     Word Ptr [09C6]
+25C3:005B FE0ED609       DEC     Byte Ptr [09D6] ; á°taá hloubky (£rove§ hry)
+25C3:005F 8B1EC209       MOV     BX,[09C2]
+25C3:0063 83EB04         SUB     BX,+04
+25C3:0066 891EC209       MOV     [09C2],BX
+25C3:006A 8B4702         MOV     AX,[BX+02]
+25C3:006D A3CC09         MOV     [09CC],AX  ; ukazatel v z†sobn°ku tahñ
+25C3:0070 8B07           MOV     AX,[BX]
+25C3:0072 A3C409         MOV     [09C4],AX
+25C3:0075 E84A0E         CALL     0EC2      ; n†vrat tahu z bufferu tahñ
+25C3:0078 C3             RET
+
+                         db     0
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+23C3:007A 51             PUSH   CX
+23C3:007B 52             PUSH   DX
+23C3:007C 57             PUSH   DI
+25C3:007D A0C009         MOV     AL,[09C0]
+25C3:0080 3C00           CMP     AL,00
+25C3:0082 742A           JZ     00AE
+
+25C3:0084 8AD9           MOV     BL,CL
+25C3:0086 B200           MOV     DL,00
+25C3:0088 8AC8           MOV     CL,AL
+25C3:008A B500           MOV     CH,00
+25C3:008C A0B409         MOV     AL,[09B4]       ; pozice p©i pokusu o tah
+25C3:008F 8D3E6501       LEA     DI,[0165]       ; tabulka pozic figurek
+25C3:0093 FC             CLD
+25C3:0094 F2           * REPNZ
+25C3:0095 AE             SCASB                   ; nalezen° pozice figurky
+25C3:0096 7516           JNZ     00AE            ; pozice nenalezena
+
+25C3:0098 80FA00         CMP     DL,00
+25C3:009B 7556           JNZ     00F3
+25C3:009D B201           MOV     DL,01
+25C3:009F 8A7D09         MOV     BH,[DI+09]
+25C3:00A2 3AFB           CMP     BH,BL
+25C3:00A4 74EE           JZ     0094
+25C3:00A6 F6DF           NEG     BH
+25C3:00A8 3AFB           CMP     BH,BL
+25C3:00AA 74E8           JZ     0094
+25C3:00AC 7545           JNZ     00F3
+
+                                           ; ------ tabulka poátu figurek
+
+25C3:00AE 8B3EBC09     * MOV     DI,[09BC]  ; soupe©ova figurka
+25C3:00B2 8D1E4901       LEA     BX,[0149]  ; tabulka áernÇho hr†áe
+25C3:00B6 B400           MOV     AH,00
+25C3:00B8 A0D109         MOV     AL,[09D1]  ; pñvodn° figurka na pol°áku
+25C3:00BB A880           TEST     AL,80     ; byla to b°l† figurka ?
+25C3:00BD 7404           JZ     00C3        ; byla to áern† figurka
+25C3:00BF 8D1E5701       LEA     BX,[0157]  ; tabulka b°lÇho hr†áe
+
+25C3:00C3 2407         * AND     AL,07      ; figurka
+25C3:00C5 F6C680         TEST     DH,80
+25C3:00C8 7402           JZ     00CC
+25C3:00CA B005           MOV     AL,05      ; bude d†ma
+25C3:00CC FE07         * INC     Byte Ptr [BX] ; zvò®en° celkovÇho poátu figurek
+25C3:00CE 03D8           ADD     BX,AX
+25C3:00D0 03D8           ADD     BX,AX
+25C3:00D2 8B07           MOV     AX,[BX]    ; stav figurek
+25C3:00D4 3C00           CMP     AL,00
+25C3:00D6 7413           JZ     00EB
+25C3:00D8 80FC00         CMP     AH,00
+25C3:00DB 7407           JZ     00E4
+25C3:00DD 43             INC     BX
+25C3:00DE 43             INC     BX
+25C3:00DF 8B07           MOV     AX,[BX]
+25C3:00E1 EB08           JMP     00EB
+25C3:00E3 90             NOP
+
+25C3:00E4 8AA5C200       MOV     AH,[DI+00C2]    ; bodov†n°
+25C3:00E8 EB07           JMP     00F1
+25C3:00EA 90             NOP
+
+25C3:00EB 8AE0         * MOV     AH,AL
+25C3:00ED 8A85C200       MOV     AL,[DI+00C2]    ; bodov†n°
+25C3:00F1 8907           MOV     [BX],AX
+
+25C3:00F3 5F           * POP     DI
+25C3:00F4 5A             POP     DX
+25C3:00F5 59             POP     CX
+25C3:00F6 C3             RET
+
+                         db      0
+
+; -----------------------------------------------------------------------------
+;                   prohl°ëen° okol° figurky
+; -----------------------------------------------------------------------------
+
+25C3:00F8 51           * PUSH    CX
+25C3:00F9 B510           MOV     CH,10           ; á°taá smàrñ
+25C3:00FB BF0000         MOV     DI,0000         ; ukazatel smàrñ
+25C3:00FE 8A8D9C00     * MOV     CL,[DI+009C]    ; smàr pohybu figurky
+25C3:0102 B600           MOV     DH,00
+25C3:0104 A0B609         MOV     AL,[09B6]       ; souáasn† pozice
+25C3:0107 A2B409         MOV     [09B4],AL       ; pozice p©i pokusu o tah
+25C3:010A FEC6         * INC     DH              ; á°taá krokñ v danÇm smàru
+25C3:010C E8E709         CALL     0AF6           ; pokus o tah danòm smàrem
+25C3:010F 3C01           CMP     AL,01           ; je skok na soupe©e ?
+25C3:0111 7416           JZ     0129             ; je skok na soupe©e
+25C3:0113 3C02           CMP     AL,02           ; je skok na vlastn° ?
+25C3:0115 741D           JZ     0134             ; je skok na vlastn°
+25C3:0117 3C00           CMP     AL,00           ; skok na pr†zdnÇ pol°áko ?
+25C3:0119 7505           JNZ     0120            ; je skok mimo ®achovnici
+25C3:011B 80FD09         CMP     CH,09
+25C3:011E 73EA           JNB     010A            ; dal®° pokus
+                                               ;* skok ven z ®achovnice
+25C3:0120 47           * INC     DI              ; zvò®en° adresy v tabulce
+25C3:0121 FECD           DEC     CH              ; á°taá skokñ
+25C3:0123 75D9           JNZ     00FE            ; dal®° pokus
+25C3:0125 B000           MOV     AL,00           ; p©°znak - nen° skok
+25C3:0127 59             POP     CX
+25C3:0128 C3             RET
+                                               ;* nalezen soupe©
+25C3:0129 F6C640       * TEST     DH,40          ; byla jië nalezena vlastn° ?
+25C3:012C 75F2           JNZ     0120            ; byla nalezena vlastn°
+25C3:012E 80CE20         OR     DH,20            ; p©°znak nalezen° soupe©e
+25C3:0131 EB09           JMP     013C            ; dal®° hled†n°
+25C3:0133 90             NOP
+                                               ;* nalezen vlastn°
+25C3:0134 F6C620       * TEST     DH,20          ; byl jië nalezen soupe© ?
+25C3:0137 75E7           JNZ     0120            ; byl jië nalezen soupe©
+25C3:0139 80CE40         OR     DH,40            ; p©°znak nalezen° vlastn°ho
+25C3:013C 8A16BC09     * MOV     DL,[09BC]       ; ru®en† figurka
+25C3:0140 80FD09         CMP     CH,09
+25C3:0143 724B           JB     0190
+25C3:0145 80FA05         CMP     DL,05           ; d†ma
+25C3:0148 7506           JNZ     0150            ; nen° d†ma
+25C3:014A 80CE80         OR     DH,80            ; p©°znak
+25C3:014D EB46           JMP     0195            ;
+25C3:014F 90             NOP
+
+
+
+25C3:0150 8AC6           MOV     AL,DH
+25C3:0152 240F           AND     AL,0F
+25C3:0154 3C01           CMP     AL,01
+25C3:0156 7505           JNZ     015D
+25C3:0158 80FA06         CMP     DL,06           ; je kr†l ?
+25C3:015B 7438           JZ     0195
+25C3:015D 80FD0D         CMP     CH,0D
+25C3:0160 7227           JB     0189
+25C3:0162 80FA03         CMP     DL,03           ; je st©elec ?
+25C3:0165 742E           JZ     0195
+25C3:0167 8AC6           MOV     AL,DH
+25C3:0169 240F           AND     AL,0F
+25C3:016B 3C01           CMP     AL,01
+25C3:016D 75B1           JNZ     0120
+25C3:016F 80FA01         CMP     DL,01           ; je pà®ec ?
+25C3:0172 75AC           JNZ     0120            ; nen° pà®ec
+25C3:0174 F606D10980     TEST     Byte Ptr [09D1],80
+25C3:0179 7407           JZ     0182
+25C3:017B 80FD0F         CMP     CH,0F
+25C3:017E 72A0           JB     0120
+25C3:0180 7313           JNB     0195
+25C3:0182 80FD0F         CMP     CH,0F
+25C3:0185 7399           JNB     0120
+25C3:0187 720C           JB     0195
+25C3:0189 80FA04         CMP     DL,04           ; je vàë ?
+25C3:018C 7592           JNZ     0120            ; nen° vàë
+25C3:018E 7405           JZ     0195
+
+25C3:0190 80FA02       * CMP     DL,02           ; je jezdec ?
+25C3:0193 758B           JNZ     0120            ; nen° jezdec
+25C3:0195 803EBA0907   * CMP     Byte Ptr [09BA],07
+25C3:019A 7409           JZ     01A5
+25C3:019C F6C620         TEST     DH,20                         ;' '
+25C3:019F 7407           JZ     01A8
+25C3:01A1 B001           MOV     AL,01
+25C3:01A3 EB82           JMP     0127
+
+25C3:01A5 E8D2FE         CALL     007A           ;
+25C3:01A8 A0BC09         MOV     AL,[09BC]
+25C3:01AB 3C06           CMP     AL,06
+25C3:01AD 7407           JZ     01B6
+25C3:01AF 3C02           CMP     AL,02
+25C3:01B1 7403           JZ     01B6
+25C3:01B3 E954FF         JMP     010A
+
+25C3:01B6 E967FF         JMP     0120
+
+; -----------------------------------------------------------------------------
+;        dek¢dov†n° pozice pro zobrazen°
+; -----------------------------------------------------------------------------
+25c3:01b9                0
+
+                                          ;* dek¢dov†n° pozice
+                                            ; VSTUP: AL=pozice (bin†rnà)
+                                            ; VùSTUP: AX=sou©adnice (textovà)
+23C3:01BA B400           MOV    AH,00            ; AH <- 0
+23C3:01BC B30A           MOV    BL,0A            ; poáet bajtñ na ©†dek
+23C3:01BE F6F3           DIV    BL               ; vòpoáet ©†dku a pozice
+25C3:01C0 86C4           XCHG     AL,AH          ; AL<-pozice, AH<-©†dek
+25C3:01C2 80C42F         ADD     AH,2F           ; korekce ©†dku na á°slo
+25C3:01C5 0440           ADD     AL,40           ; korekce pozice na p°smeno
+25C3:01C7 C3             RET
+; -----------------------------------------------------------------------------
+;               n†hodnò vòbàr tabulky zah†jen° hry
+; -----------------------------------------------------------------------------
+
+25C3:01C8 B42C           MOV     AH,2C
+25C3:01CA CD21           INT     21         ; poskytnut° systÇmovÇho áasu
+25C3:01CC 8AC2           MOV     AL,DL      ; setina sekundy
+25C3:01CE 2403           AND     AL,03      ; nië®° 2 bity setiny sekundy
+25C3:01D0 B206           MOV     DL,06
+25C3:01D2 F6E2           MUL     DL         ; n†hodnÇ á°slo 0, 6, 12, 18
+25C3:01D4 8D160E00       LEA     DX,[000E]
+25C3:01D8 03C2           ADD     AX,DX
+25C3:01DA A3C809         MOV     [09C8],AX  ; n†hodnà vybran† tabulka tahñ
+25C3:01DD C3             RET
+
+; -----------------------------------------------------------------------------
+;        test ro®†dy
+; -----------------------------------------------------------------------------
+
+25C3:01DE F606D00908     TEST     Byte Ptr [09D0],08
+25C3:01E3 7401           JZ     01E6
+25C3:01E5 C3             RET
+
+25C3:01E6 803ED70900     CMP     Byte Ptr [09D7],00
+25C3:01EB 7401           JZ     01EE
+25C3:01ED C3             RET
+
+25C3:01EE B903FF         MOV     CX,FF03         ; posun kr†le o 3 pole vpravo
+25C3:01F1 020EB209     * ADD     CL,[09B2]
+25C3:01F5 B700           MOV     BH,00
+25C3:01F7 8AD9           MOV     BL,CL           ; testovanÇ pol°áko
+25C3:01F9 891EB609       MOV     [09B6],BX
+25C3:01FD 8A87D100       MOV     AL,[BX+00D1]    ; obsah pol°áka
+25C3:0201 247F           AND     AL,7F           ; zru®en° p©°znaku barvy
+25C3:0203 3C04           CMP     AL,04           ; je vàë ?
+25C3:0205 7567           JNZ     026E            ; nen° vàë
+25C3:0207 7420           JZ     0229
+
+25C3:0209 8B1EB609     * MOV     BX,[09B6]       ; pozice v ®achovnici
+25C3:020D 80BFD10000     CMP     Byte Ptr [BX+00D1],00 ; je pr†zdnÇ pole ?
+25C3:0212 755A           JNZ     026E            ; nen° pr†zdnÇ pole
+25C3:0214 80FB5C         CMP     BL,5C                         ;'\'
+25C3:0217 7410           JZ     0229
+25C3:0219 80FB16         CMP     BL,16           ;
+25C3:021C 740B           JZ     0229
+25C3:021E E8D7FE         CALL     00F8      ; test okol° figurky
+25C3:0221 3C00           CMP     AL,00
+25C3:0223 7549           JNZ     026E
+
+25C3:0225 8B1EB609       MOV     BX,[09B6]
+25C3:0229 02DD         * ADD     BL,CH
+25C3:022B 891EB609       MOV     [09B6],BX
+25C3:022F 3A1EB209       CMP     BL,[09B2]
+25C3:0233 75D4           JNZ     0209
+25C3:0235 2ADD           SUB     BL,CH
+25C3:0237 2ADD           SUB     BL,CH
+25C3:0239 881EB409       MOV     [09B4],BL       ; pozice p©i pokusu o tah
+25C3:023D C606D10940     MOV     Byte Ptr [09D1],40            ;'@'
+25C3:0242 E8BBFD         CALL     0000      ; uloëen° definice do z†sobn°ku tahñ
+25C3:0245 A0B209         MOV     AL,[09B2]
+25C3:0248 2AC5           SUB     AL,CH
+25C3:024A A2B409         MOV     [09B4],AL       ; pozice p©i pokusu o tah
+25C3:024D 880EB209       MOV     [09B2],CL
+25C3:0251 C606D10900     MOV     Byte Ptr [09D1],00
+25C3:0256 E8A7FD         CALL     0000      ; uloëen° definice do z†sobn°ku tahñ
+25C3:0259 8B1ECA09       MOV     BX,[09CA]
+25C3:025D 83EB06         SUB     BX,+06
+25C3:0260 891ECA09       MOV     [09CA],BX
+25C3:0264 C7070000       MOV     Word Ptr [BX],0000
+25C3:0268 A0B609         MOV     AL,[09B6]
+25C3:026B A2B209         MOV     [09B2],AL
+
+25C3:026E 80FD01       * CMP     CH,01      ; byl jië druhò smàr ?
+25C3:0271 7406           JZ     0279        ; byl jië druhò smàr
+25C3:0273 B9FC01         MOV     CX,01FC    ; posun kr†le o 4 pozice vlevo
+25C3:0276 E978FF         JMP     01F1       ; novò pokus
+25C3:0279 C3           * RET
+
+; -----------------------------------------------------------------------------
+;                             vymaz†n° informaán°ho ©†dku
+; -----------------------------------------------------------------------------
+
+25C3:027A B618           MOV     DH,18           ; ©†dek kurzoru 24 - posledn°
+25C3:027C B200           MOV     DL,00           ; pozice kurzoru 0
+25C3:027E B700           MOV     BH,00           ; str†nka 0
+25C3:0280 B402           MOV     AH,02
+25C3:0282 CD10           INT     10              ; nastaven° pozice kurzoru dolñ
+25C3:0284 8D162600       LEA     DX,[0026]       ; text pro vymaz†n°
+25C3:0288 B409           MOV     AH,09
+25C3:028A CD21           INT     21              ; tisk textu "         "
+25C3:028C B618           MOV     DH,18           ; ©†dek kurzoru 24 - posledn°
+25C3:028E B200           MOV     DL,00           ; pozice kurzoru 0
+25C3:0290 B700           MOV     BH,00           ; str†nka 0
+25C3:0292 B402           MOV     AH,02
+25C3:0294 CD10           INT     10              ; nastaven° pozice kurzoru
+25C3:0296 C3             RET
+; -----------------------------------------------------------------------------
+;                            Tah poá°taáe
+; -----------------------------------------------------------------------------
+                         db     0
+                                          ;* tah poá°taáe
+
+004e                     db     'CHECK $'
+
+0055                     db     'COMPUTER('
+005e                     db     'W): WORKING LEVEL '
+0070                     db     'X $'
+
+0073                     db     7,'COMPUTER('
+007d                     db     'W): $'
+
+0082                     db     'XX-XX $'
+0089                     db     'O-O $'
+008e                     db     'O-O-O $'
+0095                     db     'PxPep $'
+
+
+23C3:0298 B057         * MOV    AL,57            ; oznaáen° poá°taáe b°lÇ "W"
+23C3:029A 803ECE0900     CMP    Byte Ptr [09CE],00 ; m† hr†á áernÇ ?
+25C3:029F 7402           JZ     02A3             ; hr†á m† áernÇ
+25C3:02A1 B042           MOV     AL,42           ; oznaáen° poá°taáe áernÇ "B"
+25C3:02A3 A25E00       * MOV     [005E],AL       ; oznaáen° barvy poá°taáe
+25C3:02A6 A27D00         MOV     [007D],AL       ; oznaáen° barvy poá°taáe
+25C3:02A9 A0D509         MOV     AL,[09D5]       ; £rove§ hry
+25C3:02AC 0430           ADD     AL,30           ; korekce na á°slici ASCII
+25C3:02AE A27000         MOV     [0070],AL       ; nastaven° oznaáen° á°slice
+25C3:02B1 803ECE0900     CMP     Byte Ptr [09CE],00 ; m† hr†á áernÇ ?
+25C3:02B6 7507           JNZ     02BF            ; hr†á m† b°lÇ
+25C3:02B8 803ED40901     CMP     Byte Ptr [09D4],01 ; á°taá tahñ = 1 ?
+25C3:02BD 740B           JZ     02CA             ; je prvn° tah
+25C3:02BF E8B8FF       * CALL     027A           ; vymaz†n° textovÇho ©†dku
+25C3:02C2 8D165500       LEA     DX,[0055]       ; text "COMPUTER WORKING"
+25C3:02C6 B409           MOV     AH,09
+25C3:02C8 CD21           INT     21              ; tisk "COMPUTER WORKING "
+25C3:02CA E83903       * CALL     0606           ; nalezen° tahu pro poá°taá
+25C3:02CD E8AAFF         CALL     027A           ; vymaz†n° textovÇho ©†dku
+25C3:02D0 8D167300       LEA     DX,[0073]       ; text "COMPUTER:"
+25C3:02D4 B409           MOV     AH,09
+25C3:02D6 CD21           INT     21              ; tisk textu "COMPUTER(W): "
+25C3:02D8 A1C809         MOV     AX,[09C8]
+25C3:02DB A3C409         MOV     [09C4],AX
+25C3:02DE 803E7F0101     CMP     Byte Ptr [017F],01
+25C3:02E3 7505           JNZ     02EA
+25C3:02E5 B101           MOV     CL,01
+25C3:02E7 E8C602         CALL     05B0           ; hl†®en° o matu
+
+25C3:02EA E8C706       * CALL     09B4           ; proveden° jednoho tahu
+25C3:02ED A0CE09         MOV     AL,[09CE]       ; 80=hr†á m† b°lÇ, 00=áernÇ
+25C3:02F0 A2CF09         MOV     [09CF],AL       ; 80=poá°taá m† b°lÇ, 00=áernÇ
+25C3:02F3 E83402         CALL     052A         ;* volba tahu pro ro®†du
+
+                                               ;* norm†ln° tah
+25C3:02F6 80FD00         CMP     CH,00           ; je norm†ln° tah ?
+25C3:02F9 751B           JNZ     0316            ; nen° norm†ln° tah
+25C3:02FB 8AC2           MOV     AL,DL           ; c°lov† pozice
+25C3:02FD E8BAFE         CALL     01BA           ; dek¢dov†n° pozice (textovà)
+25C3:0300 A38500         MOV     [0085],AX       ; nastaven° c°le tahu
+25C3:0303 8AC1           MOV     AL,CL           ; vòchoz° pozice
+25C3:0305 E8B2FE         CALL     01BA           ; dek¢dov†n° pozice (textovà)
+25C3:0308 A38200         MOV     [0082],AX       ; nastaven° vòchoz° pozice
+25C3:030B 8D168200       LEA     DX,[0082]       ; text "XX-XX"
+25C3:030F B409           MOV     AH,09
+25C3:0311 CD21           INT     21              ; tisk textu "XX-XX"
+25C3:0313 EB29           JMP     033E            ; pokraáov†n°
+25C3:0315 90             NOP
+                                               ;* mal† ro®†da
+25C3:0316 F6C502       * TEST     CH,02          ; je mal† ro®†da ?
+25C3:0319 740B           JZ     0326             ; nen° mal† ro®†da
+25C3:031B 8D168900       LEA     DX,[0089]       ; text "O-O"
+25C3:031F B409           MOV     AH,09
+25C3:0321 CD21           INT     21              ; tisk textu "O-O"
+25C3:0323 EB19           JMP     033E            ; pokraáov†n°
+25C3:0325 90             NOP
+                                               ;* velk† ro®†da
+25C3:0326 F6C504       * TEST     CH,04          ; je velk† ro®†da ?
+25C3:0329 740B           JZ     0336             ; nen° velk† ro®†da
+25C3:032B 8D168E00       LEA     DX,[008E]       ; text "O-O-O"
+25C3:032F B409           MOV     AH,09
+25C3:0331 CD21           INT     21              ; tisk textu "O-O-O"
+25C3:0333 EB09           JMP     033E            ; pokraáov†n°
+25C3:0335 90             NOP
+
+25C3:0336 8D169500       LEA     DX,[0095]       ; text "PxPep"
+25C3:033A B409           MOV     AH,09
+25C3:033C CD21           INT     21              ; tisk textu "PxPep"
+
+25C3:033E 803E7F01FF   * CMP     Byte Ptr [017F],FF
+25C3:0343 7508           JNZ     034D
+25C3:0345 B100           MOV     CL,00
+25C3:0347 E86602         CALL     05B0           ; hl†®en° o matu
+25C3:034A EB1C           JMP     0368            ; konec, áek† na znak
+25C3:034C 90             NOP
+25C3:034D 8D1EE209       LEA     BX,[09E2]       ;
+25C3:0351 E8F20A         CALL     0E46           ; zobrazen° uplynulÇho áasu
+25C3:0354 A0CE09         MOV     AL,[09CE]       ; 80=hr†á m† b°lÇ, 00=áernÇ
+25C3:0357 3480           XOR     AL,80
+25C3:0359 E89005         CALL     08EC           ; test okol° aktivn° figurky
+25C3:035C 3C00           CMP     AL,00
+25C3:035E 7408           JZ     0368
+25C3:0360 8D164E00       LEA     DX,[004E]
+25C3:0364 B409           MOV     AH,09
+25C3:0366 CD21           INT     21              ; tisk textu "Check"
+25C3:0368 B408         * MOV     AH,08
+25C3:036A CD21           INT     21              ; vstup znaku z konzoly bez echa
+25C3:036C C3             RET
+
+                        00
+
+; -----------------------------------------------------------------------------
+;                       Zobrazen° ®achovnice
+; -----------------------------------------------------------------------------
+                                               ;* zobrazen° celÇ ®achovnice
+
+25C3:036e BB1500         MOV     BX,0015         ; á°slo prvn°ho pol°áka
+25C3:0371 8A97D100     * MOV     DL,[BX+00D1]    ; mapa ®achovnice
+25C3:0375 80FAFF         CMP     DL,FF           ; je zak†zanÇ pol°áko ?
+25C3:0378 7405           JZ     037F             ; pol°áko je zak†zanÇ
+25C3:037A 8AC3           MOV     AL,BL           ; á°slo pol°áka
+25C3:037C E80700         CALL     0386           ; zobrazen° pol°áka
+25C3:037F 43           * INC     BX              ; zvò®en° á°sla pol°áka
+25C3:0380 83FB63         CMP     BX,+63          ; je jië konec (=99) ?
+25C3:0383 72EC           JB     0371             ; dal®° pol°áko
+25C3:0385 C3             RET
+
+                                               ;* zobrazen° pol°áka
+                                                 ; VSTUP: AL=á°slo pol°áka
+                                                 ;        DL=obsah pol°áka
+
+25C3:0386 06             PUSH     ES
+25C3:0387 55             PUSH     BP
+25C3:0388 56             PUSH     SI
+25C3:0389 57             PUSH     DI
+25C3:038A 52             PUSH     DX
+25C3:038B 51             PUSH     CX
+25C3:038C 53             PUSH     BX
+25C3:038D 50             PUSH     AX
+25C3:038E BB00B8         MOV     BX,B800         ; segment videopamàti
+25C3:0391 8EC3           MOV     ES,BX           ; segment videopamàti
+25C3:0393 FC             CLD                     ; smàr dolñ
+                                               ;* vòpoáet sou©adnic pol°áka
+25C3:0394 B400           MOV     AH,00           ; AH <- 0
+25C3:0396 B10A           MOV     CL,0A           ; poáet bajtñ na ©†dek
+25C3:0398 F6F1           DIV     CL              ; vòpoáet sou©adnic pol°áka
+25C3:039A 2C02           SUB     AL,02           ; odeáten° okraje
+25C3:039C F6D8           NEG     AL              ; - á°slo ©†dku
+25C3:039E 0407           ADD     AL,07           ; poá†teán° offset á°sla ©†dku
+25C3:03A0 FECC           DEC     AH              ; á°slo pozice - 1
+25C3:03A2 8ADC           MOV     BL,AH           ; £schova á°sla pozice
+                                               ;* vòpoáet masky pro barvu
+25C3:03A4 BD0000         MOV     BP,0000         ; maska barvy pol°áka
+25C3:03A7 80FA80         CMP     DL,80           ; je b°l† figurka ?
+25C3:03AA 7502           JNZ     03AE            ; je b°l† figurka
+25C3:03AC F7D5           NOT     BP              ; maska 0ffffh pro áernou barvu
+25C3:03AE 32E0         * XOR     AH,AL           ; test barvy pol°áka
+25C3:03B0 F6C401         TEST     AH,01          ; je áernÇ pol°áko ?
+25C3:03B3 7505           JNZ     03BA            ; je b°lÇ pol°áko
+25C3:03B5 F7D5           NOT     BP              ; negace barvy podkladu
+25C3:03B7 80F280         XOR     DL,80           ; zmàna barvy figurky
+                                               ;* vòpoáet adresy ve videopamàti
+25C3:03BA B118         * MOV     CL,18           ; poáet linek na pol°áko
+25C3:03BC F6E1           MUL     CL              ; p©epoáet ©†dku na linky
+25C3:03BE B128           MOV     CL,28           ; poáet bajtñ na ©†dek
+25C3:03C0 F6E1           MUL     CL              ; vòpoáet á°sla linky
+25C3:03C2 8BF8           MOV     DI,AX           ; poá†teán° á°slo linky
+25C3:03C4 B00A           MOV     AL,0A           ; poáet bajtñ na ®°©ku pol°áka
+25C3:03C6 F6E3           MUL     BL              ; vòpoáet offsetu na ©†dku
+25C3:03C8 03F8           ADD     DI,AX           ; adresa pol°áka ve videopamàti
+                                               ;* zobraz° se pr†zdnÇ pol°áko ?
+25C3:03CA 8AC2           MOV     AL,DL           ; á°slo figurky
+25C3:03CC D0C0           ROL     AL,1            ; á°slo figurky * 2
+25C3:03CE 240F           AND     AL,0F           ; á°slo figurky
+25C3:03D0 2C02           SUB     AL,02           ; odeáten° á°sla pà®ce
+25C3:03D2 7922           JNS     03F6            ; je figurka
+                                               ;* zobrazen° pr†zdnÇho pol°áka
+25C3:03D4 B718           MOV     BH,18           ; poáet linek na vò®ku pol°áka
+25C3:03D6 8BC5         * MOV     AX,BP           ; barva podkladu pol°áka
+25C3:03D8 B90500         MOV     CX,0005         ; poáet bajtñ na ®°©ku pol°áka
+25C3:03DB F3             REPZ
+25C3:03DC AB             STOSW                   ; vymaz†n° pol°áka horizont.
+25C3:03DD 83EF0A         SUB     DI,+0A          ; n†vrat ukl†dac° adresy
+25C3:03E0 8CC0           MOV     AX,ES           ; segment videopamàti
+25C3:03E2 350002         XOR     AX,0200         ; zvò®en° adresy o 2000h
+25C3:03E5 8EC0           MOV     ES,AX           ; segment videopamàti
+25C3:03E7 A90002         TEST     AX,0200        ; byla to druh† á†st linky ?
+25C3:03EA 7503           JNZ     03EF            ; byla to druh† á†st linky
+25C3:03EC 83C750         ADD     DI,+50          ; zvò®en° adresy ve videopamàti
+25C3:03EF FECF         * DEC     BH              ; á°taá linek na vò®ku
+25C3:03F1 75E3           JNZ     03D6            ; zobrazen° dal®° linky
+25C3:03F3 EB4A           JMP     043F            ; n†vrat
+25C3:03F5 90             NOP
+                                               ;* p©°prava zobrazen° figurky
+25C3:03F6 B178         * MOV     CL,78           ; dÇlka obr†zku figurky
+25C3:03F8 F6E1           MUL     CL              ; vòpoáet offsetu v tabulce
+25C3:03FA 8D368C0A       LEA     SI,[0A8C]       ; tabulka figurek
+25C3:03FE 03F0           ADD     SI,AX           ; adresa figurky v tabulce
+25C3:0400 B118           MOV     CL,18           ; poáet linek na vò®ku
+25C3:0402 B505         * MOV     CH,05           ; poáet bajtñ na ®°©ku
+                                               ;* zdvojen° bodñ grafiky
+25C3:0404 AC           * LODSB                   ; naáten° bajtu figurky
+25C3:0405 8AD8           MOV     BL,AL           ; bajt grafiky
+25C3:0407 B708           MOV     BH,08           ; poáet bitñ grafiky
+25C3:0409 BA0000         MOV     DX,0000         ; st©adaá grafiky
+25C3:040C D0CB         * ROR     BL,1            ; nejnië®° bit z grafiky
+25C3:040E 8AC3           MOV     AL,BL
+25C3:0410 2480           AND     AL,80           ; novò nejnië®° bit
+25C3:0412 D0F8           SAR     AL,1            ; zdvojen° bitu 7 do bitu 6
+25C3:0414 D1EA           SHR     DX,1
+25C3:0416 D1EA           SHR     DX,1            ; rotace DX na novÇ pozice
+25C3:0418 0AF0           OR     DH,AL            ; vloëen° zdvojenÇho bitu
+25C3:041A FECF           DEC     BH              ; á°taá bitñ
+25C3:041C 75EE           JNZ     040C            ; dal®° bit k p©evodu
+                                               ;* z†pis slova grafiky
+25C3:041E 8BC2           MOV     AX,DX
+25C3:0420 86C4           XCHG     AL,AH
+25C3:0422 33C5           XOR     AX,BP           ; maskov†n° barvy
+25C3:0424 AB             STOSW                   ; uloëen° grafickÇho slova
+25C3:0425 FECD           DEC     CH              ; á°taá bajtñ
+25C3:0427 75DB           JNZ     0404            ; dal®° bajt pol°áka
+25C3:0429 83EF0A         SUB     DI,+0A          ; n†vrat adresy ve videopamàti
+25C3:042C 8CC0           MOV     AX,ES           ; segment videopamàti
+25C3:042E 350002         XOR     AX,0200         ; posun segmentu o 2000h nahoru
+25C3:0431 8EC0           MOV     ES,AX           ; segment videopamàti
+25C3:0433 A90002         TEST     AX,0200        ; je to horn° á†st ?
+25C3:0436 7503           JNZ     043B            ; je to horn° á†st
+25C3:0438 83C750         ADD     DI,+50          ; zvò®en° adresy ve videopamàti
+25C3:043B FEC9         * DEC     CL              ; á°taá linek na vò®ku
+25C3:043D 75C3           JNZ     0402            ; zobrazen° dal®° linky
+25C3:043F 58             POP     AX
+25C3:0440 5B             POP     BX
+25C3:0441 59             POP     CX
+25C3:0442 5A             POP     DX
+25C3:0443 5F             POP     DI
+25C3:0444 5E             POP     SI
+25C3:0445 5D             POP     BP
+25C3:0446 07             POP     ES
+25C3:0447 C3             RET
+
+; *****************************************************************************
+;                              Start programu
+; *****************************************************************************
+                                          ;* start programu
+;˛
+25C3:0448 FA             CLI                     ; z†kaz p©eru®en°
+25C3:0449 1E             PUSH     DS             ; £schova DS
+25C3:044A B8C226         MOV     AX,26C2         ; datovò segment
+25C3:044D 8ED8           MOV     DS,AX           ; nastaven° datovÇho segmentu
+25C3:044F 8EC0           MOV     ES,AX           ; ES <- datovò segment
+25C3:0451 58             POP     AX              ; AX <- prefix PSP
+25C3:0452 A3EE09         MOV     [09EE],AX       ; segment PSP
+25C3:0455 FB             STI                     ; povolen° p©eru®en°
+25C3:0456 8D16F009       LEA     DX,[09F0]       ; £vodn° text
+25C3:045A B409           MOV     AH,09
+25C3:045C CD21           INT     21              ; zobrazen° £vodn°ho textu
+25C3:045E C606CF0900     MOV     Byte Ptr [09CF],00 ; 80=poá°taá m† b°lÇ, 00=áernÇ
+25C3:0463 E8FE04         CALL     0964           ; volba barvy a £rovnà
+25C3:0466 E8A504         CALL     090E           ; inicializace ®achovnice
+25C3:0469 B80500         MOV     AX,0005         ; poëadovanò videom¢d 5
+25C3:046C CD10           INT     10              ; nastaven° videom¢du 5
+25C3:046E E8FDFE         CALL     036E           ; zobrazen° ®achovnice
+25C3:0471 C606D40901     MOV     Byte Ptr [09D4],01 ; á°taá tahñ
+
+25C3:0476 F606CE0980   * TEST     Byte Ptr [09CE],80 ; m† hr†á b°lÇ ?
+25C3:047B 7509           JNZ     0486            ; hr†á m† b°lÇ  - zaá°n†
+                                               ;* na tahu je poá°taá
+25C3:047D E818FE         CALL     0298           ; tah poá°taáe
+25C3:0480 E86F07         CALL     0BF2           ; volba tahu hr†áe
+25C3:0483 EB07           JMP     048C
+25C3:0485 90             NOP
+                                               ;* na tahu je hr†á
+25C3:0486 E86907       * CALL     0BF2           ; volba tahu hr†áe
+25C3:0489 E80CFE         CALL     0298           ; tah poá°taáe
+25C3:048C FE06D409     * INC     Byte Ptr [09D4] ; zvò®en° á°taáe tahñ
+25C3:0490 EBE4           JMP     0476            ; dal®° tah
+
+
+
+
+
+
+
+
+
+25C3:0492 A0B209         MOV     AL,[09B2]
+25C3:0495 F606D00980     TEST     Byte Ptr [09D0],80
+25C3:049A 7402           JZ     049E
+25C3:049C 040A           ADD     AL,0A
+25C3:049E 3C3D         * CMP     AL,3D                         ;'='
+25C3:04A0 7266           JB     0508
+25C3:04A2 3C44           CMP     AL,44                         ;'D'
+25C3:04A4 7762           JA     0508
+25C3:04A6 8B1EC409       MOV     BX,[09C4]
+25C3:04AA F6470410       TEST     Byte Ptr [BX+04],10
+25C3:04AE 7458           JZ     0508
+25C3:04B0 8A5F03         MOV     BL,[BX+03]
+25C3:04B3 881EB809       MOV     [09B8],BL
+25C3:04B7 B700           MOV     BH,00
+25C3:04B9 8A87D100       MOV     AL,[BX+00D1]    ; obsah pole
+25C3:04BD A2D209         MOV     [09D2],AL
+25C3:04C0 2407           AND     AL,07
+25C3:04C2 3C01           CMP     AL,01           ; je pà®†k ?
+25C3:04C4 7542           JNZ     0508            ; nen° pà®†k
+
+25C3:04C6 2A1EB409       SUB     BL,[09B4]       ; pozice p©i pokusu o tah
+25C3:04CA 7902           JNS     04CE
+25C3:04CC F6DB           NEG     BL              ; absolutn° hodnota rozd°lu
+25C3:04CE 80FB0A       * CMP     BL,0A
+25C3:04D1 7535           JNZ     0508
+25C3:04D3 800ED10940     OR     Byte Ptr [09D1],40            ;'@'
+25C3:04D8 E825FB         CALL     0000      ; uloëen° definice do z†sobn°ku tahñ
+25C3:04DB A0B209         MOV     AL,[09B2]
+25C3:04DE A2B609         MOV     [09B6],AL
+25C3:04E1 A0B809         MOV     AL,[09B8]
+25C3:04E4 A2B209         MOV     [09B2],AL
+25C3:04E7 A2B409         MOV     [09B4],AL       ; pozice p©i pokusu o tah
+25C3:04EA A0D209         MOV     AL,[09D2]
+25C3:04ED A2D109         MOV     [09D1],AL
+25C3:04F0 E80DFB         CALL     0000      ; uloëen° definice do z†sobn°ku tahñ
+25C3:04F3 A0B609         MOV     AL,[09B6]
+25C3:04F6 A2B209         MOV     [09B2],AL
+25C3:04F9 8B1ECA09       MOV     BX,[09CA]
+25C3:04FD 83EB06         SUB     BX,+06
+25C3:0500 891ECA09       MOV     [09CA],BX
+25C3:0504 C7070000       MOV     Word Ptr [BX],0000
+25C3:0508 C3           * RET
+
+                         db     0
+
+25C3:050A E8A704         CALL   09B4        ; proveden° jednoho tahu
+25C3:050D A0CF09         MOV    AL,[09CF]
+25C3:0510 E8D903         CALL   08EC        ; test okol° aktivn° figurky
+25C3:0513 3C00           CMP     AL,00
+25C3:0515 7408           JZ     051F
+25C3:0517 C606D90900     MOV     Byte Ptr [09D9],00
+25C3:051C EB07           JMP     0525
+25C3:051E 90             NOP
+
+25C3:051F E80206         CALL     0B24      ; hodnocen° jednoho stavu ®achovnice
+25C3:0522 E88307         CALL     0CA8
+25C3:0525 E89A09       * CALL     0EC2      ; n†vrat tahu z bufferu tahñ
+25C3:0528 C3             RET
+
+                        00
+                                          ;* volba tahu pro ro®†du
+
+
+25C3:052a 8B36C409       MOV     SI,[09C4]
+25C3:052e A0CF09         MOV     AL,[09CF]       ; 80=poá°taá m† b°lÇ, 00=áernÇ
+25C3:0531 3A06CE09       CMP     AL,[09CE]       ; 80=hr†á m† b°lÇ, 00=áernÇ
+25C3:0535 7535           JNZ     056C
+
+25C3:0537 B700         * MOV     BH,00
+25C3:0539 8A5C03         MOV     BL,[SI+03]
+25C3:053C 3A5C02         CMP     BL,[SI+02]
+25C3:053F 741A           JZ     055B
+25C3:0541 8AB7D100       MOV     DH,[BX+00D1] ; vektor ®achovnice
+25C3:0545 F6440420       TEST     Byte Ptr [SI+04],20           ;' '
+25C3:0549 7406           JZ     0551
+25C3:054B 80E6F8         AND     DH,F8
+25C3:054E 80CE01         OR     DH,01
+25C3:0551 B200         * MOV     DL,00
+25C3:0553 8A5C02         MOV     BL,[SI+02]      ; á°slo pol°áka
+25C3:0556 B50A           MOV     CH,0A           ; poáet bliknut° kurzoru
+25C3:0558 E88D00         CALL     05E8           ; blik†n° kurzoru
+25C3:055B B700           MOV     BH,00
+25C3:055D 8A5C03         MOV     BL,[SI+03]
+25C3:0560 8A7404         MOV     DH,[SI+04]
+25C3:0563 8A97D100       MOV     DL,[BX+00D1] ; vektor ®achovnice
+25C3:0567 B50A           MOV     CH,0A
+25C3:0569 E87C00         CALL     05E8           ; blik†n° kurzoru
+25C3:056C F6440440       TEST     Byte Ptr [SI+04],40           ;'@'
+25C3:0570 7405           JZ     0577
+25C3:0572 83C606         ADD     SI,+06
+25C3:0575 EBC0           JMP     0537
+25C3:0577 8B1EC409     * MOV     BX,[09C4]
+25C3:057B 8A4F02         MOV     CL,[BX+02]
+25C3:057E 8A5703         MOV     DL,[BX+03]
+25C3:0581 B500           MOV     CH,00
+25C3:0583 F6470440       TEST     Byte Ptr [BX+04],40           ;'@'
+25C3:0587 7426           JZ     05AF
+25C3:0589 83C306         ADD     BX,+06
+25C3:058C 8A4F02         MOV     CL,[BX+02]
+25C3:058F 8A5703         MOV     DL,[BX+03]
+25C3:0592 3ACA           CMP     CL,DL
+25C3:0594 7506           JNZ     059C
+25C3:0596 80CD01         OR     CH,01
+25C3:0599 EB14           JMP     05AF
+25C3:059B 90             NOP
+25C3:059C 80FA1A         CMP     DL,1A
+25C3:059F 740B           JZ     05AC
+25C3:05A1 80FA60         CMP     DL,60                         ;'`'
+25C3:05A4 7406           JZ     05AC
+25C3:05A6 80CD04         OR     CH,04
+25C3:05A9 EB04           JMP     05AF
+25C3:05AB 90             NOP
+25C3:05AC 80CD02         OR     CH,02
+25C3:05AF C3             RET
+
+; -----------------------------------------------------------------------------
+;        hl†®en° o matu (nebo bl°ë°c°m se matu)
+; -----------------------------------------------------------------------------
+
+25C3:05B0 A0D309         MOV     AL,[09D3]  ; zbylò poáet tahñ 1
+25C3:05B3 2A06D409       SUB     AL,[09D4]  ; á°taá tahñ
+25C3:05B7 751B           JNZ     05D4       ; nen° vòhra
+25C3:05B9 80F900         CMP     CL,00      ; je v°tàzem poá°taá ?
+25C3:05BC 740B           JZ     05C9        ; ano
+                                          ;* vyhr†l hr†á
+25C3:05BE 8D165A0A       LEA     DX,[0A5A]
+25C3:05C2 B409           MOV     AH,09
+25C3:05C4 CD21           INT     21         ; zobrazen° textu "MATE-YOU WIN"
+25C3:05C6 E9CB02         JMP     0894       ; konec hry
+
+                                          ;* vyhr†l poá°taá
+25C3:05C9 8D163A0A     * LEA     DX,[0A3A]
+25C3:05CD B409           MOV     AH,09
+25C3:05CF CD21           INT     21         ; zobrazen° textu "MATE - I WIN"
+25C3:05D1 E9C002         JMP     0894       ; konec hry
+
+                                          ;* mat se bl°ë°
+25C3:05D4 80F900         CMP     CL,00      ; hraje poá°taá ?
+25C3:05D7 750D           JNZ     05E6       ; nehraje poá°taá
+25C3:05D9 0430           ADD     AL,30      ; korekce na á°slici
+25C3:05DB A2520A         MOV     [0A52],AL
+25C3:05DE 8D164A0A       LEA     DX,[0A4A]
+25C3:05E2 B409           MOV     AH,09
+25C3:05E4 CD21           INT     21         ; zobrazen° textu "MATE IN X MOVES"
+25C3:05E6 C3           * RET
+
+05e7                     db      0
+
+; -----------------------------------------------------------------------------
+;                          blik†n° kurzoru
+; -----------------------------------------------------------------------------
+                                                 ; VSTUP: CH=poáet bliknut°
+                                                 ;        BL=á°slo pol°áka
+                                                 ;        DL=figurka
+                                                 ;        DH=figurka s kurzorem
+
+25C3:05e8 B100           MOV     CL,00           ; p©°znak dvoj°ho bliknut°
+25C3:05ea E8c101       * CALL    07ae            ; proveden° obsluhy kl†vesy
+25c3:05ed 51             PUSH     CX             ; £schova p©°znaku zobrazen°
+25C3:05EE B91027         MOV     CX,2710         ; prodleva pro blik†n°
+25C3:05F1 E2FE         * LOOP     05F1           ; prodleva
+25C3:05F3 59             POP     CX              ; n†vrat p©°znaku zobrazen°
+25C3:05F4 86D6           XCHG     DL,DH          ;
+25C3:05F6 8AC3           MOV     AL,BL           ; á°slo pol°áka
+25C3:05F8 E88BFD         CALL     0386           ; zobrazen° pol°áka AL
+25C3:05FB 80F101         XOR     CL,01           ; test p©°znaku ukonáen° tahu
+25C3:05FE 75EA           JNZ     05EA            ; tah nebyl dokonáen
+25C3:0600 FECD           DEC     CH              ; á°taá poátu bliknut°
+25C3:0602 75E6           JNZ     05EA            ; dal®° cyklus bliknut°
+25C3:0604 C3             RET
+
+                         db     0
+
+; -----------------------------------------------------------------------------
+;                          nalezen° tahu pro poá°taá
+; -----------------------------------------------------------------------------
+
+; --- p©°prava
+
+25C3:0606 B42C           MOV    AH,2C
+25C3:0608 CD21           INT    21
+25C3:060A 8916E209       MOV    [09E2],DX   ; £schova systÇm. áasu
+25C3:060E 890EE409       MOV    [09E4],CX
+25C3:0612 A0D509         MOV    AL,[09D5]   ; £rove§ hry 1-6
+25C3:0615 A26C0A         MOV     [0A6C],AL  ; £schova £rovnà hry p©i tahu
+
+; ------ prvn° tah - n†hodnÇ zah†jen°
+
+25C3:0618 803ED40901     CMP     Byte Ptr [09D4],01 ; je to prvn° tah ?
+25C3:061D 7510           JNZ     062F       ; nen° prvn° tah
+25C3:061F C6067F0100     MOV     Byte Ptr [017F],00
+25C3:0624 F606CE0980     TEST     Byte Ptr [09CE],80  ; 80=hr†á m† b°lÇ, 00=áernÇ
+25C3:0629 7504           JNZ     062F
+25C3:062B E89AFB         CALL     01C8      ; n†hodnò vòbàr tabulky zah†jen°
+25C3:062E C3             RET
+
+; ----- pro mÇnà neë 3. tah omezen° £rovnà hry na 1 (pro rozehr†n°)
+
+25C3:062F 803ED40903   * CMP     Byte Ptr [09D4],03 ; á°taá tahñ
+25C3:0634 7705           JA     063B
+25C3:0636 C606D50901     MOV     Byte Ptr [09D5],01 ; na zaá†tku £rove§ hry = 1
+
+25C3:063B B80000       * MOV     AX,0000
+25C3:063E A2D609         MOV     [09D6],AL  ; á°taá hloubky (£rove§ hry)
+25C3:0641 A3C809         MOV     [09C8],AX
+25C3:0644 8D06B201       LEA     AX,[01B2]  ; zaá†tek tabulky tahñ
+25C3:0648 A3CC09         MOV     [09CC],AX  ; ukazatel v z†sobn°ku tahñ
+25C3:064B 8D068A01       LEA     AX,[018A]
+25C3:064F 2D0200         SUB     AX,0002
+25C3:0652 A3C209         MOV     [09C2],AX
+25C3:0655 A0CE09         MOV     AL,[09CE]  ; 80=hr†á m† b°lÇ, 00=áernÇ
+25C3:0658 A2CF09         MOV     [09CF],AL       ; 80=poá°taá m† b°lÇ, 00=áernÇ
+25C3:065B 8D3E7E01       LEA     DI,[017E]
+25C3:065F 893EC609       MOV     [09C6],DI
+25C3:0663 B500           MOV     CH,00
+25C3:0665 8A0ED509       MOV     CL,[09D5]  ; £rove§ hry
+25C3:0669 80C102         ADD     CL,02
+25C3:066C B000           MOV     AL,00
+25C3:066E FC             CLD
+25C3:066F F3             REPZ
+25C3:0670 AA             STOSB
+25C3:0671 A2DF09         MOV     [09DF],AL
+25C3:0674 A2E009         MOV     [09E0],AL
+25C3:0677 E8AA04         CALL     0B24      ; hodnocen° jednoho stavu ®achovnice
+25C3:067A E82B06         CALL     0CA8
+25C3:067D A0DA09         MOV     AL,[09DA]
+25C3:0680 A2DF09         MOV     [09DF],AL
+25C3:0683 A0DE09         MOV     AL,[09DE]
+25C3:0686 A2E009         MOV     [09E0],AL
+25C3:0689 EB12           JMP     069D
+25C3:068B 90             NOP
+
+
+
+
+25C3:068C B618           MOV     DH,18
+25C3:068E B21D           MOV     DL,1D
+25C3:0690 B700           MOV     BH,00
+25C3:0692 B402           MOV     AH,02
+25C3:0694 CD10           INT     10         ; nastaven° pozice kurzoru
+25C3:0696 8D1EE209       LEA     BX,[09E2]
+25C3:069A E8A907         CALL     0E46           ; zobrazen° uplynulÇho áasu
+25C3:069D FE06D609       INC     Byte Ptr [09D6] ; á°taá hloubky (£rove§ hry)
+25C3:06A1 C606D80900     MOV     Byte Ptr [09D8],00
+25C3:06A6 E8F901         CALL     08A2      ; test, zda m† hr†á dal®° tah
+25C3:06A9 A0D609         MOV     AL,[09D6]  ; á°taá hloubky (£rove§ hry)
+25C3:06AC 3A06D509       CMP     AL,[09D5]  ; £rove§ hry
+25C3:06B0 7303           JNB     06B5
+25C3:06B2 E8D307         CALL     0E88
+25C3:06B5 A1C209         MOV     AX,[09C2]
+25C3:06B8 A3C409         MOV     [09C4],AX
+
+25C3:06BB 8B1EC409       MOV     BX,[09C4]
+25C3:06BF 8B07           MOV     AX,[BX]
+25C3:06C1 3D0000         CMP     AX,0000
+25C3:06C4 7464           JZ     072A
+25C3:06C6 A3C409         MOV     [09C4],AX
+25C3:06C9 8B1EC209       MOV     BX,[09C2]
+25C3:06CD 8907           MOV     [BX],AX
+25C3:06CF A0D609         MOV     AL,[09D6]  ; á°taá hloubky (£rove§ hry)
+25C3:06D2 3A06D509       CMP     AL,[09D5]  ; £rove§ hry
+25C3:06D6 7229           JB     0701
+25C3:06D8 E8D902         CALL     09B4      ; proveden° jednoho tahu
+25C3:06DB A0CF09         MOV     AL,[09CF]
+25C3:06DE E80B02         CALL     08EC      ; test okol° aktivn° figurky
+25C3:06E1 3C00           CMP     AL,00
+25C3:06E3 7405           JZ     06EA
+25C3:06E5 E8DA07         CALL     0EC2      ; n†vrat tahu z bufferu tahñ
+25C3:06E8 EBD1           JMP     06BB
+
+25C3:06EA A0D609         MOV     AL,[09D6]  ; á°taá hloubky (£rove§ hry)
+25C3:06ED 3A06D509       CMP     AL,[09D5]  ; £rove§ hry
+25C3:06F1 7566           JNZ     0759
+25C3:06F3 A0CF09         MOV     AL,[09CF]
+25C3:06F6 3480           XOR     AL,80
+25C3:06F8 E8F101         CALL     08EC      ; test okol° aktivn° figurky
+25C3:06FB 3C00           CMP     AL,00
+25C3:06FD 745A           JZ     0759
+25C3:06FF 750D           JNZ     070E
+25C3:0701 8B1EC409       MOV     BX,[09C4]
+25C3:0705 807F0500       CMP     Byte Ptr [BX+05],00
+25C3:0709 74B0           JZ     06BB
+25C3:070B E8A602         CALL     09B4      ; proveden° jednoho tahu
+25C3:070E 8036CF0980     XOR     Byte Ptr [09CF],80
+25C3:0713 7804           JS     0719
+25C3:0715 FE06D409       INC     Byte Ptr [09D4] ; á°taá tahñ
+25C3:0719 8B1EC609       MOV     BX,[09C6]
+25C3:071D 8A07           MOV     AL,[BX]
+25C3:071F 884702         MOV     [BX+02],AL
+25C3:0722 43             INC     BX
+25C3:0723 891EC609       MOV     [09C6],BX
+25C3:0727 E962FF         JMP     068C
+
+25C3:072A 803ED80900     CMP     Byte Ptr [09D8],00
+25C3:072F 7514           JNZ     0745
+25C3:0731 B080           MOV     AL,80
+25C3:0733 803ED70900     CMP     Byte Ptr [09D7],00
+25C3:0738 742B           JZ     0765
+25C3:073A A0D409         MOV     AL,[09D4]       ; á°taá tahñ
+25C3:073D A2D309         MOV     [09D3],AL       ; zbylò poáet tahñ 1
+25C3:0740 B0FF           MOV     AL,FF
+25C3:0742 EB21           JMP     0765
+25C3:0744 90             NOP
+25C3:0745 803ED60901     CMP     Byte Ptr [09D6],01 ; á°taá hloubky (£rove§ hry)
+25C3:074A 745A           JZ     07A6
+25C3:074C E8FDF8         CALL     004C
+25C3:074F 8B1EC609       MOV     BX,[09C6]
+25C3:0753 8A4702         MOV     AL,[BX+02]
+25C3:0756 EB16           JMP     076E
+25C3:0758 90             NOP
+25C3:0759 E8C803         CALL     0B24      ; hodnocen° jednoho stavu ®achovnice
+25C3:075C E84905         CALL     0CA8
+25C3:075F E86007         CALL     0EC2      ; n†vrat tahu z bufferu tahñ
+25C3:0762 A0D909         MOV     AL,[09D9]
+25C3:0765 C606D80901     MOV     Byte Ptr [09D8],01
+25C3:076A 8B1EC609       MOV     BX,[09C6]
+25C3:076E 3A07           CMP     AL,[BX]
+25C3:0770 7706           JA     0778
+25C3:0772 E8D7F8         CALL     004C
+25C3:0775 E943FF         JMP     06BB
+25C3:0778 F6D8           NEG     AL
+25C3:077A 43             INC     BX
+25C3:077B 3A07           CMP     AL,[BX]
+25C3:077D 76F6           JBE     0775
+25C3:077F 8807           MOV     [BX],AL
+25C3:0781 803ED60901     CMP     Byte Ptr [09D6],01 ; á°taá hloubky (£rove§ hry)
+25C3:0786 75ED           JNZ     0775
+25C3:0788 A1C409         MOV     AX,[09C4]
+25C3:078B A3C809         MOV     [09C8],AX
+25C3:078E A17E01         MOV     AX,[017E]
+25C3:0791 80FCFF         CMP     AH,FF
+25C3:0794 75DF           JNZ     0775
+25C3:0796 802ED50902     SUB     Byte Ptr [09D5],02   ; £rove§ hry
+25C3:079B F606CE0980     TEST     Byte Ptr [09CE],80 ; 80=hr†á m† b°lÇ, 00=áernÇ
+25C3:07A0 7404           JZ     07A6
+25C3:07A2 FE0ED309       DEC     Byte Ptr [09D3] ; zbylò poáet tahñ 1
+25C3:07A6 A06C0A         MOV     AL,[0A6C]  ; £schova £rovnà hry p©i tahu
+25C3:07A9 A2D509         MOV     [09D5],AL  ; £rove§ hry
+25C3:07AC C3             RET
+
+; -----------------------------------------------------------------------------
+;                         Tah hr†áe - pohyb figurkou
+; -----------------------------------------------------------------------------
+                                               ;* obsluha kl†vesnice
+
+25C3:07ae B40b           MOV     AH,0b
+25c3:07b0 cd21           INT     21         ; test stavu kl†vesnice
+25C3:07b2 3C00           CMP     AL,00
+25C3:07b4 742F           JZ      07e5       ; znak nen° p©ipraven
+25C3:07B6 B408           MOV     AH,08
+25C3:07B8 CD21           INT     21         ; vstup znaku z konzoly bez echa
+25C3:07BA 3C00           CMP     AL,00
+25C3:07BC 7527           JNZ     07E5       ; je to ASCII znak
+25C3:07BE 53             PUSH     BX
+25C3:07BF 51             PUSH     CX
+25C3:07C0 52             PUSH     DX
+25C3:07C1 56             PUSH     SI
+25C3:07C2 57             PUSH     DI
+25C3:07C3 55             PUSH     BP
+25C3:07C4 B408           MOV     AH,08
+25C3:07C6 CD21           INT     21              ; vstup SCAN k¢du kl†vesy
+25C3:07C8 8D3E6E0A       LEA     DI,[0A6E]       ; tabulka SCAN k¢dñ kl†ves
+25C3:07CC B90A00         MOV     CX,000A         ; poáet kl†ves v tabulce
+25C3:07CF 8BD9           MOV     BX,CX           ; á°taá kl†ves
+25C3:07D1 FC             CLD                     ; smàr nahoru
+25C3:07D2 F2             REPNZ
+25C3:07D3 AE             SCASB                   ; nalezen° znaku v tabulce
+25C3:07D4 7509           JNZ     07DF            ; znak nenalezen
+25C3:07D6 4B             DEC     BX              ; poáet znakñ - 1
+25C3:07D7 2BD9           SUB     BX,CX           ; á°slo kl†vesy v tabulce
+25C3:07D9 D1E3           SHL     BX,1            ; á°slo kl†vesy * 2
+25C3:07DB FF97780A       CALL    [BX+0A78]       ; proveden° obsluhy kl†vesy
+25C3:07DF 5D           * POP     BP
+25C3:07E0 5F             POP     DI
+25C3:07E1 5E             POP     SI
+25C3:07E2 5A             POP     DX
+25C3:07E3 59             POP     CX
+25C3:07E4 5B             POP     BX
+25C3:07E5 C3           * RET
+                                               ;* kl†vesa Home - vlevo nahoru
+25C3:07E6 E81900         CALL     0802           ; kurzor nahoru
+25C3:07E9 E82500         CALL     0811           ; kurzor vlevo
+25C3:07EC C3             RET
+
+                                               ;* kl†vesa Page Up-vpravo nahoru
+25C3:07ED E81200         CALL     0802           ; kurzor nahoru
+25C3:07F0 E83600         CALL     0829           ; kurzor vpravo
+25C3:07F3 C3             RET
+
+                                               ;* kl†vesa End - vlevo dolñ
+25C3:07F4 E84A00         CALL     0841           ; kurzor dolñ
+25C3:07F7 E81700         CALL     0811           ; kurzor vlevo
+25C3:07FA C3             RET
+
+                                               ;* Page Down - vpravo dolñ
+25C3:07FB E84300         CALL     0841           ; kurzor dolñ
+25C3:07FE E82800         CALL     0829           ; kurzor vpravo
+25C3:0801 C3             RET
+
+                                               ;* kurzor nahoru
+25C3:0802 A0E609         MOV     AL,[09E6]       ; pozice kurzoru
+25C3:0805 040A           ADD     AL,0A           ; zvò®en° ©†dku o 10
+25C3:0807 3C64           CMP     AL,64           ; je p©ekroáen okraj ?
+25C3:0809 7202           JB     080D             ; okraj je®tà nen° p©ekroáen
+25C3:080B 2C50           SUB     AL,50           ; sn°ëen° na spodn° okraj
+25C3:080D A2E609       * MOV     [09E6],AL       ; nov† pozice kurzoru
+25C3:0810 C3             RET
+
+                                               ;* kurzor vlevo
+25C3:0811 FE0EE609       DEC     Byte Ptr [09E6] ; sn°ëen° pozice kurzoru
+25C3:0815 B400           MOV     AH,00
+25C3:0817 A0E609         MOV     AL,[09E6]       ; pozice kurzoru
+25C3:081A B10A           MOV     CL,0A           ; poáet pozic na ©†dek
+25C3:081C F6F1           DIV     CL              ; kontrola okraje
+25C3:081E 80FC00         CMP     AH,00           ; byl p©echod p©es okraj ?
+25C3:0821 7505           JNZ     0828            ; nebyl p©echod p©es okraj
+25C3:0823 8006E60908     ADD     Byte Ptr [09E6],08 ; korekce na konec ©†dku
+25C3:0828 C3           * RET
+
+                                               ;* kurzor vpravo
+25C3:0829 FE06E609       INC     Byte Ptr [09E6] ; zvò®en° pozice kurzoru
+25C3:082D B400           MOV     AH,00
+25C3:082F A0E609         MOV     AL,[09E6]       ; pozice kurzoru
+25C3:0832 B10A           MOV     CL,0A           ; poáet pozic na ©†dek
+25C3:0834 F6F1           DIV     CL              ; kontrola okraje
+25C3:0836 80FC09         CMP     AH,09           ; byl p©echod p©es okraj ?
+25C3:0839 7505           JNZ     0840            ; nebyl p©echod p©es okraj
+25C3:083B 802EE60908     SUB     Byte Ptr [09E6],08 ; korekce na zaá†tek ©†dku
+25C3:0840 C3           * RET
+
+                                               ;* kurzor dolñ
+25C3:0841 A0E609         MOV     AL,[09E6]       ; pozice kurzoru
+25C3:0844 2C0A           SUB     AL,0A           ; sn°ëen° á°sla ©†dku
+25C3:0846 3C14           CMP     AL,14           ; je podteáen° pod okraj ?
+25C3:0848 7702           JA     084C             ; nen° pod spodn°m okrajem
+25C3:084A 0450           ADD     AL,50           ; korekce na horn° okraj
+25C3:084C A2E609       * MOV     [09E6],AL       ; nov† pozice kurzoru
+25C3:084F C3             RET
+
+                                               ;* Insert - poloëen° figurky
+25C3:0850 803EE70902     CMP     Byte Ptr [09E7],02 ; áek† se na poloëen° ?
+25C3:0855 750B           JNZ     0862            ; neáek† se na Insert
+25C3:0857 A0E609         MOV     AL,[09E6]       ; pozice kurzoru
+25C3:085A A2EA09         MOV     [09EA],AL       ; nov† pozice figurky
+25C3:085D C606E70900     MOV     Byte Ptr [09E7],00 ; p©°znak stavu klidu
+25C3:0862 C3           * RET
+
+                                               ;* Delete - uchopen° figurky
+25C3:0863 803EE70901     CMP     Byte Ptr [09E7],01 ; áek† se na uchopen° ?
+25C3:0868 75F8           JNZ     0862            ; neáek† se na uchopen°
+25C3:086A B700           MOV     BH,00
+25C3:086C 8A1EE609       MOV     BL,[09E6]       ; pozice kurzoru
+25C3:0870 8A87D100       MOV     AL,[BX+00D1]    ; p©en†®en† figurka
+25C3:0874 3C00           CMP     AL,00           ; je nàjak† figurka ?
+25C3:0876 741B           JZ     0893             ; nen° figurka
+25C3:0878 3206CE09       XOR     AL,[09CE]       ; je to figurka spr†vnÇ barvy ?
+25C3:087C 7915           JNS     0893            ; je to ®patn† figurka
+25C3:087E 881EE909       MOV     [09E9],BL       ; vòchoz° pozice figurky
+25C3:0882 8A87D100       MOV     AL,[BX+00D1]    ; p©en†®en† figurka
+25C3:0886 A2E809         MOV     [09E8],AL       ; p©en†®en† figurka
+25C3:0889 C687D10000     MOV     Byte Ptr [BX+00D1],00 ; vektor ®achovnice
+25C3:088E C606E70902     MOV     Byte Ptr [09E7],02 ; p©°znak áek†n° na poloëen°
+25C3:0893 C3           * RET
+
+; -----------------------------------------------------------------------------
+;                         konec hry - nàkdo vyhr†l
+; -----------------------------------------------------------------------------
+
+25C3:0894 B408           MOV     AH,08
+25C3:0896 CD21           INT     21              ; vstup znaku z konzoly bez echa
+25C3:0898 B80200         MOV     AX,0002
+25C3:089B CD10           INT     10              ; nastaven° videom¢du 2
+25C3:089D FF2EEC09       JMP     FAR [09EC]      ; skok na adresu PSP:0
+                         db      0
+; -----------------------------------------------------------------------------
+;        test, zda je nàjak† figurka, s kterou lze t†hnout
+; -----------------------------------------------------------------------------
+
+25C3:08A2 A0CF09       * MOV     AL,[09CF]       ; barva aktivn°ho hr†áe
+25C3:08A5 E84400         CALL     08EC      ; test okol° aktivn° figurky
+25C3:08A8 A2D709         MOV     [09D7],AL
+25C3:08AB 8B16CC09       MOV     DX,[09CC]  ; ukazatel v z†sobn°ku tahñ
+25C3:08AF 8B1EC209       MOV     BX,[09C2]
+25C3:08B3 895702         MOV     [BX+02],DX
+25C3:08B6 83C304         ADD     BX,+04
+25C3:08B9 891EC209       MOV     [09C2],BX
+25C3:08BD 891ECA09       MOV     [09CA],BX
+25C3:08C1 BB1500         MOV     BX,0015    ; prvn° pol°áko ®achovnice
+
+25C3:08C4 891EB209       MOV     [09B2],BX  ; ukazatel v ®achovnici
+25C3:08C8 8A87D100       MOV     AL,[BX+00D1] ; k†men na ®achovnici
+25C3:08CC 3C00           CMP     AL,00      ; je pr†zdnÇ pole ?
+25C3:08CE 7410           JZ     08E0        ; pr†zdnÇ pole - dal®°
+25C3:08D0 3CFF           CMP     AL,FF      ; mimo ®achovnici ?
+25C3:08D2 740C           JZ     08E0        ; je mimo - konec
+25C3:08D4 A2D009         MOV     [09D0],AL  ; testovan† figurka
+25C3:08D7 3206CF09       XOR     AL,[09CF]  ; je to figurka hr†áe ?
+25C3:08DB 7803           JS     08E0        ; nen° - dal®°
+25C3:08DD E85001         CALL     0A30      ; test, zda lze s figurkou t†hnout
+
+25C3:08E0 8B1EB209     * MOV     BX,[09B2]
+25C3:08E4 43             INC     BX
+25C3:08E5 80FB63         CMP     BL,63                         ;'c'
+25C3:08E8 72DA           JB     08C4
+25C3:08EA C3             RET
+                         db      0
+; -----------------------------------------------------------------------------
+;        test okol° aktivn° figurky (AL=barva protihr†áe)
+; -----------------------------------------------------------------------------
+
+25C3:08EC D0C0         * ROL     AL,1            ; barva -> bit 0
+25C3:08EE 250100         AND     AX,1            ; barva protihr†áe
+25C3:08F1 8BD8           MOV     BX,AX           ; BX <- barva prohr†áe (1=b°l†)
+25C3:08F3 8A9F7901       MOV     BL,[BX+0179]    ; pozice kurzoru b°lò/áernò
+25C3:08F7 B700           MOV     BH,00           ; BH <- 0
+25C3:08F9 891EB609       MOV     [09B6],BX       ; pracovn° pozice hr†áe
+25C3:08FD 8A87D100       MOV     AL,[BX+00D1]    ; figurka na pozici
+25C3:0901 A2D009         MOV     [09D0],AL       ; figurka p©i testu
+25C3:0904 2407           AND     AL,07
+25C3:0906 A2BA09         MOV     [09BA],AL       ; figurka p©i testu
+25C3:0909 E8ECF7         CALL     00F8           ; test okol° figurky
+25C3:090C C3             RET
+; -----------------------------------------------------------------------------
+;                           Inicializace ®achovnice
+; -----------------------------------------------------------------------------
+                                               ;* inicializace ®achovnice
+
+25C3:090e 8D3Ed100       LEA     DI,[00d1]       ; mapa ®achovnice
+25C3:0912 B97800         MOV     CX,0078         ; dÇlka mapy ®achovnice
+25C3:0915 B0FF           MOV     AL,FF           ; nulovac° bajt
+25C3:0917 FC             CLD
+25C3:0918 F3             REPZ
+25C3:0919 AA             STOSB                   ; vymaz†n° mapy ®achovnice
+                                               ;* rozm°stàn° figurek
+25C3:091A BB0000         MOV     BX,0000         ; offset v ®achovnici
+25C3:091D 8A87C900     * MOV     AL,[BX+00C9]    ; áern† figurka
+25C3:0921 8887E600       MOV     [BX+00E6],AL    ; um°stàn° áernÇ figurky
+25C3:0925 0C80           OR     AL,80            ; p©°znak b°lÇ figurky
+25C3:0927 88872C01       MOV     [BX+012C],AL    ; um°stàn° b°lÇ figurky
+25C3:092B B001           MOV     AL,01           ; áernò pà®ec
+25C3:092D 8887F000       MOV     [BX+00F0],AL    ; um°stàn° áernÇho pà®ce
+25C3:0931 0C80           OR     AL,80            ; p©°znak b°lÇ figurky
+25C3:0933 88872201       MOV     [BX+0122],AL    ; um°stàn° b°lÇho pà®ce
+25C3:0937 B000           MOV     AL,00           ; nulovac° bajt
+25C3:0939 8887FA00       MOV     [BX+00FA],AL    ; ostatn° ©†dky se vymaëou
+25C3:093D 88870401       MOV     [BX+0104],AL
+25C3:0941 88870E01       MOV     [BX+010E],AL
+25C3:0945 88871801       MOV     [BX+0118],AL
+25C3:0949 43             INC     BX              ; zvò®en° ukazatele ®achovnice
+25C3:094A 83FB08         CMP     BX,+08          ; jsou jië v®echny sloupce ?
+25C3:094D 72CE           JB     091D             ; nejsou je®tà v®echny sloupce
+25C3:094F C606790119     MOV     Byte Ptr [0179],19 ; pozice kurzoru b°lÇho
+25C3:0954 C6067A015F     MOV     Byte Ptr [017A],5F ; pozice kurzoru áernÇho
+25C3:0959 C6067B0118     MOV     Byte Ptr [017B],18 ; b°l† d†ma
+25C3:095E C6067C015E     MOV     Byte Ptr [017C],5E ; áern† d†ma
+25C3:0963 C3             RET
+; -----------------------------------------------------------------------------
+;                        Volba barvy a £rovnà
+; -----------------------------------------------------------------------------
+                                               ;* volba barvy a £rovnà
+
+25C3:0964 8D162C10     * LEA     DX,[102C]       ; text "WHICH COLOR..."
+25C3:0968 B409           MOV     AH,09
+25C3:096A CD21           INT     21              ; zobrazen° "WHICH COLOR..."
+25C3:096C B401           MOV     AH,01
+25C3:096E CD21           INT     21              ; vstup z konzoly s echem
+25C3:0970 3C57           CMP     AL,57           ; je "W" (b°l† barva) ?
+25C3:0972 740C           JZ     0980             ; je b°l† barva hr†áe
+25C3:0974 3C42           CMP     AL,42           ; je "B" (áern† barva hr†áe) ?
+25C3:0976 75EC           JNZ     0964            ; chyba zad†n° - znovu
+25C3:0978 C606CE0900     MOV     Byte Ptr [09CE],00 ; hr†á m† áernou barvu
+25C3:097D EB06           JMP     0985
+25C3:097F 90             NOP
+25C3:0980 C606CE0980   * MOV     Byte Ptr [09CE],80 ; hr†á m† b°lou barvu
+
+25C3:0985 8D165010     * LEA     DX,[1050]       ; text "WHICH LEVEL..."
+25C3:0989 B409           MOV     AH,09
+25C3:098B CD21           INT     21              ; zobrazen° "WHICH LEVEL..."
+25C3:098D B401           MOV     AH,01
+25C3:098F CD21           INT     21              ; vstup znaku z echem
+25C3:0991 2C30           SUB     AL,30           ; korekce na bin†rn° á°slo
+25C3:0993 3C01           CMP     AL,01           ; minim†ln° á°slo = 1
+25C3:0995 72EE           JB     0985             ; chybnÇ zad†n°
+25C3:0997 3C06           CMP     AL,06           ; maxim†ln° á°slo = 6
+25C3:0999 77EA           JA     0985             ; chybnÇ zad†n°
+25C3:099B A2D509         MOV     [09D5],AL       ; £rove§ hry 1 aë 6
+25C3:099E C3             RET
+
+                         db     0
+
+; -----------------------------------------------------------------------------
+;        omezen° á°sla AL na CH (absolutnà)
+; -----------------------------------------------------------------------------
+
+                                               ;* kontrola p©ekroáen° á°sla AL
+
+25C3:09A0 22C0           AND    AL,AL            ; test AL
+25C3:09A2 9F             LAHF                    ; £schova registru p©°znakñ
+25C3:09A3 7902           JNS    09A7             ; je kladnÇ á°slo
+25C3:09A5 F6D8           NEG    AL               ; absolutn° hodnota á°sla
+25C3:09A7 3AC5         * CMP    AL,CH
+25C3:09A9 7202           JB     09AD
+25C3:09AB 8AC5           MOV     AL,CH
+25C3:09AD 9E           * SAHF                    ; n†vrat registru p©°znakñ
+25C3:09AE 7902           JNS     09B2            ; bylo to kladnÇ á°slo
+25C3:09B0 F6D8           NEG     AL              ; n†vrat z†pornÇho á°sla
+25C3:09B2 C3             RET
+
+                         db     0
+
+; -----------------------------------------------------------------------------
+;        proveden° jednoho tahu
+; -----------------------------------------------------------------------------
+
+25C3:09B4 8B36C409       MOV    SI,[09C4]   ; ukazatel v bufferu tahñ
+25C3:09B8 B700           MOV    BH,00
+25C3:09BA 8A7404         MOV    DH,[SI+04]  ; c°lov† figurka
+25C3:09BD 8A5C02         MOV     BL,[SI+02] ; vòchoz° pozice
+25C3:09C0 8BFB           MOV     DI,BX      ; vòchoz° pozice
+25C3:09C2 8A5C03         MOV     BL,[SI+03] ; c°lov† pozice
+25C3:09C5 8BF3           MOV     SI,BX      ; c°lov† pozice
+25C3:09C7 8A95D100       MOV     DL,[DI+00D1] ; figurka, kter† t†hne
+25C3:09CB 8ADA           MOV     BL,DL      ; £schova figurky k t†hnut°
+25C3:09CD D0C3           ROL     BL,1
+25C3:09CF 81E30100       AND     BX,0001    ; barva figurky
+25C3:09D3 F6C620         TEST     DH,20     ; n†hrada pà®†ka d†mou ?
+25C3:09D6 752F           JNZ     0A07       ; je n†hrada pà®†ka d†mou
+25C3:09D8 8AC2           MOV     AL,DL      ; aktivn° figurka
+25C3:09DA 2407           AND     AL,07      ; zru®en° barvy
+25C3:09DC 3C05           CMP     AL,05      ; je d†ma ?
+25C3:09DE 742F           JZ     0A0F        ; je d†ma
+25C3:09E0 3C06           CMP     AL,06      ; je kr†l ?
+25C3:09E2 7433           JZ     0A17        ; je kr†l
+
+25C3:09E4 80CA08         OR     DL,08
+25C3:09E7 8894D100       MOV     [SI+00D1],DL ; aktivn° figurka na novÇ pozici
+25C3:09EB C685D10000     MOV     Byte Ptr [DI+00D1],00 ; zru®en° aktivn° figurky
+25C3:09F0 F6C640         TEST     DH,40     ; bude dal®° tah ?
+25C3:09F3 7532           JNZ     0A27       ; bude dal®° tah (ro®†da)
+25C3:09F5 8AC6           MOV     AL,DH      ; ru®en† figurka
+25C3:09F7 2407           AND     AL,07      ; zru®en° barvy
+25C3:09F9 3C05           CMP     AL,05      ; byla to d†ma ?
+25C3:09FB 7509           JNZ     0A06       ; nebyla to d†ma
+25C3:09FD 81F30100       XOR     BX,0001
+25C3:0A01 C6877B0100     MOV     Byte Ptr [BX+017B],00 ; zru®en° pozice d†my
+25C3:0A06 C3             RET
+
+; ------ n†hrada pà®†ka d†mou
+
+25C3:0A07 80E2F8       * AND     DL,F8      ; zru®en° figurky
+25C3:0A0A 80CA05         OR     DL,05       ; n†hrada d†mou
+25C3:0A0D EBD5           JMP     09E4
+
+; ------ tah d†mou - nov† pozice
+
+25C3:0A0F 8BC6           MOV     AX,SI      ; c°lov† pozice figurky
+25C3:0A11 88877B01       MOV     [BX+017B],AL ; nov† pozice d†my
+25C3:0A15 EBCD           JMP     09E4
+
+; ------- tah kr†lem
+
+25C3:0A17 F6C640         TEST     DH,40     ; byla to ro®†da ?
+25C3:0A1A 7403           JZ     0A1F        ; nebyla ro®†da
+25C3:0A1C 80CA10         OR     DL,10       ; p©°znak 2. tahu ro®†dy
+
+25C3:0A1F 8BC6         * MOV     AX,SI
+25C3:0A21 88877901       MOV     [BX+0179],AL    ; nov† pozice kurzoru
+25C3:0A25 EBBD           JMP     09E4
+
+25C3:0A27 8B36C409     * MOV     SI,[09C4]
+25C3:0A2B 83C606         ADD     SI,+06
+25C3:0A2E EB88           JMP     09B8
+
+; -----------------------------------------------------------------------------
+;        test, zda lze s figurkou t†hnout
+; -----------------------------------------------------------------------------
+
+; ------ p©°prava poátu a adresy moënòch tahñ figurky
+
+25C3:0A30 A0D009         MOV     AL,[09D0]  ; testovan† figurka
+25C3:0A33 2487           AND     AL,87      ; figurka s barvou
+25C3:0A35 3C81           CMP     AL,81      ; je áernò pà®†k ?
+25C3:0A37 7502           JNZ     0A3B       ; nen° áernò pà®†k
+25C3:0A39 FEC8           DEC     AL         ; n†hradnò á°slo figurky 0
+25C3:0A3B 2407         * AND     AL,07      ; zru®en° barvy
+25C3:0A3D A2BA09         MOV     [09BA],AL  ; figurka
+25C3:0A40 B700           MOV     BH,00
+25C3:0A42 8AD8           MOV     BL,AL      ; figurka
+25C3:0A44 8AAFBB00       MOV     CH,[BX+00BB] ; poáet moënòch tahñ
+25C3:0A48 8A9FB400       MOV     BL,[BX+00B4] ; adresa moënòch tahñ
+25C3:0A4C 8BFB           MOV     DI,BX      ; adresa moënòch tahñ figurky
+
+; --------- test jednoho tahu figurky
+
+25C3:0A4E 8A8D9C00     * MOV     CL,[DI+009C]    ; moënò smàr tahu figurky
+25C3:0A52 A0B209         MOV     AL,[09B2]  ; pozice figurky
+25C3:0A55 A2B409         MOV     [09B4],AL       ; pozice p©i pokusu o tah
+
+; ------- test jednoho kroku
+
+25C3:0A58 E89B00         CALL     0AF6           ; pokus o tah danòm smàrem
+
+25C3:0A5B 3C02           CMP     AL,02      ; je skok na vlastn° nebo ven ?
+25C3:0A5D 731B           JNB     0A7A       ; skok na vlastn° nebo ven - chyba
+
+25C3:0A5F 3C00           CMP     AL,00      ; je pr†zdnÇ ?
+25C3:0A61 9F             LAHF               ; £schova p©°znakñ
+25C3:0A62 A0BA09         MOV     AL,[09BA]  ; figurka
+25C3:0A65 3C01           CMP     AL,01      ; je pà®†k ?
+25C3:0A67 7621           JBE     0A8A       ; pà®†k nebo pr†zdnÇ pol°áko
+25C3:0A69 E894F5         CALL     0000      ; uloëen° definice do z†sobn°ku tahñ
+25C3:0A6C 9E             SAHF               ; n†vrat p©°znakñ
+25C3:0A6D 750B           JNZ     0A7A       ; nen° pr†zdnÇ pol°áko
+25C3:0A6F A0BA09         MOV     AL,[09BA]  ; figurka
+25C3:0A72 3C06           CMP     AL,06      ; je kr†l ?
+25C3:0A74 7404           JZ     0A7A        ; je kr†l - nelze dal®° krok
+25C3:0A76 3C03           CMP     AL,03      ; je st©elec, vàë nebo d†ma ?
+25C3:0A78 73DE           JNB     0A58       ; st©elec, vàë nebo d†ma-dal®° krok
+
+
+25C3:0A7A 47           * INC     DI
+25C3:0A7B FECD           DEC     CH
+25C3:0A7D 75CF           JNZ     0A4E
+25C3:0A7F A0BA09         MOV     AL,[09BA]
+25C3:0A82 3C06           CMP     AL,06
+25C3:0A84 7503           JNZ     0A89
+25C3:0A86 E855F7         CALL     01DE           ; test ro®†dy
+25C3:0A89 C3             RET
+
+25C3:0A8A 80FD03         CMP     CH,03      ;
+25C3:0A8D 722C           JB     0ABB
+25C3:0A8F 7422           JZ     0AB3
+25C3:0A91 9E             SAHF               ; jinak je prvn° tah - p©°mo
+25C3:0A92 75E6           JNZ     0A7A       ; nen° pr†zdnÇ pole - chyba
+
+25C3:0A94 A0B409         MOV     AL,[09B4]       ; pozice p©i pokusu o tah
+25C3:0A97 3C5B           CMP     AL,5B                         ;'['
+25C3:0A99 7304           JNB     0A9F
+25C3:0A9B 3C1D           CMP     AL,1D
+25C3:0A9D 7305           JNB     0AA4
+25C3:0A9F 800ED10920   * OR     Byte Ptr [09D1],20 ; p©°znak posl. ©ady pà®†kem
+25C3:0AA4 E859F5       * CALL     0000      ; uloëen° definice do z†sobn°ku tahñ
+25C3:0AA7 47             INC     DI
+25C3:0AA8 FECD           DEC     CH
+25C3:0AAA F606D00908     TEST     Byte Ptr [09D0],08
+25C3:0AAF 74A7           JZ     0A58        ; dal®° krok
+25C3:0AB1 75C7           JNZ     0A7A
+
+25C3:0AB3 9E             SAHF
+25C3:0AB4 75C4           JNZ     0A7A
+25C3:0AB6 E847F5         CALL     0000      ; uloëen° definice do z†sobn°ku tahñ
+25C3:0AB9 EBBF           JMP     0A7A
+
+25C3:0ABB 9E             SAHF
+25C3:0ABC 7412           JZ     0AD0
+25C3:0ABE A0B409         MOV     AL,[09B4]       ; pozice p©i pokusu o tah
+25C3:0AC1 3C5B           CMP     AL,5B                         ;'['
+25C3:0AC3 7304           JNB     0AC9
+25C3:0AC5 3C1D           CMP     AL,1D
+25C3:0AC7 73ED           JNB     0AB6
+25C3:0AC9 800ED10920     OR     Byte Ptr [09D1],20            ;' '
+25C3:0ACE EBE6           JMP     0AB6
+25C3:0AD0 E8BFF9         CALL     0492
+25C3:0AD3 EBA5           JMP     0A7A
+25C3:0AD5 004586         ADD     [DI-7A],AL
+25C3:0AD8 E987FE         JMP     0962
+25C3:0ADB B80000         MOV     AX,0000
+25C3:0ADE 80FD00         CMP     CH,00
+25C3:0AE1 7412           JZ     0AF5
+25C3:0AE3 FECD           DEC     CH
+25C3:0AE5 FC             CLD
+25C3:0AE6 AF             SCASW
+25C3:0AE7 74FD           JZ     0AE6
+25C3:0AE9 4F             DEC     DI
+25C3:0AEA 4F             DEC     DI
+25C3:0AEB 8B05           MOV     AX,[DI]
+25C3:0AED 8825           MOV     [DI],AH
+25C3:0AEF C6450100       MOV     Byte Ptr [DI+01],00
+25C3:0AF3 02C0           ADD     AL,AL
+25C3:0AF5 C3             RET
+
+; -----------------------------------------------------------------------------
+                                               ;* pokus o tah danòm smàrem
+                                                 ; VSTUP: CL=p©°rustek skoku
+                                                 ; VùSTUP: AL=0 - pr†zdnÇ pole
+                                                 ;         AL=1 - na soupe©e
+                                                 ;         AL=2 - na vlastn°
+                                                 ;         AL=3 - tah ven
+
+25C3:0AF6 8B1EB409       MOV     BX,[09B4]       ; pozice p©i pokusu o tah
+25C3:0AFA 02D9           ADD     BL,CL           ; zvò®en° pozice o tah
+25C3:0AFC 891EB409       MOV     [09B4],BX       ; nov† pozice p©i pokusu o tah
+25C3:0B00 8A87D100       MOV     AL,[BX+00D1]    ; obsah novÇ pozice
+25C3:0B04 3CFF           CMP     AL,FF           ; je zak†zan† oblast ?
+25C3:0B06 7419           JZ     0B21             ; je tah ven z ®achovnice
+25C3:0B08 A2D109         MOV     [09D1],AL       ; pñvodn° obsah na pol°áku
+25C3:0B0B 2407           AND     AL,07           ; zru®en° p©°znaku barvy
+25C3:0B0D A2BC09         MOV     [09BC],AL       ; ru®en† figurka
+25C3:0B10 7411           JZ     0B23             ; pr†zdnÇ pol°áko
+25C3:0B12 A0D109         MOV     AL,[09D1]       ; pñvodn° obsah pol°áka
+25C3:0B15 3206D009       XOR     AL,[09D0]       ; test barvy figurky
+25C3:0B19 7903           JNS     0B1E            ; stejn† barva - chyba
+25C3:0B1B B001           MOV     AL,01           ; skok na soupe©e - OK
+25C3:0B1D C3             RET
+
+25C3:0B1E B002         * MOV     AL,02           ; p©°znak - skok na vlastn°
+25C3:0B20 C3             RET
+
+25C3:0B21 B003         * MOV     AL,03           ; p©°znak - tah je ven
+25C3:0B23 C3           * RET
+; -----------------------------------------------------------------------------
+;        hodnocen° jednoho stavu ®achovnice
+; -----------------------------------------------------------------------------
+
+25C3:0B24 C706C0090000   MOV     Word Ptr [09C0],0000
+25C3:0B2A BE0000         MOV     SI,0000
+25C3:0B2D 8A9C7901       MOV     BL,[SI+0179]    ; pozice kurzoru b°lÇho
+25C3:0B31 80FB00         CMP     BL,00
+25C3:0B34 7503           JNZ     0B39
+25C3:0B36 E9B500         JMP     0BEE
+
+25C3:0B39 80FBFF         CMP     BL,FF
+25C3:0B3C 7501           JNZ     0B3F
+25C3:0B3E C3             RET
+
+25C3:0B3F B700           MOV     BH,00
+25C3:0B41 891EB609       MOV     [09B6],BX       ; testovan† pozice
+25C3:0B45 8A87D100       MOV     AL,[BX+00D1]    ; vektor ®achovnice
+25C3:0B49 A2D009         MOV     [09D0],AL       ; testovan† figurka
+25C3:0B4C B508           MOV     CH,08           ; poáet pokusñ
+25C3:0B4E BF0000         MOV     DI,0000
+25C3:0B51 A0B609         MOV     AL,[09B6]       ; testovan† pozice
+25C3:0B54 A2B409         MOV     [09B4],AL       ; pozice p©i pokusu o tah
+25C3:0B57 C606B80900     MOV     Byte Ptr [09B8],00
+25C3:0B5C 8A8D9C00       MOV     CL,[DI+009C]
+
+25C3:0B60 E893FF       * CALL     0AF6           ; pokus o tah danòm smàrem
+25C3:0B63 3C00           CMP     AL,00
+25C3:0B65 74F9           JZ     0B60             ; je pr†zdnÇ pole - dal®°
+25C3:0B67 3C03           CMP     AL,03
+25C3:0B69 747B           JZ     0BE6             ; tah ven
+25C3:0B6B 3C02           CMP     AL,02           ; skok na vlastn°
+25C3:0B6D 741F           JZ     0B8E
+
+25C3:0B6F 803EB80900     CMP     Byte Ptr [09B8],00
+25C3:0B74 7470           JZ     0BE6
+25C3:0B76 A0BC09         MOV     AL,[09BC]       ; pñvodn° figurka
+25C3:0B79 3C05           CMP     AL,05           ; byla to d†ma ?
+25C3:0B7B 7420           JZ     0B9D             ; byla to d†ma
+25C3:0B7D 80FD05         CMP     CH,05
+25C3:0B80 7206           JB     0B88
+25C3:0B82 3C03           CMP     AL,03           ; byl to st©elece ?
+25C3:0B84 7560           JNZ     0BE6            ; nebyl to st©elec
+25C3:0B86 744A           JZ     0BD2             ; byl to st©elec - OK
+
+25C3:0B88 3C04           CMP     AL,04           ; byla to vàë ?
+25C3:0B8A 755A           JNZ     0BE6            ; nebyla to vàë
+25C3:0B8C 7444           JZ     0BD2             ; byla to vàë
+
+25C3:0B8E 803EB80900     CMP     Byte Ptr [09B8],00
+25C3:0B93 7551           JNZ     0BE6
+25C3:0B95 A0B409         MOV     AL,[09B4]       ; pozice p©i pokusu o tah
+25C3:0B98 A2B809         MOV     [09B8],AL
+25C3:0B9B EBC3           JMP     0B60
+
+25C3:0B9D A0D009       * MOV     AL,[09D0]       ; testovan† figurka
+25C3:0BA0 2407           AND     AL,07           ; zru®en° barvy
+25C3:0BA2 3C05           CMP     AL,05           ; byla to d†ma ?
+25C3:0BA4 752C           JNZ     0BD2            ; nebyla to d†ma - dobrò tah
+
+25C3:0BA6 51             PUSH     CX
+25C3:0BA7 57             PUSH     DI
+25C3:0BA8 B000           MOV     AL,00
+25C3:0BAA B90E00         MOV     CX,000E
+25C3:0BAD 8D3E4901       LEA     DI,[0149]
+25C3:0BB1 FC             CLD
+25C3:0BB2 F3             REPZ
+25C3:0BB3 AB             STOSW
+25C3:0BB4 C606BA0907     MOV     Byte Ptr [09BA],07
+25C3:0BB9 E83CF5         CALL     00F8      ; test okol° figurky
+25C3:0BBC 5F             POP     DI
+25C3:0BBD 59             POP     CX
+25C3:0BBE A04901         MOV     AL,[0149]
+25C3:0BC1 2A065701       SUB     AL,[0157]
+25C3:0BC5 F606D00980     TEST     Byte Ptr [09D0],80
+25C3:0BCA 7402           JZ     0BCE
+25C3:0BCC F6D8           NEG     AL
+25C3:0BCE FEC8           DEC     AL
+25C3:0BD0 7914           JNS     0BE6
+
+25C3:0BD2 8B1EC009       MOV     BX,[09C0]
+25C3:0BD6 43             INC     BX
+25C3:0BD7 891EC009       MOV     [09C0],BX
+25C3:0BDB 888F6F01       MOV     [BX+016F],CL
+25C3:0BDF A0B809         MOV     AL,[09B8]
+25C3:0BE2 88876501       MOV     [BX+0165],AL
+
+25C3:0BE6 47             INC     DI
+25C3:0BE7 FECD           DEC     CH
+25C3:0BE9 7403           JZ     0BEE
+25C3:0BEB E963FF         JMP     0B51
+
+25C3:0BEE 46             INC     SI
+25C3:0BEF E93BFF         JMP     0B2D
+
+; -----------------------------------------------------------------------------
+;                             Tah hr†áe
+; -----------------------------------------------------------------------------
+                                          ;* volba tahu hr†áe
+
+25C3:0BF2 B042           MOV     AL,42           ; "B" - áern†
+25C3:0BF4 8A267A01       MOV     AH,[017A]       ; pozice kurzoru áernÇho
+25C3:0BF8 803ECE0900     CMP     Byte Ptr [09CE],00 ; m† hr†á áernou ?
+25C3:0BFD 7406           JZ     0C05             ; hr†á m† áernou
+25C3:0BFF B057           MOV     AL,57           ; b°l† barva
+25C3:0C01 8A267901       MOV     AH,[0179]       ; pozice kurzoru b°lÇho
+25C3:0C05 A2A210       * MOV     [10A2],AL       ; znak barvy hr†áe "Delete"
+25C3:0C08 A2C710         MOV     [10C7],AL       ; znak barvy hr†áe "Insert"
+25C3:0C0B 8826E609       MOV     [09E6],AH       ; aktu†ln° pozice kurzoru
+                                               ;* zvednut° figurky
+25C3:0C0F C606E70901   * MOV     Byte Ptr [09E7],01 ; p©°znak áek†n° na DEL
+25C3:0C14 E863F6         CALL     027A           ; vymaz†n° textovÇho ©†dku
+25C3:0C17 8D169B10       LEA     DX,[109B]       ; text "PICK UP ..."
+25C3:0C1B B409           MOV     AH,09
+25C3:0C1D CD21           INT     21              ; zobrazen° textu "PICK UP..."
+25C3:0C1F B700         * MOV     BH,00           ; BH <- 0
+25C3:0C21 8A1EE609       MOV     BL,[09E6]       ; pozice kurzoru
+25C3:0C25 8A97D100       MOV     DL,[BX+00D1]    ; figurka na pozici kurzoru
+25C3:0C29 8AF2           MOV     DH,DL           ; £schova figurky
+25C3:0C2B 80F680         XOR     DH,80           ; inverzn° figurka
+25C3:0C2E B501           MOV     CH,01           ; poáet cyklñ = 1
+25C3:0C30 E8B5F9         CALL     05E8           ; obsluha kurzoru
+25C3:0C33 803EE70901     CMP     Byte Ptr [09E7],01 ; áek† se na zvednut° ?
+25C3:0C38 74E5           JZ     0C1F             ; áek†n° na zvednut° figurky
+                                               ;* poloëen° figurky
+25C3:0C3A E83DF6         CALL     027A           ; vymaz†n° textovÇho ©†dku
+25C3:0C3D 8D16C010       LEA     DX,[10C0]       ; text "PLACE PIECE..."
+25C3:0C41 B409           MOV     AH,09
+25C3:0C43 CD21           INT     21              ; zobrazen° textu "PLACE ..."
+25C3:0C45 B700         * MOV     BH,00           ; BH <- 0
+25C3:0C47 8A1EE609       MOV     BL,[09E6]       ; pozice kurzoru
+25C3:0C4B 8A97D100       MOV     DL,[BX+00D1]    ; figurka na pozici kurzoru
+25C3:0C4F 8A36E809       MOV     DH,[09E8]       ; p©en†®en† figurka
+25C3:0C53 B501           MOV     CH,01           ; poáet cyklñ = 1
+25C3:0C55 E890F9         CALL     05E8           ; obsluha kurzoru
+25C3:0C58 803EE70902     CMP     Byte Ptr [09E7],02 ; áek† se na poloëen° ?
+25C3:0C5D 74E6           JZ     0C45             ; áek†n° na poloëen° figurky
+                                               ;* test navr†cen° figurky
+25C3:0C5F B700           MOV     BH,00           ; BH <- 0
+25C3:0C61 8A1EE909       MOV     BL,[09E9]       ; vòchoz° pozice figurky
+25C3:0C65 A0E809         MOV     AL,[09E8]       ; p©en†®en† figurka
+25C3:0C68 8887D100       MOV     [BX+00D1],AL    ; navr†cen° figurky zpàt
+25C3:0C6C 8AD3           MOV     DL,BL           ; vòchoz° pozice p©en†®en°
+25C3:0C6E 8A36EA09       MOV     DH,[09EA]       ; nov† pozice figurky
+25C3:0C72 3AD6           CMP     DL,DH           ; je stejn† pozice ?
+25C3:0C74 7499           JZ     0C0F             ; figurka navr†cena - znovu
+                                               ;* test spr†vnosti tahu
+25C3:0C76 E8CF02         CALL     0F48           ; test spr†vnosti tahu
+25C3:0C79 731B           JNB     0C96            ; tah je OK - nov† pozice
+25C3:0C7B E8FCF5         CALL     027A           ; vymaz†n° textovÇho ©†dku
+25C3:0C7E 8D168010       LEA     DX,[1080]       ; text "INVALID MOVE"
+25C3:0C82 B409           MOV     AH,09
+25C3:0C84 CD21           INT     21              ; zobrazen° textu "INVALID MOVE"
+25C3:0C86 A0E909         MOV     AL,[09E9]       ; vòchoz° pozice figurky
+25C3:0C89 A2E609         MOV     [09E6],AL       ; pozice kurzoru
+25C3:0C8C 8A16E809       MOV     DL,[09E8]       ; p©en†®en† figurka
+25C3:0C90 E8F3F6         CALL     0386           ; zobrazen° pol°áka
+25C3:0C93 E979FF         JMP     0C0F            ; nov† volba tahu
+
+                                               ;* zobrazen° novÇ pozice figurky
+25C3:0C96 A0EA09       * MOV     AL,[09EA]       ; nov† pozice figurky
+25C3:0C99 B700           MOV     BH,00           ; BH <- 0
+25C3:0C9B 8AD8           MOV     BL,AL           ; BX <- nov† pozice figurky
+25C3:0C9D 8A97D100       MOV     DL,[BX+00D1]    ; vektor ®achovnice
+25C3:0CA1 E8E2F6         CALL     0386           ; zobrazen° pol°áka
+25C3:0CA4 E883F8         CALL     052A           ; volba tahu pro ro®†du
+25C3:0CA7 C3             RET
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+25C3:0CA8 B000           MOV     AL,00
+25C3:0CAA A2DE09         MOV     [09DE],AL
+25C3:0CAD A2DA09         MOV     [09DA],AL
+25C3:0CB0 A2DB09         MOV     [09DB],AL
+25C3:0CB3 A2DC09         MOV     [09DC],AL
+25C3:0CB6 A2DD09         MOV     [09DD],AL
+25C3:0CB9 A2E109         MOV     [09E1],AL
+25C3:0CBC C606BA0907     MOV     Byte Ptr [09BA],07
+25C3:0CC1 BB1500         MOV     BX,0015
+25C3:0CC4 891EB609       MOV     [09B6],BX
+25C3:0CC8 8A87D100       MOV     AL,[BX+00D1] ; vektor ®achovnice
+25C3:0CCC 3CFF           CMP     AL,FF
+25C3:0CCE 7503           JNZ     0CD3
+25C3:0CD0 E9BD00         JMP     0D90
+
+25C3:0CD3 8AC8           MOV     CL,AL
+25C3:0CD5 A2D009         MOV     [09D0],AL
+25C3:0CD8 2407           AND     AL,07
+25C3:0CDA A2BE09         MOV     [09BE],AL
+25C3:0CDD 3C01           CMP     AL,01
+25C3:0CDF 763B           JBE     0D1C
+25C3:0CE1 3C04           CMP     AL,04
+25C3:0CE3 7225           JB     0D0A
+25C3:0CE5 3C06           CMP     AL,06
+25C3:0CE7 7409           JZ     0CF2
+25C3:0CE9 803ED40907     CMP     Byte Ptr [09D4],07 ; á°taá tahñ
+25C3:0CEE 7213           JB     0D03
+25C3:0CF0 7311           JNB     0D03
+25C3:0CF2 F6C110         TEST     CL,10
+25C3:0CF5 740C           JZ     0D03
+25C3:0CF7 B006           MOV     AL,06
+25C3:0CF9 F6C180         TEST     CL,80
+25C3:0CFC 741A           JZ     0D18
+25C3:0CFE F6D8           NEG     AL
+25C3:0D00 EB16           JMP     0D18
+25C3:0D02 90             NOP
+25C3:0D03 F6C108         TEST     CL,08
+25C3:0D06 7414           JZ     0D1C
+25C3:0D08 7505           JNZ     0D0F
+25C3:0D0A F6C108         TEST     CL,08
+25C3:0D0D 750D           JNZ     0D1C
+25C3:0D0F B002           MOV     AL,02
+25C3:0D11 F6C180         TEST     CL,80
+25C3:0D14 7502           JNZ     0D18
+25C3:0D16 F6D8           NEG     AL
+25C3:0D18 0006DA09       ADD     [09DA],AL
+25C3:0D1C B000           MOV     AL,00
+25C3:0D1E B90E00         MOV     CX,000E
+25C3:0D21 8D3E4901       LEA     DI,[0149]
+25C3:0D25 FC             CLD
+25C3:0D26 F3             REPZ
+25C3:0D27 AB             STOSW
+25C3:0D28 E8CDF3         CALL     00F8      ; test okol° figurky
+25C3:0D2B A04901         MOV     AL,[0149]
+25C3:0D2E 2A065701       SUB     AL,[0157]
+25C3:0D32 0006DA09       ADD     [09DA],AL
+25C3:0D36 803ED00900     CMP     Byte Ptr [09D0],00
+25C3:0D3B 7453           JZ     0D90
+25C3:0D3D E85E02         CALL     0F9E
+25C3:0D40 80FA00         CMP     DL,00
+25C3:0D43 743C           JZ     0D81
+25C3:0D45 FECE           DEC     DH
+25C3:0D47 A0D009         MOV     AL,[09D0]
+25C3:0D4A 3206CF09       XOR     AL,[09CF]
+25C3:0D4E 781C           JS     0D6C
+25C3:0D50 3A16DB09       CMP     DL,[09DB]
+25C3:0D54 722B           JB     0D81
+25C3:0D56 8816DB09       MOV     [09DB],DL
+25C3:0D5A 8B1EC409       MOV     BX,[09C4]
+25C3:0D5E A0B609         MOV     AL,[09B6]
+25C3:0D61 3A4703         CMP     AL,[BX+03]
+25C3:0D64 751B           JNZ     0D81
+25C3:0D66 A2E109         MOV     [09E1],AL
+25C3:0D69 EB16           JMP     0D81
+25C3:0D6B 90             NOP
+25C3:0D6C 8AC2           MOV     AL,DL
+25C3:0D6E 3A06DC09       CMP     AL,[09DC]
+25C3:0D72 7204           JB     0D78
+25C3:0D74 8606DC09       XCHG     AL,[09DC]
+25C3:0D78 3A06DD09       CMP     AL,[09DD]
+25C3:0D7C 7203           JB     0D81
+25C3:0D7E A2DD09         MOV     [09DD],AL
+25C3:0D81 8AC6           MOV     AL,DH
+25C3:0D83 F606D00980     TEST     Byte Ptr [09D0],80
+25C3:0D88 7402           JZ     0D8C
+25C3:0D8A F6D8           NEG     AL
+25C3:0D8C 0006DE09       ADD     [09DE],AL
+
+25C3:0D90 8B1EB609     * MOV     BX,[09B6]
+25C3:0D94 43             INC     BX
+25C3:0D95 83FB63         CMP     BX,+63
+25C3:0D98 7303           JNB     0D9D
+25C3:0D9A E927FF         JMP     0CC4
+25C3:0D9D 803EE10900     CMP     Byte Ptr [09E1],00
+25C3:0DA2 740B           JZ     0DAF
+25C3:0DA4 A0DD09         MOV     AL,[09DD]
+25C3:0DA7 A2DC09         MOV     [09DC],AL
+25C3:0DAA C606DD0900     MOV     Byte Ptr [09DD],00
+25C3:0DAF A0DB09         MOV     AL,[09DB]
+25C3:0DB2 3C00           CMP     AL,00
+25C3:0DB4 7402           JZ     0DB8
+25C3:0DB6 FEC8           DEC     AL
+25C3:0DB8 8AE8           MOV     CH,AL
+25C3:0DBA A0DC09         MOV     AL,[09DC]
+25C3:0DBD 3C00           CMP     AL,00
+25C3:0DBF 740B           JZ     0DCC
+25C3:0DC1 A0DD09         MOV     AL,[09DD]
+25C3:0DC4 3C00           CMP     AL,00
+25C3:0DC6 7404           JZ     0DCC
+25C3:0DC8 FEC8           DEC     AL
+25C3:0DCA D0E8           SHR     AL,1
+25C3:0DCC 2AC5           SUB     AL,CH
+25C3:0DCE F606CF0980     TEST     Byte Ptr [09CF],80
+25C3:0DD3 7402           JZ     0DD7
+25C3:0DD5 F6D8           NEG     AL
+25C3:0DD7 0206DE09     * ADD     AL,[09DE]
+25C3:0DDB 2A06E009       SUB     AL,[09E0]
+25C3:0DDF B51E           MOV     CH,1E           ; max. hodnota = 30
+25C3:0DE1 E8BCFB         CALL     09A0           ; omezen° á°sla AL na CH
+25C3:0DE4 8AD0           MOV     DL,AL
+25C3:0DE6 A0DA09         MOV     AL,[09DA]
+25C3:0DE9 2A06DF09       SUB     AL,[09DF]
+25C3:0DED 803EE10900     CMP     Byte Ptr [09E1],00
+25C3:0DF2 7402           JZ     0DF6
+25C3:0DF4 B000           MOV     AL,00
+25C3:0DF6 B506         * MOV     CH,06           ; max. hodnota = 6
+25C3:0DF8 E8A5FB         CALL     09A0           ; omezen° á°sla AL na CH
+25C3:0DFB D0E2           SHL     DL,1
+25C3:0DFD D0E2           SHL     DL,1
+25C3:0DFF 02C2           ADD     AL,DL
+25C3:0E01 F606CF0980     TEST     Byte Ptr [09CF],80
+25C3:0E06 7502           JNZ     0E0A
+25C3:0E08 F6D8           NEG     AL
+25C3:0E0A 0480           ADD     AL,80
+25C3:0E0C A2D909         MOV     [09D9],AL
+25C3:0E0F 8B1EC409       MOV     BX,[09C4]
+25C3:0E13 884705         MOV     [BX+05],AL
+25C3:0E16 C3             RET
+
+                         db     0
+
+; -----------------------------------------------------------------------------
+                                               ;* zobrazen° á°sla dekadicky
+25C3:0E18 51             PUSH   CX
+25C3:0E19 52             PUSH   DX
+25C3:0E1A 8AE8           MOV     CH,AL           ; zobrazovanÇ á°slo
+25C3:0E1C B164           MOV     CL,64           ; dàlitel 100
+25C3:0E1E 3AC1           CMP     AL,CL           ; je á°slo > 100 ?
+25C3:0E20 7302           JNB     0E24            ; á°slo je vàt®° neë 100
+25C3:0E22 B10A           MOV     CL,0A           ; dàlitel 10
+25C3:0E24 B400         * MOV     AH,00           ; AH <- 0
+25C3:0E26 8AC5           MOV     AL,CH           ; zobrazovanÇ á°slo
+25C3:0E28 F6F1           DIV     CL              ; vòpoáet nejvy®®° á°slice
+25C3:0E2A 8AEC           MOV     CH,AH           ; £schova mÇnà vòznamnÇ á°slice
+25C3:0E2C 0430           ADD     AL,30           ; korekce prvn° á°sl. na ASCII
+25C3:0E2E 8AD0           MOV     DL,AL           ; á°slice
+25C3:0E30 B402           MOV     AH,02
+25C3:0E32 CD21           INT     21              ; zobrazen° á°slice des°tek
+25C3:0E34 B400           MOV     AH,00           ; AH <- 0
+25C3:0E36 8AC1           MOV     AL,CL           ; á°seln° z†klad
+25C3:0E38 B10A           MOV     CL,0A           ; CL <- 10 dàlitel
+25C3:0E3A F6F1           DIV     CL              ; vòpoáet novÇho á°sel.dàlitele
+25C3:0E3C 8AC8           MOV     CL,AL           ; novò á°selnò dàlitel
+25C3:0E3E 3C00           CMP     AL,00           ; je jië dàlitel = 0 ?
+25C3:0E40 75E2           JNZ     0E24            ; dàlitel nen° je®tà 0 - dal®°
+25C3:0E42 5A             POP     DX
+25C3:0E43 59             POP     CX
+25C3:0E44 C3             RET
+
+                         db     0
+
+                                               ;* zobrazen° uplynulÇho áasu
+
+25C3:0E46 B42C           MOV    AH,2C
+25C3:0E48 CD21           INT    21               ; poskytnut° systÇmovÇho áasu
+25C3:0E4A 2A7701         SUB    DH,[BX+01]       ; rozd°l v sekund†ch
+25C3:0E4D 7905           JNS     0E54            ; nen° p©ekroáen° sekund
+25C3:0E4F 80C63C         ADD     DH,3C           ; p©etoáen° o 60 sekund
+25C3:0E52 FEC9           DEC     CL              ; sn°ëen° £daje minut
+25C3:0E54 2A4F02       * SUB     CL,[BX+02]      ; rozd°l v minut†ch
+25C3:0E57 7905           JNS     0E5E            ; nen° p©ekroáen° minut
+25C3:0E59 80C13C         ADD     CL,3C           ; p©etoáen° o 60 sekund
+25C3:0E5C FECD           DEC     CH              ; sn°ëen° £daje o hodin†ch
+25C3:0E5E 2A6F03       * SUB     CH,[BX+03]      ; rozd°l v hodin†ch
+25C3:0E61 7903           JNS     0E66            ; nen° p©ekroáen° hodin
+25C3:0E63 80C518         ADD     CH,18           ; p©etoáen° hodin o 24
+25C3:0E66 8AC5         * MOV     AL,CH           ; hodina
+25C3:0E68 E8ADFF         CALL     0E18           ; zobrazen° hodin
+25C3:0E6B B23A           MOV     DL,3A           ; oddàlovac° ':'
+25C3:0E6D B402           MOV     AH,02
+25C3:0E6F CD21           INT     21              ; zobrazen° oddàlovaáe ":"
+25C3:0E71 8AC1           MOV     AL,CL           ; minuty
+25C3:0E73 E8A2FF         CALL     0E18           ; zobrazen° minut
+25C3:0E76 B23A           MOV     DL,3A           ; oddàlovaá ':'
+25C3:0E78 B402           MOV     AH,02
+25C3:0E7A CD21           INT     21              ; zobrazen° oddàlovaáe ":"
+25C3:0E7C 8AC6           MOV     AL,DH           ; sekundy
+25C3:0E7E E897FF         CALL     0E18           ; zobrazen° sekund
+25C3:0E81 B220           MOV     DL,20           ;' '
+25C3:0E83 B402           MOV     AH,02
+25C3:0E85 CD21           INT     21              ; zobrazen° koncovÇ mezery
+25C3:0E87 C3             RET
+; -----------------------------------------------------------------------------
+
+25C3:0E88 8B0EC209       MOV     CX,[09C2]
+25C3:0E8C BF0000         MOV     DI,0000
+25C3:0E8F 8BD9           MOV     BX,CX
+25C3:0E91 8B0F           MOV     CX,[BX]
+25C3:0E93 893F           MOV     [BX],DI
+25C3:0E95 83F900         CMP     CX,+00
+25C3:0E98 7501           JNZ     0E9B
+25C3:0E9A C3             RET
+
+25C3:0E9B 890EC409     * MOV     [09C4],CX
+25C3:0E9F E868F6         CALL     050A
+25C3:0EA2 8B1EC209       MOV     BX,[09C2]
+25C3:0EA6 8B0EC409       MOV     CX,[09C4]
+25C3:0EAA 8B3F           MOV     DI,[BX]
+25C3:0EAC 83FF00         CMP     DI,+00
+25C3:0EAF 7408           JZ     0EB9
+25C3:0EB1 A0D909         MOV     AL,[09D9]
+25C3:0EB4 3A4505         CMP     AL,[DI+05]
+25C3:0EB7 7304           JNB     0EBD
+25C3:0EB9 890F           MOV     [BX],CX
+25C3:0EBB EBD2           JMP     0E8F
+25C3:0EBD 8BDF           MOV     BX,DI
+25C3:0EBF EBE9           JMP     0EAA
+
+
+0ec1     db        0
+
+; -----------------------------------------------------------------------------
+;        n†vrat tahu z bufferu tahñ
+; -----------------------------------------------------------------------------
+
+25C3:0EC2 8B36C409       MOV     SI,[09C4]   ; ukazatel v bufferu tahñ
+
+25C3:0EC6 B700         * MOV     BH,00
+25C3:0EC8 8A7404         MOV     DH,[SI+04]  ; pñvodn° obsah novÇho pole
+25C3:0ECB 8A5C02         MOV     BL,[SI+02]  ; vòchoz° pozice tahu
+25C3:0ECE 8BFB           MOV     DI,BX      ; vòchoz° pozice tahu
+25C3:0ED0 8A5C03         MOV     BL,[SI+03] ; c°lov† pozice tahu
+25C3:0ED3 8BF3           MOV     SI,BX      ; c°lov† pozice tahu
+25C3:0ED5 8A94D100       MOV     DL,[SI+00D1] ; figurka, s kterou se t†hlo
+25C3:0ED9 8ADA           MOV     BL,DL      ; figurka k t†hnut°
+25C3:0EDB D0C3           ROL     BL,1       ; figurka * 2
+25C3:0EDD 81E30100       AND     BX,0001    ; barva figurky
+25C3:0EE1 F6C620         TEST     DH,20     ; byla n†hrada pà®†ka d†mou ?
+25C3:0EE4 7538           JNZ     0F1E       ; byla n†hrada pà®†ka d†mou
+25C3:0EE6 8AC2           MOV     AL,DL      ; figurka, kter† t†hla
+25C3:0EE8 2407           AND     AL,07      ; zru®en° barvy
+25C3:0EEA 3C05           CMP     AL,05      ; byla to d†ma ?
+25C3:0EEC 7438           JZ     0F26        ; t†hla d†ma
+25C3:0EEE 3C06           CMP     AL,06      ; t†hl kr†l ?
+25C3:0EF0 743C           JZ     0F2E        ; t†hl kr†l
+
+25C3:0EF2 F6C610       * TEST     DH,10
+25C3:0EF5 7403           JZ     0EFA
+25C3:0EF7 80E2F7         AND     DL,F7
+25C3:0EFA 8895D100     * MOV     [DI+00D1],DL ; uloëen° pñvodn° figurky
+25C3:0EFE 8AC6           MOV     AL,DH      ; pñvodn° figurka
+25C3:0F00 248F           AND     AL,8F      ; zru®en° p©°znakñ
+25C3:0F02 8884D100       MOV     [SI+00D1],AL ; n†vrat ru®enÇ figurky
+25C3:0F06 F6C640         TEST     DH,40     ; bude dal®° tah ?
+25C3:0F09 7533           JNZ     0F3E       ; n†vrat dal®°ho tahu
+25C3:0F0B 8AC6           MOV     AL,DH      ; ru®en† figurka
+25C3:0F0D 2407           AND     AL,07      ; zru®en° barvy
+25C3:0F0F 3C05           CMP     AL,05      ; je to d†ma ?
+25C3:0F11 750A           JNZ     0F1D       ; nen° to d†ma
+25C3:0F13 8BC6           MOV     AX,SI      ; pozice d†my
+25C3:0F15 81F30100       XOR     BX,0001
+25C3:0F19 88877B01       MOV     [BX+017B],AL ; pñvodn° pozice d†my
+25C3:0F1D C3           * RET
+
+; ------ byla n†hrada pà®†ka d†mou - n†vrat pà®†ka
+
+25C3:0F1E 80E2F8       * AND     DL,F8      ; zru®en° figurky
+25C3:0F21 80CA01         OR     DL,01       ; n†hrada pà®†kem
+25C3:0F24 EBCC           JMP     0EF2
+
+; ----- t†hla d†ma
+
+25C3:0F26 8BC7           MOV     AX,DI      ; pñvodn° pozice d†my
+25C3:0F28 88877B01       MOV     [BX+017B],AL ; n†vrat pozice d†my
+25C3:0F2C EBC4           JMP     0EF2
+
+; ----- t†hne kr†l
+
+25C3:0F2E F6C640         TEST     DH,40                         ;'@'
+25C3:0F31 7403           JZ     0F36
+25C3:0F33 80E2EF         AND     DL,EF
+25C3:0F36 8BC7           MOV     AX,DI
+25C3:0F38 88877901       MOV     [BX+0179],AL    ; pozice kurzoru b°lÇho
+25C3:0F3C EBB4           JMP     0EF2
+
+; ------ dal®° tah
+
+25C3:0F3E 8B36C409       MOV     SI,[09C4]       ; ukazatel v bufferu tahñ
+25C3:0F42 83C606         ADD     SI,+06          ; zvò®en° pozice v bufferu
+25C3:0F45 E97EFF         JMP     0EC6
+
+; -----------------------------------------------------------------------------
+;                       Test spr†vnosti tahu
+; -----------------------------------------------------------------------------
+                                          ;* test spr†vnosti tahu
+
+25C3:0F48 FF36C409       PUSH     [09C4]
+25C3:0F4C A0CE09         MOV     AL,[09CE]       ; 80=hr†á m† b°lÇ, 00=áernÇ
+25C3:0F4F 3480           XOR     AL,80           ; zmàna p©°znaku barvy
+25C3:0F51 A2CF09         MOV     [09CF],AL       ; poëadovan† barva poá°taáe
+
+25C3:0F54 8D068A01       LEA     AX,[018A]       ; zaá†tek tabulky tahñ
+25C3:0F58 2D0200         SUB     AX,0002
+25C3:0F5B A3C209         MOV     [09C2],AX       ; ukazatel v bufferu tahñ
+25C3:0F5E 8D06B205       LEA     AX,[05B2]
+25C3:0F62 A3CC09         MOV     [09CC],AX  ; ukazatel v z†sobn°ku tahñ
+25C3:0F65 52             PUSH     DX
+25C3:0F66 E839F9         CALL     08A2      ; test, zda m† hr†á dal®° tah
+25C3:0F69 5A             POP     DX
+25C3:0F6A 8D1EB205       LEA     BX,[05B2]
+25C3:0F6E 3A5702       * CMP     DL,[BX+02]
+25C3:0F71 7505           JNZ     0F78
+25C3:0F73 3A7703         CMP     DH,[BX+03]
+25C3:0F76 7409           JZ     0F81
+25C3:0F78 8B1F         * MOV     BX,[BX]
+25C3:0F7A 83FB00         CMP     BX,+00
+25C3:0F7D 75EF           JNZ     0F6E
+25C3:0F7F 7417           JZ     0F98
+25C3:0F81 891EC409     * MOV     [09C4],BX
+25C3:0F85 E82CFA         CALL     09B4      ; proveden° jednoho tahu
+
+25C3:0F88 A0CF09         MOV     AL,[09CF]  ; barva poá°taáe
+25C3:0F8B E85EF9         CALL     08EC      ; test okol° aktivn° figurky
+25C3:0F8E 3C00           CMP     AL,00
+25C3:0F90 7503           JNZ     0F95
+
+25C3:0F92 58             POP     AX
+25C3:0F93 F8             CLC
+25C3:0F94 C3             RET
+
+25C3:0F95 E82AFF         CALL     0EC2      ; n†vrat tahu z bufferu tahñ
+25C3:0F98 8F06C409     * POP     [09C4]
+25C3:0F9C F9             STC                ; p©°znak chyby - nepovolenò tah
+25C3:0F9D C3             RET
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+25C3:0F9E 8D3E4B01       LEA     DI,[014B]
+25C3:0FA2 8D365901       LEA     SI,[0159]
+25C3:0FA6 8A2E4901       MOV     CH,[0149]
+25C3:0FAA 8A0E5701       MOV     CL,[0157]
+25C3:0FAE F606D00980     TEST     Byte Ptr [09D0],80
+25C3:0FB3 7404           JZ     0FB9
+25C3:0FB5 87FE           XCHG     DI,SI
+25C3:0FB7 86E9           XCHG     CH,CL
+25C3:0FB9 BD0000       * MOV     BP,0000
+25C3:0FBC B200           MOV     DL,00
+25C3:0FBE 8B1EBE09       MOV     BX,[09BE]
+25C3:0FC2 8AB7C200       MOV     DH,[BX+00C2]
+25C3:0FC6 D0E6           SHL     DH,1
+25C3:0FC8 8AFE           MOV     BH,DH
+25C3:0FCA E809FB         CALL     0AD6
+25C3:0FCD 742D           JZ     0FFC
+25C3:0FCF 8AD8         * MOV     BL,AL
+25C3:0FD1 E802FB         CALL     0AD6
+25C3:0FD4 7414           JZ     0FEA
+25C3:0FD6 3AFB           CMP     BH,BL
+25C3:0FD8 7310           JNB     0FEA
+25C3:0FDA 3AC3           CMP     AL,BL
+25C3:0FDC 721E           JB     0FFC
+25C3:0FDE E8F5FA         CALL     0AD6
+25C3:0FE1 7419           JZ     0FFC
+25C3:0FE3 8AD8           MOV     BL,AL
+25C3:0FE5 E8EEFA         CALL     0AD6
+25C3:0FE8 75F0           JNZ     0FDA
+25C3:0FEA F7C50100     * TEST     BP,0001
+25C3:0FEE 7402           JZ     0FF2
+25C3:0FF0 F6DF           NEG     BH
+25C3:0FF2 02D7         * ADD     DL,BH
+25C3:0FF4 3C00           CMP     AL,00
+25C3:0FF6 7404           JZ     0FFC
+25C3:0FF8 8AFB           MOV     BH,BL
+25C3:0FFA EBD3           JMP     0FCF
+25C3:0FFC C3           * RET
+
+; *****************************************************************************
+;                             D A T A
+; *****************************************************************************
+                                          ;* datovò segment
+
+000e                                        ; tabulka zah†jen° hry (4 typy)
+
+26C2:0000  F6 DF 02 D7 3C 00 74 04-8A FB EB D3 C3 00 00 00  v_.W<.t..{kSC...
+26C2:0010  23 37 10 00 00 00 22 36-10 00 00 00 16 2B 10 00  #7...."6.....+..
+26C2:0020  00 00 1B 2E 10 00 20 20-20 20 20 20 20 20 20 20  ......          
+
+0026                     db     39 dup(" "),'$'  ; text pro vymaz†n°
+
+004e                     db     'CHECK $'
+
+0055                     db     'COMPUTER('
+005e                     db     'W): WORKING LEVEL '
+0070                     db     'X $'
+
+0073                     db     7,'COMPUTER('
+007d                     db     'W): $'
+
+0082                     db     'XX-XX $'
+0089                     db     'O-O $'
+008e                     db     'O-O-O $'
+0095                     db     'PxPep $'
+
+26C2:0090  4F 2D 4F 20 24 50 78 50-65 70 20 24 09 0B F5 F7  O-O $PxPep $..uw
+
+                                            ; moënÇ smàry figurek
+009c                     db     9,11,-11,-9      ; smàry ®ikmo
+00a0                     db     10,-10,1,-1      ; smàry kolmo
+00a4                     db     -21,-12,8,19     ; konàm vlevo
+00a8                     db     21,12,-8,-19     ; konàm vpravo
+00ac                     db     10,10,11,9       ; tahy b°lÇho pà®†ka
+00b0                     db     -10,-10,-11,-9   ; tahy áernÇho pà®†ka
+
+00b4                     db     14h,10h,8,0,4,0,0 ; offset moënòch smàrñ figurek
+00bb                     db     4,4,8,4,4,8,8    ; poáet moënòch smàrñ figurek
+
+
+26C2:00A0  0A F6 01 FF EB F4 08 13-15 0C F8 ED 0A 0A 0B 09  .v..kt....xm....
+26C2:00B0  F6 F6 F5 F7 14 10 08 00-04 00 00 04 04 08 04 04  vvuw............
+26C2:00C0  08 08 00 01 03 03 05 09-0A 04 02 03 05 06 03 02  ................
+
+00c2                     db      0,1,3,3,5,9,10  ; bodov†n° figurek
+
+00c9                     db      4,2,3,5,6,3,2,4 ; inicial. rozm°stàn° figurek
+
+                         ;db      78h dup(0)    ;* mapa ®achovnice ("MAPA0")
+00d1                     db      21 dup(0)       ; spodn° okraj ("MAPAS")
+00e6                     db      8*10 dup(0)     ; ®achovnice ("MAPA")
+0136                     db      19 dup(0)       ; horn° okraj ("MAPAH")
+
+                                                 ;    0=pr†zdnÇ pol°áko
+                                                 ;    1=pà®ec
+                                                 ;    2=jezdec
+                                                 ;    3=st©elec
+                                                 ;    4=vàë
+                                                 ;    5=d†ma
+                                                 ;    6=kr†l
+                                                 ;    0ffh=zak†zanÇ pol°áko
+                                                 ; bit 7: 1=b°l† barva,0=áern†
+
+0149               db     14 dup(0)         ; tabulka poátu áernòch figurek
+0157               db     14 dup(0)         ; tabulka poátu b°lòch figurek
+0165                                        ; tabulka pozic figurek
+
+;0149                     db      30h dup(0)
+
+0179                     db      25              ; pozice kurzoru b°lÇho
+017a                     db      95              ; pozice kurzoru áernÇho
+017b                     db      24              ; pozice b°lÇ d†my
+017c                     db      94              ; pozice áernÇ d†my
+017d                     db      0ffh
+
+017e                     db      0
+017f                     db      0
+0180                     db      800h dup(0)     ; z†sobn°k p©i hled†n° tahu
+                                                 ; 0: bodov†n° tahu
+                                                 ; 2: vòchoz° pozice tahu
+                                                 ; 3: c°lov† pozice tahu
+                                                 ; 4: pñvodn° obsah novÇho pole
+
+018a                                        ; tabulka tahñ
+
+
+26C2:0980  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:0990  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:09A0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+
+05b2               db       400h             ; tabulka tahñ
+
+09aa
+
+26C2:09B0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:09C0  00 00 8A 01 00 00 00 00-00 00 00 00 B2 01 00 00  ............2...
+
+09b4                     db     0                ; pozice p©i pokusu o tah
+
+09b6                     dw      0               ; pracovn° pozice aktiv. hr†áe
+09ba                     dw      0               ; pracovn° figurka
+09bc                     db      0               ; ru®en† figurka p©i skoku
+
+09c2                     dw      0               ; ukazatel v z†sobn°ku tahñ
+09c4                     dw      0
+
+09c8                     dw      0               ; n†hodnà vybran† tabulka tahñ
+
+09cc                     db      1b2h            ; ukazatel v z†sobn°ku tahñ
+
+09ce                     db      0               ; 80=hr†á m† b°lÇ, 00=áernÇ
+09cf                     db      0               ; barva poá°taáe (80=b°le)
+
+09d0                     db      0               ; figurka p©i pracovn°m testu
+09d1                     db      0               ; pñvod.obsah na novÇm pol°áku
+                                                 ;  10h - je to 2. tah ro®†dy
+                                                 ;  20h - n†hrada pà®†ka d†mou
+                                                 ;  40h - je to 1. tah ro®†dy
+
+26C2:09D0  00 00 00 00 00 02 00 00-00 00 00 00 00 00 00 00  ................
+
+09d3                     db      0               ; zbylò poáet tahñ
+09d4                     db      0               ; á°taá tahñ
+09d5                     db      2               ; £rove§ hry 1-6
+
+09d7                     db      0
+
+26C2:09E0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+
+09e6                     db      0               ; aktivn° pozice kurzoru
+09e7                     db      0               ; p©°znak volby figurky
+                                                 ;   0=figurka byla poloëena
+                                                 ;   1=áek† se na uchopen°
+                                                 ;   2=figurka je uchopena
+09e8                     db      0               ; p©en†®en† aktivn° figurka
+09e9                     db      0               ; vòchoz° pozice figurky
+09ea                     db      0               ; nov† pozice figurky
+
+09ee                     dw      0               ; segment PSP
+
+09f0                     db      'CHESS88 V2.0 - A CHESS ' ; £vodn° text
+                         db      'PROGRAM FOR THE IBM '
+                         db      'PERSONAL COMPUTER BY '
+                         db      'DON BERG$',0
+
+0a3a                     db      'MATE - I WIN',7,7,7,'$' ; poá°taá vyhr†l
+
+0a4a                     db      'MATE IN '
+0a52                     db      'X MOVES$'            ; mat v X taz°ch
+
+0a5a                     db      'MATE - YOU WIN',7,7,'$' ; hr†á vyhr†l
+
+0a6b                     db      0,0,0
+
+0a6c               db         0             ; £schova £rovnà hry p©i tahu
+
+0a6e                                        ; tabulka k¢dñ ©°dic°ch kl†ves
+                         db      47h             ; Home
+                         db      49h             ; Page Up
+                         db      4fh             ; End
+                         db      51h             ; Page Down
+                         db      48h             ; kurzor nahoru
+                         db      4bh             ; kurzor vlevo
+                         db      4dh             ; kurzor vpravo
+                         db      50h             ; kurzor dolñ
+                         db      52h             ; Insert
+                         db      53h             ; Delete
+
+0a78                                        ; adresy obsluh kl†ves
+                         dw      7e6h            ; Home
+                         dw      7edh            ; Page Up
+                         dw      7f4h            ; End
+                         dw      7fbh            ; Page Down
+                         dw      802h            ; kurzor nahoru
+                         dw      811h            ; kurzor vlevo
+                         dw      829h            ; kurzor vpravo
+                         dw      841h            ; kurzor dolñ
+                         dw      850h            ; Insert
+                         dw      863h            ; Delete
+
+0a8c                                           ;* tabulka figurek
+                                                 ; (kaëd† zab°r† 78h bajtñ)
+                                                 ; (st©°d† se pln†/obrysy)
+
+0b04
+
+26C2:0A80  02 08 11 08 29 08 41 08-50 08 63 08 00 00 00 00  ....).A.P.c.....
+26C2:0A90  00 00 00 38 00 00 00 00-FE 00 00 00 01 FF 00 00  ...8....~.......
+26C2:0AA0  00 03 FF 80 00 00 03 FF-80 00 00 01 FF 00 00 00  ................
+26C2:0AB0  00 FE 00 00 00 00 38 00-00 00 03 FF 80 00 00 00  .~....8.........
+26C2:0AC0  44 00 00 00 00 38 00 00-00 00 38 00 00 00 00 38  D....8....8....8
+26C2:0AD0  00 00 00 00 38 00 00 00-00 7C 00 00 00 01 01 00  ....8....|......
+26C2:0AE0  00 00 03 FF 80 00 00 0F-FF E0 00 00 10 00 10 00  .........`......
+26C2:0AF0  00 1F FF F0 00 00 3F FF-F8 00 00 00 00 00 00 00  ...p..?.x.......
+
+26C2:0B00  00 00 00 00 00 00 00 00-00 00 00 38 00 00 00 00  ...........8....
+26C2:0B10  C6 00 00 00 01 01 00 00-00 02 00 80 00 00 02 00  F...............
+26C2:0B20  80 00 00 01 01 00 00 00-00 C6 00 00 00 00 28 00  .........F....(.
+26C2:0B30  00 00 03 FF 80 00 00 00-44 00 00 00 00 44 00 00  ........D....D..
+26C2:0B40  00 00 44 00 00 00 00 44-00 00 00 00 44 00 00 00  ..D....D....D...
+26C2:0B50  00 82 00 00 00 03 FF 80-00 00 04 00 40 00 00 08  ............@...
+26C2:0B60  00 20 00 00 1F FF F0 00-00 20 00 08 00 00 3F FF  . ....p.. ....?.
+26C2:0B70  F8 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  x...............
+
+26C2:0B80  00 00 01 03 00 00 00 01-87 00 00 00 01 FF 80 00  ................
+26C2:0B90  00 03 FF 60 00 00 07 FF-70 00 00 0F FF B8 00 00  ...`....p....8..
+26C2:0BA0  0F BF DC 00 00 0F FF DC-00 00 1F FB EC 00 00 3F  .?\....\...{l..?
+26C2:0BB0  F7 EC 00 00 7F F7 EC 00-00 6F CF EC 00 00 7C 3F  wl...wl..oOl..|?
+26C2:0BC0  F6 00 00 38 7F F6 00 00-00 FF F6 00 00 01 FF F6  v..8.v....v....v
+26C2:0BD0  00 00 01 FF FB 00 00 03-FF FB 00 00 07 FF FA 00  ....{....{....z.
+26C2:0BE0  00 0F FF FB 00 00 0F FF-FB 00 00 0F FF FB 00 00  ...{....{....{..
+26C2:0BF0  00 00 00 00 00 00 00 00-00 00 01 83 00 00 00 01  ................
+
+26C2:0C00  45 00 00 00 01 78 80 00-00 02 00 E0 00 00 04 00  E....x.....`....
+26C2:0C10  F0 00 00 08 00 78 00 00-08 40 3C 00 00 08 00 3C  p....x...@<....<
+26C2:0C20  00 00 10 04 1C 00 00 20-08 1C 00 00 40 30 1C 00  ....... ....@0..
+26C2:0C30  00 53 E0 1C 00 00 44 20-0E 00 00 38 40 0E 00 00  .S`...D ...8@...
+26C2:0C40  00 80 0E 00 00 01 00 0E-00 00 01 00 07 00 00 02  ................
+26C2:0C50  00 07 00 00 04 00 06 00-00 08 00 07 00 00 08 00  ................
+26C2:0C60  07 00 00 0F FF FF 00 00-00 00 00 00 00 00 00 00  ................
+26C2:0C70  00 00 00 10 00 00 00 00-7C 00 00 00 00 FE 00 00  ........|....~..
+
+26C2:0C80  00 01 FF 00 00 00 03 EF-80 00 00 07 EF C0 00 00  .......o....o@..
+26C2:0C90  07 EF C0 00 00 0F EF E0-00 00 0E 00 E0 00 00 0F  .o@...o`....`...
+26C2:0CA0  EF E0 00 00 07 EF C0 00-00 07 EF C0 00 00 03 EF  o`...o@...o@...o
+26C2:0CB0  80 00 00 03 FF 80 00 00-01 FF 00 00 00 01 FF 00  ................
+26C2:0CC0  00 00 00 82 00 00 00 00-82 00 00 00 FC 82 7E 00  ............|.~.
+26C2:0CD0  03 FF EF FF 80 07 8F EF-E3 C0 03 00 00 01 80 00  ..o....oc@......
+26C2:0CE0  00 00 00 00 00 00 00 00-00 00 00 10 00 00 00 00  ................
+26C2:0CF0  6C 00 00 00 00 82 00 00-00 01 01 00 00 00 02 10  l...............
+26C2:0D00  80 00 00 04 10 40 00 00-04 10 40 00 00 08 10 20  .....@....@.... 
+26C2:0D10  00 00 09 FF 20 00 00 08-10 20 00 00 04 10 40 00  .... .... ....@.
+26C2:0D20  00 04 10 40 00 00 02 10-80 00 00 02 00 80 00 00  ...@............
+26C2:0D30  01 01 00 00 00 01 01 00-00 00 00 FE 00 00 00 00  ...........~....
+26C2:0D40  FE 00 00 00 FC FE 7E 00-03 FF EF FF 80 07 8F EF  ~...|~~...o....o
+26C2:0D50  E3 C0 03 00 00 01 80 00-00 00 00 00 00 00 00 00  c@..............
+26C2:0D60  00 00 78 7C 3C 00 00 78-7C 3C 00 00 78 7C 3C 00  ..x|<..x|<..x|<.
+26C2:0D70  00 7F FF FC 00 00 7F FF-FC 00 00 40 00 08 00 00  ...|....|..@....
+26C2:0D80  1F FF F0 00 00 08 00 20-00 00 07 FF C0 00 00 07  ..p.... ....@...
+26C2:0D90  FF C0 00 00 07 FF C0 00-00 07 FF C0 00 00 07 FF  .@....@....@....
+26C2:0DA0  C0 00 00 07 FF C0 00 00-07 FF C0 00 00 07 FF C0  @....@....@....@
+26C2:0DB0  00 00 04 00 40 00 00 0F-FF E0 00 00 1F FF F0 00  ....@....`....p.
+26C2:0DC0  00 20 00 08 00 00 3F FF-F8 00 00 3F FF F8 00 00  . ....?.x..?.x..
+26C2:0DD0  00 00 00 00 00 00 00 00-00 00 78 7C 3C 00 00 48  ..........x|<..H
+26C2:0DE0  44 24 00 00 48 44 24 00-00 4F C7 E4 00 00 40 00  D$..HD$..OGd..@.
+26C2:0DF0  04 00 00 3F FF F8 00 00-10 00 10 00 00 0F FF E0  ...?.x.........`
+26C2:0E00  00 00 04 00 40 00 00 04-00 40 00 00 04 00 40 00  ....@....@....@.
+26C2:0E10  00 04 00 40 00 00 04 00-40 00 00 04 00 40 00 00  ...@....@....@..
+26C2:0E20  04 00 40 00 00 04 00 40-00 00 07 FF C0 00 00 08  ..@....@....@...
+26C2:0E30  00 20 00 00 10 00 10 00-00 3F FF F8 00 00 20 00  . .......?.x.. .
+26C2:0E40  08 00 00 3F FF F8 00 00-00 00 00 00 00 00 00 00  ...?.x..........
+26C2:0E50  00 00 01 01 00 00 00 03-83 80 00 01 01 01 01 00  ................
+26C2:0E60  03 81 01 03 80 01 03 83-81 00 01 03 83 81 00 01  ................
+26C2:0E70  87 C7 C3 00 01 C7 C7 C7-00 01 EF EF EF 00 01 FF  .GC..GGG..ooo...
+26C2:0E80  FF FF 00 00 FF FF FE 00-00 80 00 02 00 00 FF FF  ......~.........
+26C2:0E90  FE 00 00 7B EF BC 00 00-71 C7 1C 00 00 7B EF BC  ~..{o<..qG...{o<
+26C2:0EA0  00 00 3F FF F8 00 00 20-00 08 00 00 1F FF F0 00  ..?.x.. ......p.
+26C2:0EB0  00 0F FF E0 00 00 07 FF-C0 00 00 00 00 00 00 00  ...`....@.......
+26C2:0EC0  00 00 00 00 00 00 00 00-00 00 01 01 00 00 00 03  ................
+26C2:0ED0  83 80 00 01 01 01 01 00-03 81 01 03 80 01 02 82  ................
+26C2:0EE0  81 00 01 02 82 81 00 01-84 44 43 00 01 44 44 45  .........DC..DDE
+26C2:0EF0  00 01 28 28 29 00 01 18-38 31 00 00 80 00 02 00  ..(()...81......
+26C2:0F00  00 FF FF FE 00 00 80 00-02 00 00 44 10 44 00 00  ...~.......D.D..
+26C2:0F10  4E 38 E4 00 00 44 10 44-00 00 20 00 08 00 00 3F  N8d..D.D.. ....?
+26C2:0F20  FF F8 00 00 10 00 10 00-00 08 00 20 00 00 07 FF  .x......... ....
+26C2:0F30  C0 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  @...............
+26C2:0F40  00 00 00 38 00 00 00 00-38 00 00 00 00 38 00 00  ...8....8....8..
+26C2:0F50  00 01 FF 00 00 00 71 FF-1C 00 00 FD FF 7E 00 01  ......q....}.~..
+26C2:0F60  FE 38 FF 00 01 FF 39 FF-00 03 FF BB FF 80 03 FF  ~8....9....;....
+26C2:0F70  83 FF 80 03 F7 C7 DF 80-01 F7 C7 DF 00 01 C1 C7  ....wG_..wG_..AG
+26C2:0F80  07 00 00 F7 FF DE 00 00-77 FF DC 00 00 7F FF FC  ...w.^..w.\....|
+26C2:0F90  00 00 20 00 08 00 00 3F-FF F8 00 00 10 00 10 00  .. ....?.x......
+26C2:0FA0  00 1F FF F0 00 00 0F FF-E0 00 00 00 00 00 00 00  ...p....`.......
+26C2:0FB0  00 00 00 00 00 00 00 00-00 00 00 38 00 00 00 00  ...........8....
+26C2:0FC0  28 00 00 00 00 28 00 00-00 01 EF 00 00 00 71 01  (....(....o...q.
+26C2:0FD0  1C 00 00 8D EF 62 00 01-02 28 81 00 01 01 29 01  ....ob...(....).
+26C2:0FE0  00 02 00 BA 00 80 02 00-82 00 80 02 08 44 20 80  ...:.........D .
+26C2:0FF0  01 08 44 21 00 01 3E 44-F9 00 00 88 38 22 00 00  ..D!..>Dy...8"..
+26C2:1000  48 00 24 00 00 40 00 04-00 00 3F FF F8 00 00 20  H.$..@....?.x.. 
+26C2:1010  00 08 00 00 1F FF F0 00-00 10 00 10 00 00 0F FF  ......p.........
+26C2:1020  E0 00 00 00 00 00 00 00-00 00 00 00 0D 0A 57 48  `.............WH
+
+102c                     db      13,10,'WHICH COLOR DO YOU SELECT (W/B)? $'
+
+1050                     db      13,10,'WHICH LOOK AHEAD LEVEL '
+                         db      'DO YOU SELECT (1-6)? $',0
+
+1080                     db      'INVALID MOVE - TRY AGAIN ',7,'$'
+
+109b                     db      'PLAYER('
+10a2                     db      'B): PICK UP PIECE USING "DEL"$'
+
+10c0                     db      'PLAYER('
+10c7                     db      'B): PLACE PIECE USING "INS"$'
+
+10e3                     db      13 dup(0)
+
+10f0                     db      63 DUP ('STACK   ') ; z†sobn°k 256 slov
+                         db      'STACK ',0,0
+12f0
+
+26C2:12F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:1300  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:1310  00 00 00 00 00 00 00 00-00 0F 0F 00 00 00 00 00  ................
+26C2:1320  00 0E 0A 00 00 00 00 37-00 00 00 00 00 00 00 00  .......7........
+26C2:1330  00 00 00 00 00 00 00 00-00 00 00 0B 00 0C 0F 00  ................
+26C2:1340  00 0E 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:1350  00 00 00 00 00 00 00 DB-00 00 00 00 00 0E 00 00  .......[........
+26C2:1360  00 00 0D 00 00 00 AD 0A-0F 00 0E 00 00 00 00 00  ......-.........
+26C2:1370  00 00 00 00 00 0F 00 00-00 00 0A 00 00 00 00 00  ................
+26C2:1380  00 00 AD 0A 0F 00 0E 00-00 00 00 00 00 00 00 00  ..-.............
+26C2:1390  FE 00 00 0F 0F 00 0F 00-0C 00 00 00 00 00 00 00  ~...............
+26C2:13A0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:13B0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:13C0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:13D0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:13E0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:13F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+26C2:1400  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+

@@ -1,0 +1,597 @@
+      +-------------------------------------------------------------+
+      |  I n s t r u k c e   p r o c e s o r u   8 0 8 6 / 8 0 8 8  |
+      +-------------------------------------------------------------+
+                           (c) Miroslav Nìmeèek
+
+                             Registr pøíznakù
+ 
+       15 14 13 12 11 10 09 08   07 06 05 04 03 02 01 00
+      +--+--+--+--+--+--+--+--+ +--+--+--+--+--+--+--+--+
+      |--|--|--|--|OF|DF|IF|TF| |SF|ZF|--|AF|--|PF|--|CF|
+      +--+--+--+--+--+--+--+--+ +--+--+--+--+--+--+--+--+
+                    |  |  |  |    |  |     |     |     +- pøenos
+                    |  |  |  |    |  |     |     +------- sudá parita
+                    |  |  |  |    |  |     +------------- pomocný pøenos
+                    |  |  |  |    |  +------------------- nula
+                    |  |  |  |    +---------------------- záporné znaménko
+                    |  |  |  +--------------------------- krokový režim
+                    |  |  +------------------------------ povol. pøerušení
+                    |  +--------------------------------- smìr pøenosu dolù
+                    +------------------------------------ pøeplnìní
+
+     P ø e h l e d   i n s t r u k c í   m i k r o p r o c e s o r u
+
+ A A A        - ASCII korekce po souètu                    Pøíznaky:
+Význam:       if (AL & 0Fh) > 9 or (AF = 1) then      O D I T S Z A P C
+                   AL <-- AL + 6                      ? - - - ? ? * ? *
+                   AH <-- AH + 1
+                   AF <-- 1; CF <-- 1
+              else
+                   AF <-- 0; CF <-- 0
+              AL <-- AL & 0Fh
+
+ A A D        - ASCII korekce pøed dìlením                 Pøíznaky:
+Význam:       AL <-- AH * 10 + AL                     O D I T S Z A P C
+              AH <-- 0                                ? - - - * * ? * ?
+
+ A A M        - ASCII korekce po násobení                  Pøíznaky:
+Význam:       AH <-- AL / 10                          O D I T S Z A P C
+              AL <-- AL MOD 10                        ? - - - * * ? * ?
+
+ A A S        - ASCII korekce po odeèítání                 Pøíznaky:
+Význam:       if (AL & 0Fh) > 9 or (AF = 1) then      O D I T S Z A P C
+                   AL <-- AL - 6                      ? - - - ? ? * ? *
+                   AH <-- AH - 1
+                   AF <-- 1; CF <-- 1
+              else
+                   AF <-- 0; CF <-- 0
+              AL <-- AL & 0Fh
+
+ A D C        - aritmetický souèet s pøíznakem pøenosu     Pøíznaky:
+Význam:       [op1] <-- [op1] + [op2] + CF            O D I T S Z A P C
+                                                      * - - - * * * * *
+
+ A D D        - aritmetický souèet                         Pøíznaky:
+Význam:       [op1] <-- [op1] + [op2]                 O D I T S Z A P C
+                                                      * - - - * * * * *
+
+ A N D        - logické AND                                Pøíznaky:
+Význam:       [op1] <-- [op1] AND [op2]               O D I T S Z A P C
+                                                      0 - - - * * ? * 0
+
+ C A L L      - volání procedury                           Pøíznaky:
+Význam:       if FAR CALL (mezisegmentové volání)         neovlivnìny
+                   PUSH CS
+                   CS <-- cílový_segment
+              PUSH IP
+              IP <-- cílový_offset
+
+ C B W        - konverze bajtu na slovo                    Pøíznaky:
+Význam:       if (AL < 80h) then                          neovlivnìny
+                   AH <-- 0
+              else
+                   AH <-- 0FFh
+
+ C L C        - nulování pøíznaku pøenosu CF               Pøíznaky:
+Význam:       CF <-- 0                                O D I T S Z A P C
+                                                      - - - - - - - - 0
+
+ C L D        - nulování pøíznaku smìru DF                 Pøíznaky:
+Význam:       DF <-- 0                                O D I T S Z A P C
+                                                      - 0 - - - - - - -
+
+ C L I        - nulování pøíznaku povolení pøeruš.IF       Pøíznaky:
+Význam:       IF <-- 0                                O D I T S Z A P C
+                                                      - - 0 - - - - - -
+
+ C M C        - doplnìk pøíznaku pøenosu CF                Pøíznaky:
+Význam:       CF <--  - CF                            O D I T S Z A P C
+                                                      - - - - - - - - *
+
+ C M P        - porovnání dvou operandù                    Pøíznaky:
+Význam:       nastavení pøíznakù podle výsledku       O D I T S Z A P C
+              operace [op1] - [op2]                   * - - - * * * * *
+
+ C M P S      - porovnání øetìzcù (bajtù nebo slov)        Pøíznaky:
+Význam:       CMP [DS:SI], [ES:DI] (nastaví pøíznaky) O D I T S Z A P C
+              if DF = 0                               * - - - * * * * *
+                   SI <-- SI + n   (n = 1 pro bajt,
+                   DI <-- DI + n     2 pro slovo)
+              else
+                   SI <-- SI - n
+                   DI <-- DI - n
+
+ C M P S B    - porovnání øetìzcù bajtù                    Pøíznaky:
+Význam:       CMP [DS:SI], [ES:DI] (nastaví pøíznaky) O D I T S Z A P C
+              if DF = 0                               * - - - * * * * *
+                   SI <-- SI + 1
+                   DI <-- DI + 1
+              else
+                   SI <-- SI - 1
+                   DI <-- DI - 1
+
+ C M P S W    - porovnání øetìzcù slov                     Pøíznaky:
+Význam:       CMP [DS:SI], [ES:DI] (nastaví pøíznaky) O D I T S Z A P C
+              if DF = 0                               * - - - * * * * *
+                   SI <-- SI + 2
+                   DI <-- DI + 2
+              else
+                   SI <-- SI - 2
+                   DI <-- DI - 2
+
+ C W D        - konverze slova na dvojité slovo            Pøíznaky:
+Význam:       if (AX < 8000H)                             neovlivnìny
+                   DX <-- 0
+              else
+                   DX <-- FFFFH
+
+ D A A        - dekadická korekce po souètu                Pøíznaky:
+Význam:       if (AL & 0FH) > 9 or (AF = 1)           O D I T S Z A P C
+                   AL <-- AL + 6                      ? - - - * * * * *
+                   AF <-- 1
+              else AF <-- 0
+              if (AL > 9FH) or (CF = 1)
+                   AL <-- AL + 60H
+                   CF <-- 1
+              else CF <-- 0
+
+
+
+ D A S        - dekadická korekce pro odeèítání            Pøíznaky:
+Význam:       if (AL & 0FH) > 9 or (AF = 1)           O D I T S Z A P C
+                   AL <-- AL - 6                      ? - - - * * * * *
+                   AF <-- 1
+              else AF <-- 0
+              if (AL > 9FH) or (CF = 1)
+                   AL <-- AL - 60H
+                   CF <-- 1
+              else CF <-- 0
+
+ D E C        - dekrementace operandu                      Pøíznaky:
+Význam:       [op1] <-- [op1] - 1                     O D I T S Z A P C
+                                                      * - - - * * * * -
+
+ D I V        - dìlení bez znaménka                        Pøíznaky:
+Význam:       AL <-- AX / [op1]     ; op1 je bajt     O D I T S Z A P C
+              AH <-- zbytek                           ? - - - ? ? ? ? ?
+
+         nebo AX <-- DX:AX / [op1]  ; op1 je slovo
+              DX <-- zbytek
+
+ E S C        - pøedání øízení koprocesoru
+
+ H L T        - zastavení procesoru
+
+ I D I V      - celoèíselné dìlení (se znaménkem)          Pøíznaky:
+Význam:       AL <-- AX / [op1]     ; op1 je bajt     O D I T S Z A P C
+              AH <-- zbytek                           ? - - - ? ? ? ? ?
+
+         nebo AX <-- DX:AX / [op1]  ; op1 je slovo
+              DX <-- zbytek
+
+ I M U L      - celoèíselné dìlení (se znaménkem)           Pøíznaky:
+Význam:       AX <-- AL * [op1]    ; operandem bajt     O D I T S Z A P C
+                                                        * - - - ? ? ? ? *
+         nebo DX:AX <-- AX * [op1] ; operandem slovo
+
+ I N          - vstup bajtu nebo slova z I/O portu         Pøíznaky:
+Význam:       akumulátor <-- [port]                       neovlivnìny
+
+ I N C        - inkrementace operandu                      Pøíznaky:
+Význam:       [op1] <-- [op1] + 1                     O D I T S Z A P C
+                                                      * - - - * * * * -
+
+ I N T        - pøerušení                                  Pøíznaky:
+Význam:       PUSHF                                   O D I T S Z A P C
+              TF <-- 0                                0 0 - - - - - - -
+              IF <-- 0
+              CALL FAR (èíslo_pøerušení * 4)
+
+ I N T O      - pøerušení pøi pøeteèení                   Pøíznaky:
+Význam:       if (OF = 1)                             O D I T S Z A P C
+                 PUSHF                                0 0 - - - - - - -
+                 TF <-- 0
+                 IF <-- 0
+                 CALL FAR (10H)
+
+ I R E T      - návrat z pøerušení                         Pøíznaky:
+Význam:       POP IP                                  O D I T S Z A P C
+              POP CS                                  r r r r r r r r r
+              POPF
+
+ J A          - skok, je-li nad                            Pøíznaky:
+Význam:       skok, je-li CF = 0 a ZF = 0                 neovlivnìny
+
+ J A E        - skok, je-li nad nebo shoda                 Pøíznaky:
+Význam:       skok, je-li CF = 0                          neovlivnìny
+
+
+ J B          - skok, je-li pod                            Pøíznaky:
+Význam:       skok, je-li CF = 1                          neovlivnìny
+
+ J B E        - skok, je-li pod nebo shodný                Pøíznaky:
+Význam:       skok, je-li CF = 1 nebo ZF = 1              neovlivnìny
+
+ J C          - skok, je-li pøíznak pøenosu CF             Pøíznaky:
+Význam:       skok, je-li CF = 1                          neovlivnìny
+
+ J C X Z      - skok, je-li registr CX = 0
+Význam:       skok, je-li registr CX = 0
+
+ J E          - skok, je-li rovnost                        Pøíznaky:
+Význam:       skok, je-li ZF = 1                          neovlivnìny
+
+ J G          - skok, je-li vìtší                          Pøíznaky:
+Význam:       skok, je-li ZF = 0 a SF = OF                neovlivnìny
+
+ J G E        - skok, je-li vìtší nebo shodný              Pøíznaky:
+Význam:       skok, je-li SF = OF                         neovlivnìny
+
+ J L          - skok, je-li menší                          Pøíznaky:
+Význam:       skok, je-li SF <> OF                        neovlivnìny
+
+ J L E        - skok, je-li menší nebo shodný              Pøíznaky:
+Význam:       skok, je-li SF <> OF nebo ZF = 1            neovlivnìny
+
+ J M P        - nepodmínìný skok                           Pøíznaky:
+Význam:       skok vždy                                   neovlivnìny
+
+ J N A        - skok, není-li nad
+    Instrukce JNA je synonymum pro JBE. Viz popis instrukce JBE.
+
+ J N A E      - skok, není-li nad ani shodný
+    Instrukce JNAE je synonymum pro JB. Viz popis instrukce JB.
+
+ J N B        - skok, není-li pod
+    Instrukce JNB je synonymum pro JAE. Viz popis instrukce JAE.
+
+ J N B E      - skok, není-li pod ani shodný
+    Instrukce JNBE je synonymum pro JA. Viz popis instrukce JA.
+
+ J N C        - skok, není-li pøíznak pøenosu CF           Pøíznaky:
+Význam:       skok, je-li CF = 0                          neovlivnìny
+
+ J N E        - skok, není-li shodný                       Pøíznaky:
+Význam:       skok, je-li ZF = 0                          neovlivnìny
+
+ J N G        - skok, není-li vìtší
+    Instrukce JNG je synonymum pro JLE. Viz popis instrukce JLE.
+
+ J N G E      - skok, není-li vìtší ani shodný
+    Instrukce JNGE je synonymum pro JL. Viz popis instrukce JL.
+
+ J N L        - skok, není-li menší
+    Instrukce JNL je synonymum pro JGE. Viz popis instrukce JGE.
+
+ J N L E      - skok, není-li menší ani shodný
+    Instrukce JNLE je synonymum pro JG. Viz popis instrukce JG.
+
+ J N O        - skok, není-li pøíznak pøeteèení OF         Pøíznaky:
+Význam:       skok, je-li OF = 0                          neovlivnìny
+
+ J N P        - skok, není-li pøíznak parity PF (tj. je parita lichá)
+Význam:       skok, je-li PF = 0                           Pøíznaky:
+                                                          neovlivnìny
+
+ J N S        - skok, není-li pøíznak znaménka SF          Pøíznaky:
+Význam:       skok, je-li SF = 0                          neovlivnìny
+ J N Z        - skok, není-li pøíznak nuly ZF
+    Instrukce JNZ je synonymum pro JNE. Viz popis instrukce JNE.
+
+ J O          - skok, je-li pøíznak pøeteèení OF           Pøíznaky:
+Význam:       skok, je-li OF = 1                          neovlivnìny
+
+ J P          - skok, je-li pøíznak parity PF (tj. je parita sudá)
+Význam:       skok, je-li PF = 1                           Pøíznaky:
+                                                          neovlivnìny
+ J P E        - skok, je-li parita sudá
+    Instrukce JPE je synonymum pro JP. Viz popis instrukce JP.
+
+ J P O        - skok, je-li parita lichá
+    Instrukce JPO je synonymum pro JNP. Viz popis instrukce JNP.
+
+ J S          - skok, je-li pøíznak znaménka SF            Pøíznaky:
+Význam:       skok, je-li SF = 1                          neovlivnìny
+
+ J Z          - skok, je-li pøíznak nuly ZF
+    Instrukce JZ je synonymum pro JE. Viz popis instrukce JE.
+
+ L A H F      - naplnìní registru AH obsahem pøíznakového registru
+Význam:       bity AH:         pøíznakové bity:            Pøíznaky:
+              7 6 4 2 0   <--     S Z A P C               neovlivnìny
+
+ L D S        - naplnìní registru ukazatelem s použitím DS
+Význam:       DS <-- [op2 + 2]                             Pøíznaky:
+              [op1] <-- [op2]                             neovlivnìny
+
+ L E A        - naplnìní efektivní adresou                 Pøíznaky:
+Význam:       [op1] <-- adresa [op2]                      neovlivnìny
+
+ L E S        - naplnìní registru ukazatelem s použitím ES
+Význam:       DS <-- [op2 + 2]                             Pøíznaky:
+              [op1] <-- [op2]                             neovlivnìny
+
+ L O C K      - uzamèení sbìrnice                          Pøíznaky:
+Význam:       uzamkne sbìrnici                            neovlivnìny
+
+ L O D S      - naètení øetìzce (bajt nebo slovo)         Pøíznaky:
+Význam:       Akumulátor <-- [DS:SI]                     neovlivnìny
+              if DF = 0
+                   SI <-- SI + n   (n = 1 pro bajt, 2 pro slovo)
+              else
+                   SI <-- SI - n
+
+ L O D S B    - naplnìní akumulátoru bajtovým øetìzcem    Pøíznaky:
+Význam:       AL <-- [DS:SI]                             neovlivnìny
+              if DF = 0
+                   SI <-- SI + 1
+              else
+                   SI <-- SI - 1
+
+ L O D S W    - naplnìní akumulátoru øetìzcem slov        Pøíznaky:
+Význam:       AX <-- [DS:SI]                             neovlivnìny
+              if DF = 0
+                   SI <-- SI + 2
+              else
+                   SI <-- SI - 2
+
+ L O O P      - èítací smyèka                             Pøíznaky:
+Význam:       CX <-- CX - 1                              neovlivnìny
+              if (CX <> 0)
+                   JMP  krátké_návìští
+
+ L O O P E    - èítací smyèka, je-li shoda                Pøíznaky:
+Význam:       CX <-- CX - 1                              neovlivnìny
+              if (CX <> 0) and ZF = 1
+                   JMP  krátké_návìští
+
+ L O O P N E  - èítací smyèka, není-li shoda              Pøíznaky:
+Význam:       CX <-- CX - 1                              neovlivnìny
+              if (CX <> 0) and ZF = 0
+                   JMP  krátké_návìští
+
+ L O O P N Z  - èítací smyèka, pokud není nula
+    LOOPNZ je synonymum pro instrukci LOOPNE. Viz popis instrukce LOOPNE.
+
+ L O O P Z    - èítací smyèka, je-li nula
+    LOOPZ je synonymum pro instrukci LOOPE. Viz popis instrukce LOOPE.
+
+ M O V        - pøesun dat (bajt nebo slovo)              Pøíznaky:
+Význam:       pøíjemce <-- zdroj                         neovlivnìny
+
+ M O V S      - pøesun øetìzce (bajt nebo slovo)          Pøíznaky:
+Význam:       [ES:DI] <-- [DS:SI]                        neovlivnìny
+              if DF = 0
+                   SI <-- SI + n   (n = 1 pro bajt,
+                   DI <-- DI + n     2 pro slovo)
+              else
+                   SI <-- SI - n
+                   DI <-- DI - n
+
+ M O V S B    - pøesun bajtového øetìzce                  Pøíznaky:
+Význam:       [ES:DI] <-- [DS:SI]                        neovlivnìny
+              if DF = 0
+                   SI <-- SI + 1
+                   DI <-- DI + 1
+              else
+                   SI <-- SI - 1
+                   DI <-- DI - 1
+
+ M O V S W    - pøesun øetìzce slov                       Pøíznaky:
+Význam:       [ES:DI] <-- [DS:SI]                        neovlivnìny
+              if DF = 0
+                   SI <-- SI + 2
+                   DI <-- DI + 2
+              else
+                   SI <-- SI - 2
+                   DI <-- DI - 2
+
+ M U L        - násobení bez znaménka                       Pøíznaky:
+Význam:       AX <-- AL * [op1]    ; operandem bajt     O D I T S Z A P C
+                                                        * - - - ? ? ? ? *
+         nebo DX:AX <-- AX * [op1] ; operandem slovo
+
+ N E G        - negace                                    Pøíznaky:
+Význam:       [op1] <--  - [op1] (dvojkový doplnìk)   O D I T S Z A P C
+                                                      * - - - * * * * *
+
+ N O P        - prázdná operace                            Pøíznaky:
+Význam:       žádná funkce                                neovlivnìny
+
+ N O T        - logická negace                             Pøíznaky:
+Význam:       NOT    [op1] <--  NOT[op1]                  neovlivnìny
+
+ O R          - logické OR                                Pøíznaky:
+Význam:       [op1] <-- [op1] OR [op2]                O D I T S Z A P C
+                                                      0 - - - * * ? * 0
+
+ O U T        - výstup bajtu nebo slova na I/O port        Pøíznaky:
+Význam:       [port] <-- akumulátor                       neovlivnìny
+
+ P O P        - vyjmutí slova ze zásobníku                 Pøíznaky:
+Význam:       [op1] <-- (SP)                              neovlivnìny
+              SP <-- SP + 2
+
+
+ P O P F      - vyjmutí registru pøíznakù ze zásobníku     Pøíznaky:
+Význam:       pøíznakový_registr <-- (SP)             O D I T S Z A P C
+              SP <-- SP + 2                           r r r r r r r r r
+
+ P U S H      - uložení slova do zásobníku                 Pøíznaky:
+Význam:       SP <-- SP - 2                               neovlivnìny
+              (SP) <-- [op1]
+
+ P U S H F    - uložení registru pøíznakù do zásobníku     Pøíznaky:
+Význam:       SP <-- SP - 2                               neovlivnìny
+              (SP) <-- registr_pøíznakù
+
+ R C L        - rotace vlevo pøes pøíznakový bit pøenosu CF
+Význam:       +----->--------------------+                 Pøíznaky:
+            +-+--+   +-----------------+ |            O D I T S Z A P C
+            | CF +-<-+  operand [op1]  +<+            * - - - - - - - *
+            +----+   +-----------------+
+
+ R C R        - rotace vpravo pøes pøíznakový bit pøenosu CF
+Význam:      +---------------------<----+                  Pøíznaky:
+             | +-----------------+   +--+-+           O D I T S Z A P C
+             +>+  operand [op1]  +->-+ CF |           * - - - - - - - *
+               +-----------------+   +----+
+
+ R E P        - opakování instrukce
+Význam:       while CX <> 0       ; pro MOVS, LODS, STOS   Pøíznaky:
+                   provedení instrukce                    neovlivnìny
+                   CX <-- CX - 1
+              ------------------------
+              while CX <> 0       ; pro CMPS, SCAS
+                   provedení instrukce
+                   CX <-- CX - 1
+                   if ZF = 0 pøerušení smyèky
+
+ R E P E      - opakování instrukce, pokud je shoda
+    Instrukce REPE je synonymum pro instrukci REP. Viz popis instrukce REP.
+
+ R E P N E    - opakování instrukce, pokud není shoda
+Význam:       while CX <> 0       ; pro MOVS, LODS, STOS   Pøíznaky:
+                   provedení instrukce                    neovlivnìny
+                   CX <-- CX - 1
+              ------------------------
+              while CX <> 0       ; pro CMPS, SCAS
+                   provedení instrukce
+                   CX <-- CX - 1
+                   if ZF = 1 pøerušení smyèky  ; toto je jediný rozdíl
+                                               ; mezi REP a REPNE
+
+ R E P N Z    - opakování instrukce, pokud není nula
+    Instrukce  REPNZ  je synonymum pro instrukci REPNE. Viz popis instrukce
+REPNE.
+
+ R E P Z      - opakování instrukce, pokud je nula
+    Instrukce REPZ je synonymum pro instrukci REP. Viz popis instrukce REP.
+
+ R E T        - návrat z procedury
+Význam:       POP  IP
+              if FAR RETURN (vnitrosegmentová instrukce)
+                   POP CS
+              SP <-- SP + volitelná hodnota (pokud je specifikována)
+
+ R O L        - rotace vlevo                               Pøíznaky:
+Význam:            +------->-------------+            O D I T S Z A P C
+            +----+ | +-----------------+ |            * - - - - - - - *
+            | CF +<+<+  operand [op1]  +<+
+            +----+   +-----------------+
+
+
+
+ R O R        - rotace vpravo                              Pøíznaky:
+Význam:     +------------<--------+                   O D I T S Z A P C
+            | +-----------------+ | +----+            * - - - - - - - *
+            +>+  operand [op1]  +>+>+ CF |
+              +-----------------+   +----+
+
+ S A H F      - uložení registru AH do pøíznakového registru
+Význam:       bity pøíznak. reg.     bity AH              Pøíznaky:
+                  S Z A P C     <-- 7 6 4 2 0         O D I T S Z A P C
+                                                      - - - - * * * * *
+
+ S A L        - aritmetický posun vlevo                    Pøíznaky:
+Význam:     +----+   +-----------------+              O D I T S Z A P C
+            | CF +-<-+  operand [op1]  +-<- 0         * - - - * * ? * *
+            +----+   +-----------------+
+
+ S A R        - aritmetický posun vpravo                   Pøíznaky:
+Význam:     +----+   +-----------------+   +----+     O D I T S Z A P C
+            | SF +->-+  operand [op1]  +->-+ CF |     * - - - * * ? * *
+            +----+   +-----------------+   +----+
+
+ S B B        - odeètení s pøíznakem pøenosu CF            Pøíznaky:
+Význam:       [op1] <-- [op1] - [op2] - CF            O D I T S Z A P C
+                                                      * - - - * * * * *
+
+ S C A S      - porovnání øetìzce (bajt nebo slovo)        Pøíznaky:
+Význam:       CMP akumulátor,[ES:DI]                  O D I T S Z A P C
+              if DF = 0                               * - - - * * * * *
+                   DI <-- DI + n   (n = 1 pro bajt,
+                                     2 pro slovo)
+              else
+                   DI <-- DI - n
+
+ S C A S B    - porovnání bajtového øetìzce                Pøíznaky:
+Význam:       CMP akumulátor,[ES:DI]                  O D I T S Z A P C
+              if DF = 0                               * - - - * * * * *
+                   DI <-- DI + 1
+              else
+                   DI <-- DI - 1
+
+ S C A S W    - porovnání øetìzce slov                     Pøíznaky:
+Význam:       CMP akumulátor,[ES:DI]                  O D I T S Z A P C
+              if DF = 0                               * - - - * * * * *
+                   DI <-- DI + 2
+              else
+                   DI <-- DI - 2
+
+ S H L        - logický posun vlevo                        Pøíznaky:
+Význam:     +----+   +-----------------+              O D I T S Z A P C
+            | CF +-<-+  operand [op1]  +-<- 0         * - - - * * ? * *
+            +----+   +-----------------+
+
+ S H R        - logický posun vpravo                       Pøíznaky:
+Význam:           +-----------------+   +----+        O D I T S Z A P C
+             0 ->-+  operand [op1]  +->-+ CF |        * - - - * * ? * *
+                  +-----------------+   +----+
+
+ S T C        - nastavení pøíznaku pøenosu CF              Pøíznaky:
+Význam:       CF <-- 1                                O D I T S Z A P C
+                                                      - - - - - - - - 1
+
+ S T D        - nastavení pøíznaku smìru DF                Pøíznaky:
+Význam:       DF <-- 1                                O D I T S Z A P C
+                                                      - 1 - - - - - - -
+
+ S T I        - nastavení pøíznaku povolení pøer.IF        Pøíznaky:
+Význam:       IF <-- 1                                O D I T S Z A P C
+                                                      - - 1 - - - - - -
+
+ S T O S      - uložení øetìzce (bajtù nebo slov)         Pøíznaky:
+Význam:       [ES:DI] <-- Akumulátor                     neovlivnìny
+              if DF = 0
+                   DI <-- DI + n   (n = 1 pro bajt,
+                                     2 pro slovo)
+              else
+                   DI <-- DI - n
+
+ S T O S B    - uložení øetìzce bajtù                     Pøíznaky:
+Význam:       [ES:DI] <-- AL                             neovlivnìny
+              if DF = 0
+                   DI <-- DI + 1
+              else
+                   DI <-- DI - 1
+
+ S T O S W    - uložení øetìzce slov                      Pøíznaky:
+Význam:       [ES:DI] <-- AX                             neovlivnìny
+              if DF = 0
+                   DI <-- DI + 2
+              else
+                   DI <-- DI - 2
+
+ S U B        - odeèítání                                 Pøíznaky:
+Význam:       [op1] <-- [op1] - [op2]                 O D I T S Z A P C
+                                                      * - - - * * * * *
+
+ T E S T      - test                                      Pøíznaky:
+Význam:       [op1] AND [op2]  ; nastavení pøíznakù   O D I T S Z A P C
+              CF <-- 0                                0 - - - * * ? * 0
+              OF <-- 0
+
+ W A I T      - èekání                                     Pøíznaky:
+Význam:       žádná funkce                                neovlivnìny
+
+ X C H G      - zámìna registrù                            Pøíznaky:
+Význam:       [op1] <--> [op2]                            neovlivnìny
+
+ X L A T      - tabulkový pøevod                           Pøíznaky:
+Význam:       AL <-- (BX + AL)                            neovlivnìny
+
+ X O R        - logické XOR (výhradní nebo)                Pøíznaky:
+Význam:       [op1] <-- [op1] XOR [op2]               O D I T S Z A P C
+                                                      0 - - - * * * * 0
+

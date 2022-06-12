@@ -1,0 +1,556 @@
+
+                             Standardn¡ pamØœ CMOS
+                             ---------------------
+Tý¡dy  poŸ¡taŸ… AT obsahuj¡ hodiny re ln‚ho Ÿasu nap jen‚ z vestavØnìch bateri¡
+a  64-bajtovou  n¡zkopý¡konovou pamØœ CMOS (tato pamØœ je pýi vypnut‚m poŸ¡taŸi
+nap jena t‚§ z bateri¡).
+
+PamØœ  CMOS  obsahuje  r…zn‚  informace,  vŸetnØ bØ§n‚ho Ÿasu a data, nastaven¡
+hardwarov‚ konfigurace a stavovì bajt pro uzavýen¡ (uzav¡rac¡ bajt se pou§¡v  v
+mechanismu  umo§åuj¡c¡m  AT opakovanØ startovat v m¡stØ, kde procesor program k
+ukonŸen¡ ochrann‚ho m¢du).
+
+Pokud uvid¡te bØhem inicializaŸn¡ho testu POST hl çen¡ "Run Setup" je to proto,
+§e  nØkterì  hardware  nem   ulo§en  sv…j z znam konfigurace nebo se v CMOS RAM
+vyskytly nØjak‚ jin‚ probl‚my.
+
+
+Porty 0070H - 0071H: pý¡stup k pamØti CMOS, maskov n¡ pýeruçen¡ NMI
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+0070H - z pis: nastaven¡ adresy CMOS (Bity 0 a§ 5: adr. 0 a§ 63; bit7: NMI)
+
+        U  poŸ¡taŸe  AT slou§¡ tento port souŸasnØ k maskov n¡ nemaskovateln‚ho
+        pýeruçen¡ NMI. Jakìkoliv vìstup na tento port s vynulovanìm bitem Ÿ¡slo
+        7  umo§åuje nemaskovateln‚ pýeruçen¡ NMI; nastaven¡ tohoto bitu zp…sob¡
+        z kaz  pýeruçen¡  NMI  (Maskov n¡  pýeruçen¡ NMI u poŸ¡taŸe PC/XT - viz
+        kapitola ýadiŸ pýeruçen¡).
+
+0071H - z pis: z pis dat do CMOS na adresu nastavenou pomoc¡ OUT 70H,adr
+        Ÿten¡: Ÿten¡ dat z CMOS z adresy nastaven‚ pomoc¡ OUT 70H,adr
+
+Ke  Ÿten¡  bajtu  z  pamØti  CMOS  vyçlete nejdý¡ve na port o adrese 70H adresu
+pamØœov‚ho  m¡sta  CMOS,  kter‚  m   bìt Ÿteno nebo do kter‚ho bude zapisov no,
+potom  z  adresy  71H  m…§ete Ÿ¡st nebo na ni zapisovat data do CMOS na uveden‚
+adrese.
+
+Pý¡klad:                               ; Ÿten¡ typu pevn‚ho disku
+         mov       al,12h              ; adresa £daje o disku = 12H
+         out       70h,al              ; nastavnen¡ adresy CMOS na 12H
+         jmp       $+2                 ; mal  prodleva k ust len¡ dat CMOS
+         in        al,71h              ; AL nyn¡ obsahuje typ pevn‚ho disku
+
+Adresy  10H  a§  20H  jsou  chr nØny metodou kontroln¡ho souŸtu, aby bylo mo§n‚
+detekovat,  kdy§  jsou  baterie vybit‚ nebo byl do pamØti zaps n neplatnì z pis
+konfigurace (napý. kdy§ se "zabØhne" program a n hodou se provede instrukce OUT
+71H  -  obvykle  se  zmØn¡ nastaven¡ pevn‚ho disku, kter‚ bylo Ÿteno naposled).
+Kontroln¡ souŸet je jednoduchì 16-bitovì souŸet chr nØnìch bajt….
+
+    Pozn.: Dalç¡   informace  o  hodin ch  re ln‚ho  Ÿasu  z¡sk te  v  pý¡ruŸce
+           Motorolla MC146818.
+
+00H    - hodiny re ln‚ho Ÿasu - sekunda
+01H    - alarm - sekundy
+02H    - hodiny re ln‚ho Ÿasu - minuta
+03H    - alarm - minuty
+04H    - hodiny re ln‚ho Ÿasu - hodina
+05H    - alarm - hodina
+06H    - hodiny re ln‚ho Ÿasu - den v tìdnu
+07H    - hodiny re ln‚ho Ÿasu - den mØs¡ce
+08H    - hodiny re ln‚ho Ÿasu - mØs¡c
+09H    - hodiny re ln‚ho Ÿasu - rok
+0AH    - stavovì registr hodin re ln‚ho Ÿasu - A (Ÿten¡)
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+         ³ ³ ³ ³ ÀÄÁÄÁÄÁÄ> 0-3: vìbØr rychlosti (nastaven na 0110)
+         ³ ÀÄÁÄÁÄÄÄÄÄÄÄÄÄ> 4-6: 22-stupåov  dØliŸka (nastaveno na 010)
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: pý¡znak pr…bØ§n‚ho ulo§en¡ (UIP) (0=Ÿten¡ OK)
+0BH    - stavovì registr hodin re ln‚ho Ÿasu - B (z pis)
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: mo§n‚ ulo§en¡ denn¡ho cyklu (0=standard) (0)
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: cyklus: 0=12; 1=24                       (1)
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: m¢d dat BCD: 1=bin rn¡; 0=BCD            (0)
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: mo§nì obd‚ln¡kovì pr…bØh: 1=ano; 0=ne    (0)
+         ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: mo§n‚ pýeruçen¡ ukonŸen¡ dne: 1=ano; 0=ne(0)
+         ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: mo§n‚ pýeruçen¡ alarmem: 1=ano; 0=ne     (0)
+         ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: mo§n‚ periodick‚ pýeruçen¡: 1=ano; 0=ne  (0)
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: pý¡znak pr…bØ§n‚ho ulo§en¡ (UIP) (0=Ÿten¡ OK)
+0CH    - stavovì registr hodin re ln‚ho Ÿasu - C (Ÿten¡)
+       - stavov‚ bity pý¡znak… pýeruçen¡
+0DH    - stavovì registr hodin re ln‚ho Ÿasu - D (z pis)
+       - bit 7 = 1 pokud CMOS=RAM je pýipojena k nap jen¡
+               = 0 indikuje, §e baterie je vybit 
+0EH    - stavovì bajt diagnostiky pýi vnitýn¡ inicializaci syst‚mu (POST)
+         tento bajt ukl d  POST pýi inicializaci syst‚mu
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: = 0
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: = 0
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: 1=Ÿas neplat¡ (napý. nen¡ 30.£nor)
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: 1=çpatnì pevnì disk (nelze z nØj zav‚st OS)
+         ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: 1=velikost pamØti nen¡ spr vn 
+         ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: 1=z znam konfigurace nen¡ spr vnì
+         ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: 1=kontroln¡ souŸet CMOS RAM nesouhlas¡
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: 1=vybit  baterie CMOS RAM
+0FH    - stavovì bajt pýeruçen¡
+         Tento  bajt  je Ÿten pýi startu poŸ¡taŸe po resetu procesoru kv…li
+         spr vn‚mu  urŸen¡,  zda  byl  reset  pou§it jako cesta k pýeruçen¡
+         procesoru 80286 z ochrann‚ho m¢du.
+              0 = mØkkì reset (Ctrl-Alt-Del) nebo nevyj¡meŸn‚ pýeruçen¡
+              1 = pýeruçen¡ po urŸen¡ velikosti pamØti
+              2 = pýeruçen¡ po proveden¡ test… pamØti
+              3 = pýeruçen¡ po chybØ pamØti (kontrola parity 1 nebo 2)
+              4 = pýeruçen¡ s po§adavkem zavadØŸe syst‚mu
+              5 = pýeruçen¡  instrukc¡  FAR JMP (restart vnitýn¡ho ýadiŸe a
+                  skok na adresu 0:[0467H])
+          6,7,8 = pýeruçen¡ po proveden¡ testu ochrann‚ho m¢du
+              9 = pýeruçen¡ po proveden¡ blokov‚ho pýesunu (INT 15H/sl.87H)
+             10 = pýeruçen¡ instrukc¡ FAR JMP (pý¡mì skok na 0:[0467H])
+10H    - typ disketov‚ mechaniky
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit                                 0000 = § dn 
+         ³ ³ ³ ³ ÀÄÁÄÁÄÁÄ> 0-3: prvn¡ disketov  mechanika ÄÂÄ> 0001 = 360K
+         ÀÄÁÄÁÄÁÄÄÄÄÄÄÄÄÄ> 4-7: druh  disketov  mechanika ÄÙ   0010 = 1.2M
+11H    - rezervov no
+12H    - typ jednotky pevn‚ho disku (pro disk C: a D:, pokud je 1 a§ 14)
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+         ³ ³ ³ ³ ÀÄÁÄÁÄÁÄ> 0-3: prvn¡ pevnì disk (C:) ÄÂÄ> 0000 = § dnì
+         ÀÄÁÄÁÄÁÄÄÄÄÄÄÄÄÄ> 4-7: druhì pevnì disk (D:) ÄÙ   jinak= typ
+                                                           1111 = 19H/1AH
+Pokud je pro danì disk ud na hodnota 1111 (tj. typ 15), je pro typ disku pou§it
+£daj z adres 19H a 1AH pamØti CMOS.
+
+Typy  mechanik  jsou  pýeddefinov ny v ROM-BIOS. Vektory INT 41H a INT 46H jsou
+pýi  inicializaci nastaveny na tabulku ROM obsahuj¡c¡ informace pro instalovan‚
+typy mechanik pevnìch disk…. Viz t‚§ Tabulka parametr… pevn‚ho disku.
+
+ÉÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍ»
+º  typ  ³  v lc…   ³  hlav ³ pýedkompenzace  ³ pýist vac¡  ³ kapacita  º
+º       ³          ³       ³z pisu (od stopy)³    z¢na     ³           º
+ÌÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍ¹
+º   1   ³   306    ³    4  ³      128        ³    305      ³   10MB    º
+º   2   ³   615    ³    4  ³      300        ³    615      ³   21MB    º
+º   3   ³   615    ³    6  ³      300        ³    615      ³   31MB    º
+º   4   ³   940    ³    8  ³      512        ³    940      ³   64MB    º
+º   5   ³   940    ³    6  ³      512        ³    940      ³   48MB    º
+º   6   ³   615    ³    4  ³     FFFF        ³    615      ³   21MB    º
+º   7   ³   462    ³    8  ³      256        ³    511      ³   31MB    º
+º   8   ³   733    ³    5  ³     FFFF        ³    733      ³   31MB    º
+º   9   ³   900    ³   15  ³     FFFF        ³    901      ³  151MB    º
+º  10   ³   820    ³    3  ³     FFFF        ³    820      ³   21MB    º
+º  11   ³   855    ³    5  ³     FFFF        ³    855      ³   36MB    º
+º  12   ³   855    ³    7  ³     FFFF        ³    855      ³   51MB    º
+º  13   ³   306    ³    8  ³      128        ³    319      ³   21MB    º
+º  14   ³   733    ³    7  ³     FFFF        ³    733      ³   44MB    º
+º  15   ³  (000)   ³   (0) ³     (000)       ³   (000)     ³  (00MB)   º
+º  16   ³   612    ³    4  ³        0        ³    663      ³   21MB    º
+º  17   ³   977    ³    5  ³      300        ³    977      ³   42MB    º
+º  18   ³   977    ³    7  ³     FFFF        ³    977      ³   58MB    º
+º  19   ³  1024    ³    7  ³      512        ³   1023      ³   61MB    º
+º  20   ³   733    ³    5  ³      300        ³    732      ³   31MB    º
+º  21   ³   733    ³    7  ³      300        ³    732      ³   42MB    º
+º  22   ³   733    ³    5  ³      300        ³    733      ³   31MB    º
+º  23   ³   306    ³    4  ³        0        ³    336      ³   10MB    º
+º  24   ³   925    ³    7  ³        0        ³    925      ³   56MB    º
+º  25   ³   925    ³    9  ³     FFFF        ³    925      ³   72MB    º
+º  26   ³   754    ³    7  ³      754        ³    754      ³   46MB    º
+º  27   ³   754    ³   11  ³     FFFF        ³    754      ³   72MB    º
+º  28   ³   699    ³    7  ³      256        ³    699      ³   42MB    º
+º  29   ³   823    ³   10  ³     FFFF        ³    823      ³   71MB    º
+º  30   ³   918    ³    7  ³      918        ³    918      ³   55MB    º
+º  31   ³  1024    ³   11  ³     FFFF        ³   1024      ³   98MB    º
+º  32   ³  1024    ³   15  ³     FFFF        ³   1024      ³  133MB    º
+º  33   ³  1024    ³    5  ³     1024        ³   1024      ³   44MB    º
+º  34   ³   612    ³    2  ³      128        ³    612      ³   10MB    º
+º  35   ³  1024    ³    9  ³     FFFF        ³   1024      ³   80MB    º
+º  36   ³  1024    ³    8  ³      512        ³   1024      ³   71MB    º
+º  37   ³   615    ³    8  ³      128        ³    615      ³   42MB    º
+º  38   ³   987    ³    3  ³      987        ³    987      ³   25MB    º
+º  39   ³   987    ³    7  ³      987        ³    987      ³   60MB    º
+º  40   ³   820    ³    6  ³      820        ³    820      ³   42MB    º
+º  41   ³   977    ³    5  ³      977        ³    977      ³   42MB    º
+º  42   ³   981    ³    5  ³      981        ³    981      ³   42MB    º
+º  43   ³   830    ³    7  ³      512        ³    830      ³   50MB    º
+º  44   ³   830    ³   10  ³     FFFF        ³    830      ³   72MB    º
+º  45   ³   917    ³   15  ³     FFFF        ³    918      ³  115MB    º
+º  46   ³  (000)   ³   (0) ³     (000)       ³   (000)     ³  (00MB)   º
+º  47   ³  1024    ³    8  ³        0        ³      0      ³   68MB    º
+ÈÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Pozn.: édaj  FFFF  ve  sloupci pýedkompenzace znamen , §e pýedkompenzace se
+       nebude pou§¡vat od § dn‚ stopu.
+
+       édaj  0 ve sloupci pýedkompenzace znamen , §e se pýedkompenzace bude
+       pou§¡vat pro vçechny stopy (tj. od stopy 0).
+
+       Disk typu 1 je origin ln¡ pevnì disk XT.
+
+       Disk typu 2 je standardn¡ pevnì disk AT 20MB.
+
+       Typy 16-23 jsou pýipojeny do ROM-BIOSu od data 15.11.1985.
+
+       Pokud  je  typ  disku  15 (0FH) znamen  to, §e typ disku je ulo§en v
+       CMOS na adrese 19H (disk C:) nebo na adrese 1AH (disk D:).
+
+       Typ  disku  46  je  rezervov n  a  nepou§¡v   se.  Disk  Ÿ¡slo 47 je
+       u§ivatelsky definovanì disk.
+
+13H    - rezervov no
+14H    - bajt vybaven¡ poŸ¡taŸe
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ>  0:  1=disketov‚ jednotky jsou instalov ny
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ>  1:  1=matematickì koprocesor je instalov n
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ>  2:
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ>  3:
+         ³ ³ ÀÄÁÄÄÄÄÄÄÄÄÄ> 4-5: prim rn¡ displej: 00 - § dnì nebo EGA
+         ³ ³                                      01 - 40 pozic CGA
+         ³ ³                                      10 - 80 pozic CGA
+         ³ ³                                      11 - monochromn¡ TTL
+         ÀÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6-7: disketovìch mechanik - 1 (00=1; 01=2; atd.)
+15H    - z kladn¡ pamØœ (ni§ç¡ bajt) ÄÂÄ>0100H=256K; 0200H=512K; 0280H=640K
+16H    - z kladn¡ pamØœ (vyçç¡ bajt) ÄÙ
+17H    - rozç¡ýen  pamØœ nad 1M (ni§ç¡ bajt) ÄÂÄ>(v Kilobajtech, 0-3C00H)
+18H    - rozç¡ýen  pamØœ nad 1M (vyçç¡ bajt) ÄÙ  (viz INT 15H/slu§ba 88H)
+19H    - typ pevn‚ho disku 0 (C:), pokud je (CMOS adresa 12H & 0FH) = 0FH
+1AH    - typ pevn‚ho disku 1 (D:), pokud je (CMOS adresa 12H & F0H) = F0H
+1BH-2DH - rezervov no
+2EH    - kontroln¡ souŸet CMOS - adresy 10H a§ 20H (vyçç¡ bajt)
+2FH    - kontroln¡ souŸet CMOS - adresy 10H a§ 20H (ni§ç¡ bajt)
+30H    - rozç¡ýen  pamØœ nad 1M (ni§ç¡ bajt) ÄÂÄ>(v Kilobajtech, 0-3C00H)
+31H    - rozç¡ýen  pamØœ nad 1M (vyçç¡ bajt) ÄÙ  (viz INT 15H/slu§ba 88H)
+32H    - souŸasn‚ stolet¡ v BCD (tj. 19H)
+33H    - vçeobecn‚ informace      bit7=instalov na volba pamØti IBM 128K
+                                  bit6=pou§ito utilitou "Setup"
+34H-3FH - rezervov no. Zde m…§ete ulo§it na vØky sv‚ jm‚no.
+
+                             CMOS pro AMI BIOS
+                             -----------------
+Identifik.  ýetØzec: "AMIBIOS", "0123AAAAMMMMIIIIBBBBIIIIOOOOSSSS((((CCCC))))".
+Procedura  pro  Ÿten¡  bajtu  AL  z  pamØti  CMOS  ->  AL .... adresa F000:EE94
+Procedura pro z pis bajtu AH na adresu AL pamØti CMOS .... adresa F000:EE9D
+
+00H    - hodiny re ln‚ho Ÿasu - sekunda
+01H    - alarm - sekundy
+02H    - hodiny re ln‚ho Ÿasu - minuta
+03H    - alarm - minuty
+04H    - hodiny re ln‚ho Ÿasu - hodina
+05H    - alarm - hodina
+06H    - hodiny re ln‚ho Ÿasu - den v tìdnu
+07H    - hodiny re ln‚ho Ÿasu - den mØs¡ce
+08H    - hodiny re ln‚ho Ÿasu - mØs¡c
+09H    - hodiny re ln‚ho Ÿasu - rok
+0AH    - stavovì registr hodin re ln‚ho Ÿasu - A (Ÿten¡)
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+         ³ ³ ³ ³ ÀÄÁÄÁÄÁÄ> 0-3: vìbØr rychlosti (nastaven na 0110)
+         ³ ÀÄÁÄÁÄÄÄÄÄÄÄÄÄ> 4-6: 22-stupåov  dØliŸka (nastaveno na 010)
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: pý¡znak pr…bØ§n‚ho ulo§en¡ (UIP) (0=Ÿten¡ OK)
+0BH    - stavovì registr hodin re ln‚ho Ÿasu - B (z pis)
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: mo§n‚ ulo§en¡ denn¡ho cyklu (0=standard) (0)
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: cyklus: 0=12; 1=24                       (1)
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: m¢d dat BCD: 1=bin rn¡; 0=BCD            (0)
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: mo§nì obd‚ln¡kovì pr…bØh: 1=ano; 0=ne    (0)
+         ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: mo§n‚ pýeruçen¡ ukonŸen¡ dne: 1=ano; 0=ne(0)
+         ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: mo§n‚ pýeruçen¡ alarmem: 1=ano; 0=ne     (0)
+         ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: mo§n‚ periodick‚ pýeruçen¡: 1=ano; 0=ne  (0)
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: pý¡znak pr…bØ§n‚ho ulo§en¡ (UIP) (0=Ÿten¡ OK)
+0CH    - stavovì registr hodin re ln‚ho Ÿasu - C (Ÿten¡)
+       - stavov‚ bity pý¡znak… pýeruçen¡
+0DH    - stavovì registr hodin re ln‚ho Ÿasu - D (z pis)
+       - bit 7 = 1 pokud CMOS=RAM je pýipojena k nap jen¡
+               = 0 indikuje, §e baterie je vybit 
+0EH    - stavovì bajt diagnostiky pýi vnitýn¡ inicializaci syst‚mu (POST)
+         tento bajt ukl d  POST pýi inicializaci syst‚mu
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: 1=prob¡h  obsluha SETUP BIOS
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: = 0
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: 1=Ÿas neplat¡ (napý. nen¡ 30.£nor)
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: 1=çpatnì pevnì disk (nelze z nØj zav‚st OS)
+         ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: 1=velikost pamØti nen¡ spr vn 
+         ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: 1=z znam konfigurace nen¡ spr vnì
+         ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: 1=kontroln¡ souŸet CMOS RAM nesouhlas¡
+         ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: 1=vybit  baterie CMOS RAM
+0FH    - stavovì bajt pýeruçen¡
+         Tento  bajt  je Ÿten pýi startu poŸ¡taŸe po resetu procesoru kv…li
+         spr vn‚mu  urŸen¡,  zda  byl  reset  pou§it jako cesta k pýeruçen¡
+         procesoru 80286 z ochrann‚ho m¢du.
+              0 = mØkkì reset (Ctrl-Alt-Del) nebo nevyj¡meŸn‚ pýeruçen¡
+              1 = pýeruçen¡ po urŸen¡ velikosti pamØti
+              2 = pýeruçen¡ po proveden¡ test… pamØti
+              3 = pýeruçen¡ po chybØ pamØti (kontrola parity 1 nebo 2)
+              4 = pýeruçen¡ s po§adavkem zavadØŸe syst‚mu
+              5 = pýeruçen¡  instrukc¡  FAR JMP (restart vnitýn¡ho ýadiŸe a
+                  skok na adresu 0:[0467H])
+          6,7,8 = pýeruçen¡ po proveden¡ testu ochrann‚ho m¢du
+              9 = pýeruçen¡ po proveden¡ blokov‚ho pýesunu (INT 15H/sl.87H)
+             10 = pýeruçen¡ instrukc¡ FAR JMP (pý¡mì skok na 0:[0467H])
+10H    - typ disketov‚ mechaniky
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit                                 0000 = § dn 
+         ³ ³ ³ ³ ÀÄÁÄÁÄÁÄ> 0-3: prvn¡ disketov  mechanika ÄÂÄ> 0001 = 360 KB
+         ÀÄÁÄÁÄÁÄÄÄÄÄÄÄÄÄ> 4-7: druh  disketov  mechanika ÄÙ   0010 = 1.2 MB
+                                                               0011 = 720 KB
+                                                               0100 = 1.44 MB
+                                                               0101 = 2.88 MB
+11H    - bit 0: 1=NUM LOCK pýi startu poŸ¡taŸe zapnuto na ON (0=OFF)
+       - bit 1: 1=Ÿek n¡ na potvrzen¡ chybov‚ho hl çen¡ kl vesou <F1>
+       - bit 2: 1=tabulka parametr… RAM pro pevnì disk typu 47 je pou§ita pro
+                  DOS 1 KB
+                0=tabulka parametr… RAM pro pevnì disk typu 47 je na 0:300h
+       - bit 3: 1=zobrazen¡ hl çen¡ "Hit <DEL> ..." pýi startu poŸ¡taŸe
+       - bit 4: 1=prov d¡ se kontrola chyby parity pamØti
+       - bit 5: 1=zvukov  signalizace testu pamØti (zvukov‚ tiky)
+       - bit 6: 1=prov d¡ se test pamØti nad 1 MB (pýi startu poŸ¡taŸe)
+                  (jinak se pamØœ pouze zap¡çe pro inicializaci)
+       - bit 7: 1=povolena podpora myçi
+12H    - typ jednotky pevn‚ho disku (pro disk C: a D:, pokud je 1 a§ 14)
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+         ³ ³ ³ ³ ÀÄÁÄÁÄÁÄ> 0-3: prvn¡ pevnì disk (C:) ÄÂÄ> 0000 = § dnì
+         ÀÄÁÄÁÄÁÄÄÄÄÄÄÄÄÄ> 4-7: druhì pevnì disk (D:) ÄÙ   jinak= typ
+                                                           1111 = 19H/1AH
+Pokud je pro danì disk ud na hodnota 1111 (tj. typ 15), je pro typ disku pou§it
+£daj z adres 19H a 1AH pamØti CMOS.
+
+Typy  mechanik  jsou  pýeddefinov ny v ROM-BIOS. Vektory INT 41H a INT 46H jsou
+pýi  inicializaci nastaveny na tabulku ROM obsahuj¡c¡ informace pro instalovan‚
+typy mechanik pevnìch disk…. Viz t‚§ Tabulka parametr… pevn‚ho disku.
+
+Tabulka disk… - viz standardn¡ CMOS
+
+13H    - bit 2 a§ bit 4: rychlost generov n¡ znak… z kl vesnice (autorepeat)
+                            000 = 6         100 = 15
+                            001 = 8         101 = 20
+                            010 = 10        110 = 24
+                            011 = 12        111 = 30  znak…/sec
+       - bit 5 a§ 6: poŸ teŸn¡ prodleva generov n¡ znak… z kl vesnice
+                            00 = 250, 01 = 500, 10 = 750, 11 = 1000 ms
+       - bit 7: 1=povoleno pýednastaven¡ rychlosti gener. znak… z kl vesnice
+
+14H    - bajt vybaven¡ poŸ¡taŸe
+        ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+        ³7 6 5 4 3 2 1 0³
+        ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+         ³ ³ ³ ³ ³ ³ ³ ÀÄ>  0:  1=disketov‚ jednotky jsou instalov ny
+         ³ ³ ³ ³ ³ ³ ÀÄÄÄ>  1:  1=matematickì koprocesor je instalov n
+         ³ ³ ³ ³ ³ ÀÄÄÄÄÄ>  2:  1=prov d¡ se instalace (test) kl vesnice
+         ³ ³ ³ ³ ³                pýi startu, 0=kl vesnice neinstalov na
+         ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ>  3:  1=prim rn¡ displej instalov n (plat¡ bity
+         ³ ³ ³ ³                  4 a§ 5), 0=prim rn¡ displej nenainstal.
+         ³ ³ ÀÄÁÄÄÄÄÄÄÄÄÄ> 4-5: prim rn¡ displej: 00 - § dnì nebo EGA
+         ³ ³                                      01 - 40 pozic CGA
+         ³ ³                                      10 - 80 pozic CGA
+         ³ ³                                      11 - monochromn¡ TTL
+         ÀÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6-7: disketovìch mechanik - 1 (00=1; 01=2; atd.)
+
+15H    - z kladn¡ pamØœ (ni§ç¡ bajt) ÄÂÄ>0100H=256K; 0200H=512K; 0280H=640K
+16H    - z kladn¡ pamØœ (vyçç¡ bajt) ÄÙ
+17H    - rozç¡ýen  pamØœ nad 1M (ni§ç¡ bajt) ÄÂÄ>(v Kilobajtech, 0-3C00H)
+18H    - rozç¡ýen  pamØœ nad 1M (vyçç¡ bajt) ÄÙ  (viz INT 15H/slu§ba 88H)
+19H    - typ pevn‚ho disku 0 (C:), pokud je (CMOS adresa 12H & 0FH) = 0FH
+1AH    - typ pevn‚ho disku 1 (D:), pokud je (CMOS adresa 12H & F0H) = F0H
+1Bh,1Ch - poŸet v lc… u§ivatelsk‚ho disku C: (1Bh=LOW, 1Ch=HIGH)
+1Dh     - poŸet hlav u§ivatelsk‚ho disku C:
+1Eh,1Fh - stopa pro pýedkompenzaci z pisu u§ivatelsk‚ho disku C: (1Eh=LOW)
+20h     - (pro u§ivatelskì disk C:)
+21h,22h - parkovac¡ stopa u§ivatelsk‚ho disku C: (21h=LOW, 22h=HIGH)
+23h     - poŸet sektor… na stopu u§ivatelsk‚ho disku C:
+24h,25h - poŸet v lc… u§ivatelsk‚ho disku D: (24h=LOW, 25h=HIGH)
+26h     - poŸet hlav u§ivatelsk‚ho disku D:
+27h,28h - stopa pro pýedkompenzaci z pisu u§ivatelsk‚ho disku D: (27h=LOW)
+29h     - (pro u§ivatelskì disk D:)
+2Ah,2Bh - parkovac¡ stopa u§ivatelsk‚ho disku D: (2Ah=LOW, 2Bh=HIGH)
+2Ch     - poŸet sektor… na stopu u§ivatelsk‚ho disku D:
+2DH    - bit 0: 1=povolena funkce pýep¡n n¡ re§imu TURBO
+       - bit 1: 1=mo§n‚ rychl‚ hradlov n¡ sign lu A20
+       - bit 2: 1=intern¡ pamØœ CACHE povolena (procedura F000:8BD2)
+                  (spolu s registrem ....)
+                nebo 1=je procesor CYRIX/TI 486 DLC CPU
+       - bit 3: 1=extern¡ pamØœ CACHE povolena
+       - bit 4: 1=rychlost procesoru pýi startu vyçç¡ (0=ni§ç¡)
+       - bit 5: 1=zav dØn¡ syst‚mu z disketov‚ mechaniky A: (0=z disku C:)
+       - bit 6: 1=povoleno vystaven¡ disketovìch mechanik pýi startu poŸ¡taŸe
+       - bit 7: 1=nainstalov n koprocesor WEITEK
+2EH    - kontroln¡ souŸet CMOS - adresy 10H a§ 2DH (vyçç¡ bajt)
+2FH    - kontroln¡ souŸet CMOS - adresy 10H a§ 2DH (ni§ç¡ bajt)
+              Procedura pro vìpoŸet kontroln¡ho souŸtu (adresa F000:17F2)
+                      xor   bx,bx
+                      mov   ah,0
+                      mov   cl,90h     ; poŸ teŸn¡ adresa 10h
+                  L1: mov   al,cl
+                      out   70h,al
+                      jcxz  $+2
+                      jcxz  $+2
+                      in    al,71h
+                      jcxz  $+2
+                      add   bx,ax
+                      inc   cl
+                      cmp   cl,0adh    ; koncov  adresa 2dh
+                      jbe   L1
+                       .....   (z pis 2Eh <- HIGH, 2Fh <- LOW)
+
+30H    - rozç¡ýen  pamØœ nad 1M (ni§ç¡ bajt) ÄÂÄ>(v Kilobajtech, 0-3C00H)
+31H    - rozç¡ýen  pamØœ nad 1M (vyçç¡ bajt) ÄÙ  (viz INT 15H/slu§ba 88H)
+32H    - souŸasn‚ stolet¡ v BCD (tj. 19H)
+33H    - vçeobecn‚ informace
+            bit 0: 1=povolena extern¡ CACHE pamØœ
+            bit 1: 1=povolena CACHE pamØœ
+            bit 2: 1=povolena intern¡ CACHE pamØœ
+            bit 4 a§ 6: rychlost procesoru (zmØýen  rychlost)
+                         000 = 16 MHz      100 = 40 MHz
+                         001 = 20 MHz      101 = 50 MHz
+                         010 = 25 MHz      110 = 66 MHz
+                         011 = 33 MHz      111 = 66 MHz
+            bit 7: 1=nainstalov no v¡ce ne§ 512 K z kladn¡ operaŸn¡ pamØti
+34H       bit 0: 1=povolena st¡nov  RAM adapt‚r-ROM DC00h 16 KB
+          bit 1: 1=povolena st¡nov  RAM adapt‚r-ROM D800h 16 KB
+          bit 2: 1=povolena st¡nov  RAM adapt‚r-ROM D400h 16 KB
+          bit 3: 1=povolena st¡nov  RAM adapt‚r-ROM D000h 16 KB
+          bit 4: 1=povolena st¡nov  RAM adapt‚r-ROM CC00h 16 KB
+          bit 5: 1=povolena st¡nov  RAM adapt‚r-ROM C800h 16 KB
+          bit 6: 1=kontrola hesla v§dy; 0=kontrola hesla pýi SETUP
+          bit 7: 1=prov d¡ se antivirov  ochrana BOOT vir… (+ registr ...)
+35h       bit 0: 1=prov d¡ se test numerick‚ho procesoru (+ registr ...)
+          bit 1: 1=povolena st¡nov  RAM video ROM C400h 16 KB  ÄÄ¿  nebo
+          bit 2: 1=povolena st¡nov  RAM video ROM C000h 16 KB    ³ SHADOW-RAM
+          bit 3: 1=povolena st¡nov  RAM system-ROM F000h 64 KB ÄÄÙ 000 = z kaz
+                                                                   011 = video
+                                                                   100 = hlavn¡
+                                                                   111 = obØ
+          bit 4: 1=povolena st¡nov  RAM adapt‚r-ROM EC00h 16 KB ÄÄ¿   nebo
+          bit 5: 1=povolena st¡nov  RAM adapt‚r-ROM E800h 16 KB   ³ system-ROM
+          bit 6: 1=povolena st¡nov  RAM adapt‚r-ROM E400h 16 KB   ³   64 KB
+          bit 7: 1=povolena st¡nov  RAM adapt‚r-ROM E000h 16 KB ÄÄÙ
+36h    -  bit 5: 1=povolena funkce BYPASS AUTO_BUS
+          bit 6: 1=automatick  konfigurace pýi startu poŸ¡taŸe
+          bit 7: 1=povolen AUTO AT WAIT STATE
+37h    - bit 0 a§ 3: paleta barev SETUP
+       - bit 4 a§ 7: kl¡Ÿ pro k¢dov n¡ hesla (nebo kontroln¡ souŸet ?)
+38h a§ 3Dh - heslo (neplatn‚ znaky za heslem jsou nastaveny na 0)
+3Eh,3Fh - kontroln¡ souŸet dat 34h a§ 6Eh (adresy 3Eh a 3Fh se pýeskoŸ¡)
+          3Eh <- HIGH, 3Fh <- LOW
+              Procedura pro vìpoŸet kontroln¡ho souŸtu (adresa F000:180F)
+                      xor   bx,bx
+                      mov   ah,0
+                      mov   cx,0b4h    ; poŸ teŸn¡ adresa 34h
+                  L1: mov   al,cl
+                      out   70h,al
+                      jcxz  $+2
+                      jcxz  $+2
+                      in    al,71h
+                      jcxz  $+2
+                      add   bx,ax
+                      inc   cx
+                      cmp   cx,0beh    ; adresa k pýeskoŸen¡ 3Eh
+                      jne   L2
+                      inc   cx
+                      inc   cx
+                  L2: cmp   cx,cs:[82b3h]   ; =0eeh, koncov  adresa 6Eh
+                      jbe   L1
+                       .....   (z pis 3Eh <- HIGH, 3Fh <- LOW)
+
+60h   - bit 1: 1=povoleno ý¡zen¡ resetov n¡ kl vesnice
+      - bit 2: 1=povolen AT Cycle Wait State
+      - bit 3: 1=povoleno Single ALE
+      - bit 4: volba zdroje hodin sbØrnice AT  0=CLK, 1=CLK2
+61h   - bit 1: CACHE WRITE WAIT STATE   0 = 0 W/S, 1 = 1 W/S (obr cenØ ???)
+      - bit 5: 1=z kaz prov dØn¡ kontroly chyby parity pamØti
+      - bit 7: 1=povoleno Master Mode Byte Swap
+62h   - bit 0: 1=povolen SLOW REFRESH
+      - bit 2: 1=povolen HIDDEN REFRESH
+64h   - bit 3: 1=povolen m¢d SLOW 16M CPU Bus Mode
+65h   - bit 0 a§ 1: dØlic¡ pomØr hodin sbØrnice AT BUS
+              00 = CLK/6, 01 = CLK/4, 10 = CLK/3, 11 = CLK/5
+        bit 3: 1=povoleno rychl‚ dek¢dov n¡
+        bit 4 a§ 5: WRITE WAIT STATE pamØti
+              00 = 0 W/S, 01 = 1 W/S, 10 = 2 W/S, 11 = 3 W/S
+        bit 6 a§ 7: READ WAIT STATE pamØti
+              01 = 0 W/S, 10 = 1 W/S, 11 = 2 W/S
+67h   - bit 0 a§ 3: adresovì rozsah CACHE pamØti v n sobc¡ch 4 MB
+              0=64 MB, 1 a§ 15 = 4 a§ 60 MB
+        bit 4: 0=cachuje se prostor VIDEO BIOS, 1=z kaz cachov n¡
+        bit 5: 1=povolena prodleva I/O Delay On Back to Back
+        bit 6: 1=povoleno generov n¡ sign lu READY
+68h   - bit 0 a§ 1: bity 8 a 9 b zov‚ adresy 1. necach. bloku pamØti
+        bit 5 a§ 6: velikost 1. necachovan‚ho bloku pamØti
+              00 = 64 KB, 01 = 128 KB, 10 = 256 KB, 11 = 512 KB
+        bit 7: 0=povolen 1.necachovanì blok pamØti, 1=zak zan 1.necach.blok
+69h   - bity 0 a§ 7 b zov‚ adresy 1. necachovan‚ho bloku pamØti
+         (dalç¡ 2 bity 8 a 9 jsou v bajtu 68h)
+           B zov  adresa ud v  adresu v n sobc¡ch 64 KB, mus¡ bìt pýitom
+           zarovn na na n sobek velikosti bloku necachovan‚ pamØti
+6Ah   - bit 0 a§ 1: bity 8 a 9 b zov‚ adresy 2. necach. bloku pamØti
+        bit 5 a§ 6: velikost 2. necachovan‚ho bloku pamØti
+              00 = 64 KB, 01 = 128 KB, 10 = 256 KB, 11 = 512 KB
+        bit 7: 0=povolen 2.necachovanì blok pamØti, 1=zak zan 2.necach.blok
+6Bh   - bity 0 a§ 7 b zov‚ adresy 2. necachovan‚ho bloku pamØti
+         (dalç¡ 2 bity 8 a 9 jsou v bajtu 6Ah)
+           B zov  adresa ud v  adresu v n sobc¡ch 64 KB, mus¡ bìt pýitom
+           zarovn na na n sobek velikosti bloku necachovan‚ pamØti
+6Eh      bit 0 a§ 1: CACHE READ WAIT STATE
+             00 = 3-1-1-1, 01 = 2-1-1-1, 10 = 3-2-2-2, 11 = 2-2-2-2
+       - bit 7: 1=povolen 16M HIDDEN ENABLED
+
+üadiŸ sbØrnice:
+--------------
+Ÿten¡ registru AL ýadiŸe sbØrnice -> AL  (adresa F000:8E67)
+                out    22h,al
+                jcxz   $+2
+                jcxz   $+2
+                in     al,24h
+                jcxz   $+2
+                jcxz   $+2
+                ret
+
+z pis bajtu AH do registru AL ýadiŸe sbØrnice (adresa F000:8E74)
+                out    22h,al
+                jcxz   $+2
+                jcxz   $+2
+                xchg   ah,al
+                out    24h,al
+                jcxz   $+2
+                jcxz   $+2
+                xchg   ah,al
+                ret
+
+AMI BIOS - Ÿ sti vyu§¡vaj¡c¡ CMOS (pamØœ F000):
+----------------------------------------------
+1186 - test platnosti CMOS
+11B4 - test pamØti, nastaven¡ pý¡znaku platnosti CMOS
+125D - urŸen¡ typu displeje, inicializace videom¢du
+1334 - rozliçen¡, zda je nØjakì pevnì disk
+140A - inicializace Ÿ¡taŸe syst‚movìch hodin podle CMOS (145E - neplatnì Ÿas)
+14B6 - test koprocesoru
+1598 - pý¡znak pro tvrdì RESET
+1A3E - zobrazen¡ rychlosti procesoru
+1A72 - nastaven¡ 16M HIDDEN ENABLED
+1BBA - registr 64h, 65h
+1BEC - registr 36h (AUTO AT WAIT STATE), registr 60h
+1C7C - registr 61h
+1CB1 - nastaven¡ velikosti CACHE pamØti
+1E3F - nastaven¡ WAIT STATE
+1FC5 - skok do protect m¢du
+3C26 - typ disket. mechaniky, typ pevn‚ho disku
+3DF0 - nastaven¡ intern¡ CACHE
+4E4F - nastaven¡ velikosti pamØti
+5044
+84CC - naŸten¡ obsahu CMOS do RAM pro modifikaci v SETUP
+8B63 - nastaven¡ extern¡ CACHE
+8FDB - zmØýen¡ rychlosti procesoru
+

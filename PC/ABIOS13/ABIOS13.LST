@@ -1,0 +1,2257 @@
+
+
+F000:A330  50 33 C0 66 0F 20                    db      50h, 33h, 0C0h, 66h, 0Fh, 20h
+F000:A336  C0 EB 00 EB 00 0B                    db      0C0h, 0EBh, 0, 0EBh, 0, 0Bh
+F000:A33C  C0 58 C3                             db      0C0h, 58h, 0C3h
+  
+                                ;==========================================================================
+                                ;                              SUBROUTINE
+                                ;
+                                ;         Called from:   F000:888B
+                                ;==========================================================================
+  
+                                sub_d_A33F      proc    near
+F000:A33F  60                                   pusha                                           ; Save all regs
+F000:A340  06                                   push    es
+F000:A341  1E                                   push    ds
+F000:A342  FC                                   cld                                             ; Clear direction
+F000:A343  8C C8                                mov     ax,cs
+F000:A345  8E D8                                mov     ds,ax
+F000:A347  B8 0000                              mov     ax,0
+F000:A34A  8E C0                                mov     es,ax
+F000:A34C  8D 3E 043E                           lea     di,cs:[43Eh]                            ; Load effective addr
+F000:A350  B9 000B                              mov     cx,0Bh
+F000:A353  33 C0                                xor     ax,ax                                   ; Zero register
+F000:A355  F3/AA                                rep     stosb                                   ; Rep while cx>0 Store al to es:[di]
+F000:A357  8D 3E 048F                           lea     di,cs:[48Fh]                            ; Load effective addr
+F000:A35B  B9 0007                              mov     cx,7
+F000:A35E  F3/AA                                rep     stosb                                   ; Rep while cx>0 Store al to es:[di]
+F000:A360  26:80 26 048B CC                     and     es:dsk_data_rate_,0CCh                  ; (0000:048B=89h)
+F000:A366  26:80 0E 048B 88                     or      es:dsk_data_rate_,88h                   ; (0000:048B=89h)
+F000:A36C  B0 02                                mov     al,2
+F000:A36E  BA 03F7                              mov     dx,3F7h
+F000:A371  EE                                   out     dx,al                                   ; port 3F7h, dsk0 config ctrl
+F000:A372  E8 0726                              call    sub_d_AA9B        ; Reset diskov‚ho syst‚mu
+F000:A375  B0 00                                mov     al,0
+F000:A377  E8 0505                              call    sub_d_A87F
+F000:A37A  B0 01                                mov     al,1
+F000:A37C  E8 0500                              call    sub_d_A87F
+F000:A37F  E8 0719                              call    sub_d_AA9B        ; Reset diskov‚ho syst‚mu
+F000:A382  B0 02                                mov     al,2
+F000:A384  E8 0B84                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:A387  26:A2 0440                           mov     es:dsk_motor_tmr_,al                    ; (0000:0440=21h)
+F000:A38B  1F                                   pop     ds
+F000:A38C  07                                   pop     es
+F000:A38D  61                                   popa                                            ; Restore all regs
+F000:A38E  C3                                   ret
+                                sub_d_A33F      endp
+  
+F000:A38F  A77B                 data_d_A38F     dw      0A77Bh            ; funkce 15h
+F000:A391                                       dw      0a78dh            ; funkce 16h
+f000:a393                                       dw      0a7b3h            ; funkce 17h
+f000:a395                                       dw      0a810h            ; funkce 18h
+                                                                                                ;  xref F000:A459
+; -----------------------------------------------------------------------------
+;        Tabulky disketov˜ch parametr–
+; -----------------------------------------------------------------------------
+
+f000:a397                                  ; mechanika 360 KB, disketa 360 KB
+                                            db   0dfh      ; 0: rychlost krokov n¡, zvednut¡ hlavy
+                                            db   2         ; 1: spu¨tˆn¡ p©¡tlaku hlavy
+                                            db   37        ; 2: ‡as pro vypnut¡ motoru
+                                            db   2         ; 3: velikost sektoru
+                                            db   9         ; 4: po‡et sektor– na stopu
+                                            db   42        ; 5: mezisekt. mezera ‡ten¡/z pis
+                                            db   255       ; 6: d‚lka p©en ¨en˜ch dat
+                                            db   80        ; 7: mezisekt. mezera form tov n¡
+                                            db   0f6h      ; 8: plnic¡ znak form tov n¡
+                                            db   15        ; 9: doba ust len¡ hlav
+                                            db   8         ; 10: doba pro rozbˆh motoru
+                                            db   39        ; 11: posledn¡ stopa
+                                            db   80h       ; 12: p©enosov  rychlost 250K/s
+
+f000:a3a4                                   ; mechanika 1.2 MB, disketa 360 KB
+                                            db   0dfh      ; 0: rychlost krokov n¡, zvednut¡ hlavy
+                                            db   2         ; 1: spu¨tˆn¡ p©¡tlaku hlavy
+                                            db   37        ; 2: ‡as pro vypnut¡ motoru
+                                            db   2         ; 3: velikost sektoru
+                                            db   9         ; 4: po‡et sektor– na stopu
+                                            db   42        ; 5: mezisekt. mezera ‡ten¡/z pis
+                                            db   255       ; 6: d‚lka p©en ¨en˜ch dat
+                                            db   80        ; 7: mezisekt. mezera form tov n¡
+                                            db   0f6h      ; 8: plnic¡ znak form tov n¡
+                                            db   15        ; 9: doba ust len¡ hlav
+                                            db   8         ; 10: doba pro rozbˆh motoru
+                                            db   39        ; 11: posledn¡ stopa
+                                            db   40h       ; 12: p©enosov  rychlost 300K/s
+
+f000:a3b1                                   ; mechanika 1.2 MB, disketa 1.2 MB
+                                            db   0dfh      ; 0: rychlost krokov n¡, zvednut¡ hlavy
+                                            db   2         ; 1: spu¨tˆn¡ p©¡tlaku hlavy
+                                            db   37        ; 2: ‡as pro vypnut¡ motoru
+                                            db   2         ; 3: velikost sektoru
+                                            db   15        ; 4: po‡et sektor– na stopu
+                                            db   27        ; 5: mezisekt. mezera ‡ten¡/z pis
+                                            db   255       ; 6: d‚lka p©en ¨en˜ch dat
+                                            db   84        ; 7: mezisekt. mezera form tov n¡
+                                            db   0f6h      ; 8: plnic¡ znak form tov n¡
+                                            db   15        ; 9: doba ust len¡ hlav
+                                            db   8         ; 10: doba pro rozbˆh motoru
+                                            db   79        ; 11: posledn¡ stopa
+                                            db   0         ; 12: p©enosov  rychlost 500K/s
+
+f000:a3be                                   ; mechanika 720 KB, disketa 720 KB
+                                            db   0dfh      ; 0: rychlost krokov n¡, zvednut¡ hlavy
+                                            db   2         ; 1: spu¨tˆn¡ p©¡tlaku hlavy
+                                            db   37        ; 2: ‡as pro vypnut¡ motoru
+                                            db   2         ; 3: velikost sektoru
+                                            db   9         ; 4: po‡et sektor– na stopu
+                                            db   42        ; 5: mezisekt. mezera ‡ten¡/z pis
+                                            db   255       ; 6: d‚lka p©en ¨en˜ch dat
+                                            db   80        ; 7: mezisekt. mezera form tov n¡
+                                            db   0f6h      ; 8: plnic¡ znak form tov n¡
+                                            db   15        ; 9: doba ust len¡ hlav
+                                            db   8         ; 10: doba pro rozbˆh motoru
+                                            db   79        ; 11: posledn¡ stopa
+                                            db   80h       ; 12: p©enosov  rychlost 250 k/s
+
+f000:a3cb                                   ; mechanika 1.44 MB, disketa 720 KB
+                                            db   0dfh      ; 0: rychlost krokov n¡, zvednut¡ hlavy
+                                            db   2         ; 1: spu¨tˆn¡ p©¡tlaku hlavy
+                                            db   37        ; 2: ‡as pro vypnut¡ motoru
+                                            db   2         ; 3: velikost sektoru
+                                            db   9         ; 4: po‡et sektor– na stopu
+                                            db   42        ; 5: mezisekt. mezera ‡ten¡/z pis
+                                            db   255       ; 6: d‚lka p©en ¨en˜ch dat
+                                            db   80        ; 7: mezisekt. mezera form tov n¡
+                                            db   0f6h      ; 8: plnic¡ znak form tov n¡
+                                            db   15        ; 9: doba ust len¡ hlav
+                                            db   8         ; 10: doba pro rozbˆh motoru
+                                            db   79        ; 11: posledn¡ stopa
+                                            db   80h       ; 12: p©enosov  rychlost 250 k/s
+
+f000:a3d8                                   ; mechanika 1.44 MB, disketa 1.44 MB
+                                            db   0afh      ; 0: rychlost krokov n¡, zvednut¡ hlavy
+                                            db   2         ; 1: spu¨tˆn¡ p©¡tlaku hlavy
+                                            db   37        ; 2: ‡as pro vypnut¡ motoru
+                                            db   2         ; 3: velikost sektoru
+                                            db   18        ; 4: po‡et sektor– na stopu
+                                            db   27        ; 5: mezisekt. mezera ‡ten¡/z pis
+                                            db   255       ; 6: d‚lka p©en ¨en˜ch dat
+                                            db   108       ; 7: mezisekt. mezera form tov n¡
+                                            db   0f6h      ; 8: plnic¡ znak form tov n¡
+                                            db   15        ; 9: doba ust len¡ hlav
+                                            db   8         ; 10: doba pro rozbˆh motoru
+                                            db   79        ; 11: posledn¡ stopa
+                                            db   0         ; 12: p©enosov  rychlost 500 k/s
+
+                                ; __________________________________________________________ int 13h _____
+                                ;
+                                ;   FLOPPY DISK SERVICES
+                                ;
+                                ;      Note: Floppy disk services may be vectored to this routine from int 40h
+                                ;            on newer systems with hard disk support inside the BIOS.
+                                ;
+                                ;      Call with: ah = sub-function number
+                                ;                 dl = drive number (in less otherwise noted), drive a: = 0
+                                ;
+                                ;      Returns:   carry = 0 if function ok
+                                ;                 ah = status (unless otherwise noted)
+                                ;                   ah = 0    Function ok
+                                ;                   ah = 1    Invalid value passed or unsupported function
+                                ;                   ah = 2    Can not locate address mark
+                                ;                   ah = 3    Floppy write protected
+                                ;                   ah = 4    Sector not found
+                                ;                   ah = 6    Floppy changed line on (1.2 meg drives)
+                                ;                   ah = 8    DMA overrun occured
+                                ;                   ah = 9    DMA attempted across 64K byte boundry
+                                ;                   ah = 0Ch  Media type not found
+                                ;                   ah = 10h  CRC read error
+                                ;                   ah = 20h  Floppy controller failure
+                                ;                   ah = 40h  Seek operation failed
+                                ;                   ah = 80h  Floppy drive not ready
+                                ;
+                                ;      Functions:
+                                ;        ah = 0     Floppy disk controller reset
+                                ;        ah = 1     Get last status
+                                ;        ah = 2     Read sectors
+                                ;                     Call with:  al = number of sectors to read
+                                ;                                 ch/cl = starting track/starting sector
+                                ;                                 dh = head number, head 0 = 0
+                                ;                                 es:bx = ptr to buffer where to put data
+                                ;        ah = 3     Write sectors
+                                ;                     Call with:  al = number of sectors to write
+                                ;                                 ch/cl = starting track/starting sector
+
+                                ;                                 dh = head number, head 0 = 0
+                                ;                                 es:bx = ptr to buffer where to get data
+                                ;                     Return:     al = number of sectors written
+                                ;        ah = 4     Verify sectors
+                                ;                     Call with:  al = number of sectors to compare
+                                ;                                 ch/cl = starting track/starting sector
+                                ;                                 dh = head number, head 0 = 0
+                                ;                                 es:bx = ptr to buffer where to compare data
+                                ;                     Return:     al = number of sectors checked
+                                ;        ah = 5     Format track
+                                ;                     Call with:  al = number of sectors to format
+                                ;                                 ch/cl = starting track/starting sector
+                                ;                                 dh = head number, head 0 = 0
+                                ;                                 es:bx = ptr to table of address fields
+                                ;        ah = 8     Get drive information (not supported by all systems)
+                                ;                     Returns:    ax/bh = 0          size dia.     size dia.
+                                ;                                 bl = drive type: 1=360K 5.25   3=720K 3.5
+                                ;                                                  2=1.2M 5.25   4=1.4M 3.5
+                                ;                                 cx bits 7&6, 15-8 = number of tracks, 0=1 track
+                                ;                                    bits 5-0 = number of sectors per track
+                                ;                                 dh/dl = # of heads/number of floppy drives
+                                ;                                 es:di = ptr to floppy parameter table
+                                ;        ah = 15h   Get drive type (not supported by all systems)
+                                ;                     Returns:    ah = 0 no drive
+                                ;                                 ah = 1/2  floppy changed line not/is available
+                                ;        ah = 16h   Get changed floppy status (not supported by all systems)
+                                ;                     Returns:    ah = 0   floppy in drive,     carry = 0
+                                ;                                 ah = 1   bad drive number,    carry = 1
+                                ;                                 ah = 6   floppy out of drive, carry = 1
+                                ;                                 ah = 80h drive not ready,     carry = 1
+                                ;        ah = 17h   Specify media type for a drive
+                                ;                     Call with:  al = 1  use a 320/360K floppy in 360k drive
+                                ;                                 al = 2  use a 360K floppy in a 1.2M drive
+                                ;                                 al = 3  use a 1.2M floppy in a 1.2M drive
+                                ;                                 al = 4  use a 720K disk in a 720K drive
+                                ;        ah = 18h   Prepare for format (not supported by all systems)
+                                ;                     Call with:  cx bits 7&6, 15-8 = number of tracks, 0=1 track
+                                ;                                    bits 5-0 = number of sectors per track
+                                ;                     Returns:    es:di = ptr to floppy parameter table
+  
+F000:A3E5                       int_13h_floppy  proc    near                                    ;  xref F000:EC59
+F000:A3E5  FB                                   sti                                             ; Enable interrupts
+                                                                          ; F:  [bp+16h]
+                                                                          ; CS: [bp+14h]
+                                                                          ; IP: [bp+12h]
+F000:A3E6  56                                   push    si                ; SI: [bp+10h]
+F000:A3E7  1E                                   push    ds                ; DS: [bp+0eh]
+F000:A3E8  06                                   push    es                ; ES: [bp+0ch]
+F000:A3E9  57                                   push    di                ; DI: [bp+0ah]
+F000:A3EA  FC                                   cld                                             ; Clear direction
+F000:A3EB  52                                   push    dx                ; DX: [bp+8]
+F000:A3EC  51                                   push    cx                ; CX: [bp+6]
+F000:A3ED  53                                   push    bx                ; BX: [bp+4]
+F000:A3EE  50                                   push    ax                ; AX: [bp+2]
+F000:A3EF  55                                   push    bp                ; BP: [bp+0]
+F000:A3F0  8B EC                                mov     bp,sp
+F000:A3F2  81 4E 16 0200                        or      word ptr [bp+16h],200h  ; nastaven¡ IF
+F000:A3F7  8C C8                                mov     ax,cs
+F000:A3F9  8E D8                                mov     ds,ax             ; ds <- cs
+F000:A3FB  33 C0                                xor     ax,ax                                   ; Zero register
+F000:A3FD  8E C0                                mov     es,ax             ; es <- 0
+F000:A3FF  80 7E 03 01                          cmp     byte ptr [bp+3],1 ; funkce 1 ?
+F000:A403  77 16                                ja      loc_d_A41B                              ; Jump if above
+F000:A405  74 0C                                jz      loc_d_A413        ; funkce 1                      ; Jump if zero
+
+                                      FUNKCE 0  ; reset disku
+
+F000:A407  26:C6 06 0441 00                     mov     es:dsk_ret_code_,0 ; nulov n¡ v˜sledku operace                      ; (0000:0441=0)
+F000:A40D  E8 068B                              call    sub_d_AA9B        ; reset diskov‚ho syst‚mu
+F000:A410  EB 61                                jmp     short loc_d_A473
+F000:A412  90                                   db      90h
+
+                                      FUNKCE 1  ; ‡ten¡ v˜sledku operace
+
+F000:A413                   2    loc_d_A413:                                                     ;  xref F000:A405
+F000:A413  26:8A 26 0441                        mov     ah,es:dsk_ret_code_ ; v˜sledek operace                    ; (0000:0441=0)
+F000:A418  EB 59                                jmp     short loc_d_A473
+F000:A41A  90                                   db      90h
+
+F000:A41B                    3   loc_d_A41B:                                                     ;  xref F000:A403
+F000:A41B  26:C6 06 0441 00                     mov     es:dsk_ret_code_,0                      ; (0000:0441=0)
+F000:A421  80 7E 03 05                          cmp     byte ptr [bp+3],5 ; funkce 5 ?
+F000:A425  77 0A                                ja      loc_d_A431                              ; Jump if above
+
+                                      FUNKCE 2, 3, 4    ; ‡ten¡, z pis, verifikace
+
+F000:A427  BB A4A0                              mov     bx,0A4A0h
+F000:A42A  72 31                                jc      loc_d_A45D                              ; Jump if carry Set
+
+                                      FUNKCE 5
+
+F000:A42C  BB A606                              mov     bx,0A606h
+F000:A42F  EB 2C                                jmp     short loc_d_A45D
+F000:A431                    4   loc_d_A431:                                                     ;  xref F000:A425
+F000:A431  80 7E 03 08                          cmp     byte ptr [bp+3],8 ; funkce 8 ?
+F000:A435  75 11                                jne     loc_d_A448                              ; Jump if not equal
+
+                                      FUNKCE 8
+
+F000:A437  8A 46 08                             mov     al,[bp+8]
+F000:A43A  50                                   push    ax
+F000:A43B  E8 028C                              call    sub_d_A6CA
+F000:A43E  5B                                   pop     bx
+F000:A43F  50                                   push    ax
+F000:A440  8A C3                                mov     al,bl
+F000:A442  E8 04EF                              call    sub_d_A934
+F000:A445  58                                   pop     ax
+F000:A446  EB 30                                jmp     short loc_d_A478
+
+
+F000:A448                    5   loc_d_A448:                                                     ;  xref F000:A435
+F000:A448  8A 5E 03                             mov     bl,[bp+3]         ; ‡¡slo funkce
+F000:A44B  32 FF                                xor     bh,bh                                   ; Zero register
+F000:A44D  80 FB 18                             cmp     bl,18h            ; max. funkce
+F000:A450  77 4A                                ja      loc_d_A49C        ; chyba
+F000:A452  83 EB 15                             sub     bx,15h
+F000:A455  72 45                                jc      loc_d_A49C        ; n¡zk‚ ‡¡slo funkce                      ; Jump if carry Set
+F000:A457  D1 E3                                shl     bx,1                                    ; Shift w/zeros fill
+F000:A459  8B 9F A38F                           mov     bx,data_d_A38F[bx]                      ; (=0A77Bh)
+F000:A45D                    6   loc_d_A45D:                                                     ;  xref F000:A42A, A42F
+F000:A45D  80 7E 08 01                          cmp     byte ptr [bp+8],1 ; kontrola ‡¡sla disku
+F000:A461  77 39                                ja      loc_d_A49C       ; velk‚ ‡¡slo disku
+F000:A463  FF E3                                jmp     bx               ; obsluha funkce
+
+F000:A465                    7   loc_d_A465:                                                     ;  xref F000:A600, A6C7, A807, A878
+F000:A465  50                                   push    ax
+F000:A466  8A 46 08                             mov     al,[bp+8]
+F000:A469  E8 04C8                              call    sub_d_A934   ; p©evod nov‚ho m¢du na star˜
+F000:A46C  58                                   pop     ax
+F000:A46D  80 7E 03 15                          cmp     byte ptr [bp+3],15h
+F000:A471  74 0D                                je      loc_d_A480                              ; Jump if equal
+F000:A473                    8   loc_d_A473:                                                     ;  xref F000:A410, A418, A49E
+
+
+F000:A473  26:88 26 0441                        mov     es:dsk_ret_code_,ah                     ; (0000:0441=0)
+F000:A478                    9   loc_d_A478:                                                     ;  xref F000:A446
+F000:A478  83 4E 16 01                          or      word ptr [bp+16h],1
+F000:A47C  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A47E  75 04                                jnz     loc_d_A484                              ; Jump if not zero
+F000:A480                    a   loc_d_A480:                                                     ;  xref F000:A471
+F000:A480  83 66 16 FE                          and     word ptr [bp+16h],0FFFEh
+F000:A484                    b   loc_d_A484:                                                     ;  xref F000:A47E
+F000:A484  88 66 03                             mov     [bp+3],ah
+F000:A487  B0 02                                mov     al,2
+F000:A489  E8 0A7F                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:A48C  26:A2 0440                           mov     es:dsk_motor_tmr_,al                    ; (0000:0440=0D3h)
+F000:A490  8B E5                                mov     sp,bp
+F000:A492  5D                                   pop     bp
+F000:A493  58                                   pop     ax
+F000:A494  5B                                   pop     bx
+F000:A495  59                                   pop     cx
+F000:A496  5A                                   pop     dx
+F000:A497  5F                                   pop     di
+F000:A498  07                                   pop     es
+F000:A499  1F                                   pop     ds
+F000:A49A  5E                                   pop     si
+F000:A49B  CF                                   iret                                            ; Interrupt return
+                                int_13h_floppy  endp
+
+
+                                                ; chybn‚ ‡¡slo funkce
+
+F000:A49C                       loc_d_A49C:                                                     ;  xref F000:A450, A455, A461
+F000:A49C  B4 01                                mov     ah,1
+F000:A49E  EB D3                                jmp     short loc_d_A473
+
+; -----------------------------------------------------------------------------
+;          Operace ‡ten¡, z pis, verifikace
+; -----------------------------------------------------------------------------
+
+                                                ; kontrola platnosti disku
+
+F000:a4a0  8A 46 08                             mov     al,[bp+8]         ; ‡¡slo disku
+f000:a4a3  e8 03 0a                             call    0aea9h            ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+f000:a4a6  0a E4                                or      ah,ah                                   ; Zero ?
+f000:a4a8  75 05                                jne     0a4afh            ; mechanika definovan  OK
+f000:a4aa  B4 80                                mov     ah,80h
+f000:a4ac  e9 37 01                             jmp     0A5E6h            ; chyba - mechanika nep©ipravena
+
+                                                ; nastaven¡ p©¡znaku z pis
+
+f000:a4af  26 80 26 043f 7F                     and     byte ptr es:[043fh],7fh ; p©¡znak operace ‡ten¡
+f000:a4b5  80 7e 03 03                          cmp     byte ptr [bp+3],3 ; funkce 3
+f000:a4b9  75 06                                jne     0a4c1h            ; nen¡ funkce z pis
+f000:a4bb  26 80 0e 043f 80                     or      byte ptr es:[43fh],80h ; p©¡znak funkce z pis
+
+                                                ; zapnut¡ motoru, inicializace stavov‚ho bajtu
+
+F000:A4C1                       loc_d_A4C1:
+F000:A4C1  50                                   push    ax
+F000:A4C2  E8 06A1                              call    sub_d_AB66        ; Zapnut¡ motoru
+F000:A4C5  58                                   pop     ax
+F000:A4C6  E8 09A0                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A4C9  F6 C4 10                             test    ah,10h            ; je m‚dium zn m‚ ?
+F000:A4CC  75 03                                jnz     loc_d_A4D1        ; m‚dium je zn m‚
+F000:A4CE  E8 08DD                              call    sub_d_ADAE        ; inicializace stavov‚ho bajtu disku
+
+                                                ; kontrola v˜mˆny m‚dia
+
+F000:A4D1                       loc_d_A4D1:                                                     ;  xref F000:A4CC, A5E3
+F000:A4D1  26:C6 06 0440 FF                     mov     byte ptr es:data_b_0440_e,0FFh          ; (=0)
+F000:A4D7  E8 09CF                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:A4DA  F6 C4 01                             test    ah,1              ;
+F000:A4DD  74 0A                                jz      loc_d_A4E9                              ; Jump if zero
+F000:A4DF  E8 049D                              call    sub_d_A97F        ; kontrola v˜mˆny m‚dia
+F000:A4E2  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A4E4  74 03                                jz      loc_d_A4E9
+F000:A4E6  E9 00FD                              jmp     loc_d_A5E6        ; m‚dium bylo vymˆnˆno
+
+                                                ; typ mechaniky
+
+F000:A4E9                       loc_d_A4E9:                                                     ;  xref F000:A4DD, A4E4
+F000:A4E9  BB 02DF                              mov     bx,2DFh           ; disk 5 1/4"
+F000:A4EC  8A 46 08                             mov     al,[bp+8]
+F000:A4EF  E8 0977                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A4F2  80 E4 C0                             and     ah,0C0h
+F000:A4F5  75 0A                                jnz     loc_d_A501        ; nen¡ mechanika HD
+F000:A4F7  E8 09DF                              call    sub_d_AED9        ; ‡ten¡ typu mechaniky z CMOS
+F000:A4FA  80 FC 04                             cmp     ah,4
+F000:A4FD  75 02                                jne     loc_d_A501                              ; Jump if not equal
+F000:A4FF  B3 AF                                mov     bl,0AFh           ; konstanta pro mechaniku 3 1/2"
+
+
+F000:A501                       loc_d_A501:                                                     ;  xref F000:A4F5, A4FD
+F000:A501  53                                   push    bx
+F000:A502  8B F4                                mov     si,sp
+F000:A504  B4 03                                mov     ah,3              ; povel SPECIFY
+F000:A506  B3 03                                mov     bl,3
+F000:A508  E8 0778                              call    sub_d_AC83        ; vysl n¡ povelu na ©adi‡
+F000:A50B  5B                                   pop     bx
+F000:A50C  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A50E  74 03                                jz      loc_d_A513                              ; Jump if zero
+F000:A510  E9 00AC                              jmp     loc_d_A5BF
+
+                                                ; nastaven¡ p©enosov‚ rychlosti
+
+F000:A513                       loc_d_A513:                                                     ;  xref F000:A50E
+F000:A513  8A 46 08                             mov     al,[bp+8]         ; disk
+F000:A516  E8 08C2                              call    sub_d_ADDB        ; Nastaven¡ po‘adovan‚ p©enosov‚ rychlosti
+
+                                                ; test dvoj¡ho krokov n¡
+
+F000:A519  E8 079C                              call    sub_d_ACB8        ; test dvoj¡ho krokov n¡
+F000:A51C  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A51E  74 03                                jz      loc_d_A523                              ; Jump if zero
+F000:A520  E9 009C                              jmp     loc_d_A5BF
+
+                                                ; vystaven¡ na po‘adovanou stopu
+
+F000:A523                       loc_d_A523:                                                     ;  xref F000:A51E
+F000:A523  8A 46 08                             mov     al,[bp+8]
+F000:A526  8A 66 07                             mov     ah,[bp+7]
+F000:A529  E8 0472                              call    sub_d_A99E        ; vystaven¡ mechaniky AL na stopu AH
+F000:A52C  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A52E  74 03                                jz      loc_d_A533                              ; Jump if zero
+F000:A530  E9 008C                              jmp     loc_d_A5BF
+
+                                                ; nastaven¡ kan lu ©adi‡e DMA
+
+F000:A533                       loc_d_A533:                                                     ;  xref F000:A52E
+F000:A533  B0 03                                mov     al,3              ; parametr 3 - velikost sektoru
+F000:A535  E8 09D3                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:A538  8A C8                                mov     cl,al             ; velikost sektoru
+F000:A53A  80 C1 07                             add     cl,7              ; korekce na © d sektoru
+F000:A53D  8A 46 02                             mov     al,[bp+2]         ; po‡et sektor–
+F000:A540  32 E4                                xor     ah,ah                                   ; Zero register
+F000:A542  D3 E0                                shl     ax,cl             ; v˜po‡et velikosti pamˆti
+F000:A544  48                                   dec     ax                ; po‡et bajt– - 1
+F000:A545  50                                   push    ax                ; velikost bloku pamˆti
+F000:A546  FF 76 0C                             push    word ptr [bp+0Ch] ; ES segment adresy
+F000:A549  FF 76 04                             push    word ptr [bp+4]   ; BX offset adresy
+F000:A54C  8A 5E 03                             mov     bl,[bp+3]         ; funkce
+F000:A54F  32 FF                                xor     bh,bh                                   ; Zero register
+F000:A551  83 EB 02                             sub     bx,2
+F000:A554  8A 87 A603                           mov     al,ds:data_b_A603_e[bx] ; povel pro funkci
+F000:A558  8B F4                                mov     si,sp
+F000:A55A  E8 06CE                              call    sub_d_AC2B        ; nastaven¡ kan lu DMA
+F000:A55D  83 C4 06                             add     sp,6              ; zru¨en¡ dat v z sobn¡ku
+F000:A560  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A562  74 03                                jz      loc_d_A567        ; adresa DMA OK                      ; Jump if zero
+F000:A564  EB 59                                jmp     short loc_d_A5BF  ; chyba
+F000:A566  90                                   db      90h
+
+
+F000:A567                       loc_d_A567:                                                     ;  xref F000:A562
+F000:A567  B0 06                                mov     al,6              ; parametr 6 - d‚lka p©en ¨en˜ch dat
+F000:A569  E8 099F                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:A56C  8A F8                                mov     bh,al             ; d‚lka p©en ¨en˜ch dat
+F000:A56E  B3 1B                                mov     bl,1Bh            ; mechanika 360 KB
+F000:A570  8A 46 08                             mov     al,[bp+8]         ; mechanika
+F000:A573  E8 08F3                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A576  80 E4 C0                             and     ah,0C0h
+F000:A579  74 02                                jz      loc_d_A57D        ; mechanika 1.2 MB                      ; Jump if zero
+F000:A57B  B3 2A                                mov     bl,2Ah                                  ; '*'
+
+                                                ; p©¡prava parametr– pro operaci
+
+F000:A57D                       loc_d_A57D:                                                     ;  xref F000:A579
+F000:A57D  53                                   push    bx
+F000:A57E  B0 04                                mov     al,4              ; parametr 4 - max. sektor
+F000:A580  E8 0988                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:A583  8A F8                                mov     bh,al             ; max. sektor
+F000:A585  B0 03                                mov     al,3              ; parametr 3 - velikost sektoru
+F000:A587  E8 0981                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:A58A  8A D8                                mov     bl,al             ; velikost sektoru
+F000:A58C  53                                   push    bx
+F000:A58D  8A 7E 06                             mov     bh,[bp+6]         ; sektor
+F000:A590  8A 5E 09                             mov     bl,[bp+9]         ; hlava
+F000:A593  53                                   push    bx
+F000:A594  8A 7E 07                             mov     bh,[bp+7]         ; stopa - LOW
+F000:A597  8A 5E 09                             mov     bl,[bp+9]         ; stopa - HIGH
+F000:A59A  80 E3 01                             and     bl,1
+F000:A59D  C0 E3 02                             shl     bl,2
+F000:A5A0  0A 5E 08                             or      bl,[bp+8]         ; hlava + ‡¡slo mechaniky
+F000:A5A3  53                                   push    bx
+F000:A5A4  B4 E6                                mov     ah,0E6h           ; povel pro ‡ten¡
+F000:A5A6  80 7E 03 03                          cmp     byte ptr [bp+3],3 ; je z pis ?
+F000:A5AA  75 02                                jne     loc_d_A5AE                              ; Jump if not equal
+F000:A5AC  B4 C5                                mov     ah,0C5h           ; povel pro z pis
+
+                                                ; proveden¡ operace
+
+F000:A5AE                       loc_d_A5AE:                                                     ;  xref F000:A5AA
+F000:A5AE  B3 09                                mov     bl,9
+F000:A5B0  8B F4                                mov     si,sp
+F000:A5B2  E8 06CE                              call    sub_d_AC83        ; vysl n¡ povelu na ©adi‡
+F000:A5B5  83 C4 08                             add     sp,8              ; zru¨en¡ dat v z sobn¡ku
+F000:A5B8  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A5BA  75 03                                jnz     loc_d_A5BF                              ; Jump if not zero
+F000:A5BC  E8 077F                              call    sub_d_AD3E        ; ‡ek n¡ na proveden¡ operace
+F000:A5BF                       loc_d_A5BF:                                                     ;  xref F000:A510, A520, A530, A564
+                                                                                               ;            A5BA
+F000:A5BF  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A5C1  74 29                                jz      loc_d_A5EC                              ; Jump if zero
+
+                                                ; kontrola stavu operace
+
+F000:A5C3  80 FC 80                             cmp     ah,80h
+F000:A5C6  74 1E                                je      loc_d_A5E6                              ; Jump if equal
+F000:A5C8  80 FC 09                             cmp     ah,9
+F000:A5CB  74 19                                je      loc_d_A5E6                              ; Jump if equal
+F000:A5CD  8A FC                                mov     bh,ah
+F000:A5CF  8A 46 08                             mov     al,[bp+8]
+F000:A5D2  E8 0894                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A5D5  F6 C4 10                             test    ah,10h
+F000:A5D8  8A E7                                mov     ah,bh
+F000:A5DA  75 0A                                jnz     loc_d_A5E6                              ; Jump if not zero
+
+                                                ; test opakov n¡ s jinou rychlost¡
+
+F000:A5DC  E8 082D                              call    sub_d_AE0C        ; nastaven¡ dal¨¡ p©enosov‚ rychlosti
+F000:A5DF  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A5E1  75 03                                jnz     loc_d_A5E6                              ; Jump if not zero
+F000:A5E3  E9 FEEB                              jmp     loc_d_A4D1        ; m–‘e b˜t opakov n¡ s jinou rychlost¡
+
+
+
+F000:A5E6                       loc_d_A5E6:                                                     ;  xref F000:A4E6, A5C6, A5CB, A5DA
+                                                                                                ;            A5E1
+F000:A5E6  C6 46 02 00                          mov     byte ptr [bp+2],0
+F000:A5EA  EB 14                                jmp     short loc_d_A600
+F000:A5EC                       loc_d_A5EC:                                                     ;  xref F000:A5C1
+F000:A5EC  8A 46 08                             mov     al,[bp+8]
+F000:A5EF  E8 0840                              call    sub_d_AE32
+F000:A5F2  8B 4E 06                             mov     cx,[bp+6]
+F000:A5F5  8A 76 09                             mov     dh,[bp+9]
+F000:A5F8  E8 060C                              call    sub_d_AC07
+F000:A5FB  88 46 02                             mov     [bp+2],al
+F000:A5FE  32 E4                                xor     ah,ah                                   ; Zero register
+F000:A600                       loc_d_A600:                                                     ;  xref F000:A5EA, A67F
+F000:A600  E9 FE62                              jmp     loc_d_A465
+
+
+
+
+f000:a603                                       db      46h,4ah,42h       ; povely pro funkce 2,3,4
+
+; -----------------------------------------------------------------------------
+;        Funkce 5 - form tov n¡ stopy
+; -----------------------------------------------------------------------------
+
+F000:A606  8A4608                               MOV     AL,[BP+08]
+F000:A609  E89D08                               CALL    AEA9    ; ‡ten¡ stavov‚ho bajtu mechaniky
+F000:A60C  0AE4                                 OR      AH,AH
+F000:A60E  7505                                 JNZ     A615  1 ; mechanika je ur‡ena
+F000:A610  B480                                 MOV     AH,80
+F000:A612  E9B200                               JMP     A6C7  7 ; chyba
+
+                                            ; ur‡en¡ m‚dia
+
+F000:A615  E85108                         1  *  CALL    AE69    ; poskytnut¡ bajtu m‚dia
+F000:A618  F6C410                               TEST    AH,10
+F000:A61B  7505                                 JNZ     A622    ; m‚dium je ur‡eno
+F000:A61D  50                                   PUSH    AX
+F000:A61E  E83507                               CALL    AD56    ; Ur‡en¡ bajtu stavu m‚dia
+F000:A621  58                                   POP     AX
+
+                                            ; kontrola v˜mˆny m‚dia
+
+F000:A622                       loc_d_A622: 2
+F000:A622  26:80 0E 043F 80                     or      byte ptr es:data_b_043F_e,80h           ; (=0)
+F000:A628  50                                   push    ax
+F000:A629  E8 053A                              call    sub_d_AB66        ; Zapnut¡ motoru
+F000:A62C  58                                   pop     ax
+F000:A62D  E8 0879                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:A630  F6 C4 01                             test    ah,1
+F000:A633  74 0A                                jz      loc_d_A63F  3                           ; Jump if zero
+F000:A635  E8 0347                              call    sub_d_A97F        ; kontrola v˜mˆny m‚dia
+F000:A638  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A63A  74 03                                jz      loc_d_A63F  3                           ; Jump if zero
+F000:A63C  E9 0088                              jmp     loc_d_A6C7  7
+
+                                            ; vysl n¡ povelu na ©adi‡
+
+F000:A63F                       loc_d_A63F: 3                                                   ;  xref F000:A633, A63A
+F000:A63F  8C DB                                mov     bx,ds
+                                                assume  ds:seg_b
+F000:A641  26:C5 36 0078                        lds     si,dword ptr es:prn_timeout_1           ; (0040:0078=1414h) Load 32 bit ptr
+F000:A646  FF 34                                push    word ptr [si]
+F000:A648  8E DB                                mov     ds,bx
+F000:A64A  8B F4                                mov     si,sp
+F000:A64C  B4 03                                mov     ah,3
+F000:A64E  B3 03                                mov     bl,3
+F000:A650  E8 0630                              call    sub_d_AC83        ; vysl n¡ povelu SPECIFY na ©adi‡
+F000:A653  5B                                   pop     bx
+F000:A654  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A656  74 03                                jz      loc_d_A65B      4                       ; Jump if zero
+F000:A658  EB 6D                                jmp     short loc_d_A6C7 7
+F000:A65A  90                                   db      90h
+
+                                            ; nastaven¡ rychlosti
+
+F000:A65B                       loc_d_A65B: 4                                                   ;  xref F000:A656
+F000:A65B  8A 46 08                             mov     al,[bp+8]
+F000:A65E  E8 077A                              call    sub_d_ADDB        ; Nastaven¡ po‘adovan‚ p©enosov‚ rychlosti
+
+                                            ; nastaven¡ kan lu DMA
+
+F000:A661  B0 04                                mov     al,4
+F000:A663  E8 08A5                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:A666  C1 E0 02                             shl     ax,2                                    ; Shift w/zeros fill
+F000:A669  48                                   dec     ax
+F000:A66A  50                                   push    ax
+F000:A66B  FF 76 0C                             push    word ptr [bp+0Ch]
+F000:A66E  FF 76 04                             push    word ptr [bp+4]
+F000:A671  8B F4                                mov     si,sp
+F000:A673  B0 4A                                mov     al,4Ah                                  ; 'J'
+F000:A675  E8 05B3                              call    sub_d_AC2B        ; nastaven¡ kan lu DMA
+F000:A678  83 C4 06                             add     sp,6
+F000:A67B  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A67D  74 03                                jz      loc_d_A682  5                           ; Jump if zero
+F000:A67F  E9 FF7E                              jmp     loc_d_A600  RdWrVfe
+
+                                            ; vystaven¡ na stopu
+
+F000:A682                       loc_d_A682: 5                                                   ;  xref F000:A67D
+F000:A682  8A 46 08                             mov     al,[bp+8]
+F000:A685  8A 66 07                             mov     ah,[bp+7]
+F000:A688  E8 0313                              call    sub_d_A99E        ; vystaven¡ mechaniky AL na stopu AH
+F000:A68B  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A68D  74 03                                jz      loc_d_A692   6                          ; Jump if zero
+F000:A68F  EB 36                                jmp     short loc_d_A6C7  7
+F000:A691  90                                   db      90h
+
+                                            ; vysl n¡ povelu pro form tov n¡
+
+F000:A692                       loc_d_A692: 6                                                   ;  xref F000:A68D
+F000:A692  8C DB                                mov     bx,ds
+F000:A694  26:C5 36 0078                        lds     si,dword ptr es:prn_timeout_1           ; (0040:0078=1414h) Load 32 bit ptr
+F000:A699  FF 74 08                             push    word ptr [si+8]
+F000:A69C  8A 64 07                             mov     ah,[si+7]
+F000:A69F  8A 44 04                             mov     al,[si+4]
+F000:A6A2  50                                   push    ax
+F000:A6A3  8A 64 03                             mov     ah,[si+3]
+F000:A6A6  8E DB                                mov     ds,bx
+F000:A6A8  8A 46 09                             mov     al,[bp+9]
+F000:A6AB  24 01                                and     al,1
+F000:A6AD  C0 E0 02                             shl     al,2                                    ; Shift w/zeros fill
+F000:A6B0  0A 46 08                             or      al,[bp+8]
+F000:A6B3  50                                   push    ax
+F000:A6B4  8B F4                                mov     si,sp
+F000:A6B6  B4 4D                                mov     ah,4Dh                                  ; 'M'
+F000:A6B8  B3 06                                mov     bl,6
+F000:A6BA  E8 05C6                              call    sub_d_AC83        ; vysl n¡ povelu na ©adi‡
+F000:A6BD  83 C4 06                             add     sp,6
+F000:A6C0  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A6C2  75 03                                jnz     loc_d_A6C7  7                           ; Jump if not zero
+
+                                            ; ‡ek n¡ na proveden¡ operace
+
+F000:A6C4  E8 0677                              call    sub_d_AD3E        ; ‡ek n¡ na proveden¡ operace
+F000:A6C7                       loc_d_A6C7: 7                                                   ;  xref F000:A63C, A658, A68F, A6C2
+F000:A6C7  E9 FD9B                              jmp     loc_d_A465  Int407
+  
+                                ;==========================================================================
+                                ;             Poskytnut¡ disketov˜ch parametr–
+                                ;
+                                ;         Called from:   F000:A43B
+                                ;==========================================================================
+  
+                                sub_d_A6CA      proc    near
+
+                                                 ; test, zda je nˆjak˜ disk
+
+F000:A6CA  26:A0 0410                           mov     al,byte ptr es:equip_bits_ ; tabulka vybaven˜
+F000:A6CE  A8 01                                test    al,1
+F000:A6D0  75 04                                jnz     loc_d_A6D6                              ; Jump if not zero
+F000:A6D2  32 C0                                xor     al,al                                   ; Zero register
+F000:A6D4  EB 07                                jmp     short loc_d_A6DD
+
+                                                 ; stanoven¡ po‡tu disk–
+
+F000:A6D6                       loc_d_A6D6:                                                     ;  xref F000:A6D0
+F000:A6D6  C0 C0 02                             rol     al,2         ; AL <- po‡et mechanik
+F000:A6D9  24 01                                and     al,1         ; po‡et mechanik
+F000:A6DB  FE C0                                inc     al
+
+                                                 ; kontrola, zda je zad na disketa
+
+F000:A6DD                       loc_d_A6DD:                                                     ;  xref F000:A6D4
+F000:A6DD  86 46 08                             xchg    al,[bp+8]    ; po‡et disket
+F000:A6E0  3C 80                                cmp     al,80h
+F000:A6E2  72 0A                                jb      loc_d_A6EE                              ; Jump if below
+F000:A6E4  B4 01                                mov     ah,1
+F000:A6E6  C7 46 04 0000                        mov     word ptr [bp+4],0
+F000:A6EB  E9 0084                              jmp     loc_ret_d_A772
+
+                                                 ; ovˆ©en¡ po‡tu mechanik
+
+F000:A6EE                       loc_d_A6EE:                                                     ;  xref F000:A6E2
+F000:A6EE  80 7E 08 00                          cmp     byte ptr [bp+8],0 ; nen¡ ‘ dn  mechanika
+F000:A6F2  74 3C                                je      loc_d_A730                              ; Jump if equal
+F000:A6F4  3C 01                                cmp     al,1
+F000:A6F6  77 38                                ja      loc_d_A730                              ; Jump if above
+
+                                                 ; nastaven¡ typu mechaniky z CMOS
+
+F000:A6F8  E8 07DE                              call    sub_d_AED9        ; ‡ten¡ typu mechaniky z CMOS
+F000:A6FB  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A6FD  74 0E                                jz      loc_d_A70D                              ; Jump if zero
+F000:A6FF  80 FC 04                             cmp     ah,4
+F000:A702  77 09                                ja      loc_d_A70D                              ; Jump if above
+F000:A704  8A DC                                mov     bl,ah
+F000:A706  32 FF                                xor     bh,bh                                   ; Zero register
+F000:A708  89 5E 04                             mov     [bp+4],bx
+F000:A70B  EB 41                                jmp     short loc_d_A74E
+
+                                                 ; pokus o ur‡en¡ m‚dia
+F000:A70D                       loc_d_A70D:                                                     ;  xref F000:A6FD, A702
+F000:A70D  E8 0759                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A710  F6 C4 10                             test    ah,10h            ; je m‚dium ur‡eno ?
+F000:A713  74 1B                                jz      loc_d_A730        ; nen¡ ur‡eno
+F000:A715  33 DB                                xor     bx,bx                                   ; Zero register
+F000:A717  89 5E 04                             mov     [bp+4],bx
+F000:A71A  8A DC                                mov     bl,ah             ; stavov˜ bajt m‚dia
+F000:A71C  C0 C3 03                             rol     bl,3              ; BL <- p©enosov  rychlost
+F000:A71F  80 E3 06                             and     bl,6              ; p©enosov  rychlost
+F000:A722  E8 0784                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:A725  80 E4 01                             and     ah,1              ; p©¡znak 80 stop mechaniky
+F000:A728  0A DC                                or      bl,ah             ; p©¡znak 80 stop
+                                                assume  ds:seg_d
+F000:A72A  8A A7 A773                           mov     ah,data_d_A773[bx]  ; typ m‚dia (8 bajt–)
+F000:A72E  EB 1E                                jmp     short loc_d_A74E
+
+                                                 ; m‚dium nen¡ ur‡eno
+
+F000:A730                       loc_d_A730:                                                     ;  xref F000:A6F2, A6F6, A713
+F000:A730  C6 46 02 00                          mov     byte ptr [bp+2],0
+F000:A734  C7 46 06 0000                        mov     word ptr [bp+6],0
+F000:A739  C6 46 09 00                          mov     byte ptr [bp+9],0
+F000:A73D  C7 46 0A 0000                        mov     word ptr [bp+0Ah],0
+F000:A742  C7 46 0C 0000                        mov     word ptr [bp+0Ch],0
+F000:A747  C7 46 04 0000                        mov     word ptr [bp+4],0
+F000:A74C  EB 22                                jmp     short loc_d_A770
+
+F000:A74E                       loc_d_A74E:                                                     ;  xref F000:A70B, A72E
+F000:A74E  E8 063A                              call    sub_d_AD8B
+F000:A751  F6 C4 01                             test    ah,1
+F000:A754  75 03                                jnz     loc_d_A759                              ; Jump if not zero
+F000:A756  83 C6 0D                             add     si,0Dh
+F000:A759                       loc_d_A759:                                                     ;  xref F000:A754
+F000:A759  C6 46 02 00                          mov     byte ptr [bp+2],0
+F000:A75D  8A 44 04                             mov     al,[si+4]
+F000:A760  8A 64 0B                             mov     ah,[si+0Bh]
+F000:A763  89 46 06                             mov     [bp+6],ax
+F000:A766  C6 46 09 01                          mov     byte ptr [bp+9],1
+F000:A76A  89 76 0A                             mov     [bp+0Ah],si
+F000:A76D  8C 4E 0C                             mov     [bp+0Ch],cs
+F000:A770                       loc_d_A770:                                                     ;  xref F000:A74C
+
+
+F000:A770  32 E4                                xor     ah,ah                                   ; Zero register
+  
+F000:A772                       loc_ret_d_A772:                                                 ;  xref F000:A6EB
+F000:A772  C3                                   ret
+                                sub_d_A6CA      endp
+
+F000:A773  04                   data_d_A773     db      4,4,2,2,1,4,4,4
+
+; -----------------------------------------------------------------------------
+;        Funkce 15h - poskytnut¡ typu disku
+; -----------------------------------------------------------------------------
+;
+
+F000:a77b  8A 46 08                             mov     al,[bp+8] ; po‘adovan˜ disk
+f000:a77e  e8 28 07                             call    aea9 ; ‡ten¡ stavov‚ho bajtu mechaniky
+f000:a781  0a E4                                or      ah,ah
+f000:a783  74 05                                jz      a78a    ; nen¡ platn˜ disk
+f000:a785  80 E4 01                             and     ah,1    ; p©¡znak indikace v˜mˆny
+f000:a788  fe c4                                inc     ah
+F000:A78A  E9D8FC        *                      JMP     A465
+
+; -----------------------------------------------------------------------------
+;        Funkce 16h - Test v˜mˆny m‚dia
+; -----------------------------------------------------------------------------
+
+F000:A78D  B780                                 MOV     BH,80   ; k¢d chyby - disk nep©ipraven
+F000:A78F  8A4608                               MOV     AL,[BP+08]   ; po‘adovan˜ disk
+F000:A792  E81407                               CALL    AEA9    ; ‡ten¡ stavov‚ho bajtu mechaniky
+F000:A795  0AE4                                 OR      AH,AH   ; je disk definov n ?
+F000:A797  7415                                 JZ      A7AE    ; disk nen¡ definov n
+F000:A799  B706                                 MOV     BH,06   ; k¢d chyby - disk vymˆnˆn
+F000:A79B  F6C401                               TEST    AH,01   ; je indikace v˜mˆny ?
+F000:A79E  740E                                 JZ      A7AE    ; nen¡ indikace
+F000:A7A0  53                                   PUSH    BX
+F000:A7A1  50                                   PUSH    AX
+F000:A7A2  E8C103                               CALL    AB66    ; zapnut¡ motoru
+F000:A7A5  58                                   POP     AX
+F000:A7A6  E8F705                               CALL    ADA0    ; ‡ten¡ sign lu v˜mˆny m‚dia
+F000:A7A9  5B                                   POP     BX
+F000:A7AA  7502                                 JNZ     A7AE
+F000:A7AC  32FF                                 XOR     BH,BH
+F000:A7AE  8AE7                               * MOV     AH,BH
+F000:A7B0  E9B2FC                               JMP     A465
+
+; -----------------------------------------------------------------------------
+;        Funkce 17h - nastaven¡ typu disku pro form tov n¡
+; -----------------------------------------------------------------------------
+
+F000:A7B3  8A4608                               MOV     AL,[BP+08] ; po‘adovan˜ disk
+F000:A7B6  807E0201                             CMP     Byte Ptr [BP+02],01 ; je disketa 360K v 360K ?
+F000:A7BA  7505                                 JNZ     A7C1  1 ; nen¡
+F000:A7BC  B99000                               MOV     CX,0090 ;
+F000:A7BF  EB39                                 JMP     A7FA  6
+
+F000:A7C1  50                             * 1   PUSH    AX
+F000:A7C2  E8A103                               CALL    AB66    ; zapnut¡ motoru
+F000:A7C5  58                                   POP     AX
+F000:A7C6  50                                   PUSH    AX
+F000:A7C7  E8B501                               CALL    A97F    ; v˜mˆna m‚dia
+F000:A7CA  8AEC                                 MOV     CH,AH
+F000:A7CC  58                                   POP     AX
+F000:A7CD  80FD80                               CMP     CH,80
+F000:A7D0  7504                                 JNZ     A7D6
+F000:A7D2  32C9                                 XOR     CL,CL
+F000:A7D4  EB24                                 JMP     A7FA
+
+
+F000:A7D6                       loc_d_A7D6: 2
+F000:A7D6  33 DB                                xor     bx,bx                                   ; Zero register
+F000:A7D8  0A 5E 02                             or      bl,[bp+2]
+F000:A7DB  74 05                                jz      loc_d_A7E2                              ; Jump if zero
+F000:A7DD  80 FB 04                             cmp     bl,4
+F000:A7E0  76 05                                jbe     loc_d_A7E7                              ; Jump if below or =
+F000:A7E2                       loc_d_A7E2: 3                                                   ;  xref F000:A7DB
+F000:A7E2  B9 0100                              mov     cx,100h
+F000:A7E5  EB 13                                jmp     short loc_d_A7FA
+F000:A7E7                       loc_d_A7E7: 4                                                   ;  xref F000:A7E0
+F000:A7E7  75 0D                                jnz     loc_d_A7F6                              ; Jump if not zero
+F000:A7E9  E8 06BD                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:A7EC  80 E4 06                             and     ah,6
+F000:A7EF  80 FC 06                             cmp     ah,6
+F000:A7F2  75 02                                jne     loc_d_A7F6                              ; Jump if not equal
+F000:A7F4  FE C3                                inc     bl
+F000:A7F6                       loc_d_A7F6: 5                                                   ;  xref F000:A7E7, A7F2
+F000:A7F6  8A 8F A80A                           mov     cl,data_d_A80A[bx]                      ; (=0)
+F000:A7FA                       loc_d_A7FA: 6                                                   ;  xref F000:A7E5
+F000:A7FA  E8 066C                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A7FD  80 E4 0F                             and     ah,0Fh
+F000:A800  0A E1                                or      ah,cl
+F000:A802  E8 0673                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:A805  8A E5                                mov     ah,ch
+F000:A807  E9 FC5B                              jmp     loc_d_A465
+
+
+
+
+
+
+F000:A80A  00                   data_d_A80A     db      0                                       ; Data table (indexed access)
+                                                                                               ;  xref F000:A7F6
+F000:A80B  00 70 10 90 50                       db      0, 70h, 10h, 90h, 50h
+
+; -----------------------------------------------------------------------------
+;        Funkce 18h - nastaven¡ typu m‚dia pro form tov n¡
+; -----------------------------------------------------------------------------
+
+F000:A810  8A4608                               MOV     AL,[BP+08]
+F000:A813  E89306                               CALL    AEA9
+F000:A816  0AE4                                 OR      AH,AH
+F000:A818  745C                                 JZ      A876
+F000:A81A  F6C401                               TEST    AH,01
+F000:A81D  7415                                 JZ      A834  1
+F000:A81F  50                                   PUSH    AX
+F000:A820  E84303                               CALL    AB66    ; zapnut¡ motoru
+F000:A823  58                                   POP     AX
+F000:A824  50                                   PUSH    AX
+F000:A825  E85701                               CALL    A97F    ; v˜mˆna m‚dia
+F000:A828  8AEC                                 MOV     CH,AH
+F000:A82A  58                                   POP     AX
+F000:A82B  80FD80                               CMP     CH,80
+F000:A82E  7504                                 JNZ     A834  1
+F000:A830  B480                                 MOV     AH,80
+F000:A832  EB44                                 JMP     A878  7
+
+
+F000:A834                       loc_d_A834: 1
+F000:A834  8A 46 08                             mov     al,[bp+8]
+F000:A837  E8 069F                              call    sub_d_AED9        ; ‡ten¡ typu mechaniky z CMOS
+F000:A83A  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A83C  74 38                                jz      loc_d_A876 6                            ; Jump if zero
+F000:A83E  80 FC 04                             cmp     ah,4
+F000:A841  76 02                                jbe     loc_d_A845 2                            ; Jump if below or =
+F000:A843  B4 01                                mov     ah,1
+F000:A845                       loc_d_A845: 2                                                   ;  xref F000:A841
+F000:A845  E8 0543                              call    sub_d_AD8B ; ur‡en¡ tabulky disku
+F000:A848                       loc_d_A848: 3                                                   ;  xref F000:A85D
+F000:A848  8A 4C 04                             mov     cl,[si+4]
+F000:A84B  8A 6C 0B                             mov     ch,[si+0Bh]
+F000:A84E  3B 4E 06                             cmp     cx,[bp+6]
+F000:A851  74 0C                                je      loc_d_A85F 4                            ; Jump if equal
+F000:A853  F6 C4 01                             test    ah,1
+F000:A856  75 23                                jnz     loc_d_A87B 8                            ; Jump if not zero
+F000:A858  FE CC                                dec     ah
+F000:A85A  83 C6 0D                             add     si,0Dh
+F000:A85D  EB E9                                jmp     short loc_d_A848 3
+F000:A85F                       loc_d_A85F: 4                                                   ;  xref F000:A851
+F000:A85F  8A 64 0C                             mov     ah,[si+0Ch]
+F000:A862  80 FC 40                             cmp     ah,40h                                  ; '@'
+F000:A865  75 03                                jne     loc_d_A86A 5                            ; Jump if not equal
+F000:A867  80 CC 20                             or      ah,20h                                  ; ' '
+F000:A86A                       loc_d_A86A: 5                                                   ;  xref F000:A865
+F000:A86A  80 CC 10                             or      ah,10h
+F000:A86D  E8 0608                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:A870  89 76 0A                             mov     [bp+0Ah],si
+F000:A873  8C 4E 0C                             mov     [bp+0Ch],cs
+F000:A876                       loc_d_A876: 6                                                   ;  xref F000:A83C
+F000:A876  33 C0                                xor     ax,ax                                   ; Zero register
+F000:A878                       loc_d_A878: 7                                                   ;  xref F000:A87D
+F000:A878  E9 FBEA                              jmp     loc_d_A465   Int407
+F000:A87B                       loc_d_A87B: 8                                                   ;  xref F000:A856
+F000:A87B  B4 0C                                mov     ah,0Ch
+F000:A87D  EB F9                                jmp     short loc_d_A878 7
+  
+                                ;==========================================================================
+                                ;           Ur‡en¡, zda je mechanika 40 nebo 80 stop
+                                ;
+                                ;         Called from:   F000:A377, A37C
+                                ;==========================================================================
+  
+                                sub_d_A87F      proc    near
+F000:A87F  50                                   push    ax
+F000:A880  E8 02E3                              call    sub_d_AB66        ; Zapnut¡ motoru
+F000:A883  58                                   pop     ax
+
+F000:A884  E8 05E2                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A887  80 E4 DF                             and     ah,0DFh           ; nulov n¡ p©¡znaku dvoj¡ho krokov n¡
+F000:A88A  E8 05EB                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+
+F000:A88D  8A C8                                mov     cl,al
+F000:A88F  B3 FE                                mov     bl,0FEh
+F000:A891  D2 C3                                rol     bl,cl                                   ; Rotate
+F000:A893  26:20 1E 043E                        and     es:dsk_recal_stat_,bl                   ; (0000:043E=1)
+F000:A898  B4 32                                mov     ah,32h            ; po‘adovan  stopa 50
+F000:A89A  50                                   push    ax
+F000:A89B  E8 0100                              call    sub_d_A99E        ; vystaven¡ mechaniky AL na stopu AH
+F000:A89E  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A8A0  5A                                   pop     dx
+F000:A8A1  75 62                                jnz     loc_d_A905  4                           ; Jump if not zero
+F000:A8A3  B6 0A                                mov     dh,0Ah            ; stopa 10
+F000:A8A5                       loc_d_A8A5: 1                                                   ;  xref F000:A8D5
+F000:A8A5  8B C2                                mov     ax,dx
+F000:A8A7  52                                   push    dx
+F000:A8A8  E8 00F3                              call    sub_d_A99E        ; vystaven¡ mechaniky AL na stopu AH
+F000:A8AB  5A                                   pop     dx
+F000:A8AC  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A8AE  75 55                                jnz     loc_d_A905  4                            ; Jump if not zero
+F000:A8B0  52                                   push    dx
+F000:A8B1  8B F4                                mov     si,sp
+F000:A8B3  B4 04                                mov     ah,4              ; povel
+F000:A8B5  B3 02                                mov     bl,2
+F000:A8B7  E8 03C9                              call    sub_d_AC83        ; vysl n¡ povelu na ©adi‡
+F000:A8BA  5A                                   pop     dx
+F000:A8BB  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A8BD  75 46                                jnz     loc_d_A905  4                            ; Jump if not zero
+F000:A8BF  52                                   push    dx
+F000:A8C0  E8 026C                              call    sub_d_AB2F        ; p©¡jem stavu od ©adi‡e
+F000:A8C3  5A                                   pop     dx
+F000:A8C4  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A8C6  75 3D                                jnz     loc_d_A905  4                            ; Jump if not zero
+F000:A8C8  26:F6 06 0442 10                     test    es:dsk_status_1_,10h                    ; (0000:0442=0)
+F000:A8CE  75 0A                                jnz     loc_d_A8DA  2                            ; Jump if not zero
+F000:A8D0  FE CE                                dec     dh
+F000:A8D2  80 FE FF                             cmp     dh,0FFh
+F000:A8D5  75 CE                                jne     loc_d_A8A5  1                            ; Jump if not equal
+F000:A8D7  EB 2C                                jmp     short loc_d_A905 4
+F000:A8D9  90                                   db      90h
+F000:A8DA                       loc_d_A8DA: 2                                                   ;  xref F000:A8CE
+F000:A8DA  B3 01                                mov     bl,1
+F000:A8DC  B7 02                                mov     bh,2
+F000:A8DE  80 FE 00                             cmp     dh,0
+F000:A8E1  74 0F                                je      loc_d_A8F2  3                            ; Jump if equal
+F000:A8E3  B3 04                                mov     bl,4
+F000:A8E5  B7 93                                mov     bh,93h
+F000:A8E7  B6 FE                                mov     dh,0FEh
+F000:A8E9  8A CA                                mov     cl,dl
+F000:A8EB  D2 C6                                rol     dh,cl                                   ; Rotate
+F000:A8ED  26:20 1E 043E                        and     es:dsk_recal_stat_,bl                   ; (0000:043E=1)
+F000:A8F2                       loc_d_A8F2: 3                                                   ;  xref F000:A8E1, A909
+F000:A8F2  8A C2                                mov     al,dl
+F000:A8F4  E8 0572                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A8F7  8A E7                                mov     ah,bh
+F000:A8F9  E8 057C                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:A8FC  E8 05AA                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:A8FF  8A E3                                mov     ah,bl
+F000:A901  E8 05B5                              call    sub_d_AEB9        ; nastaven¡ stavov‚ho bajtu mechaniky AL
+F000:A904  C3                                   ret
+F000:A905                       loc_d_A905: 4                                                   ;  xref F000:A8A1, A8AE, A8BD, A8C6
+                                                                                                ;            A8D7
+F000:A905  33 DB                                xor     bx,bx                                   ; Zero register
+F000:A907  8A C2                                mov     al,dl
+F000:A909  EB E7                                jmp     short loc_d_A8F2 3
+                                sub_d_A87F      endp
+
+                                          ; ur‡en¡ typu m‚dia podle CMOS
+
+F000:A90B  E8CB05                               CALL    AED9    ; ‡ten¡ mechaniky z CMOS
+F000:A90E  0AE4                                 OR      AH,AH
+F000:A910  74E0                                 JZ      A8F2    3
+F000:A912  80FC04                               CMP     AH,04
+F000:A915  77DB                                 JA      A8F2    3
+F000:A917  BB0493                               MOV     BX,9304
+F000:A91A  80FC01                               CMP     AH,01
+F000:A91D  74D3                                 JZ      A8F2    3
+F000:A91F  BB0102                               MOV     BX,0201
+F000:A922  EBCE                                 JMP     A8F2    3
+
+
+F000:A924  00                   data_d_A924     db      0                                       ; Data table (indexed access)
+                                                                                               ;  xref F000:A95C
+F000:A925  07 03 07 00 07 03                    db      7, 3, 7, 0, 7, 3
+F000:A92B  07 07 07 07 07 01                    db      7, 7, 7, 7, 7, 1
+F000:A931  01 04 04                             db      1, 4, 4
+  
+                                ;==========================================================================
+                                ;          Konverze nov‚ho m¢du na star˜
+                                ;
+                                ;         Called from:   F000:A442, A469
+                                ;==========================================================================
+  
+                                sub_d_A934      proc    near
+F000:A934  B2 07                                mov     dl,7
+F000:A936  E8 0570                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:A939  33 DB                                xor     bx,bx                                   ; Zero register
+F000:A93B  43                                   inc     bx
+F000:A93C  22 DC                                and     bl,ah
+F000:A93E  E8 0528                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A941  8A F4                                mov     dh,ah
+F000:A943  8A EC                                mov     ch,ah
+F000:A945  80 E4 C0                             and     ah,0C0h
+F000:A948  74 19                                jz      loc_d_A963                              ; Jump if zero
+F000:A94A  80 FC 80                             cmp     ah,80h
+F000:A94D  77 25                                ja      loc_d_A974                              ; Jump if above
+F000:A94F  74 03                                jz      loc_d_A954                              ; Jump if zero
+F000:A951  80 CB 08                             or      bl,8
+F000:A954                       loc_d_A954:                                                     ;  xref F000:A94F
+F000:A954  C0 ED 03                             shr     ch,3                                    ; Shift w/zeros fill
+F000:A957  80 E5 06                             and     ch,6
+F000:A95A  0A DD                                or      bl,ch
+F000:A95C  8A 97 A924                           mov     dl,data_d_A924[bx]                      ; (=0)
+F000:A960  EB 12                                jmp     short loc_d_A974
+F000:A962  90                                   db      90h
+F000:A963                       loc_d_A963:                                                     ;  xref F000:A948
+F000:A963  E8 0573                              call    sub_d_AED9        ; ‡ten¡ typu mechaniky z CMOS
+F000:A966  80 FC 02                             cmp     ah,2
+F000:A969  75 09                                jne     loc_d_A974                              ; Jump if not equal
+F000:A96B  B2 02                                mov     dl,2
+F000:A96D  F6 C6 10                             test    dh,10h
+F000:A970  74 02                                jz      loc_d_A974                              ; Jump if zero
+F000:A972  B2 05                                mov     dl,5
+F000:A974                       loc_d_A974:                                                     ;  xref F000:A94D, A960, A969, A970
+F000:A974  8A E6                                mov     ah,dh
+F000:A976  80 E4 F8                             and     ah,0F8h
+F000:A979  0A E2                                or      ah,dl
+F000:A97B  E8 04FA                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:A97E  C3                                   ret
+                                sub_d_A934      endp
+  
+  
+                                ;==========================================================================
+                                ;              obsluha v˜mˆny m‚dia
+                                ;
+                                ;         Called from:   F000:A4DF, A635
+                                ;==========================================================================
+  
+                                sub_d_A97F      proc    near
+
+                                                ; zji¨tˆn¡ stavu v˜mˆny m‚dia
+
+F000:A97F  E8 041E                              call    sub_d_ADA0        ; ‡ten¡ sign lu v˜mˆny diskety
+F000:A982  B4 00                                mov     ah,0
+F000:A984  74 17                                jz      loc_ret_d_A99D    ; disketa nebyla vymˆnˆna
+
+                                                ; nulov n¡ p©¡znaku zn mosti m‚dia
+
+F000:A986  E8 04E0                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A989  80 E4 EF                             and     ah,0EFh           ; nulov n¡ sign lu zn mosti m‚dia
+F000:A98C  E8 04E9                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+
+                                                ; nulov n¡ sign lu v˜mˆny m‚dia
+
+F000:A98F  50                                   push    ax
+F000:A990  E8 02DE                              call    sub_d_AC71        ; nulov n¡ sign lu v˜mˆny m‚dia
+F000:A993  58                                   pop     ax
+F000:A994  E8 0409                              call    sub_d_ADA0        ; ‡ten¡ sign lu v˜mˆny diskety
+F000:A997  B4 06                                mov     ah,6
+F000:A999  74 02                                jz      loc_ret_d_A99D                          ; Jump if zero
+F000:A99B  B4 80                                mov     ah,80h            ; chyba m‚dia
+
+F000:A99D                       loc_ret_d_A99D:                                                 ;  xref F000:A984, A999
+F000:A99D  C3                                   ret
+                                sub_d_A97F      endp
+  
+  
+                                ;==========================================================================
+                                ;           vystaven¡ mechaniky AL na stopu AH
+                                ;
+                                ;         Called from:   F000:A529, A688, A89B, A8A8, AC79, AC7F, ACE2
+                                ;==========================================================================
+  
+                                sub_d_A99E      proc    near
+F000:A99E  B3 01                                mov     bl,1
+F000:A9A0  8A C8                                mov     cl,al             ; mechanika
+F000:A9A2  D2 E3                                shl     bl,cl                                   ; Shift w/zeros fill
+F000:A9A4  26:84 1E 043E                        test    bl,es:data_b_043E_e    ; je pot©ebn  rekalibrace ?
+F000:A9A9  75 38                                jnz     loc_d_A9E3             ; rekalibrace nen¡ pot©ebn 
+
+                                                ; provede se rekalibrace disku
+
+F000:A9AB  26:08 1E 043E                        or      es:data_b_043E_e,bl    ; p©¡znak proveden¡ rekalibrace
+F000:A9B0  8B D0                                mov     dx,ax             ; po‘adovan  mechanika
+F000:A9B2  32 E4                                xor     ah,ah             ; nov  stopa = 0
+F000:A9B4  E8 04E1                              call    sub_d_AE98        ; nastaven¡ aktu ln¡ stopy
+F000:A9B7  B9 0002                              mov     cx,2              ; po‡et pokus– = 2
+
+                                                ; rekalibrace disku (2 pokusy)
+
+F000:A9BA                       locloop_d_A9BA:                                                 ;  xref F000:A9D4
+F000:A9BA  51                                   push    cx                ; ‡¡ta‡ pokus–
+F000:A9BB  52                                   push    dx                ; po‘adovan  stopa
+F000:A9BC  8B F4                                mov     si,sp
+F000:A9BE  B4 07                                mov     ah,7              ; povel 7 - rekalibrace
+F000:A9C0  B3 02                                mov     bl,2
+F000:A9C2  E8 02BE                              call    sub_d_AC83        ; vysl n¡ povelu na ©adi‡
+F000:A9C5  5A                                   pop     dx
+F000:A9C6  59                                   pop     cx
+F000:A9C7  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A9C9  75 4F                                jnz     loc_ret_d_AA1A    ; chyba
+F000:A9CB  51                                   push    cx
+F000:A9CC  52                                   push    dx
+F000:A9CD  E8 0115                              call    sub_d_AAE5        ; Kontrola operace vystaven¡
+F000:A9D0  5A                                   pop     dx                ; po‘adovan  stopa
+F000:A9D1  59                                   pop     cx
+F000:A9D2  0A E4                                or      ah,ah                                   ; Zero ?
+F000:A9D4  E0 E4                                loopnz  locloop_d_A9BA    ; dal¨¡ pokus o rekalibraci
+F000:A9D6  75 42                                jnz     loc_ret_d_AA1A    ; byla chyba
+
+                                                ; ‡ek n¡ na ust len¡ hlav
+  
+F000:A9D8  8B C2                                mov     ax,dx             ; po‘adovan  stopa
+F000:A9DA  0A E4                                or      ah,ah             ; vystaven¡ na stopu 0 ?
+F000:A9DC  75 05                                jnz     loc_d_A9E3        ; nen¡ stopa 0
+F000:A9DE  E8 003A                              call    sub_d_AA1B        ; ‡ek n¡ na ust len¡ hlav po vystaven¡
+F000:A9E1  EB 35                                jmp     short loc_d_AA18
+
+                                                ; vystaven¡ na po‘adovanou stopu AX
+
+                                                ; zdvojen¡ kroku pro disketu 360 KB v 1.2 MB
+
+F000:A9E3                       loc_d_A9E3:                                                     ;  xref F000:A9A9, A9DC
+F000:A9E3  8B D8                                mov     bx,ax
+F000:A9E5  E8 0481                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:A9E8  F6 C4 20                             test    ah,20h            ; je dvoj¡ krokov n¡ ?
+F000:A9EB  74 02                                jz      loc_d_A9EF                              ; Jump if zero
+F000:A9ED  D0 E7                                shl     bh,1              ; zdvojn soben¡ kroku
+F000:A9EF                       loc_d_A9EF:                                                     ;  xref F000:A9EB
+
+                                                ; test, zda je stopa ji‘ nastavena
+
+F000:A9EF  E8 0497                              call    sub_d_AE89        ; ‡ten¡ aktu ln¡ stopy mechaniky AL
+F000:A9F2  3A E7                                cmp     ah,bh
+F000:A9F4  74 22                                je      loc_d_AA18        ; stopa je ji‘ nastavena
+
+                                                ; vystaven¡ na po‘adovanou stopu
+
+F000:A9F6  8A E7                                mov     ah,bh
+F000:A9F8  E8 049D                              call    sub_d_AE98        ; nastaven¡ aktu ln¡ stopy
+F000:A9FB  53                                   push    bx                ; po‘adovan  stopa
+F000:A9FC  8B F4                                mov     si,sp
+F000:A9FE  B4 0F                                mov     ah,0Fh            ; povel SEEK
+F000:AA00  B3 03                                mov     bl,3
+F000:AA02  E8 027E                              call    sub_d_AC83        ; vysl n¡ povelu na ©adi‡
+F000:AA05  5B                                   pop     bx
+F000:AA06  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AA08  75 10                                jnz     loc_ret_d_AA1A                          ; Jump if not zero
+
+
+F000:AA0A  53                                   push    bx
+F000:AA0B  E8 00D7                              call    sub_d_AAE5        ; Kontrola operace vystaven¡
+F000:AA0E  5B                                   pop     bx
+F000:AA0F  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AA11  75 07                                jnz     loc_ret_d_AA1A                          ; Jump if not zero
+F000:AA13  8B C3                                mov     ax,bx
+F000:AA15  E8 0003                              call    sub_d_AA1B        ; ‡ek n¡ na ust len¡ hlav po vystaven¡
+
+F000:AA18                       loc_d_AA18:                                                     ;  xref F000:A9E1, A9F4
+F000:AA18  32 E4                                xor     ah,ah                                   ; Zero register
+  
+F000:AA1A                       loc_ret_d_AA1A:                                                 ;  xref F000:A9C9, A9D6, AA08, AA11
+F000:AA1A  C3                                   ret
+                                sub_d_A99E      endp
+
+                                ;==========================================================================
+                                ;            ‡ek n¡ na ust len¡ hlav po vystaven¡
+                                ;
+                                ;         Called from:   F000:A9DE, AA15
+                                ;==========================================================================
+  
+                                sub_d_AA1B      proc    near
+
+                                                ; doba pro ust len¡ hlav
+
+F000:AA1B  8B D8                                mov     bx,ax
+F000:AA1D  B0 09                                mov     al,9              ; doba pro ust len¡ hlav
+F000:AA1F  E8 04E9                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru 9
+F000:AA22  0A C0                                or      al,al                                   ; Zero ?
+F000:AA24  75 15                                jnz     loc_d_AA3B                              ; Jump if not zero
+
+                                                ; automatick  doba pro ust len¡ hlav
+
+F000:AA26  26:F6 06 043F 80                     test    byte ptr es:data_b_043F_e,80h ; je z pis ?
+F000:AA2C  74 2E                                jz      loc_ret_d_AA5C    ; je ‡ten¡
+F000:AA2E  8A C3                                mov     al,bl
+F000:AA30  E8 0436                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:AA33  B0 14                                mov     al,14h            ; prodleva pro mechaniku 360 KB
+F000:AA35  0A E4                                or      ah,ah             ; je mechanika 360 KB ?
+F000:AA37  78 02                                js      loc_d_AA3B        ; je mechanika 360 KB
+F000:AA39  B0 0F                                mov     al,0Fh            ; prodleva pro mechnaiku 1.2 MB
+
+                                                ; ‡ek n¡ na ust len¡ hlav
+
+F000:AA3B                       loc_d_AA3B:                                                     ;  xref F000:AA24, AA37
+F000:AA3B  50                                   push    ax
+F000:AA3C  32 E4                                xor     ah,ah                                   ; Zero register
+F000:AA3E  40                                   inc     ax
+F000:AA3F  BA 03E8                              mov     dx,3E8h           ;
+F000:AA42  F7 E2                                mul     dx                                      ; dx:ax = reg * ax
+F000:AA44  8B C8                                mov     cx,ax
+F000:AA46  87 D1                                xchg    dx,cx
+F000:AA48  B4 86                                mov     ah,86h
+F000:AA4A  CD 15                                int     15h                                     ; General services, ah=func 86h
+F000:AA4C  58                                   pop     ax
+F000:AA4D  73 0D                                jnc     loc_ret_d_AA5C
+
+                                                ; ‡ek n¡, pokud je ‡asova‡ pou‘it
+
+F000:AA4F  8A 16 E742                           mov     dl,ds:data_b_E742_e                     ; (=0)
+F000:AA53  F6 E2                                mul     dl                                      ; ax = reg * al
+F000:AA55  8B C8                                mov     cx,ax
+F000:AA57  33 DB                                xor     bx,bx                                   ; Zero register
+F000:AA59  E8 4342                              call    sub_d_ED9E        ; Nepodm¡nˆn‚ ‡ek n¡ na CX impuls–
+  
+F000:AA5C                       loc_ret_d_AA5C:                                                 ;  xref F000:AA2C, AA4D
+F000:AA5C  C3                                   ret
+                                sub_d_AA1B      endp
+  
+  
+                                ;==========================================================================
+                                ;                  sestaven¡ k¢du chyby
+                                ;
+                                ;         Called from:   F000:AD52
+                                ;==========================================================================
+  
+                                sub_d_AA5D      proc    near
+F000:AA5D  26:8A 1E 0442                        mov     bl,es:data_b_0442_e                     ; (=0)
+F000:AA62  80 E3 C0                             and     bl,0C0h
+F000:AA65  B4 00                                mov     ah,0
+F000:AA67  74 31                                jz      loc_ret_d_AA9A                          ; Jump if zero
+F000:AA69  80 FB 40                             cmp     bl,40h                                  ; '@'
+F000:AA6C  B4 20                                mov     ah,20h                                  ; ' '
+F000:AA6E  75 2A                                jnz     loc_ret_d_AA9A                          ; Jump if not zero
+F000:AA70  26:8A 1E 0443                        mov     bl,es:data_b_0443_e                     ; (=0)
+F000:AA75  F6 C3 84                             test    bl,84h
+F000:AA78  B4 04                                mov     ah,4
+F000:AA7A  75 1E                                jnz     loc_ret_d_AA9A                          ; Jump if not zero
+F000:AA7C  F6 C3 20                             test    bl,20h                                  ; ' '
+F000:AA7F  B4 10                                mov     ah,10h
+F000:AA81  75 17                                jnz     loc_ret_d_AA9A                          ; Jump if not zero
+F000:AA83  F6 C3 10                             test    bl,10h
+F000:AA86  B4 08                                mov     ah,8
+F000:AA88  75 10                                jnz     loc_ret_d_AA9A                          ; Jump if not zero
+F000:AA8A  F6 C3 02                             test    bl,2
+F000:AA8D  B4 03                                mov     ah,3
+F000:AA8F  75 09                                jnz     loc_ret_d_AA9A                          ; Jump if not zero
+F000:AA91  F6 C3 01                             test    bl,1
+F000:AA94  B4 02                                mov     ah,2
+F000:AA96  75 02                                jnz     loc_ret_d_AA9A                          ; Jump if not zero
+F000:AA98  B4 20                                mov     ah,20h                                  ; ' '
+  
+F000:AA9A                       loc_ret_d_AA9A:                                                 ;  xref F000:AA67, AA6E, AA7A, AA81
+                                                                                                ;            AA88, AA8F, AA96
+F000:AA9A  C3                                   ret
+                                sub_d_AA5D      endp
+  
+  
+                                ;==========================================================================
+                                ;                  Reset diskov‚ho syst‚mu
+                                ;
+                                ;         Called from:   F000:A372, A37F, A40D, AC72, AFE5
+                                ;==========================================================================
+  
+                                sub_d_AA9B      proc    near
+
+                                                ; vysl n¡ sign lu RESET
+
+F000:AA9B  FA                                   cli                                             ; Disable interrupts
+F000:AA9C  26:A0 043F                           mov     al,es:dsk_motor_stat_                   ; (0000:043F=80h)
+F000:AAA0  C0 C0 04                             rol     al,4                                    ; Rotate
+F000:AAA3  24 FB                                and     al,0FBh
+F000:AAA5  0C 08                                or      al,8
+F000:AAA7  BA 03F2                              mov     dx,3F2h
+F000:AAAA  EE                                   out     dx,al                                   ; port 3F2h, dsk0 contrl output
+F000:AAAB  26:C6 06 043E 00                     mov     es:dsk_recal_stat_,0                    ; (0000:043E=1)
+F000:AAB1  B9 0015                              mov     cx,15h
+
+                                                ; prodleva
+
+F000:AAB4                       locloop_d_AAB4:                                                 ;  xref F000:AAB4
+F000:AAB4  E2 FE                                loop    locloop_d_AAB4                          ; Loop if cx > 0
+  
+                                                ; ukon‡en¡ sign lu RESET
+
+F000:AAB6  0C 04                                or      al,4
+F000:AAB8  EE                                   out     dx,al                                   ; port 3F2h, dsk0 contrl output
+F000:AAB9  EB 00                                jmp     short loc_d_AABB
+F000:AABB                       loc_d_AABB:                                                     ;  xref F000:AAB9
+
+                                                ; kontrola v˜sledku operace
+
+F000:AABB  FB                                   sti                                             ; Enable interrupts
+F000:AABC  E8 0026                              call    sub_d_AAE5        ; Kontrola operace vystaven¡
+F000:AABF  B4 20                                mov     ah,20h                                  ; ' '
+F000:AAC1  26:80 3E 0442 C0                     cmp     es:dsk_status_1_,0C0h                   ; (0000:0442=0)
+F000:AAC7  75 19                                jne     loc_d_AAE2                              ; Jump if not equal
+
+                                                ; vysl n¡ povelu SPECIFY
+
+F000:AAC9  B0 00                                mov     al,0              ; parametr 0
+F000:AACB  E8 043D                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru 0
+F000:AACE  8A D8                                mov     bl,al             ; rychlost krokov n¡
+F000:AAD0  B0 01                                mov     al,1              ; parametr 1
+F000:AAD2  E8 0436                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru 1
+F000:AAD5  8A F8                                mov     bh,al             ; ‡as zvednut¡ p©¡tlaku
+F000:AAD7  53                                   push    bx
+F000:AAD8  8B F4                                mov     si,sp
+F000:AADA  B4 03                                mov     ah,3              ; povel 3
+F000:AADC  B3 03                                mov     bl,3              ; po‡et povel–
+F000:AADE  E8 01A2                              call    sub_d_AC83        ; vysl n¡ povelu SPECIFY na ©adi‡
+F000:AAE1  5B                                   pop     bx
+F000:AAE2                       loc_d_AAE2:                                                     ;  xref F000:AAC7
+F000:AAE2  32 C0                                xor     al,al                                   ; Zero register
+F000:AAE4  C3                                   ret
+                                sub_d_AA9B      endp
+  
+  
+                                ;==========================================================================
+                                ;          Kontrola operace vystaven¡, rekalibrace nebo reset
+                                ;
+                                ;         Called from:   F000:A9CD, AA0B, AABC
+                                ;==========================================================================
+  
+                                sub_d_AAE5      proc    near
+F000:AAE5  E8 0025                              call    sub_d_AB0D         ; ‡ek n¡ na p©eru¨en¡ od ©adi‡e
+F000:AAE8  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AAEA  75 20                                jnz     loc_ret_d_AB0C    ; chyba TIME-OUT
+F000:AAEC  B4 08                                mov     ah,8
+F000:AAEE  B3 01                                mov     bl,1
+F000:AAF0  E8 0190                              call    sub_d_AC83        ; vysl n¡ povelu SENSE INTERRUT STATUS
+F000:AAF3  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AAF5  75 15                                jnz     loc_ret_d_AB0C                          ; Jump if not zero
+F000:AAF7  E8 0035                              call    sub_d_AB2F        ; p©¡jem stavu od ©adi‡e
+F000:AAFA  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AAFC  75 0E                                jnz     loc_ret_d_AB0C                          ; Jump if not zero
+F000:AAFE  26:A0 0442                           mov     al,es:data_b_0442_e                     ; (=0)
+F000:AB02  24 60                                and     al,60h           ; stav                       ; '`'
+F000:AB04  3C 60                                cmp     al,60h                                  ; '`'
+F000:AB06  B4 40                                mov     ah,40h           ; chyba vystaven¡                       ; '@'
+F000:AB08  74 02                                jz      loc_ret_d_AB0C                          ; Jump if zero
+F000:AB0A  32 E4                                xor     ah,ah                                   ; Zero register
+  
+F000:AB0C                       loc_ret_d_AB0C:                                                 ;  xref F000:AAEA, AAF5, AAFC, AB08
+F000:AB0C  C3                                   ret
+                                sub_d_AAE5      endp
+  
+  
+                                ;==========================================================================
+                                ;                 ‡ek n¡ na p©eru¨en¡ od ©adi‡e
+                                ;
+                                ;         Called from:   F000:AAE5, AD3E
+                                ;==========================================================================
+  
+                                sub_d_AB0D      proc    near
+F000:AB0D  8D 3E 043E                           lea     di,cs:[43Eh]      ; adresa p©¡znaku                      ; Load effective addr
+F000:AB11  B8 9001                              mov     ax,9001h
+F000:AB14  F8                                   clc                                             ; Clear carry flag
+F000:AB15  CD 15                                int     15h               ; za‡ tek ‡ek n¡                      ; General services, ah=func 90h
+                                                                                                ;  device busy, al=type
+F000:AB17  B4 80                                mov     ah,80h
+F000:AB19  72 0F                                jc      loc_d_AB2A        ; time-out                      ; Jump if carry Set
+F000:AB1B  B4 80                                mov     ah,80h            ; maska
+F000:AB1D  2E:8A 3E E74C                        mov     bh,cs:data_d_E74C ; max. doba ‡¡ta‡e - vy¨¨¡ bajt
+F000:AB22  2E:8B 0E E74A                        mov     cx,cs:data_d_E74A ; max. doba ‡¡ta‡e - n¡z¨¡ bajt           ; (=0C350h)
+F000:AB27  E8 41F2                              call    sub_d_ED1C        ; ‡ek n¡ na p©eru¨en¡ 1.5 sec.
+F000:AB2A                       loc_d_AB2A:                                                     ;  xref F000:AB19
+F000:AB2A  26:80 25 7F                          and     byte ptr es:[di],7Fh ; konec p©eru¨en¡
+F000:AB2E  C3                                   ret
+                                sub_d_AB0D      endp
+
+
+                                ;==========================================================================
+                                ;               p©¡jem stavu od ©adi‡e
+                                ;
+                                ;         Called from:   F000:A8C0, AAF7, AD42
+                                ;==========================================================================
+  
+                                sub_d_AB2F      proc    near
+F000:AB2F  BF 0442                              mov     di,442h           ; ukl dac¡ adresa
+F000:AB32                       loc_d_AB32:                                                     ;  xref F000:AB63
+F000:AB32  2E:8B 0E E74D                        mov     cx,cs:data_d_E74D                       ; (=411Bh)
+F000:AB37  2E:8A 3E E74F                        mov     bh,cs:data_d_E74F                       ; (=0)
+F000:AB3C  B8 C0C0                              mov     ax,0C0C0h
+F000:AB3F  BA 03F4                              mov     dx,3F4h
+F000:AB42  E8 3C1D                              call    sub_d_E762        ; ‡ek n¡ na p©ipravenost ©adi‡e
+F000:AB45  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AB47  75 1C                                jnz     loc_ret_d_AB65                          ; Jump if not zero
+F000:AB49  42                                   inc     dx
+F000:AB4A  EC                                   in      al,dx                                   ; port 3F5h, dsk0 controlr data
+F000:AB4B  AA                                   stosb                     ; p©¡jem bajtu                      ; Store al to es:[di]
+F000:AB4C  33 DB                                xor     bx,bx                                   ; Zero register
+F000:AB4E  B9 002D                              mov     cx,2Dh
+  
+F000:AB51                       locloop_d_AB51:                                                 ;  xref F000:AB51
+F000:AB51  E2 FE                                loop    locloop_d_AB51    ; prodleva                      ; Loop if cx > 0
+  
+F000:AB53  BA 03F4                              mov     dx,3F4h
+F000:AB56  EC                                   in      al,dx                                   ; port 3F4h, dsk0 cntrlr status
+F000:AB57  A8 10                                test    al,10h
+F000:AB59  B4 00                                mov     ah,0
+F000:AB5B  74 08                                jz      loc_ret_d_AB65    ; nen¡ dal¨¡ bajt                      ; Jump if zero
+F000:AB5D  B4 20                                mov     ah,20h                                  ; ' '
+F000:AB5F  81 FF 0448                           cmp     di,448h
+F000:AB63  76 CD                                jbe     loc_d_AB32        ; p©¡jem dal¨¡ho bajtu                      ; Jump if below or =
+  
+F000:AB65                       loc_ret_d_AB65:                                                 ;  xref F000:AB47, AB5B
+F000:AB65  C3                                   ret
+                                sub_d_AB2F      endp
+  
+  
+                                ;==========================================================================
+                                ;              Zapnut¡ motoru
+                                ;
+                                ;         Called from:   F000:A4C2, A629, A880
+                                ;==========================================================================
+  
+                                sub_d_AB66      proc    near
+
+                                                ; test, zda je motor ji‘ zapnut–
+
+F000:AB66  B5 00                                mov     ch,0
+F000:AB68  B7 01                                mov     bh,1
+F000:AB6A  8A C8                                mov     cl,al
+F000:AB6C  D2 E7                                shl     bh,cl                                   ; Shift w/zeros fill
+F000:AB6E  FA                                   cli
+F000:AB6F  26:8A 1E 043F                        mov     bl,es:data_b_043F_e                     ; (=0)
+F000:AB74  84 DF                                test    bl,bh
+F000:AB76  75 02                                jnz     loc_d_AB7A                              ; Jump if not zero
+F000:AB78  FE C5                                inc     ch
+F000:AB7A                       loc_d_AB7A:                                                     ;  xref F000:AB76
+
+                                                ; zapnut¡ motoru
+
+F000:AB7A  26:C6 06 0440 FF                     mov     byte ptr es:data_b_0440_e,0FFh; inicializa‡n¡ doba
+F000:AB80  8A E3                                mov     ah,bl
+F000:AB82  80 E4 03                             and     ah,3
+F000:AB85  B1 04                                mov     cl,4
+F000:AB87  D2 E4                                shl     ah,cl                                   ; Shift w/zeros fill
+F000:AB89  8A D4                                mov     dl,ah
+F000:AB8B  80 E3 CF                             and     bl,0CFh
+F000:AB8E  8A E0                                mov     ah,al
+F000:AB90  D2 E4                                shl     ah,cl                                   ; Shift w/zeros fill
+F000:AB92  0A DF                                or      bl,bh
+F000:AB94  0A DC                                or      bl,ah
+F000:AB96  26:88 1E 043F                        mov     es:data_b_043F_e,bl                     ; (=0)
+F000:AB9B  8A E2                                mov     ah,dl
+F000:AB9D  B2 10                                mov     dl,10h
+F000:AB9F  8A C8                                mov     cl,al
+F000:ABA1  0A E0                                or      ah,al
+F000:ABA3  D2 E2                                shl     dl,cl                                   ; Shift w/zeros fill
+F000:ABA5  0A E2                                or      ah,dl
+F000:ABA7  80 CC 0C                             or      ah,0Ch
+F000:ABAA  86 E0                                xchg    ah,al
+F000:ABAC  BA 03F2                              mov     dx,3F2h
+F000:ABAF  EE                                   out     dx,al                                   ; port 3F2h, dsk0 contrl output
+
+                                                ; test, zda je ‡ek n¡
+
+F000:ABB0  FB                                   sti                                             ; Enable interrupts
+F000:ABB1  0A ED                                or      ch,ch                                   ; Zero ?
+F000:ABB3  74 08                                jz      loc_ret_d_ABBD    ; m  b˜t ‡ek n¡
+
+                                                ; zah jen¡ ‡ek n¡
+
+F000:ABB5  B8 90FD                              mov     ax,90FDh
+F000:ABB8  F8                                   clc                                             ; Clear carry flag
+F000:ABB9  CD 15                                int     15h                                     ; General services, ah=func 90h
+                                                                                                ;  device busy, al=type
+F000:ABBB  73 01                                jnc     loc_d_ABBE                              ; Jump if carry=0
+  
+F000:ABBD                       loc_ret_d_ABBD:                                                 ;  xref F000:ABB3
+F000:ABBD  C3                                   ret
+F000:ABBE                       loc_d_ABBE:                                                     ;  xref F000:ABBB
+
+                                                ; doba pro start motoru
+
+F000:ABBE  B8 000A                              mov     ax,0Ah            ; ‡as pro spu¨tˆn¡ motoru
+F000:ABC1  E8 0347                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+
+                                                ; omezen¡ startovac¡ doby p©i z pisu
+
+F000:ABC4  26:F6 06 043F 80                     test    byte ptr es:data_b_043F_e,80h ; je z pis ?
+F000:ABCA  74 09                                jz      loc_d_ABD5        ; je ‡ten¡
+F000:ABCC  3C 07                                cmp     al,7
+F000:ABCE  77 10                                ja      loc_d_ABE0                              ; Jump if above
+F000:ABD0  B8 0008                              mov     ax,8              ; minim ln¡ doba pro z pis
+F000:ABD3  EB 0B                                jmp     short loc_d_ABE0
+F000:ABD5                       loc_d_ABD5:                                                     ;  xref F000:ABCA
+
+                                                ; omezen¡ doby pro ‡ten¡
+
+F000:ABD5  0A C0                                or      al,al             ; doba = 0 ?
+F000:ABD7  74 2D                                jz      loc_ret_d_AC06                          ; Jump if zero
+F000:ABD9  3C 04                                cmp     al,4
+F000:ABDB  77 03                                ja      loc_d_ABE0                              ; Jump if above
+F000:ABDD  B8 0005                              mov     ax,5              ; omezen¡ doby na 5 p©i ‡ten¡
+F000:ABE0                       loc_d_ABE0:                              ;  xref F000:ABCE, ABD3, ABDB
+
+                                                ; ‡ek n¡ na start motoru
+
+F000:ABE0  32 E4                                xor     ah,ah                                   ; Zero register
+F000:ABE2  8B D8                                mov     bx,ax
+F000:ABE4  B9 F424                              mov     cx,0F424h
+F000:ABE7  F7 E1                                mul     cx                                      ; dx:ax = reg * ax
+F000:ABE9  8B CA                                mov     cx,dx
+F000:ABEB  8B D0                                mov     dx,ax
+F000:ABED  D1 E2                                shl     dx,1                                    ; Shift w/zeros fill
+F000:ABEF  D1 D1                                rcl     cx,1                                    ; Rotate thru carry
+F000:ABF1  B4 86                                mov     ah,86h
+F000:ABF3  CD 15                                int     15h               ; ‡ek n¡ po danou dobu
+F000:ABF5  73 0F                                jnc     loc_ret_d_AC06    ; funkce ‡ek n¡ probˆhla OK
+
+                                                ; ‡ek n¡, pokud je funkce 86h ji‘ pou‘ita
+
+F000:ABF7  8B C3                                mov     ax,bx
+F000:ABF9  8B 0E E740                           mov     cx,ds:data_b_E740_e                     ; (=0)
+F000:ABFD  F7 E1                                mul     cx                                      ; dx:ax = reg * ax
+F000:ABFF  8B C8                                mov     cx,ax
+F000:AC01  8B DA                                mov     bx,dx
+F000:AC03  E8 4198                              call    sub_d_ED9E        ; Nepodm¡nˆn‚ ‡ek n¡ na CX impuls–
+  
+F000:AC06                       loc_ret_d_AC06:                                                 ;  xref F000:ABD7, ABF5
+F000:AC06  C3                                   ret
+                                sub_d_AB66      endp
+  
+  
+                                ;==========================================================================
+                                ;             Ur‡en¡ po‡tu p©enesen˜ch sektor–
+                                ;
+                                ;         Called from:   F000:A5F8
+                                ;==========================================================================
+  
+                                sub_d_AC07      proc    near
+F000:AC07  B0 04                                mov     al,4              ; parametr 4 - posledn¡ sektor
+F000:AC09  E8 02FF                              call    sub_d_AF0B        ; ‡ten¡ disket. parametru AL
+F000:AC0C  8A E0                                mov     ah,al
+F000:AC0E  26:A0 0447                           mov     al,es:data_b_0447_e ; posledn¡ sektor
+F000:AC12  2A C1                                sub     al,cl             ; po‡et p©enesen˜ch sektor–
+F000:AC14  26:3A 36 0446                        cmp     dh,es:data_b_0446_e ; souhlas¡ hlava ?
+F000:AC19  74 04                                je      loc_d_AC1F        ; hlava nebyla zmˆnˆna
+F000:AC1B  02 C4                                add     al,ah             ; p©i‡ten¡ sektor– na stopu
+F000:AC1D  EB 0B                                jmp     short loc_ret_d_AC2A ; konec
+F000:AC1F                       loc_d_AC1F:                                                     ;  xref F000:AC19
+F000:AC1F  26:3A 2E 0445                        cmp     ch,es:data_b_0445_e ; byla zmˆnˆna stopa ?
+F000:AC24  74 04                                je      loc_ret_d_AC2A    ; stopa nebyla zmˆnˆna
+F000:AC26  D0 E4                                shl     ah,1              ; po‡et sektor– na stopu * 2
+F000:AC28  02 C4                                add     al,ah             ; p©i‡ten¡ sektor– ze 2 stran
+  
+F000:AC2A                       loc_ret_d_AC2A:                                                 ;  xref F000:AC1D, AC24
+F000:AC2A  C3                                   ret
+                                sub_d_AC07      endp
+  
+  
+                                ;==========================================================================
+                                ;               nastaven¡ kan lu DMA
+                                ;
+                                ;         Called from:   F000:A55A, A675
+                                ;==========================================================================
+  
+                                sub_d_AC2B      proc    near
+
+                                                ; nastaven¡ povelu pro DMA
+
+F000:AC2B  FA                                   cli                                             ; Disable interrupts
+F000:AC2C  E6 0C                                out     0Ch,al            ; nastaven¡ p©¡znaku n slednosti DMA
+F000:AC2E  EB 00                                jmp     short loc_d_AC30
+F000:AC30                       loc_d_AC30:                                                     ;  xref F000:AC2E
+F000:AC30  E6 0B                                out     0Bh,al            ; nastaven¡ povelu pro DMA
+
+                                                ; nastaven¡ adresy pro p©enos DMA
+
+F000:AC32  36:8B 44 02                          mov     ax,ss:[si+2]      ; segment adresy
+F000:AC36  8A DC                                mov     bl,ah
+F000:AC38  C1 E0 04                             shl     ax,4              ; segment adresy DMA * 16 -> offset
+F000:AC3B  C0 EB 04                             shr     bl,4              ; segment adresy DMA / 16 (=64 KB)
+F000:AC3E  36:03 04                             add     ax,ss:[si]        ; p©i‡ten¡ offsetu
+F000:AC41  80 D3 00                             adc     bl,0              ; p©enos do vy¨¨¡ho bajtu
+F000:AC44  E6 04                                out     4,al              ; vysl n¡ ni‘¨¡ho bajtu adresy
+F000:AC46  86 C4                                xchg    al,ah
+F000:AC48  EB 00                                jmp     short loc_d_AC4A
+F000:AC4A                       loc_d_AC4A:                                                     ;  xref F000:AC48
+F000:AC4A  E6 04                                out     4,al              ; vysl n¡ vy¨¨¡ho bajtu adresy
+F000:AC4C  EB 00                                jmp     short loc_d_AC4E
+F000:AC4E                       loc_d_AC4E:                                                     ;  xref F000:AC4C
+F000:AC4E  86 C4                                xchg    al,ah
+F000:AC50  93                                   xchg    ax,bx             ; nejvy¨¨¡ 4 bity
+F000:AC51  E6 81                                out     81h,al            ; nastaven¡ str nkov‚ho registru
+F000:AC53  EB 00                                jmp     short loc_d_AC55
+
+                                                ; nastaven¡ po‡tu bajt– k p©enosu
+
+F000:AC55                       loc_d_AC55:                                                     ;  xref F000:AC53
+F000:AC55  36:8B 44 04                          mov     ax,ss:[si+4]      ; velikost bloku dat
+F000:AC59  E6 05                                out     5,al                                    ; port 5, DMA-1 bas&cnt ch 2
+F000:AC5B  8A C4                                mov     al,ah
+F000:AC5D  EB 00                                jmp     short loc_d_AC5F
+F000:AC5F                       loc_d_AC5F:                                                     ;  xref F000:AC5D
+F000:AC5F  E6 05                                out     5,al                                    ; port 5, DMA-1 bas&cnt ch 2
+
+                                                ; inicializace kan lu pro p©enos DMA
+
+F000:AC61  FB                                   sti                                             ; Enable interrupts
+F000:AC62  B0 02                                mov     al,2
+F000:AC64  E6 0A                                out     0Ah,al                                  ; port Ah, DMA-1 mask reg bit
+
+
+F000:AC66  B4 09                                mov     ah,9              ; chyba DMA
+F000:AC68  36:03 5C 04                          add     bx,ss:[si+4]      ; kontrola p©ete‡en¡ DMA
+F000:AC6C  72 02                                jc      loc_ret_d_AC70    ; chyba p©ete‡en¡ DMA
+F000:AC6E  33 C0                                xor     ax,ax                                   ; Zero register
+  
+F000:AC70                       loc_ret_d_AC70:                                                 ;  xref F000:AC6C
+F000:AC70  C3                                   ret
+                                sub_d_AC2B      endp
+  
+  
+                                ;==========================================================================
+                                ;             nulov n¡ sign lu v˜mˆny m‚dia
+                                ;
+                                ;         Called from:   F000:A990
+                                ;==========================================================================
+  
+                                sub_d_AC71      proc    near
+F000:AC71  50                                   push    ax
+F000:AC72  E8 FE26                              call    sub_d_AA9B        ; Reset diskov‚ho syst‚mu
+F000:AC75  58                                   pop     ax
+F000:AC76  B4 01                                mov     ah,1              ; stopa 1
+F000:AC78  50                                   push    ax
+F000:AC79  E8 FD22                              call    sub_d_A99E        ; vystaven¡ mechaniky AL na stopu AH
+F000:AC7C  58                                   pop     ax
+F000:AC7D  B4 00                                mov     ah,0              ; stopa 0
+F000:AC7F  E8 FD1C                              call    sub_d_A99E        ; vystaven¡ mechaniky AL na stopu AH
+F000:AC82  C3                                   ret
+                                sub_d_AC71      endp
+  
+  
+                                ;==========================================================================
+                                ;    Vysl n¡ povelu na ©adi‡: AL=prvn¡ bajt, BL=po‡et bajt–
+                                ;                    ss:[si]=ostatn¡ bajty
+                                ;         Called from:   F000:A508, A5B2, A650, A6BA, A8B7, A9C2, AA02
+                                ;                             AADE, AAF0, ACF1
+                                ;==========================================================================
+  
+                                sub_d_AC83      proc    near
+F000:AC83                       loc_d_AC83:                                                     ;  xref F000:ACB3
+F000:AC83  50                                   push    ax
+F000:AC84  BA 03F4                              mov     dx,3F4h
+F000:AC87  2E:8A 3E E752                        mov     bh,cs:data_d_E752                       ; (=0)
+F000:AC8C  2E:8B 0E E750                        mov     cx,cs:data_d_E750                       ; (=411Bh)
+F000:AC91  B8 C080                              mov     ax,0C080h
+F000:AC94  E8 3ACB                              call    sub_d_E762        ; ‡ek n¡ na p©ipravenost ©adi‡e
+F000:AC97  59                                   pop     cx
+F000:AC98  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AC9A  75 1B                                jnz     loc_ret_d_ACB7                          ; Jump if not zero
+F000:AC9C  8A C5                                mov     al,ch
+F000:AC9E  B9 0018                              mov     cx,18h
+F000:ACA1  42                                   inc     dx
+F000:ACA2  EE                                   out     dx,al             ; vysl n¡ bajtu na ©adi‡ort 3F5h, dsk0 controlr data
+                                                                                                ;  al = 3, specify
+F000:ACA3  EB 00                                jmp     short loc_d_ACA5
+F000:ACA5                       loc_d_ACA5:                                                     ;  xref F000:ACA3
+F000:ACA5  4A                                   dec     dx
+  
+F000:ACA6                       locloop_d_ACA6:                                                 ;  xref F000:ACA9
+F000:ACA6  EC                                   in      al,dx                                   ; port 3F4h, dsk0 cntrlr status
+F000:ACA7  A8 80                                test    al,80h
+F000:ACA9  E0 FB                                loopnz  locloop_d_ACA6                          ; Loop if zf=0, cx>0
+  
+F000:ACAB  FE CB                                dec     bl
+F000:ACAD  74 06                                jz      loc_d_ACB5                              ; Jump if zero
+F000:ACAF  36:8A 24                             mov     ah,ss:[si]
+F000:ACB2  46                                   inc     si
+F000:ACB3  EB CE                                jmp     short loc_d_AC83
+F000:ACB5                       loc_d_ACB5:                                                     ;  xref F000:ACAD
+F000:ACB5  33 C0                                xor     ax,ax                                   ; Zero register
+  
+F000:ACB7                       loc_ret_d_ACB7:                                                 ;  xref F000:AC9A
+F000:ACB7  C3                                   ret
+                                sub_d_AC83      endp
+  
+  
+                                ;==========================================================================
+                                ;             test dvoj¡ho krokov n¡
+                                ;
+                                ;         Called from:   F000:A519
+                                ;==========================================================================
+  
+                                sub_d_ACB8      proc    near
+
+                                                ; test, zda je m‚dium zn m‚
+
+F000:ACB8  E8 01AE                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:ACBB  F6 C4 10                             test    ah,10h            ; je m‚dium zn m‚ ?
+F000:ACBE  75 7B                                jnz     loc_d_AD3B        ; m‚dium nen¡ zn m‚
+F000:ACC0  80 E4 DF                             and     ah,0DFh           ; nulov n¡ p©¡znaku, ‘e je m‚dium zn m‚
+F000:ACC3  E8 01B2                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+
+
+
+F000:ACC6  E8 01E0                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:ACC9  F6 C4 01                             test    ah,1              ;
+F000:ACCC  74 6D                                jz      loc_d_AD3B                              ; Jump if zero
+F000:ACCE  B3 FE                                mov     bl,0FEh
+F000:ACD0  8A C8                                mov     cl,al
+F000:ACD2  D2 C3                                rol     bl,cl                                   ; Rotate
+F000:ACD4  26:20 1E 043E                        and     es:data_b_043E_e,bl                     ; (=0)
+F000:ACD9  32 E4                                xor     ah,ah                                   ; Zero register
+F000:ACDB  8B D0                                mov     dx,ax
+
+                                                ; vystaven¡ na stopu 0 (nebo dal¨¡ stopy)
+F000:ACDD                       loc_d_ACDD:                                                     ;  xref F000:AD11, AD1D, AD25
+F000:ACDD  52                                   push    dx
+F000:ACDE  8B C2                                mov     ax,dx
+F000:ACE0  24 01                                and     al,1
+F000:ACE2  E8 FCB9                              call    sub_d_A99E        ; vystaven¡ mechaniky AL na stopu AH
+F000:ACE5  5A                                   pop     dx
+F000:ACE6  0A E4                                or      ah,ah                                   ; Zero ?
+F000:ACE8  75 53                                jnz     loc_ret_d_AD3D                          ; Jump if not zero
+
+                                                ; pokus o ‡ten¡ identifik toru
+
+F000:ACEA  52                                   push    dx
+F000:ACEB  8B F4                                mov     si,sp
+F000:ACED  B4 4A                                mov     ah,4Ah            ; povel ‡ten¡ ID
+F000:ACEF  B3 02                                mov     bl,2
+F000:ACF1  E8 FF8F                              call    sub_d_AC83        ; vysl n¡ povelu na ©adi‡
+F000:ACF4  5A                                   pop     dx
+F000:ACF5  0A E4                                or      ah,ah                                   ; Zero ?
+F000:ACF7  75 44                                jnz     loc_ret_d_AD3D                          ; Jump if not zero
+
+                                                ; test, zda byl ID nalezen
+
+F000:ACF9  52                                   push    dx
+F000:ACFA  E8 0041                              call    sub_d_AD3E        ; ‡ek n¡ na proveden¡ operace
+F000:ACFD  26:C6 06 0440 FF                     mov     byte ptr es:data_b_0440_e,0FFh          ; (=0)
+F000:AD03  5A                                   pop     dx
+F000:AD04  0A F6                                or      dh,dh             ; byla to stopa 0 ?
+F000:AD06  74 17                                jz      loc_d_AD1F        ; byla stopa 0 - bude 4
+F000:AD08  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AD0A  74 1B                                jz      loc_d_AD27        ; nebyla chyba
+
+                                                ; ID nenalezen - dal¨¡ stopa, strana
+
+F000:AD0C  FE C6                                inc     dh                ; zv˜¨en¡ ‡¡sla stopy
+F000:AD0E  80 FE 50                             cmp     dh,50h            ; je ji‘ stopa 40 ?
+F000:AD11  72 CA                                jb      loc_d_ACDD        ; nen¡ je¨tˆ stopa 40 - dal¨¡ pokus
+F000:AD13  F6 C2 04                             test    dl,4              ; byla ji‘ 2. hlava ?
+F000:AD16  75 25                                jnz     loc_ret_d_AD3D    ; byla ji‘ 2. hlava
+F000:AD18  B6 04                                mov     dh,4              ; stopa 4
+F000:AD1A  80 CA 04                             or      dl,4              ; 2. strana
+F000:AD1D  EB BE                                jmp     short loc_d_ACDD  ; dal¨¡ pokus
+
+
+
+F000:AD1F                       loc_d_AD1F:                                                     ;  xref F000:AD06
+F000:AD1F  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AD21  75 1A                                jnz     loc_ret_d_AD3D    ; byla chyba
+F000:AD23  B6 04                                mov     dh,4              ; stopa 4
+F000:AD25  EB B6                                jmp     short loc_d_ACDD
+F000:AD27                       loc_d_AD27:                                                     ;  xref F000:AD0A
+
+                                                ; pokud stopa nesouhlas¡, je dvoj¡ krokov n¡
+
+F000:AD27  26:38 36 0445                        cmp     es:data_b_0445_e,dh ; souhlas¡ stopa ?
+F000:AD2C  74 0D                                je      loc_d_AD3B          ; stopa souhlas¡  ; Jump if equal
+F000:AD2E  8A C2                                mov     al,dl
+F000:AD30  24 01                                and     al,1
+F000:AD32  E8 0134                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:AD35  80 CC 20                             or      ah,20h            ; p©¡znak dvoj¡ho krokov n¡
+F000:AD38  E8 013D                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:AD3B                       loc_d_AD3B:                                                     ;  xref F000:ACBE, ACCC, AD2C
+F000:AD3B  32 E4                                xor     ah,ah                                   ; Zero register
+  
+F000:AD3D                       loc_ret_d_AD3D:                                                 ;  xref F000:ACE8, ACF7, AD16, AD21
+F000:AD3D  C3                                   ret
+                                sub_d_ACB8      endp
+  
+  
+                                ;==========================================================================
+                                ;                ‡ek n¡ na proveden¡ operace
+                                ;
+                                ;         Called from:   F000:A5BC, A6C4, ACFA
+                                ;==========================================================================
+  
+                                sub_d_AD3E      proc    near
+F000:AD3E  E8 FDCC                              call    sub_d_AB0D        ; ‡ek n¡ na p©eru¨en¡ od ©adi‡e
+F000:AD41  50                                   push    ax
+F000:AD42  E8 FDEA                              call    sub_d_AB2F        ; p©¡jem stavu od ©adi‡e
+F000:AD45  8A FC                                mov     bh,ah
+F000:AD47  58                                   pop     ax
+F000:AD48  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AD4A  75 09                                jnz     loc_ret_d_AD55                          ; Jump if not zero
+F000:AD4C  8A E7                                mov     ah,bh
+F000:AD4E  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AD50  75 03                                jnz     loc_ret_d_AD55                          ; Jump if not zero
+F000:AD52  E8 FD08                              call    sub_d_AA5D        ; sestaven¡ k¢du chyby
+  
+F000:AD55                       loc_ret_d_AD55:                                                 ;  xref F000:AD4A, AD50
+F000:AD55  C3                                   ret
+                                sub_d_AD3E      endp
+  
+  
+                                ;==========================================================================
+                                ;            Ur‡en¡ bajtu stavu m‚dia
+                                ;==========================================================================
+  
+                                sub_d_AD56      proc    near
+F000:AD56  E8 0180                              call    sub_d_AED9        ; ‡ten¡ typu mechaniky z CMOS
+F000:AD59  80 FC 04                             cmp     ah,4
+F000:AD5C  76 05                                jbe     loc_d_AD63                              ; Jump if below or =
+F000:AD5E  32 DB                                xor     bl,bl             ; chyba                      ; Zero register
+F000:AD60  EB 1B                                jmp     short loc_d_AD7D
+F000:AD62  90                                   db      90h
+F000:AD63                       loc_d_AD63:                                                     ;  xref F000:AD5C
+F000:AD63  8A DC                                mov     bl,ah
+F000:AD65  32 FF                                xor     bh,bh                                   ; Zero register
+F000:AD67  8A 9F AD86                           mov     bl,ds:data_b_AD86_e[bx]                 ; (=5)
+F000:AD6B  80 FC 03                             cmp     ah,3
+F000:AD6E  75 0D                                jne     loc_d_AD7D                              ; Jump if not equal
+F000:AD70  E8 0136                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:AD73  80 E4 06                             and     ah,6
+F000:AD76  80 FC 06                             cmp     ah,6
+F000:AD79  75 02                                jne     loc_d_AD7D                              ; Jump if not equal
+F000:AD7B  B3 50                                mov     bl,50h                                  ; 'P'
+F000:AD7D                       loc_d_AD7D:                                                     ;  xref F000:AD60, AD6E, AD79
+F000:AD7D  E8 00E9                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:AD80  8A E3                                mov     ah,bl
+F000:AD82  E8 00F3                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:AD85  C3                                   ret
+                                sub_d_AD56      endp
+  
+F000:AD86  00 93 15 97 17                       db      0, 93h, 15h, 97h, 17h ; bajty m‚dia
+  
+                                ;==========================================================================
+                                ;              Ur‡en¡ tabulky disku podle typu
+                                ;
+                                ;         Called from:   F000:A74E, A845
+                                ;==========================================================================
+  
+                                sub_d_AD8B      proc    near
+F000:AD8B  50                                   push    ax
+F000:AD8C  B0 0D                                mov     al,0Dh
+F000:AD8E  F6 E4                                mul     ah                                      ; ax = reg * al
+F000:AD90  8B F0                                mov     si,ax
+F000:AD92  58                                   pop     ax
+F000:AD93  80 FC 02                             cmp     ah,2
+F000:AD96  77 03                                ja      loc_d_AD9B                              ; Jump if above
+F000:AD98  83 EE 0D                             sub     si,0Dh
+F000:AD9B                       loc_d_AD9B:                                                     ;  xref F000:AD96
+F000:AD9B  81 C6 A397                           add     si,0A397h
+F000:AD9F  C3                                   ret
+                                sub_d_AD8B      endp
+  
+  
+                                ;==========================================================================
+                                ;            ‡ten¡ sign lu v˜mˆny diskety
+                                ;
+                                ;         Called from:   F000:A97F, A994
+                                ;==========================================================================
+  
+                                sub_d_ADA0      proc    near
+F000:ADA0  52                                   push    dx
+F000:ADA1  86 E0                                xchg    ah,al
+F000:ADA3  BA 03F7                              mov     dx,3F7h
+F000:ADA6  EC                                   in      al,dx                                   ; port 3F7h, dsk0 status C
+F000:ADA7  86 E0                                xchg    ah,al
+F000:ADA9  80 E4 80                             and     ah,80h
+F000:ADAC  5A                                   pop     dx
+F000:ADAD  C3                                   ret
+                                sub_d_ADA0      endp
+  
+  
+                                ;==========================================================================
+                                ;           inicializace stavov‚ho bajtu disku
+                                ;
+                                ;         Called from:   F000:A4CE
+                                ;==========================================================================
+  
+                                sub_d_ADAE      proc    near
+F000:ADAE  53                                   push    bx
+F000:ADAF  26:80 26 048B F3                     and     byte ptr es:data_b_048B_e,0F3h ;
+F000:ADB5  26:80 0E 048B 08                     or      byte ptr es:data_b_048B_e,8             ; (=55h)
+F000:ADBB  8A FC                                mov     bh,ah
+F000:ADBD  80 E7 3F                             and     bh,3Fh                                  ; '?'
+F000:ADC0  80 CF 40                             or      bh,40h                                  ; '@'
+F000:ADC3  E8 00E3                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:ADC6  80 E4 06                             and     ah,6
+F000:ADC9  80 FC 04                             cmp     ah,4
+F000:ADCC  75 06                                jne     loc_d_ADD4                              ; Jump if not equal
+F000:ADCE  80 E7 3F                             and     bh,3Fh                                  ; '?'
+F000:ADD1  80 CF 80                             or      bh,80h
+F000:ADD4                       loc_d_ADD4:                                                     ;  xref F000:ADCC
+F000:ADD4  8A E7                                mov     ah,bh
+F000:ADD6  E8 009F                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:ADD9  5B                                   pop     bx
+F000:ADDA  C3                                   ret
+                                sub_d_ADAE      endp
+  
+  
+                                ;==========================================================================
+                                ;         Nastaven¡ po‘adovan‚ p©enosov‚ rychlosti
+                                ;
+                                ;         Called from:   F000:A516, A65E
+                                ;==========================================================================
+  
+                                sub_d_ADDB      proc    near
+
+                                                ; zji¨tˆn¡ po‘adovan‚ p©enosov‚ rychlosti
+
+F000:ADDB  50                                   push    ax
+F000:ADDC  53                                   push    bx
+F000:ADDD  E8 0089                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:ADE0  80 E4 C0                             and     ah,0C0h           ; rychlost
+F000:ADE3  26:8A 3E 048B                        mov     bh,es:data_b_048B_e ; maxim ln¡ rychlost
+F000:ADE8  80 E7 C0                             and     bh,0C0h
+F000:ADEB  3A E7                                cmp     ah,bh             ; je rychlost ji‘ nastavena ?
+F000:ADED  74 1A                                je      loc_d_AE09
+
+                                                ; nastaven¡ nov‚ p©enosov‚ rychlosti
+
+F000:ADEF  FA                                   cli                                             ; Disable interrupts
+F000:ADF0  26:80 26 048B 3F                     and     byte ptr es:data_b_048B_e,3Fh           ; (=55h) '?'
+F000:ADF6  26:08 26 048B                        or      es:data_b_048B_e,ah                     ; (=55h)
+F000:ADFB  C1 C0 02                             rol     ax,2                                    ; Rotate
+F000:ADFE  24 03                                and     al,3
+F000:AE00  8B DA                                mov     bx,dx
+F000:AE02  BA 03F7                              mov     dx,3F7h
+F000:AE05  EE                                   out     dx,al                                   ; port 3F7h, dsk0 config ctrl
+F000:AE06  8B D3                                mov     dx,bx
+F000:AE08  FB                                   sti                                             ; Enable interrupts
+
+
+F000:AE09                       loc_d_AE09:                                                     ;  xref F000:ADED
+F000:AE09  5B                                   pop     bx
+F000:AE0A  58                                   pop     ax
+F000:AE0B  C3                                   ret
+                                sub_d_ADDB      endp
+  
+  
+                                ;==========================================================================
+                                ;              nastaven¡ dal¨¡ p©enosov‚ rychlosti 300->500->250
+                                ;
+                                ;         Called from:   F000:A5DC
+                                ;==========================================================================
+  
+                                sub_d_AE0C      proc    near
+F000:AE0C  53                                   push    bx
+F000:AE0D  8A FC                                mov     bh,ah             ; £schova AH
+F000:AE0F  E8 0057                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:AE12  8A DC                                mov     bl,ah             ; bajt stavu m‚dia
+F000:AE14  80 E3 C0                             and     bl,0C0h           ; p©enosov  rychlost
+F000:AE17  80 FB 80                             cmp     bl,80h            ; byla rychlost 250 K/s ?
+F000:AE1A  75 04                                jne     loc_d_AE20        ; nebyla rychlost 250 K/s
+F000:AE1C  8A E7                                mov     ah,bh             ; n vrat AH
+F000:AE1E  EB 10                                jmp     short loc_d_AE30  ; n vrat - nen¡ dal¨¡ rychlost
+F000:AE20                       loc_d_AE20:                                                     ;  xref F000:AE1A
+F000:AE20  80 E4 3F                             and     ah,3Fh            ; nulov n¡ p©enos. rychlosti
+F000:AE23  80 FB 40                             cmp     bl,40h            ; byla rychlost 300k/s ?
+F000:AE26  74 03                                je      loc_d_AE2B        ; bylo 300k/s - bude 500k/s
+F000:AE28  80 CC 80                             or      ah,80h            ; jinak bude 250k/s
+F000:AE2B                       loc_d_AE2B:                                                     ;  xref F000:AE26
+F000:AE2B  E8 004A                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+F000:AE2E  32 E4                                xor     ah,ah                                   ; Zero register
+F000:AE30                       loc_d_AE30:                                                     ;  xref F000:AE1E
+F000:AE30  5B                                   pop     bx
+F000:AE31  C3                                   ret
+                                sub_d_AE0C      endp
+  
+  
+                                ;==========================================================================
+                                ;       Ur‡en¡ typu m‚dia a disku po £spˆ¨n‚ operaci
+                                ;
+                                ;         Called from:   F000:A5EF
+                                ;==========================================================================
+  
+                                sub_d_AE32      proc    near
+F000:AE32  50                                   push    ax
+F000:AE33  53                                   push    bx
+
+                                                ; ozna‡en¡ m‚dia jako ur‡en‚
+
+F000:AE34  E8 0032                              call    sub_d_AE69        ; ‡ten¡ bajtu stavu m‚dia
+F000:AE37  80 CC 10                             or      ah,10h            ; m‚dium je ur‡eno
+F000:AE3A  E8 003B                              call    sub_d_AE78        ; nastaven¡ bajtu stavu m‚dia
+
+F000:AE3D  8A FC                                mov     bh,ah             ; bajt stavu m‚dia
+F000:AE3F  E8 0067                              call    sub_d_AEA9        ; ‡ten¡ stavov‚ho bajtu mechaniky AL
+F000:AE42  F6 C4 04                             test    ah,4              ; je mechanika ur‡ena ?
+F000:AE45  75 1F                                jnz     loc_d_AE66        ; mechanika je ji‘ ur‡ena
+
+F000:AE47  80 CC 06                             or      ah,6              ; p©¡znak ur‡en¡ mechaniky
+F000:AE4A  80 E7 C0                             and     bh,0C0h           ; p©enosov  rychlost
+F000:AE4D  80 FF 80                             cmp     bh,80h            ; je rychlost 250 K/s ?
+F000:AE50  75 11                                jne     loc_d_AE63        ; nen¡ rychlost 250 K/s
+F000:AE52  8A DC                                mov     bl,ah
+F000:AE54  E8 0082                              call    sub_d_AED9        ; ‡ten¡ typu mechaniky z CMOS
+F000:AE57  86 DC                                xchg    bl,ah
+F000:AE59  75 08                                jnz     loc_d_AE63        ; chyba ‡ten¡ z CMOS
+F000:AE5B  80 FB 04                             cmp     bl,4              ; je mechanika 3 1/2" ?
+F000:AE5E  74 03                                je      loc_d_AE63        ; je mechanika 3 1/2"
+F000:AE60  80 E4 FD                             and     ah,0FDh           ; nulov n¡ bitu 1 (not 2)
+F000:AE63                       loc_d_AE63:                                                     ;  xref F000:AE50, AE59, AE5E
+F000:AE63  E8 0053                              call    sub_d_AEB9        ; nastaven¡ stavov‚ho bajtu mechaniky AL
+F000:AE66                       loc_d_AE66:                                                     ;  xref F000:AE45
+F000:AE66  5B                                   pop     bx
+F000:AE67  58                                   pop     ax
+F000:AE68  C3                                   ret
+                                sub_d_AE32      endp
+  
+  
+                                ;==========================================================================
+                                ;                 ‡ten¡ bajtu stavu m‚dia
+                                ;
+                                ;         Called from:   F000:A4C6, A4EF, A573, A5D2, A70D, A7FA, A884
+                                ;                             A8F4, A93E, A986, A9E5, AA30, ACB8, AD32
+                                ;                             AD7D, ADDD, AE0F, AE34
+                                ;==========================================================================
+  
+                                sub_d_AE69      proc    near
+F000:AE69  26:8A 26 0490                        mov     ah,es:data_b_0490_e
+F000:AE6E  0A C0                                or      al,al                                   ; Zero ?
+F000:AE70  74 05                                jz      loc_ret_d_AE77                          ; Jump if zero
+F000:AE72  26:8A 26 0491                        mov     ah,es:data_b_0491_e                     ; (=20h)
+  
+F000:AE77                       loc_ret_d_AE77:                                                 ;  xref F000:AE70
+F000:AE77  C3                                   ret
+                                sub_d_AE69      endp
+  
+  
+                                ;==========================================================================
+                                ;               nastaven¡ bajtu stavu m‚dia
+                                ;
+                                ;         Called from:   F000:A802, A86D, A88A, A8F9, A97B, A98C, ACC3
+                                ;                             AD38, AD82, ADD6, AE2B, AE3A
+                                ;==========================================================================
+  
+                                sub_d_AE78      proc    near
+F000:AE78  0A C0                                or      al,al                                   ; Zero ?
+F000:AE7A  75 07                                jnz     loc_d_AE83                              ; Jump if not zero
+F000:AE7C  26:88 26 0490                        mov     es:hdsk0_media_st_,ah                   ; (0000:0490=93h)
+F000:AE81  EB 05                                jmp     short loc_ret_d_AE88
+F000:AE83                       loc_d_AE83:                                                     ;  xref F000:AE7A
+F000:AE83  26:88 26 0491                        mov     es:hdsk1_media_st_,ah                   ; (0000:0491=7)
+  
+F000:AE88                       loc_ret_d_AE88:                                                 ;  xref F000:AE81
+F000:AE88  C3                                   ret
+                                sub_d_AE78      endp
+  
+  
+                                ;==========================================================================
+                                ;       ‡ten¡ aktu ln¡ stopy mechaniky AL
+                                ;
+                                ;         Called from:   F000:A9EF
+                                ;==========================================================================
+  
+                                sub_d_AE89      proc    near
+F000:AE89  26:8A 26 0494                        mov     ah,es:data_b_0494_e
+F000:AE8E  0A C0                                or      al,al                                   ; Zero ?
+F000:AE90  74 05                                jz      loc_ret_d_AE97                          ; Jump if zero
+F000:AE92  26:8A 26 0495                        mov     ah,es:data_b_0495_e                     ; (=0)
+  
+F000:AE97                       loc_ret_d_AE97:                                                 ;  xref F000:AE90
+F000:AE97  C3                                   ret
+                                sub_d_AE89      endp
+  
+  
+                                ;==========================================================================
+                                ;             nastaven¡ aktu ln¡ stopy
+                                ;
+                                ;         Called from:   F000:A9B4, A9F8
+                                ;==========================================================================
+  
+                                sub_d_AE98      proc    near
+F000:AE98  0A C0                                or      al,al                                   ; Zero ?
+F000:AE9A  75 07                                jnz     loc_d_AEA3                              ; Jump if not zero
+F000:AE9C  26:88 26 0494                        mov     es:data_b_0494_e,ah                     ; (=70h)
+F000:AEA1  EB 05                                jmp     short loc_ret_d_AEA8
+F000:AEA3                       loc_d_AEA3:                                                     ;  xref F000:AE9A
+F000:AEA3  26:88 26 0495                        mov     es:data_b_0495_e,ah                     ; (=0)
+  
+F000:AEA8                       loc_ret_d_AEA8:                                                 ;  xref F000:AEA1
+F000:AEA8  C3                                   ret
+                                sub_d_AE98      endp
+  
+  
+                                ;==========================================================================
+                                ;           ‡ten¡ stavov‚ho bajtu mechaniky AL
+                                ;
+                                ;         Called from:   F000:A4D7, A62D, A722, A7E9, A8FC, A936, ACC6
+                                ;                             AD70, ADC3, AE3F
+                                ;==========================================================================
+  
+                                sub_d_AEA9      proc    near
+F000:AEA9  26:8A 26 048F                        mov     ah,es:data_b_048F_e                     ; (=20h)
+F000:AEAE  0A C0                                or      al,al                                   ; Zero ?
+F000:AEB0  74 03                                jz      loc_d_AEB5                              ; Jump if zero
+F000:AEB2  C0 EC 04                             shr     ah,4                                    ; Shift w/zeros fill
+F000:AEB5                       loc_d_AEB5:                                                     ;  xref F000:AEB0
+F000:AEB5  80 E4 07                             and     ah,7
+F000:AEB8  C3                                   ret
+                                sub_d_AEA9      endp
+  
+  
+                                ;==========================================================================
+                                ;         nastaven¡ stavov‚ho bajtu mechaniky AL
+                                ;
+                                ;         Called from:   F000:A901, AE63
+                                ;==========================================================================
+  
+                                sub_d_AEB9      proc    near
+F000:AEB9  50                                   push    ax
+F000:AEBA  80 E4 07                             and     ah,7
+F000:AEBD  0A C0                                or      al,al                                   ; Zero ?
+F000:AEBF  74 0B                                jz      loc_d_AECC                              ; Jump if zero
+F000:AEC1  C0 E4 04                             shl     ah,4                                    ; Shift w/zeros fill
+F000:AEC4  26:80 26 048F 8F                     and     es:hdsk_options_,8Fh                    ; (0000:048F=14h)
+F000:AECA  EB 06                                jmp     short loc_d_AED2
+F000:AECC                       loc_d_AECC:                                                     ;  xref F000:AEBF
+F000:AECC  26:80 26 048F F8                     and     es:hdsk_options_,0F8h                   ; (0000:048F=14h)
+F000:AED2                       loc_d_AED2:                                                     ;  xref F000:AECA
+F000:AED2  26:08 26 048F                        or      es:hdsk_options_,ah                     ; (0000:048F=14h)
+F000:AED7  58                                   pop     ax
+F000:AED8  C3                                   ret
+                                sub_d_AEB9      endp
+  
+  
+                                ;==========================================================================
+                                ;              ‡ten¡ typu mechaniky z CMOS
+                                ;
+                                ;         Called from:   F000:A4F7, A6F8, A837, A963, AD56, AE54
+                                ;==========================================================================
+  
+                                sub_d_AED9      proc    near
+F000:AED9  8A E0                                mov     ah,al
+F000:AEDB  B0 0E                                mov     al,0Eh
+F000:AEDD  FA                                   cli                                             ; Disable interrupts
+F000:AEDE  E6 70                                out     70h,al            ; adresa stavov‚ho bajtu                      ; port 70h, RTC addr/enabl NMI
+                                                                                                ;  al = 0Eh, test results reg
+F000:AEE0  EB 00                                jmp     short loc_d_AEE2
+F000:AEE2                       loc_d_AEE2:                                                     ;  xref F000:AEE0
+F000:AEE2  EB 00                                jmp     short loc_d_AEE4
+F000:AEE4                       loc_d_AEE4:                                                     ;  xref F000:AEE2
+F000:AEE4  EB 00                                jmp     short loc_d_AEE6
+F000:AEE6                       loc_d_AEE6:                                                     ;  xref F000:AEE4
+F000:AEE6  E4 71                                in      al,71h                                  ; port 71h, RTC clock/RAM
+F000:AEE8  A8 C0                                test    al,0C0h           ; CMOS OK ?
+F000:AEEA  75 1B                                jnz     loc_d_AF07        ; chyba                      ; Jump if not zero
+F000:AEEC  B0 10                                mov     al,10h
+F000:AEEE  E6 70                                out     70h,al            ; adresa typu mechaniky                      ; port 70h, RTC addr/enabl NMI
+                                                                                                ;  al = 10h, floppy drive type
+F000:AEF0  EB 00                                jmp     short loc_d_AEF2
+F000:AEF2                       loc_d_AEF2:                                                     ;  xref F000:AEF0
+F000:AEF2  EB 00                                jmp     short loc_d_AEF4
+F000:AEF4                       loc_d_AEF4:                                                     ;  xref F000:AEF2
+F000:AEF4  EB 00                                jmp     short loc_d_AEF6
+F000:AEF6                       loc_d_AEF6:                                                     ;  xref F000:AEF4
+F000:AEF6  E4 71                                in      al,71h           ; ‡ten¡ typu mechaniky                       ; port 71h, RTC clock/RAM data
+F000:AEF8  0A E4                                or      ah,ah                                   ; Zero ?
+F000:AEFA  75 03                                jnz     loc_d_AEFF                              ; Jump if not zero
+F000:AEFC  C0 E8 04                             shr     al,4                                    ; Shift w/zeros fill
+F000:AEFF                       loc_d_AEFF:                                                     ;  xref F000:AEFA
+F000:AEFF  24 0F                                and     al,0Fh
+F000:AF01  3A E4                                cmp     ah,ah
+F000:AF03                       loc_d_AF03:                                                     ;  xref F000:AF09
+F000:AF03  86 E0                                xchg    ah,al
+F000:AF05  FB                                   sti                                             ; Enable interrupts
+F000:AF06  C3                                   ret
+F000:AF07                       loc_d_AF07:                                                     ;  xref F000:AEEA
+F000:AF07  B0 FF                                mov     al,0FFh           ; chyba
+F000:AF09  EB F8                                jmp     short loc_d_AF03
+                                sub_d_AED9      endp
+  
+  
+                                ;==========================================================================
+                                ;            ‡ten¡ disket. parametru AL
+                                ;
+                                ;         Called from:   F000:A384, A489, A535, A569, A580, A587, A663
+                                ;                             AA1F, AACB, AAD2, ABC1, AC09
+                                ;==========================================================================
+  
+                                sub_d_AF0B      proc    near
+F000:AF0B  1E                                   push    ds
+F000:AF0C  56                                   push    si
+F000:AF0D  26:C5 36 0078                        lds     si,dword ptr es:disk_parm_off           ; (0000:0078=522h) Load 32 bit ptr
+F000:AF12  32 E4                                xor     ah,ah                                   ; Zero register
+F000:AF14  03 F0                                add     si,ax
+F000:AF16  AC                                   lodsb                                           ; String [si] to al
+F000:AF17  5E                                   pop     si
+F000:AF18  1F                                   pop     ds
+F000:AF19  C3                                   ret
+                                sub_d_AF0B      endp
+
+
+
+F000:AF1A  FB 80 FA 80 73 1B                    db      0FBh, 80h, 0FAh, 80h, 73h, 1Bh
+F000:AF20  50 50 55 8B EC 50                    db      50h, 50h, 55h, 8Bh, 0ECh, 50h
+F000:AF26  1E 33 C0 8E D8 A1                    db      1Eh, 33h, 0C0h, 8Eh, 0D8h, 0A1h
+F000:AF2C  00 01 89 46 02 A1                    db      0, 1, 89h, 46h, 2, 0A1h
+F000:AF32  02 01 89 46 04 1F                    db      2, 1, 89h, 46h, 4, 1Fh
+F000:AF38  58 5D CB                             db      58h, 5Dh, 0CBh
+F000:AF3B                       loc_d_AF3B:
+F000:AF3B  56                                   push    si
+F
+

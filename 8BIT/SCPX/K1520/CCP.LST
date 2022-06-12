@@ -1,0 +1,1079 @@
+CONTEXT   0 241   8   8  72
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; -------------------------------------------------------------------------
+;
+;                 P©¡kazov˜ modul CCP opera‡n¡ho syst‚mu SCPX
+;
+; -------------------------------------------------------------------------
+
+c800:  c3 6c cb        CCP:    jp      cstart         ; start CCP
+ ......................................................
+c803:  c3 68 cb                jp      wstart         ; start CCP - zru¨en¡ p©¡k.© dku
+ ......................................................
+c806:                  txtbuf:                        ; textov˜ buffer
+                               db      7fh
+c807:                  pocznk:                        ; po‡et znak– p©¡k.© dku
+                               db      0
+c808:                  buffer:                        ; buffer p©¡kazov‚ho © dku
+                               db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+c819:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+c82a:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+c83b:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+c84c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+c85d:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+c86e:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+c87f:                          db      0,0,0,0,0,0,0,0,0
+c888:  50              tsktxt:                        ; tisk ©etˆzce v BC
+                               ld      d,b
+c889:  59                      ld      e,c
+c88a:  0e 09                   ld      c,9
+c88c:  cd 05 00                call    JPBDOS
+c88f:  3e 20           tskspc:                        ; tisk mezery
+                               ld      a," "
+c891:  18 07                   jr      tskznk         ; tisk znaku na konzolu
+ ......................................................
+c893:  3e 0d           tskcr:                         ; od© dkov n¡
+                               ld      a,0dh
+c895:  cd 9a c8                call    tskznk         ; tisk znaku na konzolu
+c898:  3e 0a                   ld      a,0ah
+c89a:  c5              tskznk:                        ; tisk znaku na konzolu
+                               push    bc
+c89b:  5f                      ld      e,a
+c89c:  0e 02                   ld      c,2
+c89e:  cd 05 00                call    JPBDOS
+c8a1:  c1                      pop     bc
+c8a2:  c9                      ret
+ ......................................................
+c8a3:  01 da cb        tskrde:                        ; tisk READ ERROR
+                               ld      bc,txtrde
+c8a6:  18 03                   jr      ctsktx         ; tisk textu v BC
+ ......................................................
+c8a8:  01 e5 cb        tsknof:                        ; tisk NO FILE
+                               ld      bc,txtnof
+c8ab:  cd 88 c8        ctsktx:                        ; tisk textu v BC
+                               call    tsktxt         ; tisk ©etˆzce v BC
+c8ae:  c9                      ret
+ ......................................................
+c8af:  21 70 cf        erasub:                        ; ukon‡en¡ .SUB
+                               ld      hl,parsub      ; p©¡znak .SUB
+c8b2:  7e                      ld      a,(hl)
+c8b3:  b7                      or      a
+c8b4:  c8                      ret     z              ; je ji‘ ukon‡en
+c8b5:  af                      xor     a
+c8b6:  77                      ld      (hl),a         ; zru¨en¡ p©¡znaku .SUB
+c8b7:  cd c3 c8                call    seldsk         ; v˜bˆr mechaniky 0
+ c8ba: 11 4b cf                ld      de,fcbsub      ; FCB  .SUB
+c8bd:  cd e8 c8                call    erafil         ; zru¨en¡ souboru .SUB
+c8c0:  3a 6d cf                ld      a,(aktdsk)     ; vybran˜ disk
+c8c3:  5f              seldsk:                        ; v˜bˆr disku
+                               ld      e,a
+c8c4:  0e 0e                   ld      c,0eh
+c8c6:  18 22                   jr      cjpbd2
+ ......................................................
+c8c8:  af              opfcb1:                        ; otev©en¡ souboru 1
+                               xor     a
+c8c9:  32 95 cf                ld      (ddb9),a
+c8cc:  11 75 cf                ld      de,adrfcb      ; FCB souboru 1
+c8cf:  0e 0f           opfile:                        ; otev©en¡ souboru
+                               ld      c,0fh
+c8d1:  cd 05 00        cjpbd1:                        ; skok do BDOS
+                               call    JPBDOS
+c8d4:  32 6c cf                ld      (outpar),a     ; v˜stupn¡ parametr BDOS
+c8d7:  3c                      inc     a              ; p©¡znak Z = chyba
+c8d8:  c9                      ret
+ ......................................................
+c8d9:  0e 10           clfile:                        ; uzav©en¡ souboru
+                               ld      c,10h
+c8db:  18 f4                   jr      cjpbd1         ; skok do BDOS
+ ......................................................
+c8dd:  11 75 cf        askdir:                        ; nalezen¡ prvn¡ polo‘ky FCB1 v adres ©i
+                               ld      de,adrfcb      ; FCB souboru 1
+c8e0:  0e 11                   ld      c,11h
+c8e2:  18 ed                   jr      cjpbd1         ; skok do BDOS
+ ......................................................
+c8e4:  0e 12           direls:                        ; nalezen¡ dal¨¡ polo‘ky v adres ©i
+                               ld      c,12h
+c8e6:  18 e9                   jr      cjpbd1         ; skok do BDOS
+ ......................................................
+c8e8:  0e 13           erafil:                        ; zru¨en¡ souboru
+                               ld      c,13h
+c8ea:  c3 05 00        cjpbd2: jp      JPBDOS
+ ......................................................
+c8ed:  11 75 cf        readf1:                        ; sekven‡n¡ ‡ten¡ souboru
+                               ld      de,adrfcb      ; FCB souboru 1
+c8f0:  0e 14           readse:                        ; sekven‡n¡ ‡ten¡
+                               ld      c,14h
+c8f2:  cd 05 00        cjpbd3:                        ; skok do BDOS
+                               call    JPBDOS
+c8f5:  b7                      or      a
+c8f6:  c9                      ret
+ ......................................................
+c8f7:  0e 15           wrtsek:                        ; sekven‡n¡ z pis
+                               ld      c,15h
+c8f9:  18 f7                   jr      cjpbd3         ; skok do BDOS
+ ......................................................
+c8fb:  0e 0b           inpznk:                        ; vstup znaku z konzoly (ne‡ek )
+                               ld      c,0bh          ; zji¨tˆn¡ statusu konzoly
+c8fd:  cd 05 00                call    JPBDOS
+c900:  b7                      or      a
+c901:  c8                      ret     z
+c902:  0e 01                   ld      c,1            ; je p©ipraven znak - ‡ten¡ znaku
+c904:  18 cb                   jr      cjpbd1         ; skok do BDOS
+ ......................................................
+c906:  0e 16           newfil:                        ; zalo‘en¡ souboru
+                               ld      c,16h
+c908:  18 c7                   jr      cjpbd1         ; skok do BDOS
+; ......................................................
+c90a:  1e ff           askusr:                        ; poskytnut¡ k¢du u‘ivatele
+                               ld      e,0ffh
+c90c:  0e 20           setusr:                        ; nastaven¡ k¢du u‘ivatele
+                               ld      c,20h
+c90e:  18 da                   jr      cjpbd2
+ ......................................................
+c910:  cd 0a c9        wrtusr:                        ; z znam u‘ivatele s akt.diskem
+                               call    askusr         ; poskytnut¡ k¢du u‘ivatele
+c913:  87                      add     a,a            ; u‘ivatel *16
+c914:  87                      add     a,a
+c915:  87                      add     a,a
+c916:  87                      add     a,a
+c917:  21 6d cf                ld      hl,aktdsk      ; vybran˜ disk
+c91a:  b6                      or      (hl)
+c91b:  18 03                   jr      wrtds4
+ ......................................................
+c91d:  3a 6d cf        wrtdsk:                        ; z znam akt.disku
+                               ld      a,(aktdsk)     ; vybran˜ disk
+c920:  32 04 00        wrtds4: ld      (4),a
+c923:  c9                      ret
+ ......................................................
+c924:  fe 61           highch:                        ; p©ek¢dov n¡ na velk  p¡smena
+                               cp      "a"
+c926:  d8                      ret     c
+c927:  fe 7b                   cp      7bh
+c929:  d0                      ret     nc
+c92a:  e6 5f                   and     5fh
+c92c:  c9                      ret
+ ......................................................
+c92d:  3a 70 cf        inptxt:                        ; p©e‡ten¡ p©¡kazov‚ho © dku z konzoly nebo .***.SUB
+                               ld      a,(parsub)     ; p©¡znak .SUB
+c930:  b7                      or      a
+c931:  28 50                   jr      z,endsub       ; SUB nen¡ aktivov n
+c933:  3a 6d cf                ld      a,(aktdsk)     ; vybran˜ disk
+c936:  b7                      or      a
+c937:  3e 00                   ld      a,0
+c939:  c4 c3 c8                call    nz,seldsk      ; v˜bˆr disku 0 (nebyl-li 0)
+c93c:  11 4b cf                ld      de,fcbsub      ; FCB  .SUB
+c93f:  cd cf c8                call    opfile         ; otev©en¡ souboru ***.SUB
+c942:  28 3f                   jr      z,endsub       ; soubor nebyl nalezen
+c944:  3a 5a cf                ld      a,(seksub)     ; po‡et sektor– souboru
+c947:  3d                      dec     a
+c948:  32 6b cf                ld      (rekabs),a     ; absolutn¡ ‡¡slo sektoru
+c94b:  11 4b cf                ld      de,fcbsub      ; FCB  .SUB
+c94e:  cd f0 c8                call    readse         ; sekven‡n¡ ‡ten¡
+c951:  20 30                   jr      nz,endsub      ; konec souboru - zru¨en¡ souboru
+c953:  11 07 c8                ld      de,pocznk      ; po‡et znak– p©¡k.© dku
+c956:  21 80 00                ld      hl,80h
+c959:  44                      ld      b,h
+c95a:  4d                      ld      c,l
+c95b:  ed b0                   ldir                   ; p©enos ‡ten‚ho sektoru na adr.C807
+c95d:  21 59 cf                ld      hl,subblk
+c960:  70                      ld      (hl),b         ; =0
+c961:  23                      inc     hl
+c962:  35                      dec     (hl)           ; sn¡‘en¡ po‡tu sektor–
+c963:  11 4b cf                ld      de,fcbsub      ; FCB  .SUB
+c966:  cd d9 c8                call    clfile         ; uzav©en¡ souboru
+c969:  28 18                   jr      z,endsub       ; ukon‡en¡ pr ce .SUB
+c96b:  3a 6d cf                ld      a,(aktdsk)     ; vybran˜ disk
+c96e:  b7                      or      a
+c96f:  c4 c3 c8                call    nz,seldsk      ; v˜bˆr disku
+c972:  01 08 c8                ld      bc,buffer      ; buffer p©¡kazov‚ho © dku
+c975:  cd 88 c8                call    tsktxt         ; tisk ©etˆzce v BC
+c978:  cd fb c8                call    inpznk         ; vstup znaku z konzoly (ne‡ek )
+c97b:  28 17                   jr      z,hightx       ; nestisknuta kl vesa - zpracov n¡ SUB
+c97d:  cd af c8                call    erasub         ; ukon‡en¡ .SUB
+c980:  c3 a2 cb                jp      startn         ; opakovan˜ start CCP
+ ......................................................
+c983:  cd af c8        endsub:                        ; ukon‡en¡ pr ce .SUB
+                               call    erasub         ; ukon‡en¡ .SUB
+c986:  cd 10 c9                call    wrtusr         ; z znam u‘ivatele s akt.diskem
+c989:  0e 0a                   ld      c,0ah          ; ‡ten¡ p©¡kazu z konzoly
+c98b:  11 06 c8                ld      de,txtbuf      ; textov˜ buffer
+c98e:  cd 05 00                call    JPBDOS
+c991:  cd 1d c9                call    wrtdsk         ; z znam akt.disku
+c994:  21 07 c8        hightx: ld      hl,pocznk      ; po‡et znak– p©¡k.© dku
+c997:  46                      ld      b,(hl)
+c998:  04                      inc     b
+c999:  23              high10: inc     hl
+c99a:  10 07                   djnz    highkd
+c99c:  70                      ld      (hl),b         ; posledn¡ znak © dku = 0
+c99d:  2e 08                   ld      l,8
+c99f:  22 9a cf                ld      (ukatxt),hl    ; ukazatel textu p©¡kaz.© dku
+c9a2:  c9                      ret
+ ......................................................
+c9a3:  7e              highkd: ld      a,(hl)         ; p©e‡ten¡ znaku
+c9a4:  cd 24 c9                call    highch         ; p©ek¢dov n¡ na velk  p¡smena
+c9a7:  77                      ld      (hl),a         ; ulo‘en¡ znaku
+c9a8:  18 ef                   jr      high10
+ ......................................................
+c9aa:  0e 19           askdsk:                        ; p©e‡ten¡ ‡¡sla vybran.disku
+                               ld      c,19h
+c9ac:  18 05                   jr      cjpbd5
+ ......................................................
+c9ae:  11 80 00        stdma8:                        ; nastaven¡ adresy DMA
+                               ld      de,80h
+c9b1:  0e 1a           setdma:                        ; nastaven¡ adresy DMA
+                               ld      c,1ah
+c9b3:  c3 05 00        cjpbd5: jp      JPBDOS
+ ......................................................
+c9b6:  1a              znkwrd:                        ; kontrola znaku slova
+                               ld      a,(de)
+c9b7:  b7                      or      a
+c9b8:  c8                      ret     z
+c9b9:  fe 20                   cp      " "
+c9bb:  da 1b cf                jp      c,error        ; hl ¨en¡ chyby
+c9be:  c8                      ret     z
+c9bf:  fe 3d                   cp      "="
+c9c1:  c8                      ret     z
+c9c2:  fe 5f                   cp      "_"
+c9c4:  c8                      ret     z
+c9c5:  fe 2e                   cp      "."
+c9c7:  c8                      ret     z
+c9c8:  fe 3a                   cp      ":"
+c9ca:  c8                      ret     z
+c9cb:  fe 3b                   cp      ";"
+c9cd:  c8                      ret     z
+c9ce:  fe 3c                   cp      "<"
+c9d0:  c8                      ret     z
+c9d1:  fe 3e                   cp      ">"
+c9d3:  c9                      ret
+; ......................................................
+c9d4:  1a              outspc:                        ; vypou¨tˆn¡ mezer
+                               ld      a,(de)
+c9d5:  b7                      or      a
+c9d6:  c8                      ret     z
+c9d7:  fe 20                   cp      " "
+c9d9:  c0                      ret     nz
+c9da:  13                      inc     de
+c9db:  18 f7                   jr      outspc         ; vypou¨tˆn¡ mezer
+ ......................................................
+c9dd:  21 75 cf        rdfcb1:                        ; p©ek¢dov n¡ jm‚na FCB souboru
+                               ld      hl,adrfcb      ; FCB souboru 1
+c9e0:  e5              rdfcbf:                        ; p©ek¢dov n¡ FCB souboru 2
+                               push    hl
+c9e1:  af                      xor     a
+c9e2:  32 6e cf                ld      (dskfil),a     ; disk souboru
+c9e5:  ed 5b 9a cf             ld      de,(ukatxt)    ; ukazatel textu p©¡kaz.© dku
+c9e9:  cd d4 c9                call    outspc         ; vypou¨tˆn¡ mezer
+c9ec:  ed 53 71 cf             ld      (begtxt),de    ; ukazatel za‡ tku textu
+c9f0:  1a                      ld      a,(de)
+c9f1:  b7                      or      a
+c9f2:  28 0a                   jr      z,endtxt       ; konec textu
+c9f4:  d6 40                   sub     40h
+c9f6:  47                      ld      b,a            ; mo‘n˜ disk
+c9f7:  13                      inc     de
+c9f8:  1a                      ld      a,(de)
+c9f9:  fe 3a                   cp      ":"
+c9fb:  28 06                   jr      z,dsklbl       ; je ud n disk
+c9fd:  1b                      dec     de
+c9fe:  3a 6d cf        endtxt: ld      a,(aktdsk)     ; vybran˜ disk
+ca01:  18 05                   jr      setdsf
+ ......................................................
+ca03:  78              dsklbl: ld      a,b
+ca04:  32 6e cf                ld      (dskfil),a     ; disk souboru
+ca07:  13                      inc     de
+ca08:  06 08           setdsf: ld      b,8
+ca0a:  77                      ld      (hl),a         ; nastaven¡ disku souboru
+ca0b:  cd 35 ca                call    rdtxtf         ; p©e‡ten¡ jm‚na do FCB
+ca0e:  1a                      ld      a,(de)
+ca0f:  fe 2e                   cp      "."
+ca11:  20 1d                   jr      nz,spcst1
+ca13:  13                      inc     de             ; n sleduje typ souboru
+ca14:  cd 35 ca                call    rdtxtf         ; p©e‡ten¡ jm‚na do FCB
+ca17:  af              spcjmn: xor     a
+ca18:  cd 51 ca                call    elsbyt         ; doplnˆn¡ jm‚na mezerami
+ca1b:  eb                      ex      de,hl
+ca1c:  22 9a cf                ld      (ukatxt),hl    ; ukazatel textu p©¡kaz.© dku
+ca1f:  e1                      pop     hl
+ca20:  01 0b 00                ld      bc,0bh
+ca23:  23              tstqst: inc     hl
+ca24:  7e                      ld      a,(hl)
+ca25:  fe 3f                   cp      "?"
+ca27:  20 01                   jr      nz,isqst       ; znak nen¡ otazn¡k
+ca29:  04                      inc     b
+ca2a:  0d              isqst:  dec     c
+ca2b:  20 f6                   jr      nz,tstqst
+ca2d:  78                      ld      a,b            ; po‡et otazn¡k– ve jm‚nu
+ca2e:  b7                      or      a
+ca2f:  c9                      ret
+ ......................................................
+ca30:  cd 4f ca        spcst1: call    elsspc         ; doplnˆn¡ jm‚na mezerami
+ca33:  18 e2                   jr      spcjmn
+ ......................................................
+ca35:  cd b6 c9        rdtxtf:                        ; p©e‡ten¡ jm‚na do FCB
+                               call    znkwrd         ; kontrola znaku slova
+ca38:  28 15                   jr      z,elsspc       ; doplnˆn¡ jm‚na mezerami
+ca3a:  23                      inc     hl
+ca3b:  fe 2a                   cp      "*"
+ca3d:  20 04                   jr      nz,lodznk
+ca3f:  36 3f                   ld      (hl),"?"       ; p©i znaku * n hrada otazn¡ky
+ca41:  18 02                   jr      lodzn1
+ ......................................................
+ca43:  77              lodznk: ld      (hl),a         ; ulo‘en¡ znaku
+ca44:  13                      inc     de
+ca45:  10 ee           lodzn1: djnz    rdtxtf         ; dal¨¡ znak
+ca47:  cd b6 c9        lodzn2: call    znkwrd         ; kontrola znaku slova
+ca4a:  28 09                   jr      z,elsbte
+ca4c:  13                      inc     de
+ca4d:  18 f8                   jr      lodzn2         ; vypu¨tˆn¡ p©ebyte‡n˜ch znak–
+ ......................................................
+ca4f:  3e 20           elsspc:                        ; doplnˆn¡ jm‚na mezerami
+                               ld      a," "
+ca51:  23              elsbyt:                        ; doplnˆn¡ znaky
+                               inc     hl
+ca52:  77                      ld      (hl),a
+ca53:  10 fc                   djnz    elsbyt         ; doplnˆn¡ znaky
+ca55:  06 03           elsbte: ld      b,3
+ca57:  c9                      ret
+ ......................................................
+ca58:  11 9e cf        intcom:                        ; nalezen¡ vnit©n¡ho p©¡kazu
+                               ld      de,tabint      ; tabulka vnit©n¡ch p©¡kaz–
+ca5b:  21 76 cf        intcm1: ld      hl,fcbjmn      ; jm‚no souboru,p©¡kaz
+ca5e:  06 04                   ld      b,4            ; 4 znaky p©¡kazu
+ca60:  1a              intcm2: ld      a,(de)
+ca61:  b7                      or      a
+ca62:  c8                      ret     z              ; posledn¡ slovo
+ca63:  be                      cp      (hl)
+ca64:  20 1b                   jr      nz,nxtcom      ; nesouhlas¡ - dal¨¡ slovo
+ca66:  13                      inc     de
+ca67:  23                      inc     hl
+ca68:  10 f6                   djnz    intcm2
+ca6a:  7e                      ld      a,(hl)
+ca6b:  fe 20                   cp      " "            ; dal¨¡ znak mus¡ b˜t mezera
+ca6d:  c0                      ret     nz
+ca6e:  eb                      ex      de,hl
+ca6f:  5e                      ld      e,(hl)         ; p©e‡ten¡ adresy skoku
+ca70:  23                      inc     hl
+ca71:  56                      ld      d,(hl)
+ca72:  2b                      dec     hl
+ca73:  2b                      dec     hl
+ca74:  2b                      dec     hl
+ca75:  2b                      dec     hl
+ca76:  2b                      dec     hl
+ca77:  2b                      dec     hl
+ca78:  46                      ld      b,(hl)         ; p©e‡ten¡ adresy skoku p©ede¨l‚ho p©¡kazu
+ca79:  2b                      dec     hl
+ca7a:  4e                      ld      c,(hl)
+ca7b:  ed 43 98 cf             ld      (topres),bc    ; vrchol rezident.p©¡kazu
+ca7f:  37                      scf
+ca80:  c9                      ret
+ ......................................................
+ca81:  13              nxtcom:                        ; dal¨¡ slovo v tabulce
+                               inc     de
+ca82:  10 fd                   djnz    nxtcom         ; dal¨¡ slovo v tabulce
+ca84:  13                      inc     de
+ca85:  13                      inc     de
+ca86:  18 d3                   jr      intcm1
+ ......................................................
+ca88:  21 60 ce                ld      hl,chndsk
+ca8b:  c9                      ret
+ ......................................................
+ca8c:  11 7e cf        loadfi:                        ; z znam souboru do pamˆti
+                               ld      de,fcbtyp      ; typ souboru
+ca8f:  01 03 00                ld      bc,3
+ca92:  ed b0                   ldir                   ; p©enos typu souboru
+ca94:  ed 43 96 cf             ld      (longfl),bc    ; d‚lka souboru
+ca98:  cd 26 cb                call    stdskf         ; v˜bˆr disku souboru
+ca9b:  cd c8 c8                call    opfcb1         ; otev©en¡ souboru 1
+ca9e:  28 3c                   jr      z,ldferr       ; soubor nenalezen
+caa0:  11 00 01                ld      de,100h        ; ukl dac¡ adresa TPA
+caa3:  d5              loadf1: push    de
+caa4:  cd b1 c9                call    setdma         ; nastaven¡ adresy DMA
+caa7:  11 75 cf                ld      de,adrfcb      ; FCB souboru 1
+caaa:  cd f0 c8                call    readse         ; sekven‡n¡ ‡ten¡
+caad:  e1                      pop     hl
+caae:  20 32                   jr      nz,loadf5      ; konec souboru
+cab0:  11 80 00                ld      de,80h         ; d‚lka sektoru
+cab3:  e5                      push    hl
+cab4:  2a 96 cf                ld      hl,(longfl)    ; d‚lka souboru
+cab7:  19                      add     hl,de          ; zv˜¨en¡ d‚lky souboru
+cab8:  22 96 cf                ld      (longfl),hl    ; d‚lka souboru
+cabb:  e1                      pop     hl
+cabc:  19                      add     hl,de          ; zv˜¨en¡ ukl dac¡ adresy
+cabd:  54                      ld      d,h
+cabe:  5d                      ld      e,l
+cabf:  ed 4b 73 cf             ld      bc,(lowccp)    ; spodn¡ hranice syst‚mu
+cac3:  3e c8                   ld      a,0c8h         ; doln¡ hranice CCP
+cac5:  b8                      cp      b
+cac6:  28 01                   jr      z,loadf2       ; nejsou rezidentn¡ programy
+cac8:  05                      dec     b
+cac9:  ed 42           loadf2: sbc     hl,bc
+cacb:  38 d6                   jr      c,loadf1       ; je rezerva pamˆti - dal¨¡ sektor
+cacd:  cd 48 cb        loadf3: call    RES            ; zru¨en¡ rezidentn¡ch program–
+cad0:  01 3e cf                ld      bc,txtbad
+cad3:  cd ab c8                call    ctsktx         ; tisk textu BAD LOAD
+cad6:  cd 37 cb        loadf4: call    stdsfb         ; v˜bˆr aktivn¡ho disku
+cad9:  c3 0d cf                jp      newccp         ; kontrola konce © dku
+ ......................................................
+cadc:  cd 37 cb        ldferr: call    stdsfb         ; v˜bˆr aktivn¡ho disku
+cadf:  c3 1b cf                jp      error          ; hl ¨en¡ chyby
+ ......................................................
+cae2:  3d              loadf5: dec     a
+cae3:  20 e8                   jr      nz,loadf3
+cae5:  cd 37 cb                call    stdsfb         ; v˜bˆr aktivn¡ho disku
+cae8:  c9                      ret
+ ......................................................
+cae9:  cd dd c9        rdnumb:                        ; p©e‡ten¡ ‡¡sla (pro SAVE)
+                               call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+caec:  3a 6e cf                ld      a,(dskfil)     ; disk souboru
+caef:  b7                      or      a
+caf0:  20 31                   jr      nz,rdnmer      ; zad n disk - chyba
+caf2:  21 76 cf                ld      hl,fcbjmn      ; jm‚no souboru,p©¡kaz
+caf5:  01 00 0b                ld      bc,0b00h       ; B - 11 znak–, C - sou‡et
+caf8:  7e              rdnum1: ld      a,(hl)
+caf9:  fe 20                   cp      " "
+cafb:  28 1c                   jr      z,tstspn       ; konec slova
+cafd:  23                      inc     hl
+cafe:  d6 30                   sub     30h            ; p©evod na ‡¡slo
+cb00:  fe 0a                   cp      0ah
+cb02:  30 1f                   jr      nc,rdnmer      ; nen¡ ‡¡slo - chyba
+cb04:  57                      ld      d,a            ; ulo‘en¡ ‡¡sla
+cb05:  79                      ld      a,c            ; p©edchoz¡ sou‡et
+cb06:  fe e0                   cp      0e0h
+cb08:  30 19                   jr      nc,rdnmer      ; chyba p©ete‡en¡
+cb0a:  07                      rlca
+cb0b:  07                      rlca
+cb0c:  81                      add     a,c
+cb0d:  38 14                   jr      c,rdnmer       ; chyba p©ete‡en¡
+cb0f:  07                      rlca
+cb10:  38 11                   jr      c,rdnmer       ; chyba p©ete‡en¡
+cb12:  82                      add     a,d
+cb13:  38 0e                   jr      c,rdnmer       ; chyba p©ete‡en¡
+cb15:  4f                      ld      c,a
+cb16:  10 e0                   djnz    rdnum1
+cb18:  c9                      ret
+ ......................................................
+cb19:  3e 20           tstspn:                        ; kontrola,zda jsou zbyl‚ znaky mezery
+                               ld      a,20h
+cb1b:  be              tstsp1: cp      (hl)
+cb1c:  23                      inc     hl
+cb1d:  20 04                   jr      nz,rdnmer      ; chyba p©ete‡en¡
+cb1f:  10 fa                   djnz    tstsp1
+cb21:  79                      ld      a,c            ; v˜sledn˜ sou‡et
+cb22:  c9                      ret
+ ......................................................
+cb23:  c3 1b cf        rdnmer:                        ; chyba p©ete‡en¡
+                               jp      error          ; hl ¨en¡ chyby
+ ......................................................
+cb26:  af              stdskf:                        ; v˜bˆr disku souboru
+                               xor     a              ; ozna‡en¡ disku soub.za vybran˜
+cb27:  32 75 cf                ld      (adrfcb),a     ; FCB souboru 1
+cb2a:  3a 6e cf                ld      a,(dskfil)     ; disk souboru
+cb2d:  b7                      or      a
+cb2e:  c8                      ret     z
+cb2f:  3d                      dec     a
+cb30:  21 6d cf                ld      hl,aktdsk      ; vybran˜ disk
+cb33:  be                      cp      (hl)
+cb34:  c8                      ret     z              ; n vrat kdy‘ = vybran˜ disk
+cb35:  18 0e                   jr      cselds
+ ......................................................
+cb37:  3a 6e cf        stdsfb:                        ; v˜bˆr aktivn¡ho disku
+                               ld      a,(dskfil)     ; v˜bˆr akt.disku-zpˆt
+cb3a:  b7                      or      a
+cb3b:  c8                      ret     z              ; je aktivn¡ disk
+cb3c:  3d                      dec     a
+cb3d:  21 6d cf                ld      hl,aktdsk      ; vybran˜ disk
+cb40:  be                      cp      (hl)
+cb41:  c8                      ret     z
+cb42:  3a 6d cf                ld      a,(aktdsk)     ; vybran˜ disk
+cb45:  c3 c3 c8        cselds: jp      seldsk         ; v˜bˆr disku
+ ......................................................
+cb48:  21 00 c8        RES:                           ; zru¨en¡ rezidentn¡ch program–
+                               ld      hl,CCP
+cb4b:  22 73 cf                ld      (lowccp),hl    ; spodn¡ hranice syst‚mu
+cb4e:  af                      xor     a
+cb4f:  32 ce cf                ld      (tabres),a     ; tabulka res.povel–
+cb52:  2a 9c cf                ld      hl,(adrskk)    ; adresa skoku prov d.programu
+cb55:  7c                      ld      a,h
+cb56:  b7                      or      a
+cb57:  c8                      ret     z
+cb58:  22 04 de                ld      (0de04h),hl    ; adresa prov d.programu
+cb5b:  21 00 00                ld      hl,0
+cb5e:  22 9c cf                ld      (adrskk),hl    ; adresa skoku prov d.programu
+cb61:  21 06 d0                ld      hl,BDOS        ; adresa BDOS
+cb64:  22 06 00                ld      (6),hl         ; adresa skoku do BDOS
+cb67:  c9                      ret
+ ......................................................
+cb68:  af              wstart:                        ; start CCP - zru¨en¡ p©¡k.© dku
+                               xor     a
+cb69:  32 07 c8                ld      (pocznk),a     ; po‡et znak– p©¡k.© dku
+cb6c:  31 ff cf        cstart:                        ; start CCP
+                               ld      sp,STACK
+cb6f:  3a 9d cf                ld      a,(ddb1)
+cb72:  b7                      or      a
+cb73:  28 09                   jr      z,start2
+cb75:  2a 73 cf                ld      hl,(lowccp)    ; spodn¡ hranice syst‚mu
+cb78:  2e fd                   ld      l,0fdh
+cb7a:  25                      dec     h
+cb7b:  22 06 00                ld      (6),hl         ; adresa skoku do BDOS
+cb7e:  c5              start2: push    bc
+cb7f:  79                      ld      a,c            ; aktivn¡ disk
+cb80:  1f                      rra
+cb81:  1f                      rra
+cb82:  1f                      rra
+cb83:  1f                      rra
+cb84:  e6 0f                   and     0fh
+cb86:  5f                      ld      e,a
+cb87:  cd 0c c9                call    setusr         ; nastaven¡ k¢du u‘ivatele
+cb8a:  0e 0d                   ld      c,0dh
+cb8c:  cd 05 00                call    JPBDOS         ; reset diskov‚ho syst‚mu
+cb8f:  32 70 cf                ld      (parsub),a     ; p©¡znak .SUB
+cb92:  c1                      pop     bc
+cb93:  79                      ld      a,c
+cb94:  e6 0f                   and     0fh
+cb96:  32 6d cf                ld      (aktdsk),a     ; vybran˜ disk
+cb99:  cd c3 c8                call    seldsk         ; v˜bˆr disku
+cb9c:  3a 07 c8                ld      a,(pocznk)     ; po‡et znak– p©¡k.© dku
+cb9f:  b7                      or      a
+cba0:  20 16                   jr      nz,newtxt
+cba2:  31 ff cf        startn:                        ; opakovan˜ start CCP
+                               ld      sp,STACK
+cba5:  cd 93 c8                call    tskcr          ; od© dkov n¡
+cba8:  cd aa c9                call    askdsk         ; p©e‡ten¡ ‡¡sla vybran.disku
+cbab:  c6 41                   add     a,41h          ; p©ek¢dov n¡ na znak ASCII
+cbad:  cd 9a c8                call    tskznk         ; tisk znaku disku na konzolu
+cbb0:  3e 3e                   ld      a,">"
+cbb2:  cd 9a c8                call    tskznk         ; tisk znaku na konzolu
+cbb5:  cd 2d c9                call    inptxt         ; p©e‡ten¡ p©¡kazov‚ho © dku z konzoly nebo .***.SUB
+cbb8:  cd ae c9        newtxt: call    stdma8         ; nastaven¡ adresy DMA
+cbbb:  cd aa c9                call    askdsk         ; p©e‡ten¡ ‡¡sla vybran.disku
+cbbe:  32 6d cf                ld      (aktdsk),a     ; vybran˜ disk
+cbc1:  cd dd c9                call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cbc4:  c4 1b cf                call    nz,error       ; chyba p©i ne£pln‚m zad n¡
+cbc7:  3a 6e cf                ld      a,(dskfil)     ; disk souboru
+cbca:  b7                      or      a
+cbcb:  28 03                   jr      z,isntds       ; je aktivn¡ disk
+cbcd:  c3 60 ce        isdsk:  jp      chndsk
+ ......................................................
+cbd0:  cd 58 ca        isntds: call    intcom         ; nalezen¡ vnit©n¡ho p©¡kazu
+cbd3:  20 f8                   jr      nz,isdsk       ; slovo nalezeno, ale del¨¡
+cbd5:  30 f6                   jr      nc,isdsk       ; slovo nenalezeno
+cbd7:  c3 86 ce                jp      rescom         ; slovo nalezeno
+ ......................................................
+cbda:                  txtrde: db      "READ ERROR$"
+cbe5:                  txtnof: db      "NO FILE$"
+cbed:  cd dd c9        DIR:                           ; v˜pis adres ©e diskety
+                               call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cbf0:  cd 26 cb                call    stdskf         ; v˜bˆr disku souboru
+cbf3:  21 76 cf                ld      hl,fcbjmn      ; jm‚no souboru,p©¡kaz
+cbf6:  7e                      ld      a,(hl)         ; prvn¡ znak jm‚na
+cbf7:  fe 20                   cp      " "
+cbf9:  20 07                   jr      nz,dir2
+cbfb:  06 0b                   ld      b,0bh
+cbfd:  36 3f           dir1:   ld      (hl),"?"       ; nen¡ zad no - nahrazen¡ otazn¡ky
+cbff:  23                      inc     hl
+cc00:  10 fb                   djnz    dir1
+cc02:  1e 00           dir2:   ld      e,0            ; E = ‡¡ta‡ polo‘ek v © dku p©i tisku
+cc04:  d5                      push    de
+cc05:  cd dd c8                call    askdir         ; nalezen¡ prvn¡ polo‘ky FCB1 v adres ©i
+cc08:  cc a8 c8                call    z,tsknof       ; tisk NO FILE
+cc0b:  28 56           dir3:   jr      z,dirret       ; nov˜ start CCP
+cc0d:  3a 6c cf                ld      a,(outpar)     ; pozice polo‘ky v sektoru adres ©e
+cc10:  0f                      rrca
+cc11:  0f                      rrca
+cc12:  0f                      rrca                   ; pozice * 32
+cc13:  e6 60                   and     60h            ; v˜po‡et za‡ tku polo‘ky v sektoru
+cc15:  21 80 00                ld      hl,80h
+cc18:  85                      add     a,l
+cc19:  6f                      ld      l,a
+cc1a:  e5                      push    hl
+cc1b:  dd e1                   pop     ix
+cc1d:  dd cb 0a 7e             bit     7,(ix+0ah)     ; p©¡znak SYS
+cc21:  20 36                   jr      nz,dir6        ; je syst‚mov˜ soubor
+cc23:  d1                      pop     de
+cc24:  7b                      ld      a,e
+cc25:  1c                      inc     e              ; zv˜¨en¡ ‡¡ta‡e polo‘ek
+cc26:  d5                      push    de
+cc27:  e6 03                   and     3
+cc29:  3e 20                   ld      a,20h          ; oddˆlovac¡ mezera
+cc2b:  20 08                   jr      nz,dir4        ; nen¡ konec © dku
+cc2d:  cd 93 c8                call    tskcr          ; od© dkov n¡
+cc30:  cd aa c9                call    askdsk         ; p©e‡ten¡ ‡¡sla vybran.disku
+cc33:  c6 41                   add     a,41h          ; p©ek¢dov n¡ na znak ASCII
+cc35:  cd 9a c8        dir4:   call    tskznk         ; tisk znaku na konzolu
+cc38:  3e 3a                   ld      a,":"
+cc3a:  cd 9a c8                call    tskznk         ; tisk oddˆlova‡e ":"
+cc3d:  cd 8f c8                call    tskspc         ; tisk mezery
+cc40:  01 02 08                ld      bc,802h
+cc43:  dd 23           dir5:   inc     ix             ; tisk n zvu souboru
+cc45:  dd 7e 00                ld      a,(ix+0)
+cc48:  e6 7f                   and     7fh
+cc4a:  cd 9a c8                call    tskznk         ; tisk znaku na konzolu
+cc4d:  10 f4                   djnz    dir5
+cc4f:  0d                      dec     c
+cc50:  28 07                   jr      z,dir6         ; konec tisku
+cc52:  cd 8f c8                call    tskspc         ; tisk mezery
+cc55:  06 03                   ld      b,3
+cc57:  18 ea                   jr      dir5           ; tisk typu souboru
+ ......................................................
+cc59:  cd fb c8        dir6:   call    inpznk         ; vstup znaku z konzoly (ne‡ek )
+cc5c:  20 05                   jr      nz,dirret      ; nov˜ start CCP
+cc5e:  cd e4 c8                call    direls         ; nalezen¡ dal¨¡ polo‘ky v adres ©i
+cc61:  18 a8                   jr      dir3
+ ......................................................
+cc63:  c3 d6 ca        dirret:                        ; nov˜ start CCP
+                               jp      loadf4
+ ......................................................
+cc66:  cd dd c9        ERA:                           ; zru¨en¡ souboru
+                               call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cc69:  fe 0b                   cp      0bh
+cc6b:  20 17                   jr      nz,era1        ; po‡et otazn¡k– nen¡ 11
+cc6d:  01 93 cc                ld      bc,txtall      ; tisk ALL (Y/N)?
+cc70:  cd ab c8                call    ctsktx         ; tisk textu v BC
+cc73:  cd 2d c9                call    inptxt         ; p©e‡ten¡ p©¡kazov‚ho © dku z konzoly nebo .***.SUB
+cc76:  21 07 c8                ld      hl,pocznk      ; po‡et znak– p©¡k.© dku
+cc79:  35                      dec     (hl)
+cc7a:  c0                      ret     nz             ; n vrat,pokud nebyl po‡et znak– = 1
+cc7b:  23                      inc     hl
+cc7c:  7e                      ld      a,(hl)
+cc7d:  fe 59                   cp      "Y"
+cc7f:  c0                      ret     nz             ; n vrat,pokud nebyl znak = "Y"
+cc80:  23                      inc     hl
+cc81:  22 9a cf                ld      (ukatxt),hl    ; ukazatel textu p©¡kaz.© dku
+cc84:  cd 26 cb        era1:   call    stdskf         ; v˜bˆr disku souboru
+cc87:  11 75 cf                ld      de,adrfcb      ; FCB souboru 1
+cc8a:  cd e8 c8                call    erafil         ; zru¨en¡ souboru
+cc8d:  3c                      inc     a
+cc8e:  cc a8 c8                call    z,tsknof       ; tisk NO FILE
+cc91:  18 d0                   jr      dirret         ; nov˜ start CCP
+ ......................................................
+cc93:                  txtall: db      "ALL (Y/N)?$"
+cc9e:  cd dd c9        TYPE:                          ; v˜pis ASCII souboru
+                               call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cca1:  20 41                   jr      nz,type6       ; p©i v˜skytu "?" hl ¨en¡ chyby
+cca3:  cd 26 cb                call    stdskf         ; v˜bˆr disku souboru
+cca6:  cd c8 c8                call    opfcb1         ; otev©en¡ souboru 1
+cca9:  28 36                   jr      z,type5        ; ne£spˆch - chyba
+ccab:  cd 93 c8                call    tskcr          ; od© dkov n¡
+ccae:  21 6f cf                ld      hl,typznk      ; ‡¡ta‡ znak– ze sektoru
+ccb1:  36 ff                   ld      (hl),0ffh
+ccb3:  21 6f cf        type1:  ld      hl,typznk      ; ‡¡ta‡ znak– ze sektoru
+ccb6:  7e                      ld      a,(hl)
+ccb7:  fe 80                   cp      80h
+ccb9:  38 09                   jr      c,type2        ; nen¡ dosud p©e‡ten cel˜ sektor
+ccbb:  e5                      push    hl
+ccbc:  cd ed c8                call    readf1         ; sekven‡n¡ ‡ten¡ souboru
+ccbf:  e1                      pop     hl
+ccc0:  20 18                   jr      nz,type3       ; konec souboru
+ccc2:  af                      xor     a
+ccc3:  77                      ld      (hl),a         ; nastaven¡ ‡¡ta‡e znak–
+ccc4:  34              type2:  inc     (hl)           ; zv˜¨en¡ ‡¡ta‡e znak–
+ccc5:  21 80 00                ld      hl,80h
+ccc8:  85                      add     a,l            ; v˜po‡et adresy ‡ten‚ho znaku
+ccc9:  6f                      ld      l,a
+ccca:  7e                      ld      a,(hl)         ; p©e‡ten¡ znaku
+cccb:  fe 1a                   cp      1ah
+cccd:  28 0c                   jr      z,type4        ; je znak konce souboru
+cccf:  cd 9a c8                call    tskznk         ; tisk znaku na konzolu
+ccd2:  cd fb c8                call    inpznk         ; vstup znaku z konzoly (ne‡ek )
+ccd5:  c2 d6 ca                jp      nz,loadf4      ; p©i znaku z konzoly konec v˜pisu
+ccd8:  18 d9                   jr      type1          ; dal¨¡ znak
+ ......................................................
+ccda:  3d              type3:  dec     a
+ccdb:  ca d6 ca        type4:  jp      z,loadf4       ; konec v˜pisu
+ccde:  cd a3 c8                call    tskrde         ; tisk READ ERROR
+cce1:  cd 37 cb        type5:  call    stdsfb         ; v˜bˆr aktivn¡ho disku
+cce4:  c3 1b cf        type6:  jp      error          ; hl ¨en¡ chyby
+ ......................................................
+cce7:  cd e9 ca        SAVE:                          ; z pis souboru na disketu
+                               call    rdnumb         ; p©e‡ten¡ ‡¡sla (pro SAVE)
+ccea:  f5                      push    af
+cceb:  cd dd c9                call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+ccee:  20 f4                   jr      nz,type6       ; p©i v˜skytu "?" chybov‚ hl ¨en¡
+ccf0:  cd 26 cb                call    stdskf         ; v˜bˆr disku souboru
+ccf3:  11 75 cf                ld      de,adrfcb      ; FCB souboru 1
+ccf6:  d5                      push    de
+ccf7:  cd e8 c8                call    erafil         ; zru¨en¡ souboru
+ccfa:  d1                      pop     de
+ccfb:  cd 06 c9                call    newfil         ; zalo‘en¡ souboru
+ccfe:  28 2f                   jr      z,save3        ; chyba zalo‘en¡ - NO SPACE
+cd00:  af                      xor     a
+cd01:  32 95 cf                ld      (ddb9),a
+cd04:  f1                      pop     af
+cd05:  6f                      ld      l,a            ; po‡et str nek
+cd06:  26 00                   ld      h,0
+cd08:  29                      add     hl,hl          ; po‡et sektor– pro z pis
+cd09:  11 00 01                ld      de,100h        ; po‡ te‡n¡ adresa pro z pis
+cd0c:  7c              save1:  ld      a,h
+cd0d:  b5                      or      l
+cd0e:  28 16                   jr      z,save2        ; konec z pisu
+cd10:  2b                      dec     hl             ; dal¨¡ sektor
+cd11:  e5                      push    hl
+cd12:  21 80 00                ld      hl,80h
+cd15:  19                      add     hl,de          ; dal¨¡ adresa
+cd16:  e5                      push    hl
+cd17:  cd b1 c9                call    setdma         ; nastaven¡ adresy DMA
+cd1a:  11 75 cf                ld      de,adrfcb      ; FCB souboru 1
+cd1d:  cd f7 c8                call    wrtsek         ; sekven‡n¡ z pis
+cd20:  d1                      pop     de             ; adresa DMA
+cd21:  e1                      pop     hl             ; ‡¡ta‡ sektor–
+cd22:  20 0b                   jr      nz,save3       ; chyba z pisu - NO SPACE
+cd24:  18 e6                   jr      save1          ; dal¨¡ sektor
+ ......................................................
+cd26:  11 75 cf        save2:  ld      de,adrfcb      ; FCB souboru 1
+cd29:  cd d9 c8                call    clfile         ; uzav©en¡ souboru
+cd2c:  3c                      inc     a
+cd2d:  20 06                   jr      nz,save4
+cd2f:  01 3b cd        save3:  ld      bc,txtnos      ; tisk NO SPACE
+cd32:  cd ab c8                call    ctsktx         ; tisk textu v BC
+cd35:  cd ae c9        save4:  call    stdma8         ; nastaven¡ adresy DMA
+cd38:  c3 d6 ca                jp      loadf4         ; konec v˜pisu
+ ......................................................
+cd3b:                  txtnos: db      "NO SPACE$"
+cd44:  cd dd c9        REN:                           ; p©ejmenov n¡ souboru
+                               call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cd47:  c2 1b cf                jp      nz,error       ; p©i v˜skytu "?" hl ¨en¡ chyby
+cd4a:  3a 6e cf                ld      a,(dskfil)     ; disk souboru
+cd4d:  f5                      push    af
+cd4e:  cd 26 cb                call    stdskf         ; v˜bˆr disku souboru
+cd51:  cd dd c8                call    askdir         ; nalezen¡ prvn¡ polo‘ky FCB1 v adres ©i
+cd54:  20 50                   jr      nz,tskfex      ; hl ¨en¡ FILE EXISTS
+cd56:  21 75 cf                ld      hl,adrfcb      ; FCB souboru 1
+cd59:  11 85 cf                ld      de,adfcb2      ; FCB souboru 2
+cd5c:  01 10 00                ld      bc,10h
+cd5f:  ed b0                   ldir                   ; p©enos nov‚ho jm‚na souboru
+cd61:  2a 9a cf                ld      hl,(ukatxt)    ; ukazatel textu p©¡kaz.© dku
+cd64:  eb                      ex      de,hl
+cd65:  cd d4 c9                call    outspc         ; vypou¨tˆn¡ mezer
+cd68:  fe 3d                   cp      "="
+cd6a:  28 04                   jr      z,ren1         ; kontrola oddˆlovac¡ho znaku = nebo _
+cd6c:  fe 5f                   cp      "_"
+cd6e:  20 30                   jr      nz,ren5        ; nepovolen˜ znak
+cd70:  eb              ren1:   ex      de,hl
+cd71:  23                      inc     hl
+cd72:  22 9a cf                ld      (ukatxt),hl    ; ukazatel textu p©¡kaz.© dku
+cd75:  cd dd c9                call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cd78:  20 26                   jr      nz,ren5        ; p©i v˜skytu "?" chybov‚ hl ¨en¡
+cd7a:  c1                      pop     bc
+cd7b:  21 6e cf                ld      hl,dskfil      ; disk souboru
+cd7e:  7e                      ld      a,(hl)
+cd7f:  b7                      or      a
+cd80:  28 04                   jr      z,ren2         ; je aktivn¡ disk - jako soub.1
+cd82:  b8                      cp      b              ; porovn n¡ disku souboru
+cd83:  70                      ld      (hl),b
+cd84:  20 1a                   jr      nz,ren5        ; nejsou stejn‚ - chyba
+cd86:  70              ren2:   ld      (hl),b
+cd87:  af                      xor     a
+cd88:  32 75 cf                ld      (adrfcb),a     ; ozna‡en¡ jako aktivn¡ disk
+cd8b:  cd dd c8                call    askdir         ; nalezen¡ prvn¡ polo‘ky FCB1 v adres ©i
+cd8e:  28 0b                   jr      z,ren4         ; hl ¨en¡ NO FILE
+cd90:  11 75 cf                ld      de,adrfcb      ; FCB souboru 1
+cd93:  0e 17                   ld      c,17h          ; p©ejmenov n¡ souboru
+cd95:  cd 05 00                call    JPBDOS
+cd98:  c3 d6 ca        ren3:   jp      loadf4
+ ......................................................
+cd9b:  cd a8 c8        ren4:   call    tsknof         ; tisk NO FILE
+cd9e:  18 f8                   jr      ren3
+ ......................................................
+cda0:  cd 37 cb        ren5:   call    stdsfb         ; v˜bˆr aktivn¡ho disku
+cda3:  c3 1b cf        ren6:   jp      error          ; hl ¨en¡ chyby
+ ......................................................
+cda6:  01 ae cd        tskfex:                        ; hl ¨en¡ FILE EXISTS
+                               ld      bc,txtfex
+cda9:  cd ab c8                call    ctsktx         ; tisk textu v BC
+cdac:  18 ea                   jr      ren3
+ ......................................................
+cdae:                  txtfex: db      "FILE EXISTS$" ; p©e‡ten¡ ‡¡sla u‘ivatele
+cdba:  cd e9 ca        USER:                          ; v˜bˆr akt.u‘ivatele
+                               call    rdnumb         ; p©e‡ten¡ ‡¡sla u‘ivatele
+cdbd:  fe 10                   cp      10h
+cdbf:  30 e2                   jr      nc,ren6        ; p©i ‡¡sle >15 hl ¨en¡ chyby
+cdc1:  5f                      ld      e,a
+cdc2:  3a 76 cf                ld      a,(fcbjmn)     ; jm‚no souboru,p©¡kaz
+cdc5:  fe 20                   cp      " "
+cdc7:  28 da                   jr      z,ren6         ; nen¡ jm‚no - chybov‚ hl ¨en¡
+cdc9:  cd 0c c9                call    setusr         ; nastaven¡ k¢du u‘ivatele
+cdcc:  c3 0d cf                jp      newccp         ; kontrola konce © dku
+ ......................................................
+cdcf:  c5              VER:                           ; tisk verze OS
+                               push    bc
+cdd0:  e5                      push    hl
+cdd1:  cd 9a c8                call    tskznk         ; tisk uvodn¡ho znaku ("V")
+cdd4:  e1                      pop     hl
+cdd5:  7e                      ld      a,(hl)         ; p©e‡ten¡ ‡¡sla verze z (HL)
+cdd6:  e5                      push    hl
+cdd7:  f5                      push    af
+cdd8:  0f                      rrca
+cdd9:  0f                      rrca
+cdda:  0f                      rrca
+cddb:  0f                      rrca
+cddc:  e6 0f                   and     0fh
+cdde:  f6 30                   or      "0"
+cde0:  cd 9a c8                call    tskznk         ; tisk prvn¡ ‡¡slice
+cde3:  f1                      pop     af
+cde4:  e6 0f                   and     0fh
+cde6:  f6 30                   or      "0"
+cde8:  cd 9a c8                call    tskznk         ; tisk druh‚ ‡¡slice
+cdeb:  e1                      pop     hl
+cdec:  c1                      pop     bc
+cded:  c9                      ret
+ ......................................................
+cdee:  cd dd c9        EXT:                           ; nastaven¡ rezidentn¡ho p©¡kazu
+                               call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cdf1:  c2 1b cf                jp      nz,error       ; p©i v˜skytu "?" hl ¨en¡ chyby
+cdf4:  cd 58 ca                call    intcom         ; nalezen¡ vnit©n¡ho p©¡kazu
+cdf7:  c2 1b cf                jp      nz,error       ; jm‚no se vyskytuje,nen¡ £pln‚ - chyba
+cdfa:  d8                      ret     c              ; rez.p©¡kaz ji‘ existuje
+cdfb:  21 e7 cf                ld      hl,resend      ; konec tabulky rez.p©¡kazu
+cdfe:  ed 52                   sbc     hl,de
+ce00:  d8                      ret     c              ; tabulka rez.p©¡kaz– je p©eplnˆna
+ce01:  d5                      push    de
+ce02:  2a 9c cf                ld      hl,(adrskk)    ; adresa skoku prov d.programu
+ce05:  7c                      ld      a,h
+ce06:  b5                      or      l
+ce07:  20 06                   jr      nz,ext1
+ce09:  2a 04 de                ld      hl,(0de04h)    ; adresa prov d.programu
+ce0c:  22 9c cf                ld      (adrskk),hl    ; adresa skoku prov d.programu
+ce0f:  2a 47 de        ext1:   ld      hl,(0de47h)
+ce12:  22 04 de                ld      (0de04h),hl    ; adresa prov d.programu
+ce15:  21 48 cf                ld      hl,adrcom      ; typ souboru .COM
+ce18:  cd 8c ca                call    loadfi         ; z znam souboru do pamˆti
+ce1b:  21 76 cf                ld      hl,fcbjmn      ; jm‚no souboru,p©¡kaz
+ce1e:  01 04 00                ld      bc,4
+ce21:  d1                      pop     de
+ce22:  ed b0                   ldir                   ; p©enos jm‚na do pamˆti (4 znaky)
+ce24:  2a 73 cf                ld      hl,(lowccp)    ; spodn¡ hranice syst‚mu
+ce27:  e5                      push    hl
+ce28:  af                      xor     a
+ce29:  ed 4b 96 cf             ld      bc,(longfl)    ; d‚lka souboru
+ce2d:  ed 42                   sbc     hl,bc
+ce2f:  22 73 cf                ld      (lowccp),hl    ; spodn¡ hranice syst‚mu
+ce32:  eb                      ex      de,hl
+ce33:  73                      ld      (hl),e
+ce34:  23                      inc     hl
+ce35:  72                      ld      (hl),d         ; z znam po‡ tku rez.povelu
+ce36:  23                      inc     hl
+ce37:  77                      ld      (hl),a         ; koncov˜ znak 0
+ce38:  e1                      pop     hl
+ce39:  d5                      push    de
+ce3a:  eb                      ex      de,hl
+ce3b:  1b                      dec     de
+ce3c:  60                      ld      h,b
+ce3d:  69                      ld      l,c
+ce3e:  24                      inc     h
+ce3f:  2b                      dec     hl
+ce40:  ed b8                   lddr                   ; p©enos programu pod CCP
+ce42:  ed 5b 73 cf             ld      de,(lowccp)    ; spodn¡ hranice syst‚mu
+ce46:  15                      dec     d
+ce47:  1e fd                   ld      e,0fdh
+ce49:  ed 53 06 00             ld      (6),de         ; adresa skoku do BDOS
+ce4d:  3e c3                   ld      a,0c3h         ; instrukce JP BDOS
+ce4f:  12                      ld      (de),a
+ce50:  13                      inc     de
+ce51:  3e 06                   ld      a,6
+ce53:  12                      ld      (de),a
+ce54:  13                      inc     de
+ce55:  3e d0                   ld      a,0d0h
+ce57:  12                      ld      (de),a
+ce58:  d1                      pop     de
+ce59:  af                      xor     a
+ce5a:  32 a1 cb                ld      (0cba1h),a     ; zru¨en¡ p©ekro‡en¡ vstupu textu v CCP
+ce5d:  c3 01 cf                jp      combac         ; n vrat do CCP
+ ......................................................
+ce60:  3a 76 cf        chndsk: ld      a,(fcbjmn)     ; jm‚no souboru,p©¡kaz
+ce63:  fe 20                   cp      " "
+ce65:  20 13                   jr      nz,lodcom      ; je zad no jm‚no,p©¡kaz
+ce67:  3a 6e cf                ld      a,(dskfil)     ; disk souboru
+ce6a:  b7                      or      a
+ce6b:  28 0a                   jr      z,chnds1       ; je aktivn¡ disk
+ce6d:  3d                      dec     a
+ce6e:  32 6d cf                ld      (aktdsk),a     ; vybran˜ disk
+ce71:  cd 1d c9                call    wrtdsk         ; z znam akt.disku
+ce74:  cd c3 c8                call    seldsk         ; v˜bˆr disku
+ce77:  c3 0d cf        chnds1: jp      newccp         ; kontrola konce © dku
+ ......................................................
+ce7a:  11 7e cf        lodcom:                        ; z znam COM do pamˆti
+                               ld      de,fcbtyp      ; typ souboru
+ce7d:  1a                      ld      a,(de)
+ce7e:  21 48 cf                ld      hl,adrcom      ; typ souboru .COM
+ce81:  cd 8c ca                call    loadfi         ; z znam souboru do pamˆti
+ce84:  18 20                   jr      setcom
+ ......................................................
+ce86:  ed 53 ff ce     rescom: ld      (0ceffh),de    ; adresa za‡ tku p©¡kazu
+ce8a:  21 00 c8                ld      hl,CCP
+ce8d:  7a                      ld      a,d
+ce8e:  bc                      cp      h
+ce8f:  30 1c                   jr      nc,kdfcb2      ; je vnit©n¡ p©¡kaz
+ce91:  2a 98 cf                ld      hl,(topres)    ; vrchol rezident.p©¡kazu
+ce94:  ed 52                   sbc     hl,de          ; d‚lka rez.programu
+ce96:  44                      ld      b,h            ; p©enos rez.povelu na adr.100h
+ce97:  4d                      ld      c,l
+ce98:  21 00 01                ld      hl,100h
+ce9b:  eb                      ex      de,hl
+ce9c:  ed b0                   ldir                   ; p©enos rez.programu na adr.100h
+ce9e:  2a 06 00                ld      hl,(6)         ; adresa skoku do BDOS
+cea1:  ed 52                   sbc     hl,de          ; test p©ekryt¡ doln¡ hranice CCP
+cea3:  dc 48 cb                call    c,RES          ; zru¨en¡ rezidentn¡ch program–
+cea6:  11 00 01        setcom: ld      de,100h        ; adresa pro vyvol n¡ programu
+cea9:  ed 53 ff ce             ld      (0ceffh),de
+cead:  cd dd c9        kdfcb2: call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+ceb0:  3a 6e cf                ld      a,(dskfil)     ; disk souboru
+ceb3:  32 75 cf                ld      (adrfcb),a     ; FCB souboru 1
+ceb6:  21 85 cf                ld      hl,adfcb2      ; FCB souboru 2
+ceb9:  cd e0 c9                call    rdfcbf         ; p©ek¢dov n¡ FCB souboru 2
+cebc:  3a 6e cf                ld      a,(dskfil)     ; disk souboru
+cebf:  32 85 cf                ld      (adfcb2),a     ; FCB souboru 2
+cec2:  af                      xor     a
+cec3:  32 95 cf                ld      (ddb9),a
+cec6:  11 5c 00                ld      de,5ch         ; FCB syst‚mu
+cec9:  21 75 cf                ld      hl,adrfcb      ; FCB souboru 1
+cecc:  01 21 00                ld      bc,21h
+cecf:  ed b0                   ldir                   ; p©enos FCB souboru
+ced1:  21 08 c8                ld      hl,buffer      ; buffer p©¡kazov‚ho © dku
+ced4:  7e              endwrd: ld      a,(hl)         ; nalezen¡ konce slova
+ced5:  b7                      or      a
+ced6:  28 07                   jr      z,lodtxt       ; nalezen¡ konce slova
+ced8:  fe 20                   cp      " "
+ceda:  28 03                   jr      z,lodtxt
+cedc:  23                      inc     hl
+cedd:  18 f5                   jr      endwrd
+ ......................................................
+cedf:  06 00           lodtxt: ld      b,0            ; p©enos p©¡kazov‚ho © dku na adr.80h
+cee1:  11 81 00                ld      de,81h
+cee4:  22 9a cf                ld      (ukatxt),hl    ; ukazatel textu p©¡kaz.© dku
+cee7:  7e              ldtxt1: ld      a,(hl)
+cee8:  12                      ld      (de),a
+cee9:  b7                      or      a
+ceea:  28 05                   jr      z,stpocz
+ceec:  04                      inc     b
+ceed:  23                      inc     hl
+ceee:  13                      inc     de
+ceef:  18 f6                   jr      ldtxt1
+ ......................................................
+cef1:  78              stpocz: ld      a,b            ; nastaven¡ po‡tu znak– p©¡k.© d.
+cef2:  32 80 00                ld      (80h),a        ; po‡et znak– © dku
+cef5:  cd 93 c8                call    tskcr          ; od© dkov n¡
+cef8:  cd ae c9                call    stdma8         ; nastaven¡ adresy DMA
+cefb:  cd 10 c9                call    wrtusr         ; z znam u‘ivatele s akt.diskem
+cefe:  cd 00 01                call    100h           ; vyvol n¡ programu
+cf01:  31 ff cf        combac: ld      sp,STACK
+cf04:  cd 1d c9                call    wrtdsk         ; z znam akt.disku
+cf07:  cd c3 c8                call    seldsk         ; v˜bˆr disku
+cf0a:  c3 a2 cb        newstr: jp      startn         ; opakovan˜ start CCP
+ ......................................................
+cf0d:  cd dd c9        newccp:                        ; kontrola konce © dku
+                               call    rdfcb1         ; p©ek¢dov n¡ jm‚na FCB souboru
+cf10:  3a 76 cf                ld      a,(fcbjmn)     ; jm‚no souboru,p©¡kaz
+cf13:  d6 20                   sub     20h
+cf15:  21 6e cf                ld      hl,dskfil      ; disk souboru
+cf18:  b6                      or      (hl)
+cf19:  28 ef                   jr      z,newstr       ; start CCP
+cf1b:  cd 93 c8        error:                         ; hl ¨en¡ chyby
+                               call    tskcr          ; od© dkov n¡
+cf1e:  2a 71 cf                ld      hl,(begtxt)    ; ukazatel za‡ tku textu
+cf21:  7e              err1:   ld      a,(hl)
+cf22:  fe 20                   cp      " "
+cf24:  28 0b                   jr      z,err2         ; konec slova
+cf26:  b7                      or      a
+cf27:  28 08                   jr      z,err2
+cf29:  e5                      push    hl
+cf2a:  cd 9a c8                call    tskznk         ; tisk znaku na konzolu
+cf2d:  e1                      pop     hl
+cf2e:  23                      inc     hl
+cf2f:  18 f0                   jr      err1
+ ......................................................
+cf31:  3e 3f           err2:   ld      a,"?"
+cf33:  cd 9a c8                call    tskznk         ; tisk otazn¡ku na konzolu
+cf36:  cd 93 c8                call    tskcr          ; od© dkov n¡
+cf39:  cd af c8                call    erasub         ; ukon‡en¡ .SUB
+cf3c:  18 cc                   jr      newstr
+ ......................................................
+cf3e:                  txtbad: db      0ah
+cf3f:                          db      "BAD LOAD$"
+cf48:                  adrcom:                        ; typ souboru .COM
+                               db      "COM"
+cf4b:                  fcbsub:                        ; FCB  .SUB
+                               db      0
+cf4c:                          db      "$"
+cf4d:                          db      "$"
+cf4e:                          db      "$"
+cf4f:                          db      "     SUB"
+cf57:                          db      0,0
+cf59:                  subblk: db      0
+cf5a:                  seksub:                        ; po‡et sektor– souboru
+                               db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+cf6b:                  rekabs:                        ; absolutn¡ ‡¡slo sektoru
+                               db      0
+cf6c:                  outpar:                        ; v˜stupn¡ parametr BDOS
+                               db      0
+cf6d:                  aktdsk:                        ; vybran˜ disk
+                               db      0
+cf6e:                  dskfil:                        ; disk souboru
+                               db      0
+cf6f:                  typznk:                        ; ‡¡ta‡ znak– ze sektoru
+                               db      0
+cf70:                  parsub:                        ; p©¡znak .SUB
+                               db      0
+cf71:                  begtxt:                        ; ukazatel za‡ tku textu
+                               db      0,0
+cf73:                  lowccp:                        ; spodn¡ hranice syst‚mu
+                               db      0,0c8h
+cf75:                  adrfcb:                        ; FCB souboru 1
+                               db      0
+cf76:                  fcbjmn:                        ; jm‚no souboru,p©¡kaz
+                               db      "        "
+cf7e:                  fcbtyp:                        ; typ souboru
+                               db      "   "
+cf81:                          db      0,0,0,0
+cf85:                  adfcb2:                        ; FCB souboru 2
+                               db      0
+cf86:                          db      "           "
+cf91:                          db      0,0,0,0
+cf95:                  ddb9:   db      0
+cf96:                  longfl:                        ; d‚lka souboru
+                               db      0,0
+cf98:                  topres:                        ; vrchol rezident.p©¡kazu
+                               db      0,0
+cf9a:                  ukatxt:                        ; ukazatel textu p©¡kaz.© dku
+                               db      8,0c8h
+cf9c:                  adrskk:                        ; adresa skoku prov d.programu
+                               db      0
+cf9d:                  ddb1:   db      0
+cf9e:                  tabint:                        ; tabulka vnit©n¡ch p©¡kaz–
+                               db      "DIR "
+cfa2:                          db      0edh,0cbh
+cfa4:                          db      "ERA "
+cfa8:                          db      66h,0cch
+cfaa:                          db      "TYPE"
+cfae:                          db      9eh,0cch
+cfb0:                          db      "SAVE"
+cfb4:                          db      0e7h,0cch
+cfb6:                          db      "REN "
+cfba:                          db      44h,0cdh
+cfbc:                          db      "USER"
+cfc0:                          db      0bah,0cdh
+cfc2:                          db      "EXT "
+cfc6:                          db      0eeh,0cdh
+cfc8:                          db      "RES "
+cfcc:                          db      48h,0cbh       ; tabulka rez.povel–
+cfce:                  tabres:                        ; tabulka rez.povel–
+                               db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+cfdf:                          db      0,0,0,0,0,0,0,0; zasobnik
+cfe7:                  resend:                        ; konec tabulky rez.p©¡kaz–
+                               db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+cff8:                          db      0,0,0,0,0,0,0
+cfff:                  STACK:  db      0,9,0,0,0,0,0
+

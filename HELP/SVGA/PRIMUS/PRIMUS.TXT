@@ -1,0 +1,114 @@
+PRIMUS P2000
+
+P2000     2MB  max 1280x1024/256c, 800x600/32k.
+
+The P2000 is an accelerator card.
+
+
+3CEh index 13h (R/W):
+bit    6  If set interlaced display is enabled, and the display offset
+          (CRTC index 13h + 3CEh index 21h bit 5) is divided by 2.
+
+3CEh index 1Dh (R/W):
+bit  0-1  Monitor type. 0=35KHz, 1=48KHz, 2=56KHz, 3=65KHz.
+
+3CEh index 1Eh W(R/W):
+
+3CEh index 21h (R/W):
+bit  0-2  Display start address bit 16-18.  
+       5  Bit 8 of the Display Offset (3d4h index 13h),
+
+3CEh index 30h 3(R/W):  Source address
+bit  0-23  Pixel address of the source area. Calculated as (row * pixels per
+           scanline) + column. For HiColor modes this value should be
+           doubled. Used or BitBLT operations.
+
+3CEh index 33h W(R/W):  Width of Blit Area
+bit  0-15  Width of the Blit Area in pixels.
+
+3CEh index 35h W(R/W):  Height of Blit Area
+bit  0-13  Height of the Blit Area in pixels.
+       14  Set to step backwards in the destination.
+       15  Set to step backwards in the source
+
+3CEh index 37h 3(R/W):  Destination Address
+bit  0-23  Pixel address of the destination area. Calculated as (row * pixels
+           per scanline) + column. For HiColor modes this value should be
+           doubled.
+
+3CEh index 3Ah W(R/W):
+bit  0-15  Width of the destination area in pixels
+
+3CEh index 3Dh (R/W): Status/Command register
+bit    0  (R): Set if busy with op.
+     0-7  (W): Command.
+                00h = NO op.
+                05h = Copy
+                07h = BitBlt
+                19h = Fill rect
+                25h = BitBLT Invert.
+                29h = FillRect Invert.
+
+
+3CEh index 3Eh (R/W): Fill color
+bit 0-7  Fill color (rect).
+
+3CEh index 3Fh (R/W):
+
+3D6h (R/W): Write bank
+bit 0-7  Write bank no. in 64kb units.
+
+3D7h (R/W): Read bank
+bit 0-7  Read bank no. in 64kb units.
+ 
+
+Accelerated commands are set up as follows:
+  Set up the registers with the parameters (areas, size and color)
+  Wait for bit 0 of 3CEh index 3Dh to clear.
+  Write command to 3CEh index 3Dh.
+  Wait for bit 0 of 3CEh index 3Dh to clear.
+
+It is advisable to finish with a NOP (00h) command to terminate the
+coprocessor. The commands can be modified via the fields in 3CEh index 3
+(MOV, AND, OR, XOR).
+
+
+ID Primus P2000:
+
+ if testinx2($3CE,$3D,$3F) and tstrg($3D6,$1F) and tstrg($3D7,$1F) then
+   _p2000 
+
+
+
+Video Modes:
+
+  1Eh  T   80   30   16  (8x16)
+  1Fh  T   80   43   16  (8x11)
+  20h  T   80   60   16  (8x8)
+  21h  T  100   75   16  (8x8)
+  24h  T  132   25   16  (8x14)
+  25h  T  132   30   16  (8x16)
+  26h  T  132   43   16  (8x11)
+  27h  T  132   60   16  (8x8)
+  28h  G  512  512   16  PL4
+  29h  G  512  512  256  P8
+  2Ah  G  800  600   16  PL4
+  2Bh  G  800  600  256  P8
+  2Ch  G  640  400  256  P8
+  2Dh  G  640  480  256  P8
+  2Eh  G  768 1024   16  PL4
+  2Fh  G  768 1024  256  P8
+  30h  G 1024  768   16  PL4
+  31h  G 1024  768  256  P8
+  32h  G 1024 1024   16  PL4
+  33h  G 1024 1024  256  P8
+  34h  G 1152  900   16  PL4
+  35h  G 1152  900  256  P8
+  36h  G 1280 1024   16  PL4
+  37h  G 1280 1024  256  P8
+  41h  G  512  512  32k  P15
+  42h  G  640  350  32k  P15
+  43h  G  640  400  32k  P15
+  44h  G  640  480  32k  P15
+  45h  G  800  600  32k  P15
+  4Ah  G  640  480  16m  P24

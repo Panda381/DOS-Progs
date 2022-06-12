@@ -1,0 +1,2130 @@
+CONTEXT   0 241   0   3  72
+
+
+
+
+                                            ; p©eru¨en¡ ‡¡ta‡em p©i kroku motoru
+104e:0d                 dec     c
+104f:21 69 b5           ld      hl,0b569h   ; po‘adovan˜ po‡et stop k vystaven¡
+1052:35                 dec     (hl)
+1053:fa 61 10           jp      m,1061h     ; vynulov n¡ stopy
+1056:c2 10 11           jp      nz,1110h    ; dal¨¡ krok motoru
+1059:c3 61 1f           jp      1f61h       ; je dosa‘eno po‘adovan‚ stopy
+; ......................................................
+105c:                   db   0,0,0,0,0
+
+1061:ed 78              in      a,(c)       ; vstup z
+1063:cb 57              bit     2,a         ; je stopa 0 ?
+1065:c2 10 11           jp      nz,1110h    ; nen¡ je¨tˆ T0 - dal¨¡ krok motoru
+1068:cd 50 19           call    1950h       ; nastaven¡ sign l– AFS do klidov‚ho stavu
+106b:af                 xor     a
+106c:32 69 b5           ld      (0b569h),a  ; po‘adovan˜ po‡et stop k vystaven¡
+106f:2a 4d b5           ld      hl,(0b54dh)
+1072:22 58 b5           ld      (0b558h),hl
+1075:3e 05              ld      a,5
+1077:32 6a b5           ld      (0b56ah),a
+107a:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+107d:47                 ld      b,a
+107e:3e 4c              ld      a,4ch       ; posledn¡ stopa = 76
+1080:90                 sub     b
+1081:32 80 b5           ld      (0b580h),a  ; po‡et stop do konce diskety
+1084:21 6e b5           ld      hl,0b56eh   ; v˜stupn¡ bajt na port B-PIO2/AFS
+1087:36 4f              ld      (hl),4fh
+1089:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+108c:cb 66              bit     4,(hl)
+108e:ca 63 11           jp      z,1163h
+1091:cd 71 1f           call    1f71h
+1094:22 7a b5           ld      (0b57ah),hl
+1097:c3 1f 11           jp      111fh
+; ......................................................
+109a:21 ad b4           ld      hl,0b4adh
+109d:cb 8e              res     1,(hl)
+109f:37                 scf     
+10a0:3e 10              ld      a,10h
+10a2:cd 20 19           call    1920h
+10a5:c3 a5 03           jp      3a5h
+; ......................................................
+                                            ; vystaven¡ na po‘adovanou stopu
+10a8:3e 03              ld      a,3
+10aa:32 67 b5           ld      (0b567h),a
+10ad:3e 05              ld      a,5
+10af:cd 77 1f           call    1f77h
+10b2:21 6e b5           ld      hl,0b56eh   ; v˜stupn¡ bajt na port B-PIO2/AFS
+10b5:36 6f              ld      (hl),6fh    ; nastaven¡ ©adi‡e AFS do klidov‚ho stavu
+10b7:eb                 ex      de,hl
+10b8:3e 50              ld      a,50h       ; max. po‡et stop k vystaven¡ = 80
+10ba:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+10bd:cb 6e              bit     5,(hl)
+10bf:20 0f              jr      nz,10d0h    ; je po‘adavek vystaven¡ na stopu 00
+10c1:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+10c4:4f                 ld      c,a         ; stopa
+10c5:3a 6d b5           ld      a,(0b56dh)  ; skute‡nˆ nastaven  stopa
+10c8:91                 sub     c           ; po‡et stop
+10c9:30 05              jr      nc,10d0h    ; bude vystaven¡ nahoru
+10cb:ed 44              neg
+10cd:eb                 ex      de,hl
+10ce:cb ae              res     5,(hl)
+10d0:32 69 b5         * ld      (0b569h),a  ; po‘adovan˜ po‡et stop k vystaven¡
+10d3:cd 27 19           call    1927h       ; nastaven¡ kan lu 1-CTC/ZRE na 9 ms
+10d6:21 e3 10           ld      hl,10e3h
+10d9:22 7a b5           ld      (0b57ah),hl
+10dc:af                 xor     a
+10dd:32 00 b3           ld      (0b300h),a
+10e0:c3 ef 0c           jp      0cefh       ; n vrat z p©eru¨en¡
+; ......................................................
+10e3:eb                 ex      de,hl
+10e4:cb a6              res     4,(hl)
+10e6:eb                 ex      de,hl
+10e7:3a 5b b5           ld      a,(0b55bh)  ; b zov  adresa port– AFS
+10ea:c6 05              add     a,5
+10ec:4f                 ld      c,a
+10ed:af                 xor     a
+10ee:21 68 b5           ld      hl,0b568h
+10f1:be                 cp      (hl)
+10f2:28 31              jr      z,1125h
+10f4:35                 dec     (hl)
+10f5:c3 ea 1f           jp      1feah
+; ......................................................
+10f8:                   db   0
+                                            ; vystaven¡ o 1 krok
+10f9:ed 78              in      a,(c)       ; vstup z portu B-PIO2/AFS
+10fb:cb 57              bit     2,a         ; je stopa 00 ?
+10fd:20 10              jr      nz,110fh    ; nen¡ stopa 00 - dal¨¡ krok
+10ff:eb                 ex      de,hl
+1100:23                 inc     hl
+1101:cb 6e              bit     5,(hl)
+1103:cb ae              res     5,(hl)
+1105:eb                 ex      de,hl
+1106:28 07              jr      z,110fh
+1108:af                 xor     a
+1109:77                 ld      (hl),a
+110a:32 6d b5           ld      (0b56dh),a  ; skute‡nˆ nastaven  stopa
+110d:18 1a              jr      1129h
+; ......................................................
+110f:35                 dec     (hl)        ; sn¡‘en¡ ‡¡ta‡e stop
+1110:3a 6e b5         * ld      a,(0b56eh)  ; v˜stupn¡ bajt na port B-PIO2/AFS
+1113:e6 bf              and     0bfh
+1115:ed 79              out     (c),a       ; za‡ tek sign lu /ST
+1117:06 03              ld      b,3
+1119:10 fe            * djnz    1119h       ; prodleva pro sign l kroku
+111b:f6 40              or      40h
+111d:ed 79              out     (c),a       ; ukon‡en¡ sign lu /ST
+111f:cd 27 19           call    1927h       ; opˆtovn‚ nastaven¡ kan lu 1-CTC/ZRE
+1122:c3 82 15           jp      1582h       ; n vrat z p©eru¨en¡
+; ......................................................
+1125:23                 inc     hl
+1126:be                 cp      (hl)        ; dosa‘eno po‘adovan‚ stopy ?
+1127:20 d0              jr      nz,10f9h    ; nen¡ je¨tˆ shoda - vystaven¡ o 1 krok
+1129:16 ff              ld      d,0ffh      ; ‡asovac¡ konstanta
+112b:cd 29 19           call    1929h       ; nastaven¡ kan lu 1-CTC/ZRE na 30 ms
+112e:21 73 b5           ld      hl,0b573h
+1131:36 02              ld      (hl),2
+1133:21 3c 11           ld      hl,113ch
+1136:22 7a b5           ld      (0b57ah),hl
+1139:c3 82 15           jp      1582h
+; ......................................................
+113c:eb                 ex      de,hl
+113d:cb a6              res     4,(hl)
+113f:cd 45 11           call    1145h
+1142:c3 82 15           jp      1582h
+; ......................................................
+1145:16 ff              ld      d,0ffh      ; ‡asovac¡ konstanta
+1147:cd 29 19           call    1929h       ; nastaven¡ kan lu 1-CTC/ZRE na 30 ms
+114a:cd 67 19           call    1967h       ; inicializace port– PIO/AFS
+114d:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+1150:b7                 or      a
+1151:28 0a              jr      z,115dh
+1153:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+1156:b7                 or      a
+1157:28 03              jr      z,115ch
+1159:af                 xor     a
+115a:18 01              jr      115dh
+; ......................................................
+115c:3c                 inc     a
+115d:32 5a b5           ld      (0b55ah),a
+1160:c3 e1 1f           jp      1fe1h
+; ......................................................
+1163:21 e3 10           ld      hl,10e3h
+1166:22 7a b5           ld      (0b57ah),hl
+1169:16 ff              ld      d,0ffh      ; ‡asovac¡ konstanta
+116b:cd 29 19           call    1929h       ; nastaven¡ kan lu 1-CTC/ZRE na 30 ms
+116e:21 ad b4           ld      hl,0b4adh
+1171:cb 76              bit     6,(hl)
+1173:cb b6              res     6,(hl)
+1175:c0                 ret     nz
+1176:21 b0 b4           ld      hl,0b4b0h
+1179:cb 4e              bit     1,(hl)
+117b:ca 64 03           jp      z,364h
+117e:3a 4a b5           ld      a,(0b54ah)
+1181:fe 02              cp      2
+1183:ca 64 03           jp      z,364h
+1186:c3 ef 0c           jp      0cefh
+; ......................................................
+1189:cd f6 19           call    19f6h
+118c:eb                 ex      de,hl
+118d:cb 5e              bit     3,(hl)
+118f:28 37              jr      z,11c8h
+1191:cb 9e              res     3,(hl)
+1193:23                 inc     hl
+1194:eb                 ex      de,hl
+1195:21 73 b5           ld      hl,0b573h
+1198:36 00              ld      (hl),0
+119a:3a 83 b5           ld      a,(0b583h)
+119d:21 60 b5           ld      hl,0b560h   ; stopa s po‘adovan˜m sektorem
+11a0:be                 cp      (hl)
+11a1:ca 28 12           jp      z,1228h
+11a4:fe ff              cp      0ffh
+11a6:20 06              jr      nz,11aeh
+11a8:eb                 ex      de,hl
+11a9:3e 01              ld      a,1
+11ab:c3 d0 10           jp      10d0h       ; vystaven¡ o 1 stopu
+; ......................................................
+11ae:c3 97 1f           jp      1f97h
+; ......................................................
+11b1:                   db   0
+11b2:cb 76              bit     6,(hl)
+11b4:28 07              jr      z,11bdh
+11b6:cb b6              res     6,(hl)
+11b8:cb fe              set     7,(hl)
+11ba:c3 b2 10           jp      10b2h
+; ......................................................
+11bd:cb be              res     7,(hl)
+11bf:c3 b2 10           jp      10b2h
+; ......................................................
+11c2:af                 xor     a
+11c3:3e 20              ld      a,20h
+11c5:c3 20 19           jp      1920h
+; ......................................................
+11c8:23                 inc     hl
+11c9:eb                 ex      de,hl
+11ca:21 73 b5           ld      hl,0b573h
+11cd:35                 dec     (hl)
+11ce:c2 f5 1f           jp      nz,1ff5h
+11d1:eb                 ex      de,hl
+11d2:3a 5b b5           ld      a,(0b55bh)  ; b zov  adresa port– AFS
+11d5:c6 05              add     a,5
+11d7:4f                 ld      c,a         ; data kan lu B-PIO2/AFS
+11d8:16 2a              ld      d,2ah       ; velk  perioda pro ‡ek n¡ na index
+11da:06 ff            * ld      b,0ffh      ; max. doba pro ‡ek n¡ na index
+11dc:ed 78            * in      a,(c)
+11de:cb 5f              bit     3,a         ; je sign l IX ?
+11e0:28 08              jr      z,11eah     ; je sign l IX
+11e2:10 f8              djnz    11dch       ; dal¨¡ ‡ek n¡ na index
+11e4:15                 dec     d
+11e5:20 f3              jr      nz,11dah    ; dal¨¡ ‡ek n¡ na index
+11e7:c3 86 13           jp      1386h
+; ......................................................
+11ea:cb 57            * bit     2,a         ; dosa‘eno stopy 00 ?
+11ec:20 17              jr      nz,1205h    ; nen¡ dosa‘eno stopy 00
+11ee:af                 xor     a
+11ef:32 6d b5           ld      (0b56dh),a  ; skute‡nˆ nastaven  stopa = 00
+11f2:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+11f5:b7                 or      a
+11f6:28 0b              jr      z,1203h     ; byla po‘adov na stopa 00
+11f8:cb 76              bit     6,(hl)
+11fa:20 ba              jr      nz,11b6h
+11fc:cb 7e              bit     7,(hl)
+11fe:20 bd              jr      nz,11bdh
+1200:c3 b2 10           jp      10b2h
+; ......................................................
+1203:cb be              res     7,(hl)
+1205:cb 7e              bit     7,(hl)
+1207:20 0e              jr      nz,1217h
+1209:cb 76              bit     6,(hl)
+120b:20 0a              jr      nz,1217h
+120d:21 6a b5           ld      hl,0b56ah
+1210:35                 dec     (hl)
+1211:c2 5c 13           jp      nz,135ch
+1214:c3 67 13           jp      1367h
+; ......................................................
+1217:3a 80 b5           ld      a,(0b580h)  ; po‡et stop do konce diskety
+121a:3d                 dec     a
+121b:28 06              jr      z,1223h     ; dosa‘eno konce diskety
+121d:32 80 b5           ld      (0b580h),a  ; po‡et stop do konce diskety
+1220:c3 a9 11           jp      11a9h
+; ......................................................
+1223:3e 85              ld      a,85h
+1225:c3 f5 38           jp      38f5h
+; ......................................................
+1228:eb                 ex      de,hl
+1229:cb b6              res     6,(hl)
+122b:cb be              res     7,(hl)
+122d:32 6d b5           ld      (0b56dh),a  ; skute‡nˆ nastaven  stopa
+1230:cb 46              bit     0,(hl)
+1232:28 06              jr      z,123ah
+1234:cb 86              res     0,(hl)
+1236:2a 7e b5           ld      hl,(0b57eh)
+1239:e9                 jp      (hl)
+; ......................................................
+123a:af                 xor     a
+123b:32 00 b3           ld      (0b300h),a  ; ochrana z sobn¡ku p©i p©eru¨en¡
+123e:2b                 dec     hl
+123f:cb 6e              bit     5,(hl)
+1241:c2 13 13           jp      nz,1313h
+1244:cb 46              bit     0,(hl)
+1246:fb                 ei      
+1247:c2 cd 12           jp      nz,12cdh    ; inicializace na‡ten¡ hlavi‡ky sektoru
+124a:21 90 b5           ld      hl,0b590h   ; buffer pro diskovou operaci
+124d:af                 xor     a
+124e:06 06              ld      b,6
+1250:77               * ld      (hl),a
+1251:23                 inc     hl
+1252:10 fc              djnz    1250h       ; vymaz n¡ dat hlavi‡ky
+1254:06 fb              ld      b,0fbh      ; identifik tor datov‚ho pole
+1256:70                 ld      (hl),b
+1257:e5                 push    hl
+1258:eb                 ex      de,hl
+1259:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+125c:cb 56              bit     2,(hl)
+125e:eb                 ex      de,hl
+125f:20 57              jr      nz,12b8h    ; zv˜¨en¡ ukazatele dat o sektor
+1261:23                 inc     hl
+1262:eb                 ex      de,hl
+1263:2a 4b b5           ld      hl,(0b54bh) ; adresa pro diskov˜ p©enos
+1266:01 80 00           ld      bc,80h      ; d‚lka sektoru = 128 B
+1269:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+126c:b7                 or      a
+126d:28 09              jr      z,1278h     ; je stopa 0
+126f:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+1272:b7                 or      a
+1273:20 03              jr      nz,1278h
+1275:01 00 02           ld      bc,200h     ; d‚lka sektoru = 512 B
+1278:ed b0            * ldir                ; p©enos dat do bufferu
+127a:22 4b b5           ld      (0b54bh),hl ; adresa pro diskov˜ p©enos
+127d:eb                 ex      de,hl
+127e:af                 xor     a
+127f:77                 ld      (hl),a
+1280:23                 inc     hl
+1281:77                 ld      (hl),a
+1282:06 03              ld      b,3
+1284:23               * inc     hl
+1285:36 ff              ld      (hl),0ffh   ;
+1287:10 fb              djnz    1284h
+1289:2b                 dec     hl
+128a:2b                 dec     hl
+128b:2b                 dec     hl          ; adresa za‡ tku dat
+128c:eb                 ex      de,hl
+128d:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+1290:cb 5e              bit     3,(hl)
+1292:eb                 ex      de,hl
+1293:20 1d              jr      nz,12b2h
+1295:e3                 ex      (sp),hl
+1296:01 81 00           ld      bc,81h      ; d‚lka dat 128 + 1 bajt–
+1299:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+129c:b7                 or      a
+129d:28 09              jr      z,12a8h
+129f:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+12a2:b7                 or      a
+12a3:20 03              jr      nz,12a8h
+12a5:01 01 02           ld      bc,201h     ; d‚lka dat 512 + 1 bajt–
+12a8:cd b4 19         * call    19b4h       ; kontroln¡ sou‡et CRC
+12ab:e3                 ex      (sp),hl     ; £schova HL
+12ac:73               * ld      (hl),e      ; ulo‘en¡ kontroln¡ho sou‡tu dat
+12ad:2b                 dec     hl
+12ae:72                 ld      (hl),d
+12af:e1                 pop     hl          ; n vrat HL
+12b0:18 1b              jr      12cdh       ; inicializace na‡ten¡ hlavi‡ky sektoru
+; ......................................................
+12b2:ed 5b 78 b5        ld      de,(0b578h)
+12b6:18 f4            * jr      12ach
+; ......................................................
+12b8:01 81 00         * ld      bc,81h      ; d‚lka sektoru 128 bajt–
+12bb:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+12be:b7                 or      a
+12bf:28 09              jr      z,12cah     ; je stopa 0
+12c1:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+12c4:b7                 or      a
+12c5:20 03              jr      nz,12cah    ; je disketa 128 B
+12c7:01 01 02           ld      bc,201h     ; d‚lka sektoru 512 bajt–
+12ca:09               * add     hl,bc       ; zv˜¨en¡ ukazatele dat
+12cb:18 b1              jr      127eh
+; ......................................................
+                                            ; inicializace na‡ten¡ hlavi‡ky sektoru
+12cd:21 89 b5           ld      hl,0b589h   ; buffer pro po‘adovan‚ z hlav¡ sektoru
+12d0:36 fe              ld      (hl),0feh   ; identifik tor z hlav¡ sektoru
+12d2:23                 inc     hl
+12d3:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+12d6:4f                 ld      c,a         ; stopa
+12d7:77                 ld      (hl),a      ; stopa s po‘adovan˜m sektorem
+12d8:23                 inc     hl
+12d9:06 05              ld      b,5
+12db:af                 xor     a
+12dc:77               * ld      (hl),a
+12dd:23                 inc     hl
+12de:10 fc              djnz    12dch       ; vymaz n¡ z hlav¡ sektoru
+12e0:2b                 dec     hl
+12e1:e5                 push    hl
+12e2:3a 61 b5           ld      a,(0b561h)
+12e5:32 8c b5           ld      (0b58ch),a
+12e8:79                 ld      a,c         ; stopa s po‘adovan˜m sektorem
+12e9:b7                 or      a
+12ea:28 0b              jr      z,12f7h     ; je stopa 0
+12ec:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+12ef:b7                 or      a
+12f0:20 05              jr      nz,12f7h
+12f2:3e 02              ld      a,2
+12f4:32 8d b5           ld      (0b58dh),a
+12f7:21 89 b5         * ld      hl,0b589h   ; adresa hlavi‡ky sektoru
+12fa:01 05 00           ld      bc,5        ; d‚lka hlavi‡ky sektoru
+12fd:cd b4 19           call    19b4h       ; kontroln¡ sou‡et CRC
+1300:e1                 pop     hl
+1301:73                 ld      (hl),e      ; ulo‘en¡ CRC hlavi‡ky sektoru
+1302:2b                 dec     hl
+1303:72                 ld      (hl),d
+1304:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+1307:cb ee              set     5,(hl)
+1309:21 81 b5           ld      hl,0b581h
+130c:36 04              ld      (hl),4
+130e:21 6b b5           ld      hl,0b56bh
+1311:36 08              ld      (hl),8
+1313:21 6c b5         * ld      hl,0b56ch
+1316:36 d0              ld      (hl),0d0h
+1318:3a 86 b5           ld      a,(0b586h)  ; form t sektor–
+131b:b7                 or      a
+131c:28 02              jr      z,1320h     ; je form t sektor– 128 B
+131e:36 40              ld      (hl),40h
+1320:f3               * di
+1321:21 31 13           ld      hl,1331h    ; kontrola nalezen‚ hlavi‡ky sektoru
+1324:22 7a b5           ld      (0b57ah),hl ; adresa pokra‡ov n¡ po na‡ten¡ hlavi‡ky sektoru
+1327:af                 xor     a
+1328:32 00 b3           ld      (0b300h),a
+132b:cd 67 19           call    1967h       ; inicializace port– PIO/AFS
+132e:c3 ef 0c           jp      0cefh       ; n vrat z p©eru¨en¡
+; ......................................................
+                                            ; kontrola nalezen‚ hlavi‡ky sektoru
+1331:eb               * ex      de,hl
+1332:21 88 b5           ld      hl,0b588h
+1335:11 81 b5           ld      de,0b581h
+1338:06 07              ld      b,7         ; d‚lka hlavi‡ky sektoru
+133a:23               * inc     hl
+133b:13                 inc     de
+133c:1a                 ld      a,(de)
+133d:96                 sub     (hl)
+133e:20 05              jr      nz,1345h    ; nesouhlas
+1340:10 f8              djnz    133ah       ; dal¨¡ bajt hlavi‡ky k porovn n¡
+1342:c3 8c 13           jp      138ch       ; sektor nalezen - operace s daty sektoru
+; ......................................................
+1345:cd f6 19           call    19f6h
+1348:21 6c b5           ld      hl,0b56ch
+134b:35                 dec     (hl)
+134c:c2 20 13           jp      nz,1320h
+134f:21 81 b5           ld      hl,0b581h
+1352:35                 dec     (hl)
+1353:20 07              jr      nz,135ch
+1355:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+1358:cb ae              res     5,(hl)
+135a:18 0b              jr      1367h
+; ......................................................
+135c:cd 31 19           call    1931h
+135f:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+1362:cb f6              set     6,(hl)
+1364:c3 d0 10           jp      10d0h
+; ......................................................
+1367:21 67 b5           ld      hl,0b567h
+136a:35                 dec     (hl)
+136b:28 08              jr      z,1375h
+136d:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+1370:cb ee              set     5,(hl)      ; po‘adov no vystaven¡ na stopu 00
+1372:c3 ad 10           jp      10adh
+; ......................................................
+1375:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+1378:47                 ld      b,a
+1379:3a 83 b5           ld      a,(0b583h)
+137c:b8                 cp      b
+137d:c2 c2 11           jp      nz,11c2h
+1380:af                 xor     a
+1381:3e 80              ld      a,80h
+1383:c3 20 19           jp      1920h
+; ......................................................
+1386:3e 40              ld      a,40h
+1388:b7                 or      a
+1389:c3 20 19           jp      1920h
+; ......................................................
+                                            ; zah jen¡ operace s daty sektoru
+138c:3a 5e b5           ld      a,(0b55eh)  ; diskov  operace
+                                            ; bit 0 = ‡ten¡ dat (0=z pis)
+                                            ; bit 1 = verifikace dat
+138f:cb 4f              bit     1,a
+1391:c2 b5 14           jp      nz,14b5h    ; verifikace dat sektoru
+1394:cb 47              bit     0,a
+1396:ca 33 14           jp      z,1433h     ; je z pis dat sektoru
+                                            ; ‡ten¡ dat sektoru
+1399:3a 5b b5           ld      a,(0b55bh)  ; b zov  adresa port– AFS
+139c:c6 04              add     a,4         ; adresa kan lu A-PIO2/AFS
+139e:4f                 ld      c,a
+139f:11 82 01           ld      de,182h     ; po‡et bajt– k na‡ten¡ 128+1
+13a2:3a 86 b5           ld      a,(0b586h)  ; form t sektor–
+13a5:b7                 or      a
+13a6:28 03              jr      z,13abh     ; je form t sektor– 128 B
+13a8:11 02 03           ld      de,302h     ; po‡et bajt– k na‡ten¡ 512+1
+13ab:21 96 b5         * ld      hl,0b596h   ; adresa bufferu dat sektoru
+13ae:06 17              ld      b,17h
+13b0:10 fe            * djnz    13b0h
+13b2:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+13b5:47                 ld      b,a
+13b6:c5                 push    bc
+13b7:e6 bf              and     0bfh
+13b9:ed 79              out     (c),a       ; start hled n¡ zna‡ky MK
+13bb:0d                 dec     c
+13bc:0d                 dec     c
+13bd:0d                 dec     c           ; adresa kan lu B-PIO1/AFS (vstup dat)
+13be:06 09              ld      b,9         ; max. po‡et pokus– k nalezen¡ dat. pole
+13c0:ed 78            * in      a,(c)       ; vstup identifika‡n¡ zna‡ky
+13c2:10 05              djnz    13c9h
+13c4:c1                 pop     bc          ; vy‡erp ny v¨echny pokusy
+13c5:ed 41              out     (c),b       ; ukon‡en¡ operace
+13c7:18 4b              jr      1414h       ; chyba - data nenalezena
+13c9:fe fb            * cp      0fbh        ; je datov‚ pole ?
+13cb:28 04              jr      z,13d1h     ; je datov‚ pole
+13cd:fe f8              cp      0f8h        ; vymazan  data ?
+13cf:20 ef              jr      nz,13c0h    ; nejsou data - dal¨¡ pole
+13d1:77               * ld      (hl),a      ; ulo‘en¡ identifik toru datov‚ho pole
+13d2:23                 inc     hl
+13d3:43                 ld      b,e         ; po‡et bajt– dat k na‡ten¡
+13d4:ed a2            * ini
+13d6:20 fc              jr      nz,13d4h    ; vstup dat
+13d8:15                 dec     d           ; ‡¡ta‡ 256 bajt–
+13d9:20 f9              jr      nz,13d4h    ; dal¨¡ ‡ st dat
+13db:c1                 pop     bc
+13dc:ed 41              out     (c),b       ; ukon‡en¡ operace ‡ten¡ dat sektoru
+13de:cd f6 19           call    19f6h
+13e1:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+13e4:cb ae              res     5,(hl)
+13e6:21 96 b5           ld      hl,0b596h   ; adresa bufferu dat sektoru
+13e9:3e f8              ld      a,0f8h      ; vymazan  data
+13eb:be                 cp      (hl)
+13ec:ca e5 15           jp      z,15e5h
+13ef:af                 xor     a
+13f0:32 00 b3           ld      (0b300h),a
+13f3:01 83 00           ld      bc,83h      ; d‚lka dat 128 + 1 bajt
+13f6:3a 86 b5           ld      a,(0b586h)  ; form t sektor–
+13f9:b7                 or      a
+13fa:28 03              jr      z,13ffh
+13fc:01 03 02           ld      bc,203h     ; d‚lka dat 512 + 1 bajt
+13ff:fb                 ei      
+1400:cd b4 19           call    19b4h       ; kontroln¡ sou‡et CRC
+1403:f3                 di      
+1404:7b                 ld      a,e
+1405:b2                 or      d
+1406:20 0f              jr      nz,1417h
+1408:3a 5f b5           ld      a,(0b55fh)  ; bit 5 = vystaven¡ na stopu 00
+140b:cb 4f              bit     1,a
+140d:3e 00              ld      a,0
+140f:ca 46 18           jp      z,1846h
+1412:18 11              jr      1425h
+; ......................................................
+1414:cd f6 19           call    19f6h
+1417:21 6b b5           ld      hl,0b56bh
+141a:35                 dec     (hl)
+141b:c2 13 13           jp      nz,1313h
+141e:3a 5f b5           ld      a,(0b55fh)  ; bit 5 = vystaven¡ na stopu 00
+1421:cb 4f              bit     1,a
+1423:28 04              jr      z,1429h
+1425:2a 7e b5           ld      hl,(0b57eh)
+1428:e9                 jp      (hl)
+; ......................................................
+1429:3e 81              ld      a,81h
+142b:37                 scf     
+142c:cd 20 19           call    1920h
+142f:3f                 ccf     
+1430:c3 46 18           jp      1846h
+; ......................................................
+                                            ; z pis dat sektoru
+1433:01 01 7f         * ld      bc,7f01h
+1436:3a 86 b5           ld      a,(0b586h)  ; form t sektor–
+1439:b7                 or      a
+143a:28 03              jr      z,143fh
+143c:01 02 ff           ld      bc,0ff02h
+143f:c5                 push    bc
+1440:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+1443:e6 7f              and     7fh
+1445:5f                 ld      e,a
+1446:06 06              ld      b,6
+1448:3a 5b b5           ld      a,(0b55bh)  ; b zov  adresa port– AFS
+144b:4f                 ld      c,a
+144c:57                 ld      d,a
+144d:21 90 b5           ld      hl,0b590h   ; buffer pro diskovou operaci
+1450:ed a3              oti     
+1452:79                 ld      a,c
+1453:c6 04              add     a,4
+1455:4f                 ld      c,a
+1456:7b                 ld      a,e
+1457:ed 79              out     (c),a
+1459:4a                 ld      c,d
+145a:ed a3              oti     
+145c:20 fc              jr      nz,145ah
+145e:ed a3              oti     
+1460:79                 ld      a,c
+1461:c6 04              add     a,4
+1463:4f                 ld      c,a
+1464:7b                 ld      a,e
+1465:e6 e7              and     0e7h
+1467:ed 79              out     (c),a
+1469:4a                 ld      c,d
+146a:ed a3              oti     
+146c:79                 ld      a,c
+146d:c6 04              add     a,4
+146f:4f                 ld      c,a
+1470:7b                 ld      a,e
+1471:ed 79              out     (c),a
+1473:c1                 pop     bc
+1474:79                 ld      a,c
+1475:4a                 ld      c,d
+1476:ed a3              oti     
+1478:20 fc              jr      nz,1476h
+147a:3d                 dec     a
+147b:20 f9              jr      nz,1476h
+147d:06 05              ld      b,5
+147f:ed a3              oti     
+1481:20 fc              jr      nz,147fh
+1483:06 05              ld      b,5
+1485:10 fe              djnz    1485h
+1487:79                 ld      a,c
+1488:c6 04              add     a,4
+148a:4f                 ld      c,a
+148b:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+148e:ed 79              out     (c),a
+1490:51                 ld      d,c
+1491:cd f6 19           call    19f6h
+1494:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+1497:cb ae              res     5,(hl)
+1499:4a                 ld      c,d
+149a:0c                 inc     c
+149b:ed 78              in      a,(c)
+149d:cb 47              bit     0,a
+149f:20 0c              jr      nz,14adh
+14a1:21 6b b5           ld      hl,0b56bh
+14a4:35                 dec     (hl)
+14a5:c2 13 13           jp      nz,1313h
+14a8:c3 d5 1f           jp      1fd5h
+; ......................................................
+14ab:                   db   0,0
+14ad:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+14b0:cb ce              set     1,(hl)      ; nastaven¡ p©¡znaku verifikace dat
+14b2:c3 13 13           jp      1313h
+; ......................................................
+                                            ; verifikace dat sektoru
+14b5:3a 5b b5           ld      a,(0b55bh)  ; b zov  adresa port– AFS
+14b8:c6 04              add     a,4
+14ba:4f                 ld      c,a
+14bb:11 80 00           ld      de,80h
+14be:3a 86 b5           ld      a,(0b586h)  ; form t sektor–
+14c1:b7                 or      a
+14c2:28 03              jr      z,14c7h
+14c4:11 00 02           ld      de,200h
+14c7:21 96 b5           ld      hl,0b596h   ; adresa bufferu dat sektoru
+14ca:06 18              ld      b,18h
+14cc:10 fe              djnz    14cch
+14ce:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+14d1:47                 ld      b,a
+14d2:c5                 push    bc
+14d3:e6 bf              and     0bfh
+14d5:ed 79              out     (c),a
+14d7:0d                 dec     c
+14d8:0d                 dec     c
+14d9:0d                 dec     c
+14da:06 0e              ld      b,0eh
+14dc:ed 78              in      a,(c)
+14de:be                 cp      (hl)
+14df:28 04              jr      z,14e5h
+14e1:10 f9              djnz    14dch
+14e3:18 1f              jr      1504h
+; ......................................................
+14e5:43                 ld      b,e
+14e6:23                 inc     hl
+14e7:ed 78              in      a,(c)
+14e9:be                 cp      (hl)
+14ea:20 18              jr      nz,1504h
+14ec:10 f8              djnz    14e6h
+14ee:7a                 ld      a,d
+14ef:b7                 or      a
+14f0:28 08              jr      z,14fah
+14f2:23                 inc     hl
+14f3:ed 78              in      a,(c)
+14f5:be                 cp      (hl)
+14f6:20 0c              jr      nz,1504h
+14f8:10 f8              djnz    14f2h
+14fa:06 02              ld      b,2
+14fc:23                 inc     hl
+14fd:ed 78              in      a,(c)
+14ff:be                 cp      (hl)
+1500:20 02              jr      nz,1504h
+1502:10 f8              djnz    14fch
+1504:c1                 pop     bc
+1505:ed 41              out     (c),b
+1507:eb                 ex      de,hl
+1508:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+150b:20 02              jr      nz,150fh
+150d:cb d6              set     2,(hl)
+150f:cd f6 19           call    19f6h
+1512:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+1515:cb 8e              res     1,(hl)      ; zru¨en¡ p©¡znaku verifikace dat
+1517:cb 76              bit     6,(hl)
+
+1519:c2 fc 16           jp      nz,16fch
+151c:23                 inc     hl
+151d:cb 4e              bit     1,(hl)
+151f:2b                 dec     hl
+1520:20 1a              jr      nz,153ch
+1522:cb 56              bit     2,(hl)
+1524:cb 96              res     2,(hl)
+1526:c2 65 18           jp      nz,1865h
+1529:21 6b b5           ld      hl,0b56bh
+152c:35                 dec     (hl)
+152d:c2 13 13           jp      nz,1313h
+1530:3a 60 b5           ld      a,(0b560h)  ; stopa s po‘adovan˜m sektorem
+1533:b7                 or      a
+1534:c2 b5 16           jp      nz,16b5h
+1537:3e 84              ld      a,84h
+1539:c3 20 19           jp      1920h
+; ......................................................
+153c:af                 xor     a
+153d:cb 56              bit     2,(hl)
+153f:cb 96              res     2,(hl)
+1541:28 01              jr      z,1544h
+1543:3c                 inc     a
+1544:2a 7e b5           ld      hl,(0b57eh)
+1547:e9                 jp      (hl)
+; ......................................................
+                                            ; obsluha p©eru¨en¡ CTC-1/ZRE
+                                            ; ukon‡en¡ diskov‚ operace
+1548:08                 ex      af,af'
+1549:d9                 exx     
+154a:3a 5a b5           ld      a,(0b55ah)
+154d:b7                 or      a
+154e:28 06              jr      z,1556h
+1550:3d                 dec     a
+1551:32 5a b5           ld      (0b55ah),a
+1554:18 36              jr      158ch       ; konec p©eru¨en¡
+; ......................................................
+                                            ; ukon‡en¡ diskov‚ operace
+1556:3e 03              ld      a,3         
+1558:d3 81              out     (81h),a     ; z kaz p©eru¨en¡ ‡¡ta‡e 1
+155a:3a 5c b5           ld      a,(0b55ch)  ; adresa kan lu vstupu dat z AFS
+155d:c6 03              add     a,3         
+155f:4f                 ld      c,a         ; adresa ©¡d¡c¡ho kan lu A/AFS
+1560:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+1563:ed 79              out     (c),a       
+1565:0c                 inc     c           
+1566:0c                 inc     c           
+1567:3e 07              ld      a,7         
+1569:ed 79              out     (c),a       ; z kaz p©eru¨en¡ od portu PIO
+156b:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+156e:cb e6              set     4,(hl)      
+1570:eb                 ex      de,hl       
+1571:3a 02 b3           ld      a,(0b302h)  
+1574:b7                 or      a           
+1575:20 07              jr      nz,157eh    
+1577:ed 73 03 b3        ld      (0b303h),sp 
+157b:31 e5 b3           ld      sp,0b3e5h   
+157e:2a 7a b5           ld      hl,(0b57ah) ; adresa pro p©ete‡en¡ disk. operace
+1581:e9                 jp      (hl)        
+; .......................................................
+1582:3a 02 b3           ld      a,(0b302h)  
+1585:b7                 or      a
+1586:20 04              jr      nz,158ch
+1588:ed 7b 03 b3        ld      sp,(0b303h)
+158c:d9                 exx     
+158d:08                 ex      af,af'
+158e:fb                 ei      
+158f:ed 4d              reti    
+; ......................................................
+                                            ;þ nalezen¡ hlavi‡ky sektoru
+1591:08                 ex      af,af'
+1592:d9                 exx     
+1593:3a 5c b5           ld      a,(0b55ch)  ; adresa kan lu pro vstup dat AFS
+1596:4f                 ld      c,a
+1597:ed 78              in      a,(c)       ; na‡ten¡ identifika‡n¡ho bajtu
+1599:21 82 b5           ld      hl,0b582h
+159c:77                 ld      (hl),a
+159d:23                 inc     hl
+159e:06 06              ld      b,6         ; po‡et bajt– k na‡ten¡
+15a0:57                 ld      d,a
+15a1:ed a2            * ini
+15a3:20 fc              jr      nz,15a1h    ; na‡ten¡ hlavi‡ky sektoru
+15a5:0c                 inc     c
+15a6:0c                 inc     c
+15a7:0c                 inc     c
+15a8:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+15ab:ed 79              out     (c),a
+15ad:0c                 inc     c
+15ae:0c                 inc     c
+15af:3e 07              ld      a,7
+15b1:ed 79              out     (c),a
+15b3:06 03              ld      b,3
+15b5:0e 81              ld      c,81h
+15b7:ed 41              out     (c),b
+15b9:7a                 ld      a,d         ; identifika‡n¡ bajt
+15ba:fe fe              cp      0feh        ; je hlavi‡ka sektoru ?
+15bc:20 1f              jr      nz,15ddh    ; nen¡ hlavi‡ka sektoru
+15be:af                 xor     a
+15bf:21 02 b3           ld      hl,0b302h
+15c2:be                 cp      (hl)
+15c3:28 05              jr      z,15cah
+15c5:2b                 dec     hl
+15c6:2b                 dec     hl
+15c7:be                 cp      (hl)
+15c8:28 13              jr      z,15ddh
+15ca:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+15cd:cb de              set     3,(hl)
+15cf:eb                 ex      de,hl
+15d0:20 07              jr      nz,15d9h
+15d2:ed 73 03 b3        ld      (0b303h),sp
+15d6:31 e5 b3           ld      sp,0b3e5h
+15d9:2a 7a b5           ld      hl,(0b57ah)
+15dc:e9                 jp      (hl)
+; ......................................................
+15dd:cd 67 19           call    1967h       ; inicializace port– PIO/AFS
+15e0:d9                 exx     
+15e1:08                 ex      af,af'
+15e2:fb                 ei      
+15e3:ed 4d              reti    
+; ......................................................
+15e5:23                 inc     hl
+15e6:7e                 ld      a,(hl)
+15e7:fe c4              cp      0c4h
+15e9:2b                 dec     hl
+15ea:ca ef 13           jp      z,13efh
+15ed:fe c6              cp      0c6h
+15ef:20 26              jr      nz,1617h
+15f1:af                 xor     a
+15f2:21 54 b5           ld      hl,0b554h
+15f5:b6                 or      (hl)
+15f6:20 02              jr      nz,15fah
+15f8:36 c0              ld      (hl),0c0h
+15fa:34                 inc     (hl)
+15fb:21 61 b5           ld      hl,0b561h
+15fe:3e 1a              ld      a,1ah
+1600:be                 cp      (hl)
+1601:28 07              jr      z,160ah
+1603:34                 inc     (hl)
+1604:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+1607:c3 3a 12           jp      123ah
+; ......................................................
+160a:36 01              ld      (hl),1
+160c:2b                 dec     hl
+160d:34                 inc     (hl)
+160e:3e 4a              ld      a,4ah
+1610:be                 cp      (hl)
+1611:ca c2 11           jp      z,11c2h
+1614:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+1617:cd de 19           call    19deh
+161a:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+161d:cb fe              set     7,(hl)
+161f:cb c6              set     0,(hl)      ; nastaven¡ p©¡znaku ‡ten¡ dat
+1621:23                 inc     hl
+1622:cb ce              set     1,(hl)
+1624:3e 05              ld      a,5
+1626:32 61 b5           ld      (0b561h),a
+1629:af                 xor     a
+162a:32 60 b5           ld      (0b560h),a  ; stopa s po‘adovan˜m sektorem
+162d:21 36 16           ld      hl,1636h
+1630:22 7e b5           ld      (0b57eh),hl
+1633:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+1636:b7                 or      a
+1637:28 05              jr      z,163eh
+1639:3e 83              ld      a,83h
+163b:c3 20 19           jp      1920h
+; ......................................................
+163e:21 6f b5           ld      hl,0b56fh
+1641:3a 50 b5           ld      a,(0b550h)
+1644:cd a3 19           call    19a3h
+1647:21 71 b5           ld      hl,0b571h
+164a:3a 65 b5           ld      a,(0b565h)
+164d:cd a3 19           call    19a3h
+1650:0e 01              ld      c,1
+1652:06 08              ld      b,8
+1654:21 b0 b5           ld      hl,0b5b0h
+1657:11 06 00           ld      de,6
+165a:e5                 push    hl
+165b:3a 6f b5           ld      a,(0b56fh)
+165e:be                 cp      (hl)
+165f:20 16              jr      nz,1677h
+1661:23                 inc     hl
+1662:3a 70 b5           ld      a,(0b570h)
+1665:be                 cp      (hl)
+1666:20 0f              jr      nz,1677h
+1668:23                 inc     hl
+1669:23                 inc     hl
+166a:3a 71 b5           ld      a,(0b571h)
+166d:be                 cp      (hl)
+166e:20 07              jr      nz,1677h
+1670:23                 inc     hl
+1671:3a 72 b5           ld      a,(0b572h)
+1674:be                 cp      (hl)
+1675:28 08              jr      z,167fh
+1677:e1                 pop     hl
+1678:19                 add     hl,de
+1679:0c                 inc     c
+167a:10 de              djnz    165ah
+167c:c3 75 13           jp      1375h
+; ......................................................
+167f:79                 ld      a,c
+1680:32 61 b5           ld      (0b561h),a
+1683:3e 4a              ld      a,4ah
+1685:32 60 b5           ld      (0b560h),a  ; stopa s po‘adovan˜m sektorem
+1688:e1                 pop     hl
+1689:21 92 16           ld      hl,1692h
+168c:22 7e b5           ld      (0b57eh),hl
+168f:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+1692:3d                 dec     a
+1693:f2 29 14           jp      p,1429h
+1696:3a 50 b5           ld      a,(0b550h)
+1699:32 60 b5           ld      (0b560h),a  ; stopa s po‘adovan˜m sektorem
+169c:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+169f:cb 8e              res     1,(hl)
+16a1:cb c6              set     0,(hl)
+16a3:2b                 dec     hl
+16a4:cb be              res     7,(hl)
+16a6:21 af 16           ld      hl,16afh
+16a9:22 7e b5           ld      (0b57eh),hl
+16ac:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+16af:cd ea 19           call    19eah
+16b2:c3 46 18           jp      1846h
+; ......................................................
+16b5:cd de 19           call    19deh
+16b8:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+16bb:cb f6              set     6,(hl)
+16bd:23                 inc     hl
+16be:cb ce              set     1,(hl)
+16c0:21 96 b5           ld      hl,0b596h   ; adresa bufferu dat sektoru
+16c3:36 f8              ld      (hl),0f8h
+16c5:e5                 push    hl
+16c6:23                 inc     hl
+16c7:36 4b              ld      (hl),4bh
+16c9:11 00 02           ld      de,200h
+16cc:01 01 02           ld      bc,201h
+16cf:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+16d2:b7                 or      a
+16d3:28 08              jr      z,16ddh
+16d5:11 80 00           ld      de,80h
+16d8:01 81 00           ld      bc,81h
+16db:36 c6              ld      (hl),0c6h
+16dd:19                 add     hl,de
+16de:af                 xor     a
+16df:56                 ld      d,(hl)
+16e0:77                 ld      (hl),a
+16e1:23                 inc     hl
+16e2:5e                 ld      e,(hl)
+16e3:77                 ld      (hl),a
+16e4:ed 53 78 b5        ld      (0b578h),de
+16e8:eb                 ex      de,hl
+16e9:e1                 pop     hl
+16ea:d5                 push    de
+16eb:fb                 ei      
+16ec:cd b4 19           call    19b4h       ; kontroln¡ sou‡et CRC
+16ef:f3                 di      
+16f0:e1                 pop     hl
+16f1:73                 ld      (hl),e
+16f2:2b                 dec     hl
+16f3:72                 ld      (hl),d
+16f4:21 6b b5           ld      hl,0b56bh
+16f7:36 08              ld      (hl),8
+16f9:c3 13 13           jp      1313h
+; ......................................................
+16fc:cb 56              bit     2,(hl)
+16fe:cb 96              res     2,(hl)
+1700:20 13              jr      nz,1715h
+1702:21 6b b5           ld      hl,0b56bh
+1705:35                 dec     (hl)
+1706:c2 13 13           jp      nz,1313h
+1709:21 98 b5           ld      hl,0b598h
+170c:eb                 ex      de,hl
+170d:ed 52              sbc     hl,de
+170f:da c2 11           jp      c,11c2h
+1712:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+1715:cb b6              res     6,(hl)
+1717:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+171a:b7                 or      a
+171b:28 15              jr      z,1732h
+171d:cd ea 19           call    19eah
+1720:2a 58 b5           ld      hl,(0b558h)
+1723:ed 5b 4d b5        ld      de,(0b54dh)
+1727:ed 52              sbc     hl,de
+1729:3e c0              ld      a,0c0h
+172b:b5                 or      l
+172c:32 54 b5           ld      (0b554h),a
+172f:c3 9e 18           jp      189eh
+; ......................................................
+1732:cb fe              set     7,(hl)
+1734:cb c6              set     0,(hl)
+1736:3e 05              ld      a,5
+1738:32 61 b5           ld      (0b561h),a
+173b:af                 xor     a
+173c:32 60 b5           ld      (0b560h),a  ; stopa s po‘adovan˜m sektorem
+173f:21 48 17           ld      hl,1748h
+1742:22 7e b5           ld      (0b57eh),hl
+1745:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+1748:b7                 or      a
+1749:c2 36 16           jp      nz,1636h
+174c:0e 01              ld      c,1
+174e:21 b0 b5           ld      hl,0b5b0h
+1751:11 06 00           ld      de,6
+1754:7e                 ld      a,(hl)
+1755:fe 40              cp      40h
+1757:28 04              jr      z,175dh
+1759:0c                 inc     c
+175a:19                 add     hl,de
+175b:18 f4              jr      1751h
+; ......................................................
+175d:79                 ld      a,c
+175e:fe 06              cp      6
+1760:28 0a              jr      z,176ch
+1762:fe 07              cp      7
+1764:28 0f              jr      z,1775h
+1766:fe 08              cp      8
+1768:28 0b              jr      z,1775h
+176a:18 10              jr      177ch
+; ......................................................
+176c:3e 41              ld      a,41h
+176e:37                 scf     
+176f:cd 20 19           call    1920h
+1772:3f                 ccf     
+1773:18 07              jr      177ch
+; ......................................................
+1775:3e 42              ld      a,42h
+1777:37                 scf     
+1778:cd 20 19           call    1920h
+177b:3f                 ccf     
+177c:22 75 b5           ld      (0b575h),hl
+177f:3a 50 b5           ld      a,(0b550h)
+1782:cd a3 19           call    19a3h
+1785:23                 inc     hl
+1786:af                 xor     a
+1787:77                 ld      (hl),a
+1788:23                 inc     hl
+1789:3a 65 b5           ld      a,(0b565h)
+178c:cd a3 19           call    19a3h
+178f:ed 5b 75 b5        ld      de,(0b575h)
+1793:21 b0 b5           ld      hl,0b5b0h
+1796:0e 01              ld      c,1
+1798:06 06              ld      b,6
+179a:1a                 ld      a,(de)
+179b:96                 sub     (hl)
+179c:28 14              jr      z,17b2h
+179e:23                 inc     hl
+179f:10 fd              djnz    179eh
+17a1:0c                 inc     c
+17a2:3e 08              ld      a,8
+17a4:91                 sub     c
+17a5:ed 5b 75 b5        ld      de,(0b575h)
+17a9:f2 98 17           jp      p,1798h
+17ac:3f                 ccf     
+17ad:3e 82              ld      a,82h
+17af:c3 20 19           jp      1920h
+; ......................................................
+17b2:23                 inc     hl
+17b3:13                 inc     de
+17b4:10 e4              djnz    179ah
+17b6:79                 ld      a,c
+17b7:32 77 b5           ld      (0b577h),a
+17ba:ed 52              sbc     hl,de
+17bc:28 0c              jr      z,17cah
+17be:06 06              ld      b,6
+17c0:3e 40              ld      a,40h
+17c2:ed 5b 75 b5        ld      de,(0b575h)
+17c6:12                 ld      (de),a
+17c7:13                 inc     de
+17c8:10 fc              djnz    17c6h
+17ca:21 ae b5           ld      hl,0b5aeh
+17cd:36 c3              ld      (hl),0c3h
+17cf:2b                 dec     hl
+17d0:36 c4              ld      (hl),0c4h
+17d2:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+17d5:cb 86              res     0,(hl)      ; nastaven¡ p©¡znaku z pisu dat
+17d7:23                 inc     hl
+17d8:cb d6              set     2,(hl)
+17da:21 e3 17           ld      hl,17e3h
+17dd:22 7e b5           ld      (0b57eh),hl
+17e0:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+17e3:b7                 or      a
+17e4:20 05              jr      nz,17ebh
+17e6:3e 82              ld      a,82h
+17e8:c3 20 19           jp      1920h
+; ......................................................
+17eb:3e 4a              ld      a,4ah
+17ed:32 60 b5           ld      (0b560h),a  ; stopa s po‘adovan˜m sektorem
+17f0:3a 77 b5           ld      a,(0b577h)
+17f3:32 61 b5           ld      (0b561h),a
+17f6:2a 4b b5           ld      hl,(0b54bh) ; adresa pro diskov˜ p©enos
+17f9:01 00 02           ld      bc,200h
+17fc:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+17ff:b7                 or      a
+1800:28 03              jr      z,1805h
+1802:01 80 00           ld      bc,80h
+1805:ed 42              sbc     hl,bc
+1807:22 4b b5           ld      (0b54bh),hl ; adresa pro diskov˜ p©enos
+180a:21 1a 18           ld      hl,181ah
+180d:22 7e b5           ld      (0b57eh),hl
+1810:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+1813:cb 96              res     2,(hl)
+1815:cb de              set     3,(hl)
+1817:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+181a:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+181d:cb be              res     7,(hl)
+181f:23                 inc     hl
+1820:cb 9e              res     3,(hl)
+1822:b7                 or      a
+1823:20 05              jr      nz,182ah
+1825:3e 82              ld      a,82h
+1827:c3 20 19           jp      1920h
+; ......................................................
+182a:3a 50 b5           ld      a,(0b550h)
+182d:32 60 b5           ld      (0b560h),a  ; stopa s po‘adovan˜m sektorem
+1830:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+1833:cb 8e              res     1,(hl)
+1835:cb c6              set     0,(hl)
+1837:21 40 18           ld      hl,1840h
+183a:22 7e b5           ld      (0b57eh),hl
+183d:c3 a8 10           jp      10a8h       ; vystaven¡ na po‘adovanou stopu
+; ......................................................
+1840:cd ea 19           call    19eah
+1843:c3 65 18           jp      1865h
+; ......................................................
+1846:21 97 b5           ld      hl,0b597h
+1849:ed 5b 4b b5        ld      de,(0b54bh) ; adresa pro diskov˜ p©enos
+184d:01 80 00           ld      bc,80h
+1850:3a 86 b5           ld      a,(0b586h)  ; form t sektor–
+1853:b7                 or      a
+1854:28 04              jr      z,185ah
+1856:01 00 02           ld      bc,200h
+1859:af                 xor     a
+185a:32 00 b3           ld      (0b300h),a
+185d:fb                 ei      
+185e:ed b0              ldir    
+1860:f3                 di      
+1861:ed 53 4b b5        ld      (0b54bh),de ; adresa pro diskov˜ p©enos
+1865:2a 4d b5           ld      hl,(0b54dh)
+1868:2b                 dec     hl
+1869:7c                 ld      a,h
+186a:b5                 or      l
+186b:28 31              jr      z,189eh
+186d:22 4d b5           ld      (0b54dh),hl
+1870:21 61 b5           ld      hl,0b561h
+1873:3a 86 b5           ld      a,(0b586h)  ; form t sektor–
+1876:b7                 or      a
+1877:3e 19              ld      a,19h
+1879:28 02              jr      z,187dh
+187b:3e 07              ld      a,7
+187d:96                 sub     (hl)
+187e:30 0a              jr      nc,188ah
+1880:ed 44              neg     
+1882:77                 ld      (hl),a
+1883:21 50 b5           ld      hl,0b550h
+1886:34                 inc     (hl)
+1887:21 60 b5           ld      hl,0b560h   ; stopa s po‘adovan˜m sektorem
+188a:34                 inc     (hl)
+188b:3e 03              ld      a,3
+188d:32 67 b5           ld      (0b567h),a
+1890:3e 05              ld      a,5
+1892:32 6a b5           ld      (0b56ah),a
+1895:da a8 10           jp      c,10a8h     ; vystaven¡ na po‘adovanou stopu
+1898:21 5f b5           ld      hl,0b55fh   ; bit 5 = vystaven¡ na stopu 00
+189b:c3 3a 12           jp      123ah
+; ......................................................
+189e:16 ef              ld      d,0efh      ; v˜stupn¡ bajt na port B-PIO2/AFS
+18a0:cd 57 19           call    1957h       ; nastaven¡ sign l– AFS do klidov‚ho stavu
+18a3:af                 xor     a
+18a4:32 00 b3           ld      (0b300h),a
+18a7:dd 2a 9c b7        ld      ix,(0b79ch)
+18ab:dd cb 00 ce        set     1,(ix+0)
+18af:fd 21 4a b5        ld      iy,0b54ah
+18b3:21 b0 b4           ld      hl,0b4b0h
+18b6:cb 4e              bit     1,(hl)
+18b8:ca b3 03           jp      z,3b3h
+18bb:3a 4a b5           ld      a,(0b54ah)
+18be:fe 02              cp      2
+18c0:28 27              jr      z,18e9h
+18c2:fe 01              cp      1
+18c4:28 52              jr      z,1918h
+18c6:3e 02              ld      a,2
+18c8:32 4a b5           ld      (0b54ah),a
+18cb:01 05 00           ld      bc,5
+18ce:ed 43 4f b5        ld      (0b54fh),bc
+18d2:79                 ld      a,c
+18d3:32 61 b5           ld      (0b561h),a
+18d6:78                 ld      a,b
+18d7:32 60 b5           ld      (0b560h),a  ; stopa s po‘adovan˜m sektorem
+18da:21 01 00           ld      hl,1
+18dd:22 4d b5           ld      (0b54dh),hl
+18e0:21 e9 97           ld      hl,97e9h
+18e3:22 4b b5           ld      (0b54bh),hl ; adresa pro diskov˜ p©enos
+18e6:c3 fd 0f           jp      0ffdh
+; ......................................................
+18e9:af                 xor     a
+18ea:fd be 0a           cp      (iy+0ah)
+18ed:28 0c              jr      z,18fbh
+18ef:3e 53              ld      a,53h
+18f1:fd 77 0a           ld      (iy+0ah),a
+18f4:cb 8e              res     1,(hl)
+18f6:cb 86              res     0,(hl)
+18f8:c3 b3 03           jp      3b3h
+; ......................................................
+18fb:ed 5b e0 97        ld      de,(97e0h)
+18ff:21 ef 97           ld      hl,97efh
+1902:4a                 ld      c,d
+1903:7b                 ld      a,e
+1904:cd a3 19           call    19a3h
+1907:23                 inc     hl
+1908:af                 xor     a
+1909:77                 ld      (hl),a
+190a:b9                 cp      c
+190b:28 07              jr      z,1914h
+190d:79                 ld      a,c
+190e:0e 00              ld      c,0
+1910:23                 inc     hl
+1911:23                 inc     hl
+1912:18 f0              jr      1904h
+; ......................................................
+1914:3e 01              ld      a,1
+1916:18 b0              jr      18c8h
+; ......................................................
+1918:af                 xor     a
+1919:fd be 0a           cp      (iy+0ah)
+191c:28 d6              jr      z,18f4h
+191e:18 cf              jr      18efh
+; ......................................................
+1920:32 54 b5           ld      (0b554h),a
+1923:d8                 ret     c
+1924:c3 9e 18           jp      189eh
+; ......................................................
+                                            ; nastaven¡ kan lu 1-CTC/ZRE na 9 ms
+1927:16 57              ld      d,57h       ; ‡asovac¡ konstanta 1/87
+1929:3e a7              ld      a,0a7h      ; ‡asova‡ 1/256
+192b:d3 81              out     (81h),a
+192d:7a                 ld      a,d
+192e:d3 81              out     (81h),a
+1930:c9                 ret     
+; ......................................................
+1931:eb                 ex      de,hl
+1932:21 6e b5           ld      hl,0b56eh   ; v˜stupn¡ bajt na port B-PIO2/AFS
+1935:01 60 b5           ld      bc,0b560h   ; stopa s po‘adovan˜m sektorem
+1938:0a                 ld      a,(bc)
+1939:fe 00              cp      0
+193b:20 05              jr      nz,1942h
+193d:cb ae              res     5,(hl)
+193f:3e 01              ld      a,1
+1941:c9                 ret     
+; ......................................................
+1942:fe 4a              cp      4ah
+1944:28 06              jr      z,194ch
+1946:eb                 ex      de,hl
+1947:cb 46              bit     0,(hl)
+1949:eb                 ex      de,hl
+194a:20 f1              jr      nz,193dh
+194c:cb ee              set     5,(hl)
+194e:18 ef              jr      193fh
+; ......................................................
+                                            ; nastaven¡ sign l– AFS do klidov‚ho stavu
+1950:16 6f              ld      d,6fh       ; v˜stupn¡ bajt kan lu B-PIO2/AFS
+1952:3e 03              ld      a,3
+1954:32 68 b5           ld      (0b568h),a
+1957:3a 5c b5         * ld      a,(0b55ch)  ; adresa kan lu pro vstup dat AFS
+195a:c6 03              add     a,3
+195c:4f                 ld      c,a
+195d:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+1960:47                 ld      b,a
+1961:ed 41              out     (c),b       ; v˜stup na port A-PIO2/AFS
+1963:0c                 inc     c
+1964:ed 51              out     (c),d       ; v˜stup na port B-PIO2/AFS
+1966:c9                 ret     
+; ......................................................
+                                            ; inicializace port– PIO/AFS
+1967:3a 5c b5           ld      a,(0b55ch)  ; adresa kan lu pro vstup dat AFS
+196a:47                 ld      b,a
+196b:c6 03              add     a,3
+196d:4f                 ld      c,a
+196e:ed 78              in      a,(c)
+1970:cb 6f              bit     5,a
+1972:28 05              jr      z,1979h
+1974:51                 ld      d,c
+1975:48                 ld      c,b
+1976:ed 78              in      a,(c)       ; vstup z portu B-PIO2/AFS
+1978:4a                 ld      c,d
+1979:0c               * inc     c
+197a:3a 6e b5           ld      a,(0b56eh)  ; v˜stupn¡ bajt na port B-PIO2/AFS
+197d:ed 79              out     (c),a
+197f:0c                 inc     c
+1980:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+1983:cb 66              bit     4,(hl)
+1985:28 0a              jr      z,1991h
+1987:cb a6              res     4,(hl)
+1989:3e cf              ld      a,0cfh      ; A-PIO2/AFS = bitov˜ vstup/v˜stup
+198b:ed 79              out     (c),a
+198d:3e 20              ld      a,20h
+198f:ed 79              out     (c),a       ; bit 5 = vstup, ostatn¡ v˜stup
+1991:3e f7            * ld      a,0f7h
+1993:ed 79              out     (c),a
+1995:3e df              ld      a,0dfh
+1997:ed 79              out     (c),a
+1999:3a 66 b5           ld      a,(0b566h)  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+199c:e6 bf              and     0bfh        ; resetov n¡ bitu 6
+199e:0d                 dec     c
+199f:0d                 dec     c
+19a0:ed 79              out     (c),a       ; v˜stup na port A-PIO2/AFS
+19a2:c9                 ret     
+; ......................................................
+19a3:06 0a              ld      b,0ah
+19a5:16 f0              ld      d,0f0h
+19a7:14                 inc     d
+19a8:90                 sub     b
+19a9:f2 a7 19           jp      p,19a7h
+19ac:15                 dec     d
+19ad:80                 add     a,b
+19ae:72                 ld      (hl),d
+19af:23                 inc     hl
+19b0:f6 f0              or      0f0h
+19b2:77                 ld      (hl),a
+19b3:c9                 ret     
+; ......................................................
+                                            ; kontroln¡ sou‡et CRC
+                                            ; HL=adresa, BC=po‡et bajt–
+                                            ; DE=kontroln¡ sou‡et
+19b4:16 ff              ld      d,0ffh
+19b6:5a                 ld      e,d
+19b7:7e               * ld      a,(hl)
+19b8:aa                 xor     d
+19b9:57                 ld      d,a
+19ba:0f                 rrca    
+19bb:0f                 rrca    
+19bc:0f                 rrca    
+19bd:0f                 rrca    
+19be:e6 0f              and     0fh
+19c0:aa                 xor     d
+19c1:57                 ld      d,a
+19c2:0f                 rrca    
+19c3:0f                 rrca    
+19c4:0f                 rrca    
+19c5:f5                 push    af
+19c6:e6 1f              and     1fh
+19c8:ab                 xor     e
+19c9:5f                 ld      e,a
+19ca:f1                 pop     af
+19cb:f5                 push    af
+19cc:0f                 rrca    
+19cd:e6 f0              and     0f0h
+19cf:ab                 xor     e
+19d0:5f                 ld      e,a
+19d1:f1                 pop     af
+19d2:e6 e0              and     0e0h
+19d4:aa                 xor     d
+19d5:53                 ld      d,e
+19d6:5f                 ld      e,a
+19d7:23                 inc     hl
+19d8:0b                 dec     bc
+19d9:78                 ld      a,b
+19da:b1                 or      c
+19db:20 da              jr      nz,19b7h
+19dd:c9                 ret     
+; ......................................................
+19de:21 5e b5           ld      hl,0b55eh   ; diskov  operace
+19e1:11 62 b5           ld      de,0b562h
+19e4:01 04 00           ld      bc,4
+19e7:ed b0              ldir    
+19e9:c9                 ret     
+; ......................................................
+19ea:21 62 b5           ld      hl,0b562h
+19ed:11 5e b5           ld      de,0b55eh   ; diskov  operace
+19f0:01 04 00           ld      bc,4
+19f3:ed b0              ldir    
+19f5:c9                 ret     
+; ......................................................
+19f6:21 00 b3           ld      hl,0b300h
+19f9:cb 46              bit     0,(hl)
+19fb:c0                 ret     nz
+19fc:23                 inc     hl
+19fd:23                 inc     hl
+19fe:af                 xor     a
+19ff:be                 cp      (hl)
+1a00:20 22              jr      nz,1a24h
+1a02:36 01              ld      (hl),1
+1a04:ed 7b 03 b3        ld      sp,(0b303h)
+1a08:08                 ex      af,af'
+1a09:d9                 exx     
+1a0a:e5                 push    hl
+1a0b:f5                 push    af
+1a0c:d5                 push    de
+1a0d:c5                 push    bc
+1a0e:dd e5              push    ix
+1a10:fd e5              push    iy
+1a12:21 29 0d           ld      hl,0d29h
+1a15:e5                 push    hl
+1a16:08                 ex      af,af'
+1a17:d9                 exx     
+1a18:ed 73 03 b3        ld      (0b303h),sp
+1a1c:31 e3 b3           ld      sp,0b3e3h
+1a1f:21 f9 0c           ld      hl,0cf9h
+1a22:e3                 ex      (sp),hl
+1a23:e9                 jp      (hl)
+; ......................................................
+1a24:08                 ex      af,af'
+1a25:d9                 exx     
+1a26:e3                 ex      (sp),hl
+1a27:f5                 push    af
+1a28:d5                 push    de
+1a29:c5                 push    bc
+1a2a:dd e5              push    ix
+1a2c:fd e5              push    iy
+1a2e:01 29 0d           ld      bc,0d29h
+1a31:c5                 push    bc
+1a32:e5                 push    hl
+1a33:08                 ex      af,af'
+1a34:d9                 exx     
+1a35:c9                 ret     
+; ......................................................
+1a36:dd 4e 08           ld      c,(ix+8)
+1a39:cb 21              sla     c
+1a3b:06 00              ld      b,0
+1a3d:21 cc 1a           ld      hl,1acch
+1a40:09                 add     hl,bc
+1a41:7e                 ld      a,(hl)
+1a42:32 66 b5           ld      (0b566h),a  ; v˜stup na ©¡d¡c¡ port A-PIO2/AFS
+1a45:23                 inc     hl
+1a46:7e                 ld      a,(hl)
+1a47:32 5b b5           ld      (0b55bh),a  ; b zov  adresa port– AFS
+1a4a:3c                 inc     a
+1a4b:32 5c b5           ld      (0b55ch),a  ; adresa kan lu pro vstup dat AFS
+1a4e:21 5d b5           ld      hl,0b55dh
+1a51:cb 59              bit     3,c
+1a53:20 07              jr      nz,1a5ch
+1a55:cb 46              bit     0,(hl)
+1a57:c0                 ret     nz
+1a58:cb c6              set     0,(hl)
+1a5a:18 05              jr      1a61h
+; ......................................................
+1a5c:cb 4e              bit     1,(hl)
+1a5e:c0                 ret     nz
+1a5f:cb ce              set     1,(hl)
+1a61:21 d0 1a           ld      hl,1ad0h
+1a64:3a 5c b5           ld      a,(0b55ch)  ; adresa kan lu pro vstup dat AFS
+1a67:c6 05              add     a,5
+1a69:4f                 ld      c,a
+1a6a:ed a3              oti     
+1a6c:41                 ld      b,c
+1a6d:0d                 dec     c
+1a6e:59                 ld      e,c
+1a6f:0d                 dec     c
+1a70:3e ff              ld      a,0ffh
+1a72:ed 79              out     (c),a
+1a74:48                 ld      c,b
+1a75:06 05              ld      b,5
+1a77:ed b3              otir    
+1a79:0c                 inc     c
+1a7a:06 03              ld      b,3
+1a7c:ed b3              otir    
+1a7e:3a 5c b5           ld      a,(0b55ch)  ; adresa kan lu pro vstup dat AFS
+1a81:4f                 ld      c,a
+1a82:0c                 inc     c
+1a83:ed a3              oti     
+1a85:ed a3              oti     
+1a87:0c                 inc     c
+1a88:ed a3              oti     
+1a8a:ed a3              oti     
+1a8c:4f                 ld      c,a
+1a8d:3a 4a b5           ld      a,(0b54ah)
+1a90:d6 03              sub     3
+1a92:d0                 ret     nc
+1a93:ed 78              in      a,(c)
+1a95:c9                 ret     
+; ......................................................
+1a96:16 ef              ld      d,0efh
+1a98:cd 52 19           call    1952h
+1a9b:16 02              ld      d,2
+1a9d:cd b6 1a           call    1ab6h
+1aa0:15                 dec     d
+1aa1:20 fa              jr      nz,1a9dh
+1aa3:16 50              ld      d,50h
+1aa5:4b                 ld      c,e
+1aa6:ed 78              in      a,(c)
+1aa8:cb 57              bit     2,a
+1aaa:c8                 ret     z
+1aab:cd b2 1a           call    1ab2h
+1aae:15                 dec     d
+1aaf:20 f4              jr      nz,1aa5h
+1ab1:c9                 ret     
+; ......................................................
+1ab2:3e af              ld      a,0afh
+1ab4:18 02              jr      1ab8h
+; ......................................................
+1ab6:3e 8f              ld      a,8fh
+1ab8:4b                 ld      c,e
+1ab9:ed 79              out     (c),a
+1abb:06 04              ld      b,4
+1abd:10 fe              djnz    1abdh
+1abf:f6 40              or      40h
+1ac1:ed 79              out     (c),a
+1ac3:01 00 04           ld      bc,400h
+1ac6:0b                 dec     bc
+1ac7:78                 ld      a,b
+1ac8:b1                 or      c
+1ac9:20 fb              jr      nz,1ac6h
+1acb:c9                 ret     
+; ......................................................
+1acc:                   db   0d8h,70h,0dch,70h
+1ad0:                   db   4fh,8,0cfh,20h,77h,0dfh,0cfh
+1ad7:                   db   0fh,7,0fh,3,4fh,3
+1add:c3 8e 1c           jp      1c8eh
+; ......................................................
+1ae0:c3 52 1c           jp      1c52h
+; ......................................................
+1ae3:c3 0a 1c           jp      1c0ah
+; ......................................................
+1ae6:c3 bd 1c           jp      1cbdh
+; ......................................................
+1ae9:c3 c5 1b           jp      1bc5h
+; ......................................................
+1aec:c3 26 1e           jp      1e26h
+; ......................................................
+                                            ; obsluha p©eru¨en¡ CTC-2/ZRE
+1aef:c3 4f 1e           jp      1e4fh
+; ......................................................
+1af2:4f                 ld      c,a
+1af3:03                 inc     bc
+1af4:cf                 rst     8
+1af5:9c                 sbc     a,h
+1af6:b7                 or      a
+1af7:7b                 ld      a,e
+1af8:20 00              jr      nz,1afah
+1afa:a5                 and     l
+1afb:c0                 ret     nz
+1afc:0f                 rrca    
+1afd:24                 inc     h
+1afe:b7                 or      a
+1aff:fb                 ei      
+1b00:28 21              jr      z,1b23h
+1b02:83                 add     a,e
+1b03:97                 sub     a
+1b04:fb                 ei      
+1b05:22 23 26           ld      (2623h),hl
+1b08:83                 add     a,e
+1b09:97                 sub     a
+1b0a:fb                 ei      
+1b0b:2a 03 0f           ld      hl,(0f03h)
+1b0e:24                 inc     h
+1b0f:b7                 or      a
+1b10:7f                 ld      a,a
+1b11:28 60              jr      z,1b73h
+1b13:83                 add     a,e
+1b14:97                 sub     a
+1b15:7f                 ld      a,a
+1b16:22 62 26           ld      (2662h),hl
+1b19:83                 add     a,e
+1b1a:97                 sub     a
+1b1b:7f                 ld      a,a
+1b1c:2a 42 0f           ld      hl,(0f42h)
+1b1f:24                 inc     h
+1b20:b7                 or      a
+1b21:ef                 rst     28h
+1b22:28 28              jr      z,1b4ch
+1b24:83                 add     a,e
+1b25:97                 sub     a
+1b26:ef                 rst     28h
+1b27:22 2a 26           ld      (262ah),hl
+1b2a:83                 add     a,e
+1b2b:97                 sub     a
+1b2c:ef                 rst     28h
+1b2d:2a 0a 0e           db   2ah,0ah
+1b2f:0e 86              db   0eh
+1b30:86                 add     a,(hl)
+1b31:ed b3              otir    
+1b33:42                 ld      b,d
+1b34:0c                 inc     c
+1b35:ed b3              otir    
+1b37:0e 85              ld      c,85h
+1b39:ed a3              oti     
+1b3b:c9                 ret     
+; ......................................................
+1b3c:21 fa 1a           ld      hl,1afah
+1b3f:0e 82              ld      c,82h
+1b41:06 02              ld      b,2
+1b43:ed b3              otir    
+1b45:3e 64              ld      a,64h
+1b47:32 1e 1f           ld      (1f1eh),a
+1b4a:c9                 ret     
+; ......................................................
+
+1b4b:dd 21 fb 1e        ld      ix,1efbh
+1b4f:fd 21 08 1f        ld      iy,1f08h
+1b53:c9                 ret     
+; ......................................................
+1b54:21 f2 1a           ld      hl,1af2h
+1b57:06 02              ld      b,2
+1b59:16 05              ld      d,5
+1b5b:cd 2f 1b           call    1b2fh
+1b5e:c9                 ret     
+; ......................................................
+1b5f:cb be              res     7,(hl)
+1b61:e5                 push    hl
+1b62:21 12 1f           ld      hl,1f12h
+1b65:cb fe              set     7,(hl)
+1b67:e1                 pop     hl
+1b68:c9                 ret     
+; ......................................................
+1b69:f3                 di      
+1b6a:21 1e 1f           ld      hl,1f1eh
+1b6d:06 11              ld      b,11h
+1b6f:36 00              ld      (hl),0
+1b71:23                 inc     hl
+1b72:10 fb              djnz    1b6fh
+1b74:cd 54 1b           call    1b54h
+1b77:c9                 ret     
+; ......................................................
+1b78:af                 xor     a
+1b79:32 2e 1f           ld      (1f2eh),a
+1b7c:21 31 1f           ld      hl,1f31h
+1b7f:ed 4b 0f 1f        ld      bc,(1f0fh)
+1b83:ed 42              sbc     hl,bc
+1b85:ca 98 1c           jp      z,1c98h
+1b88:f3                 di      
+1b89:3e 08              ld      a,8
+1b8b:fd be 06           cp      (iy+6)
+1b8e:d2 9f 1b           jp      nc,1b9fh
+1b91:3e 3f              ld      a,3fh
+1b93:fd be 06           cp      (iy+6)
+1b96:da bf 1b           jp      c,1bbfh
+1b99:21 1e 1b           ld      hl,1b1eh
+1b9c:c3 a2 1b           jp      1ba2h
+; ......................................................
+1b9f:21 fc 1a           ld      hl,1afch
+1ba2:11 32 1f           ld      de,1f32h
+1ba5:01 0b 00           ld      bc,0bh
+1ba8:ed b0              ldir    
+1baa:21 32 1f           ld      hl,1f32h
+1bad:06 02              ld      b,2
+1baf:16 03              ld      d,3
+1bb1:cd 2f 1b           call    1b2fh
+1bb4:21 12 1f           ld      hl,1f12h
+1bb7:36 0c              ld      (hl),0ch
+1bb9:cd 3c 1b           call    1b3ch
+1bbc:c3 64 03           jp      364h
+; ......................................................
+1bbf:21 0d 1b           ld      hl,1b0dh
+1bc2:c3 a2 1b           jp      1ba2h
+; ......................................................
+1bc5:cd bf 0c           call    0cbfh       ; £schova registr–
+1bc8:cd 4b 1b           call    1b4bh
+1bcb:21 12 1f           ld      hl,1f12h
+1bce:cb 9e              res     3,(hl)
+1bd0:fb                 ei      
+1bd1:21 30 1c           ld      hl,1c30h
+1bd4:22 23 1f           ld      (1f23h),hl
+1bd7:01 05 00           ld      bc,5
+1bda:ed 43 21 1f        ld      (1f21h),bc
+1bde:21 08 1f           ld      hl,1f08h
+1be1:11 25 1f           ld      de,1f25h
+1be4:01 02 00           ld      bc,2
+1be7:ed b0              ldir    
+1be9:01 03 00           ld      bc,3
+1bec:21 0c 1f           ld      hl,1f0ch
+1bef:ed b0              ldir    
+1bf1:21 25 1f           ld      hl,1f25h
+1bf4:22 1f 1f           ld      (1f1fh),hl
+1bf7:7e                 ld      a,(hl)
+1bf8:d3 84              out     (84h),a
+1bfa:f3                 di      
+1bfb:21 38 1f           ld      hl,1f38h
+1bfe:06 01              ld      b,1
+1c00:16 03              ld      d,3
+1c02:cd 2f 1b           call    1b2fh
+1c05:f3                 di      
+1c06:a7                 and     a
+1c07:c3 ad 03           jp      3adh
+; ......................................................
+1c0a:cd bf 0c           call    0cbfh       ; £schova registr–
+1c0d:cd 4b 1b           call    1b4bh
+1c10:fb                 ei      
+1c11:ed 4b 21 1f        ld      bc,(1f21h)
+1c15:0b                 dec     bc
+1c16:ed 43 21 1f        ld      (1f21h),bc
+1c1a:78                 ld      a,b
+1c1b:b1                 or      c
+1c1c:c2 23 1c           jp      nz,1c23h
+1c1f:2a 23 1f           ld      hl,(1f23h)
+1c22:e9                 jp      (hl)
+; ......................................................
+1c23:2a 1f 1f           ld      hl,(1f1fh)
+1c26:23                 inc     hl
+1c27:22 1f 1f           ld      (1f1fh),hl
+1c2a:7e                 ld      a,(hl)
+1c2b:d3 84              out     (84h),a
+1c2d:c3 05 1c           jp      1c05h
+; ......................................................
+1c30:2a 0c 1f           ld      hl,(1f0ch)
+1c33:22 21 1f           ld      (1f21h),hl
+1c36:21 45 1c           ld      hl,1c45h
+1c39:22 23 1f           ld      (1f23h),hl
+1c3c:2a 0a 1f           ld      hl,(1f0ah)
+1c3f:22 1f 1f           ld      (1f1fh),hl
+1c42:c3 2a 1c           jp      1c2ah
+; ......................................................
+1c45:21 30 1c           ld      hl,1c30h
+1c48:22 23 1f           ld      (1f23h),hl
+1c4b:3e 20              ld      a,20h
+1c4d:d3 85              out     (85h),a
+1c4f:c3 05 1c           jp      1c05h
+; ......................................................
+1c52:cd bf 0c           call    0cbfh       ; £schova registr–
+1c55:cd 4b 1b           call    1b4bh
+1c58:3e 03              ld      a,3
+1c5a:d3 82              out     (82h),a
+1c5c:fb                 ei      
+1c5d:2a 23 1f           ld      hl,(1f23h)
+1c60:01 45 1c           ld      bc,1c45h
+1c63:b7                 or      a
+1c64:ed 42              sbc     hl,bc
+1c66:ca 7e 1c           jp      z,1c7eh
+1c69:2a 21 1f           ld      hl,(1f21h)
+1c6c:7c                 ld      a,h
+1c6d:b5                 or      l
+1c6e:c2 86 1c           jp      nz,1c86h
+1c71:21 12 1f           ld      hl,1f12h
+1c74:cb 96              res     2,(hl)
+1c76:f3                 di      
+1c77:cd 54 1b           call    1b54h
+1c7a:37                 scf     
+1c7b:c3 ad 03           jp      3adh
+; ......................................................
+1c7e:21 12 1f           ld      hl,1f12h
+1c81:cb e6              set     4,(hl)
+1c83:c3 76 1c           jp      1c76h
+; ......................................................
+1c86:21 12 1f           ld      hl,1f12h
+1c89:cb ee              set     5,(hl)
+1c8b:c3 76 1c           jp      1c76h
+; ......................................................
+1c8e:cd bf 0c           call    0cbfh       ; £schova registr–
+1c91:d7                 rst     10h
+1c92:00                 nop     
+1c93:01 02 c3           ld      bc,0c302h
+1c96:ef                 rst     28h
+1c97:0c                 inc     c
+1c98:21 ef 1c           ld      hl,1cefh
+1c9b:22 23 1f           ld      (1f23h),hl
+1c9e:21 05 00           ld      hl,5
+1ca1:22 21 1f           ld      (1f21h),hl
+1ca4:21 25 1f           ld      hl,1f25h
+1ca7:22 1f 1f           ld      (1f1fh),hl
+1caa:f3                 di      
+1cab:21 3d 1f           ld      hl,1f3dh
+1cae:06 02              ld      b,2
+1cb0:16 03              ld      d,3
+1cb2:cd 2f 1b           call    1b2fh
+1cb5:db 84              in      a,(84h)
+1cb7:cd 3c 1b           call    1b3ch
+1cba:c3 64 03           jp      364h
+; ......................................................
+1cbd:cd bf 0c           call    0cbfh       ; £schova registr–
+1cc0:cd 4b 1b           call    1b4bh
+1cc3:db 85              in      a,(85h)
+1cc5:cb 8f              res     1,a
+1cc7:d3 85              out     (85h),a
+1cc9:fb                 ei      
+1cca:2a 1f 1f           ld      hl,(1f1fh)
+1ccd:db 84              in      a,(84h)
+1ccf:77                 ld      (hl),a
+1cd0:ed 4b 21 1f        ld      bc,(1f21h)
+1cd4:0b                 dec     bc
+1cd5:ed 43 21 1f        ld      (1f21h),bc
+1cd9:78                 ld      a,b
+1cda:b1                 or      c
+1cdb:c2 e2 1c           jp      nz,1ce2h
+1cde:2a 23 1f           ld      hl,(1f23h)
+1ce1:e9                 jp      (hl)
+; ......................................................
+1ce2:23                 inc     hl
+1ce3:22 1f 1f           ld      (1f1fh),hl
+1ce6:db 85              in      a,(85h)
+1ce8:cb cf              set     1,a
+1cea:d3 85              out     (85h),a
+1cec:c3 05 1c           jp      1c05h
+; ......................................................
+1cef:21 26 1f           ld      hl,1f26h
+1cf2:cb 7e              bit     7,(hl)
+1cf4:c4 5f 1b           call    nz,1b5fh
+1cf7:4e                 ld      c,(hl)
+1cf8:06 00              ld      b,0
+1cfa:21 14 fc           ld      hl,0fc14h
+1cfd:09                 add     hl,bc
+1cfe:22 2a 1f           ld      (1f2ah),hl
+1d01:7e                 ld      a,(hl)
+1d02:e6 7f              and     7fh
+1d04:4f                 ld      c,a
+1d05:06 03              ld      b,3
+1d07:81                 add     a,c
+1d08:05                 dec     b
+1d09:c2 07 1d           jp      nz,1d07h
+1d0c:21 1d 06           ld      hl,61dh
+1d0f:4f                 ld      c,a
+1d10:09                 add     hl,bc
+1d11:4e                 ld      c,(hl)
+1d12:23                 inc     hl
+1d13:46                 ld      b,(hl)
+1d14:c5                 push    bc
+1d15:e1                 pop     hl
+1d16:2b                 dec     hl
+1d17:46                 ld      b,(hl)
+1d18:2b                 dec     hl
+1d19:4e                 ld      c,(hl)
+1d1a:ed 43 1f 1f        ld      (1f1fh),bc
+1d1e:ed 43 2c 1f        ld      (1f2ch),bc
+1d22:ed 4b 2a 1f        ld      bc,(1f2ah)
+1d26:0a                 ld      a,(bc)
+1d27:cb 7f              bit     7,a
+1d29:c2 a4 1d           jp      nz,1da4h
+1d2c:2b                 dec     hl
+1d2d:56                 ld      d,(hl)
+1d2e:3e 1f              ld      a,1fh
+1d30:a2                 and     d
+1d31:57                 ld      d,a
+1d32:3e e0              ld      a,0e0h
+1d34:46                 ld      b,(hl)
+1d35:a0                 and     b
+1d36:cb 3f              srl     a
+1d38:cb 3f              srl     a
+1d3a:cb 3f              srl     a
+1d3c:cb 3f              srl     a
+1d3e:cb 3f              srl     a
+1d40:47                 ld      b,a
+1d41:2b                 dec     hl
+1d42:5e                 ld      e,(hl)
+1d43:2a 1f 1f           ld      hl,(1f1fh)
+1d46:af                 xor     a
+1d47:48                 ld      c,b
+1d48:47                 ld      b,a
+1d49:ed a1              cpi     
+1d4b:2b                 dec     hl
+1d4c:e2 5a 1d           jp      po,1d5ah
+1d4f:c2 67 1d           jp      nz,1d67h
+1d52:da 6c 1d           jp      c,1d6ch
+1d55:19                 add     hl,de
+1d56:b7                 or      a
+1d57:c3 49 1d           jp      1d49h
+; ......................................................
+1d5a:ca 6c 1d           jp      z,1d6ch
+1d5d:2a 1f 1f           ld      hl,(1f1fh)
+1d60:be                 cp      (hl)
+1d61:ca 7f 1d           jp      z,1d7fh
+1d64:c3 79 1d           jp      1d79h
+; ......................................................
+1d67:19                 add     hl,de
+1d68:37                 scf     
+1d69:c3 49 1d           jp      1d49h
+; ......................................................
+1d6c:dc 72 1d           call    c,1d72h
+1d6f:c3 7f 1d           jp      1d7fh
+; ......................................................
+1d72:22 1f 1f           ld      (1f1fh),hl
+1d75:22 2c 1f           ld      (1f2ch),hl
+1d78:c9                 ret     
+; ......................................................
+1d79:af                 xor     a
+1d7a:d3 85              out     (85h),a
+1d7c:c3 05 1c           jp      1c05h
+; ......................................................
+1d7f:2a 2a 1f           ld      hl,(1f2ah)
+1d82:cb fe              set     7,(hl)
+1d84:21 26 1f           ld      hl,1f26h
+1d87:ed 5b 2c 1f        ld      de,(1f2ch)
+1d8b:13                 inc     de
+1d8c:01 04 00           ld      bc,4
+1d8f:ed b0              ldir    
+1d91:ed 53 1f 1f        ld      (1f1fh),de
+1d95:21 c2 1d           ld      hl,1dc2h
+1d98:22 23 1f           ld      (1f23h),hl
+1d9b:2a 28 1f           ld      hl,(1f28h)
+1d9e:22 21 1f           ld      (1f21h),hl
+1da1:c3 e6 1c           jp      1ce6h
+; ......................................................
+1da4:01 03 00           ld      bc,3
+1da7:2a 2c 1f           ld      hl,(1f2ch)
+1daa:09                 add     hl,bc
+1dab:5e                 ld      e,(hl)
+1dac:23                 inc     hl
+1dad:56                 ld      d,(hl)
+1dae:ed 53 1f 1f        ld      (1f1fh),de
+1db2:21 26 1f           ld      hl,1f26h
+1db5:ed 5b 2c 1f        ld      de,(1f2ch)
+1db9:13                 inc     de
+1dba:01 04 00           ld      bc,4
+1dbd:ed b0              ldir    
+1dbf:c3 95 1d           jp      1d95h
+; ......................................................
+1dc2:01 02 00           ld      bc,2
+1dc5:2a 2c 1f           ld      hl,(1f2ch)
+1dc8:09                 add     hl,bc
+1dc9:cb 7e              bit     7,(hl)
+1dcb:ca 0f 1e           jp      z,1e0fh
+1dce:cb be              res     7,(hl)
+1dd0:2a 1f 1f           ld      hl,(1f1fh)
+1dd3:ed 4b 2c 1f        ld      bc,(1f2ch)
+1dd7:a7                 and     a
+1dd8:ed 42              sbc     hl,bc
+1dda:a7                 and     a
+1ddb:01 04 00           ld      bc,4
+1dde:ed 42              sbc     hl,bc
+1de0:f3                 di      
+1de1:e5                 push    hl
+1de2:2a 2c 1f           ld      hl,(1f2ch)
+1de5:01 03 00           ld      bc,3
+1de8:09                 add     hl,bc
+1de9:c1                 pop     bc
+1dea:71                 ld      (hl),c
+1deb:23                 inc     hl
+1dec:70                 ld      (hl),b
+1ded:2a 2a 1f           ld      hl,(1f2ah)
+1df0:cb be              res     7,(hl)
+1df2:21 25 1f           ld      hl,1f25h
+1df5:ed 5b 2c 1f        ld      de,(1f2ch)
+1df9:01 01 00           ld      bc,1
+1dfc:ed a0              ldi     
+1dfe:21 12 1f           ld      hl,1f12h
+1e01:cb f6              set     6,(hl)
+1e03:ed 4b 2a 1f        ld      bc,(1f2ah)
+1e07:0a                 ld      a,(bc)
+1e08:21 30 1f           ld      hl,1f30h
+1e0b:77                 ld      (hl),a
+1e0c:c3 79 1d           jp      1d79h
+; ......................................................
+1e0f:01 03 00           ld      bc,3
+1e12:2a 2c 1f           ld      hl,(1f2ch)
+1e15:09                 add     hl,bc
+1e16:ed 4b 1f 1f        ld      bc,(1f1fh)
+1e1a:03                 inc     bc
+1e1b:71                 ld      (hl),c
+1e1c:23                 inc     hl
+1e1d:70                 ld      (hl),b
+1e1e:21 12 1f           ld      hl,1f12h
+1e21:cb b6              res     6,(hl)
+1e23:c3 79 1d           jp      1d79h
+; ......................................................
+1e26:cd bf 0c           call    0cbfh
+1e29:cd 4b 1b           call    1b4bh
+1e2c:3e 03              ld      a,3
+1e2e:d3 82              out     (82h),a
+1e30:fb                 ei      
+1e31:2a 23 1f           ld      hl,(1f23h)
+1e34:01 ef 1c           ld      bc,1cefh
+1e37:b7                 or      a
+1e38:ed 42              sbc     hl,bc
+1e3a:ca 76 1c           jp      z,1c76h
+1e3d:ed 4b 21 1f        ld      bc,(1f21h)
+1e41:78                 ld      a,b
+1e42:b1                 or      c
+1e43:c4 49 1e           call    nz,1e49h
+1e46:c3 76 1c           jp      1c76h
+; ......................................................
+1e49:21 12 1f           ld      hl,1f12h
+1e4c:cb ee              set     5,(hl)
+1e4e:c9                 ret     
+; ......................................................
+                                            ; obsluha p©eru¨en¡ CTC-2/ZRE
+1e4f:cd bf 0c           call    0cbfh       ; £schova registr–
+1e52:cd 4b 1b           call    1b4bh       ; nastaven¡ IX,IY
+1e55:fb                 ei                  
+1e56:21 12 1f           ld      hl,1f12h    
+1e59:cb 56              bit     2,(hl)      
+1e5b:c2 7c 1e           jp      nz,1e7ch    
+1e5e:3a 1e 1f           ld      a,(1f1eh)   
+1e61:3d                 dec     a           
+1e62:32 1e 1f           ld      (1f1eh),a   
+1e65:c2 05 1c           jp      nz,1c05h    
+1e68:3e 03              ld      a,3         
+1e6a:d3 82              out     (82h),a     ; z kaz p©eru¨en¡ CTC-2/ZRE
+1e6c:cb c6              set     0,(hl)
+1e6e:cb 56              bit     2,(hl)
+1e70:cc 76 1e           call    z,1e76h
+1e73:c3 76 1c           jp      1c76h
+; ......................................................
+1e76:2a 2a 1f           ld      hl,(1f2ah)
+1e79:cb be              res     7,(hl)
+1e7b:c9                 ret     
+; ......................................................
+1e7c:cb 5e              bit     3,(hl)
+1e7e:ca 5e 1e           jp      z,1e5eh
+1e81:3e 03              ld      a,3
+1e83:d3 82              out     (82h),a
+1e85:c3 76 1c           jp      1c76h
+; ......................................................
+                                            ; FUNKCE 02
+1e88:21 2e 1f           ld      hl,1f2eh
+1e8b:36 00              ld      (hl),0
+1e8d:db 85              in      a,(85h)
+1e8f:cb 7f              bit     7,a
+1e91:c2 c5 1e           jp      nz,1ec5h
+1e94:cb 57              bit     2,a
+1e96:c2 d5 1e           jp      nz,1ed5h
+1e99:cb 67              bit     4,a
+1e9b:ca f3 1e           jp      z,1ef3h
+1e9e:c3 c2 1e           jp      1ec2h
+; ......................................................
+1ea1:11 3d 1f           ld      de,1f3dh
+1ea4:01 06 00           ld      bc,6
+1ea7:ed b0              ldir    
+1ea9:d7                 rst     10h
+1eaa:08                 ex      af,af'
+1eab:05                 dec     b
+1eac:34                 inc     (hl)
+1ead:13                 inc     de
+1eae:00                 nop     
+1eaf:31 1f 3a           ld      sp,3a1fh
+1eb2:31 1f cb           ld      sp,0cb1fh
+1eb5:7f                 ld      a,a
+1eb6:c2 e0 1e           jp      nz,1ee0h
+1eb9:cb 77              bit     6,a
+1ebb:ca c2 1e           jp      z,1ec2h
+1ebe:d7                 rst     10h
+1ebf:80                 add     a,b
+1ec0:2f                 cpl     
+1ec1:1f                 rra     
+1ec2:d7                 rst     10h
+1ec3:01 80 cb           ld      bc,0cb80h
+1ec6:57                 ld      d,a
+1ec7:c4 ed 1e           call    nz,1eedh
+1eca:cb 67              bit     4,a
+1ecc:c4 ed 1e           call    nz,1eedh
+1ecf:21 18 1b           ld      hl,1b18h
+1ed2:c3 a1 1e           jp      1ea1h
+; ......................................................
+1ed5:cb 67              bit     4,a
+1ed7:c4 ed 1e           call    nz,1eedh
+1eda:21 07 1b           ld      hl,1b07h
+1edd:c3 a1 1e           jp      1ea1h
+; ......................................................
+1ee0:2a 2a 1f           ld      hl,(1f2ah)
+1ee3:cb be              res     7,(hl)
+1ee5:2a 2c 1f           ld      hl,(1f2ch)
+1ee8:36 00              ld      (hl),0
+1eea:c3 c2 1e           jp      1ec2h
+; ......................................................
+1eed:21 2e 1f           ld      hl,1f2eh
+1ef0:cb c6              set     0,(hl)
+1ef2:c9                 ret     
+; ......................................................
+1ef3:21 2e 1f           ld      hl,1f2eh
+1ef6:cb ce              set     1,(hl)
+1ef8:c3 c2 1e           jp      1ec2h
+; ......................................................
+1efb:                    db      0,10h,78h,1bh,69h
+1f00:                    db      1bh,8,1fh,0,0,0,0
+1f07:                    db      0
+1f08:                    db      0ddh,21h
+1f0a:                    db      1fh,0f8h
+1f0c:                    db      0ddh,4eh,16h,0ddh,46h,17h
+1f12:                    db      0ddh,19h,1fh,84h,0,0,0,0,0,0,0,0
+1f1e:                    db      0fah
+1f1f:                    db      18h,0a5h
+1f21:                    db      21h,0cbh
+1f23:                    db      0fah,7eh
+1f25:                    db      0b7h
+1f26:                    db      28h,2bh
+1f28:                    db      0c5h,0ddh
+1f2a:                    db      4eh,12h
+1f2c:                    db      0ddh,46h
+1f2e:                    db      13h
+
+1f2f:01 21 5d           ld      bc,5d21h
+1f32:60                 ld      h,b
+1f33:dd 22 74 5f        ld      (5f74h),ix
+1f37:3e 44              ld      a,44h
+1f39:cd 04 0c           call    0c04h
+1f3c:cd b0 0c           call    0cb0h
+1f3f:ef                 rst     28h
+1f40:3e 97              ld      a,97h
+1f42:32 08 ca           ld      (0ca08h),a
+1f45:2a 0e 08           ld      hl,(80eh)
+1f48:c3 eb 0d           jp      0debh
+; ......................................................
+1f4b:32 5f b5           ld      (0b55fh),a  ; bit 5 = vystaven¡ na stopu 00
+1f4e:3e 04              ld      a,4
+1f50:32 81 b5           ld      (0b581h),a
+1f53:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+1f56:b7                 or      a
+1f57:3e 40              ld      a,40h
+1f59:28 02              jr      z,1f5dh
+1f5b:3e d0              ld      a,0d0h
+1f5d:32 6c b5           ld      (0b56ch),a
+1f60:c9                 ret     
+; ......................................................
+1f61:3a 6e b5           ld      a,(0b56eh)  ; v˜stupn¡ bajt na port B-PIO2/AFS
+1f64:fe cf              cp      0cfh
+1f66:c2 eb 38           jp      nz,38ebh
+1f69:3e ef              ld      a,0efh
+1f6b:32 6e b5           ld      (0b56eh),a  ; v˜stupn¡ bajt na port B-PIO2/AFS
+1f6e:c3 13 11           jp      1113h
+; ......................................................
+1f71:cb a6              res     4,(hl)
+1f73:21 e3 10           ld      hl,10e3h
+1f76:c9                 ret     
+; ......................................................
+1f77:32 6a b5           ld      (0b56ah),a
+1f7a:3d                 dec     a
+1f7b:32 81 b5           ld      (0b581h),a
+1f7e:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+1f81:b7                 or      a
+1f82:3e 40              ld      a,40h
+1f84:28 02              jr      z,1f88h     ; je disketa 512 B
+1f86:3e d0              ld      a,0d0h
+1f88:32 6c b5         * ld      (0b56ch),a
+1f8b:c9                 ret     
+; ......................................................
+1f8c:                   db   0,0,0,0,0,0,0,0,0,0,0
+1f97:eb                 ex      de,hl
+1f98:57                 ld      d,a
+1f99:d5                 push    de
+1f9a:e5                 push    hl
+1f9b:21 82 b5           ld      hl,0b582h
+1f9e:01 07 00           ld      bc,7
+1fa1:cd b4 19           call    19b4h       ; kontroln¡ sou‡et CRC
+1fa4:7b                 ld      a,e
+1fa5:b2                 or      d
+1fa6:e1                 pop     hl
+1fa7:d1                 pop     de
+1fa8:7a                 ld      a,d
+1fa9:28 15              jr      z,1fc0h
+1fab:21 6c b5           ld      hl,0b56ch
+1fae:35                 dec     (hl)
+1faf:c2 f5 1f           jp      nz,1ff5h
+1fb2:3a 53 b5           ld      a,(0b553h)  ; typ diskety (0=disketa 512 B)
+1fb5:b7                 or      a
+1fb6:3e 40              ld      a,40h
+1fb8:28 02              jr      z,1fbch
+1fba:3e d0              ld      a,0d0h
+1fbc:77                 ld      (hl),a
+1fbd:c3 4f 13           jp      134fh
+; ......................................................
+1fc0:32 6d b5           ld      (0b56dh),a  ; skute‡nˆ nastaven  stopa
+1fc3:c3 b2 11           jp      11b2h
+; ......................................................
+1fc6:dd 2a 9c b7        ld      ix,(0b79ch)
+1fca:dd cb 00 86        res     0,(ix+0)
+1fce:dd cb 01 8e        res     1,(ix+1)
+1fd2:c3 88 13           jp      1388h
+; ......................................................
+1fd5:dd 2a 9c b7        ld      ix,(0b79ch)
+1fd9:c3 ce 1f           jp      1fceh
+; ......................................................
+1fdc:cb a6              res     4,(hl)
+1fde:c3 ef 0c           jp      0cefh
+; ......................................................
+1fe1:21 89 11           ld      hl,1189h
+1fe4:22 7a b5           ld      (0b57ah),hl
+1fe7:c9                 ret     
+; ......................................................
+1fe8:                   db   0,0
+1fea:c2 1f 11           jp      nz,111fh
+1fed:3e 02              ld      a,2
+1fef:32 73 b5           ld      (0b573h),a
+1ff2:c3 3f 11           jp      113fh
+; ......................................................
+1ff5:cd 45 11           call    1145h
+1ff8:c3 dc 10           jp      10dch
+; ......................................................
+1ffb:                   db   0,0,0,0,0
+

@@ -1,0 +1,857 @@
+
+   **  Programmer's Technical Reference for MSDOS and the IBM PC **
+            USA copyright TXG 392-616  ALL RIGHTS RESERVED
+ ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´ DOSREF (tm) ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+                 ISBN 1-878830-02-3 (disk-based text)
+                Copyright (c) 1987, 1994 Dave Williams
+                   ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+                   ³ Shareware Version, 01/20/94 ³
+                   ³  Please Register Your Copy  ³
+                   ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+                      C H A P T E R    S E V E N
+
+                          DOS FILE STRUCTURE
+
+                            C O N T E N T S
+
+File Management Functions ....................................... 7**1
+FCB Function Calls .............................................. 7**2
+Handle Function Calls ........................................... 7**3
+Special File Handles ............................................ 7**4
+Raw and Cooked File I/O ......................................... 7**5
+Number of Open Files Allowed  ................................... 7**6
+Restrictions on FCB Usage ....................................... 7**7
+Restrictions on Handle usage .................................... 7**8
+Allocating Space to a File ...................................... 7**9
+MSDOS / PCDOS Differences ....................................... 7**10
+.COM File Structure ............................................. 7**11
+.EXE File Structure ............................................. 7**12
+The Relocation Table ............................................ 7**13
+"NEW" .EXE Format (Microsoft Windows and OS/2) .................. 7**14
+Standard File Control Block ..................................... 7**15
+Extended File Control Block ..................................... 7**16
+Disk Transfer Area .............................................. 7**17
+
+
+
+File Management Functions ....................................... 7**1
+
+  Use DOS function calls to create, open, close, read, write, rename, 
+find, and erase files.  There are two sets of function calls that DOS 
+provides for support of file management. They are: 
+
+   * File Control Block function calls   (0Fh-24h)
+   * Handle function calls               (39h-69h)
+
+  Handle function calls are easier to use and are more powerful than 
+FCB calls. Microsoft recommends that the handle function calls be used 
+when writing new programs.  DOS 3.0 up have been curtailing use of FCB 
+function calls; it is possible that future versions of DOS may not 
+support FCB function calls. 
+
+  The following table compares the use of FCB calls to Handle function 
+calls: 
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³           FCB Calls         ³               Handle Calls              ³
+ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  Access files in current    ³  Access files in ANY directory          ³
+³  directory only.            ³                                         ³
+³                             ³                                         ³
+³  Requires the application   ³  Does not require use of an FCB.        ³
+³  program to maintain a file ³  Requires a string with the drive,      ³
+³  control block to open,     ³  path, and filename to open, create,    ³
+³  create, rename or delete   ³  rename, or delete a file. For file     ³
+³  a file. For I/O requests,  ³  I/O requests, the application program  ³
+³  the application program    ³  must maintain a 16 bit file handle     ³
+³  also needs an FCB          ³  that is supplied by DOS.               ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+  The only reason an application should use FCB function calls is to 
+maintain the ability to run under DOS 1.x.  To to this, the program 
+may use only function calls 00h-2Eh.  Though the FCB function calls 
+are frowned upon, many of the introductory assembly language 
+programming texts use the FCB calls as examples. 
+
+  PC-MOS/386 supports the FCB calls but recommends using the handle 
+calls. 
+
+
+
+FCB Function Calls .............................................. 7**2
+
+  FCB function calls require the use of one File Control Block per 
+open file, which is maintained by the application program and DOS.  
+The application program supplies a pointer to the FCB and fills in the 
+appropriate fields required by the specific function call.  An FCB 
+function call can perform file management on any valid drive, but only 
+in the current logged directory.  By using the current block, current 
+record, and record length fields of the FCB, you can perform 
+sequential I/O by using the sequential read or write function calls.  
+Random I/O can be performed by filling in the random record and record 
+length fields. 
+
+  Several possible uses of FCB type calls are considered programming 
+errors and should not be done under any circumstances to avoid 
+problems with file sharing and compatibility with later versions of 
+DOS. 
+
+ Some errors are:
+
+1) If program uses the same FCB structure to access more than one open 
+   file. By opening a file using an FCB, doing I/O, and then replacing 
+   the filename field in the file control block with a new filename, a 
+   program can open a second file using the same FCB. This is invalid 
+   because DOS writes control information about the file into the 
+   reserved fields of the FCB. If the program replaces the filename 
+   field with the original filename and then tries to perform I/O on 
+   this file, DOS may become confused because the control information 
+   has been changed. An FCB should never be used to open a second file 
+   without closing the one that is currently open. If more than one 
+   File Control Block is to be open concurrently, separate FCBs should 
+   be used. 
+
+2) A program should never try to use the reserved fields in the FCB, 
+   as the function of the fields may change with different versions of 
+   DOS. 
+
+3) A delete or a rename on a file that is currently open is considered 
+   an error and should not be attempted by an application program. 
+
+  It is also good programming practice to close all files when I/O is 
+done. This avoids potential file sharing problems that require a limit 
+on the number of files concurrently open using FCB function calls. 
+
+
+
+Handle Function Calls ........................................... 7**3
+
+  The recommended method of file management is by using the extended 
+"handle" set of function calls.  These calls are not restricted to the 
+current directory.  Also, the handle calls allow the application 
+program to define the type of access that other processes can have 
+concurrently with the same file if the file is being shared. 
+
+  To create or open a file, the application supplies a pointer to an 
+ASCIIZ string giving the name and location of the file.  The ASCIIZ 
+string contains an optional drive letter, optional path, mandatory 
+file specification, and a terminal byte of 00h.  The following is an 
+example of an ASCIIZ string: 
+
+     format:          [drive][path] FILENAME.EXT,0
+
+     in MASM:         db "A:\PATH\FILENAME.EXT",0
+
+  If the file is being created, the application program also supplies 
+the attribute of the file.  This is a set of values that defines the 
+file read-only, hidden, system, directory, or volume label. 
+
+  If the file is being opened, the program can define the sharing and 
+access modes that the file is opened in.  The access mode informs DOS 
+what operations your program will perform on this file (read-only, 
+write-only, or read/write).  The sharing mode controls the type of 
+operations other processes may perform concurrently on the file.  A 
+program can also control if a child process inherits the open files of 
+the parent.  The sharing mode has meaning only if file sharing is 
+loaded when the file is opened. 
+
+  To rename or delete a file, the appplication program simply needs to 
+provide a pointer to the ASCIIZ string containing the name and 
+location of the file and another string with the new name if the file 
+is being renamed. 
+
+  The open or create function calls return a 16-bit value referred to 
+as the file handle.  To do any I/O to a file, the program uses the 
+handle to reference the file.  Once a file is opened, a program no 
+longer needs to maintain the ASCIIZ string pointing to the file, nor 
+is there any need to stay in the same directory.  DOS keeps track of 
+the location of the file regardless of what directory is current. 
+
+  Sequential I/O can be performed using the handle read (3Fh) or write 
+(40h) function calls.  The offset in the file that I/O is performed to 
+is automatically moved to the end of what was just read or written.  
+If random I/O is desired, the LSEEK (42h) function call can be used to 
+set the offset into the file where I/O is to be performed. 
+
+
+
+Special File Handles ............................................ 7**4
+
+  DOS reserves five special file handles for use by itself and 
+applications programs. They are: 
+
+ÚÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ 0000h ³ STDIN  ³ standard input device   (input can be redirected)    ³
+³ 0001h ³ STDOUT ³ standard output device  (output can be redirected)   ³
+³ 0002h ³ STDERR ³ standard error output device (output cannot be       ³
+³       ³        ³                               redirected)            ³
+³       ³        ³ NOTE: DOS opens STDERR for both writing and reading. ³
+³       ³        ³  Since STDIN can be redirected, using STDERR to read ³
+³       ³        ³  the keyboard is a reliable way to ensure that your  ³
+³       ³        ³  program is actually                                 ³
+³       ³        ³ reading the keyboard, if that's what you want to do. ³
+³ 0004h ³ STDAUX ³ standard auxiliary device                            ³
+³ 0005h ³ STDPRN ³ standard printer device (PRN, normally LPT1)         ³
+ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+  These handles are predefined by DOS and can be used by an 
+application program.  They do not need to be opened by a program, 
+although a program can close these handles.  STDIN should be treated 
+as a read-only file, and STDOUT and STDERR should be treated as write-
+only files.  STDIN and STDOUT can be redirected.  All handles 
+inherited by a process can be redirected, but not at the command line. 
+
+  These handles are very useful for doing I/O to and from the console 
+device.  For example, you could read input from the keyboard using the 
+read (3Fh) function call and file handle 0000h (STDIN), and write 
+output to the console screen with the write function call (40h) and 
+file handle 0001h (STDOUT).  If you wanted an output that could not be 
+redirected, you could output it using file handle 0002h (STDERR).  
+This is very useful for error messages that must be seen by a user. 
+
+  File handles 0003h (STDAUX) and 0004h (STDPRN) can be both read from 
+and written to.  STDAUX is typically a serial device and STDPRN is 
+usually a parallel device. 
+
+  DOS 2.0 through 3.21 were limited to 20 file handles.  This limited 
+application programs to 15 simultaneous handles.  DOS 3.3 and higher 
+added the int 21h/ Set Handle Count function to give up to 65,535 file 
+handles per application.  PC-MOS/386 can have more than 65,535 
+handles. 
+
+
+Raw and Cooked File I/O ......................................... 7**5
+
+  Raw and cooked modes originated in the Unix world and were provided 
+with DOS 2.x+.  They apply only to character I/O (including the 
+keyboard, screen, printer and serial ports - but not block devices 
+like disk drives), and only to the "new" 2.x file handle I/O functions 
+(not the old FCB file I/O functions).  Raw mode is called "binary" 
+mode in DOS 3.x+, and cooked mode is called "ASCII."  The common raw-
+cooked convention is from DOS 2.x and other operating systems. 
+
+  The five predefined DOS file handles are all devices, so the mode 
+can be changed from raw to cooked via IOCTL.  These handles are in 
+cooked mode when initialized by DOS.  Regular file handles that are 
+not devices are always in raw mode and cannot be changed to cooked 
+mode. 
+
+  The predefined file handles STDIN (0000h) and STDOUT (0001h) and 
+STDERR (0002h) are all duplicate handles.  If the IOCTL function call 
+is used to change the mode of any of these three handles, the mode of 
+all three handles is changed.  For example, if IOCTL was used to 
+change STDOUT to raw, then STDIN and STDERR would also be changed to 
+raw mode. 
+
+  In the default cooked mode, DOS examines the character I/O data 
+stream for certain special control characters, and takes specific 
+actions if they are found.  For example, Ctrl-C is treated as a Break 
+interrupt, Ctrl-S pauses the screen display, and Ctrl-Z is treated as 
+end-of-file. (If you try to send Ctrl-Z to a printer through a DOS 
+file handle in cooked mode, DOS closes the printer file!)  Also, input 
+is buffered within DOS until a CR is detected - so you can't process 
+each key as it is pressed. 
+
+  In raw mode, DOS ignores special characters, passing them through 
+without any special processing, and does not buffer input lines.  So 
+to use file handle I/O to send bit-mapped graphics to a printer 
+through DOS, or process individual keystrokes immediately, or bypass 
+Ctrl-C checking, you need to switch the file handle to raw mode.  Raw 
+mode is not automatically reset to cooked mode by DOS when a program 
+terminates, so it is a good idea to reset the file into cooked mode 
+before your program exits if the system was in cooked mode to begin 
+with. I/O to files is done in raw mode. 
+
+  To set a file handle into raw mode or back into cooked mode, use DOS 
+IOCTL (int 21h Fn 44h, Chapter 4): 
+
+   1.  Get the current mode bits (Subfunction 0).
+   2.  Check that the file is a character file.  (If not, exit.)
+   3.  Switch the cooked mode bit to raw or vice versa.
+   4.  Set the mode bits (Subfunction 1).
+
+  Microsoft C v4 and later do NOT set raw mode for binary files.  When 
+running with the CON driver set to raw mode (to enhance display speed) 
+programs compiled in MSC will crash the computer.  A letter to 
+Microsoft reporting this odd behavior got the somewhat bizarre reply 
+that "Microsoft does not support the use of any TSRs" from their 
+techs.  Raw mode is clearly documented by both IBM and Microsoft, and 
+their own tools should take it into account. 
+
+
+
+FILE I/O IN BINARY (RAW) MODE
+
+The following is true when a file is read in binary mode:
+
+1)  The characters ^S (scroll lock), ^P (print screen), ^C (control
+    break) are not checked for during the read.  Therefore, no printer
+    echo occurs if ^S or ^P are read.
+2)  There is no echo to STDOUT (0001h).
+3)  Read the number of specified bytes and returns immediately when the
+    last byte is received or the end of file reached.
+4)  Allows no editing of the input using the function keys if the input
+    is from STDIN (0000h).
+
+
+The following is true when a file is written to in binary mode:
+
+1)  The characters ^S (scroll lock), ^P (print screen), ^C (control
+    break) are not checked for during the write.  Therefore, no printer
+    echo occurs.
+2)  There is no echo to STDOUT (0001h).
+3)  The exact number of bytes specified are written.
+4)  Does not caret (^) control characters. For example, Ctrl-D is sent
+    out as byte 04h instead of the two bytes ^ and D.
+5)  Does not expand tabs into spaces.
+
+
+FILE I/O IN ASCII (COOKED) MODE
+
+The following is true when a file is read in ASCII mode:
+
+1)  Checks for the characters ^C,^S, and ^P.
+2)  Returns as many characters as there are in the device input buffer,
+    or the number of characters requested, whichever is less.  If the
+    number of characters requested was less than the number of
+    characters in the device buffer, then the next read will address
+    the remaining characters in the buffer.
+3)  If there are no more bytes remaining in the device input buffer,
+    read a line (terminated by a CR) into the buffer.  This line may
+    be edited with the function keys.  The characters return terminated
+    with a sequence of 0Dh, 0Ah (CR, LF) if the number of characters
+    requested is sufficient to include them.  For example, if 5
+    characters were requested, and only 3 were entered before the
+    carriage return (0Dh or ^M) was presented to DOS from the console
+    device, then the 3 characters entered and 0Dh and 0Ah would be
+    returned.  However, if 5 characters were requested and 7 were
+    entered before the carriage return, only the first 5 characters
+    would be returned.  No 0Dh, 0Ah sequence would be returned in this
+    case.  If less than the number of characters requested are entered
+    when the carriage return is received, the characters received and
+    0Dh, 0Ah would be returned.  The reason the 0Ah (linefeed or ^J)
+    is added to the returned characters is to make the devices look
+    like text files.
+4)  If a 1Ah (^Z) is found, the input is terminated at that point.
+    No 0Dh, 0Ah (CR,LF) sequence is added to the string.
+5)  Echoing is performed.
+6)  Tabs are expanded.
+
+
+The following is true when a file is written to in ASCII mode:
+
+1)  The characters ^S,^P,and ^C are checked for during the write
+    operation.
+2)  Expands tabs to 8-character boundaries and fills with spaces
+    (20h).
+3)  Carets indicate control chars, for example, ^D is written as
+    two bytes, '^' and 'D'.
+4)  Bytes are output until the number specified is output or a ^Z is
+    encountered.  The number actually output is returned to the user.
+
+
+
+Number of Open Files Allowed  ................................... 7**6
+
+  The number of files that can be open concurrently is restricted by 
+DOS.  This number is determined by how the file is opened or created 
+(FCB or handle function call) and the number specified by the FCBS and 
+FILES commands in the CONFIG.SYS file.  The number of files allowed 
+open by FCB function calls and the number of files that can be opened 
+by handle type calls are independent of one another. 
+
+
+
+Restrictions on FCB Usage ....................................... 7**7
+
+  If file sharing is not loaded using the SHARE command, there is no 
+restriction on the number of files concurrently open using FCB 
+function calls. 
+
+  However, when file sharing is loaded, the maximum number of FCBs 
+open is set by the the FCBS command in the CONFIG.SYS file. 
+
+  The FCBS command has two values you can specify, 'm' and 'n'.  The 
+value for 'm' specifies the number of files that can be opened by 
+FCBs, and the value 'n' specifies the number of FCBs that are 
+protected from being closed. 
+
+  When the maximum number of FCB opens is exceeded, DOS automatically 
+closes the least recently used file.  Any attempt to access this file 
+results in an int 24h critical error message "FCB not available".  If 
+this occurs while an application program is running, the value 
+specified for 'm' in the FCBS command should be increased. 
+
+  When DOS determines the least recently used file to close, it does 
+not include the first 'n' files opened, therefore the first 'n' files 
+are protected from being closed. 
+
+
+
+Restrictions on Handle usage .................................... 7**8
+
+  The number of files that can be open simultaneously by all processes 
+is determined by the FILES command in the CONFIG.SYS file.  The number 
+of files a single process can open depends on the value specified for 
+the FILES command.  If FILES is greater than or equal to 20, a single 
+process can open 20 files.  If FILES is less than 20, the process can 
+open less than 20 files. This value includes the three predefined 
+handles STDIN, STDOUT, and STDERR.  This means only 17 additional 
+handles can be added. DOS 3.3+ includes a function to use more than 20 
+files per application. 
+
+
+
+Allocating Space to a File ...................................... 7**9
+
+  Files are not necessarily written sequentially on a disk.  Space is 
+allocated as needed and the next location available on the disk is 
+allocated as space for the next file being written.  Therefore, if 
+considerable file generation has taken place, newly created files will 
+not be written in sequential sectors. However, due to the mapping 
+(chaining) of file space via the File Allocation Table (FAT) and the 
+function calls available, any file may be used in either a sequential 
+or random manner. 
+
+  Space is allocated in increments called clusters.  Cluster size 
+varies according to the media type.  An application program should not 
+concern itself with the way that DOS allocates space to a file.  The 
+size of a cluster is only important in that it determines the smallest 
+amount of space that can be allocated to a file.  A disk is considered 
+full when all clusters have been allocated to files. 
+
+  A DOS file can be up to (2^32)-1 (4,294,967,295) bytes long.  This 
+is the maximum value that can be put in the dword in the FAT which 
+holds the file size information, less one byte for the end of file 
+marker. 
+
+
+
+MSDOS / PCDOS Differences ....................................... 7**10
+                                                
+  There is a problem of compatibility between MS-DOS and IBM PC-DOS 
+having to do with FCB Open and Create.  The IBM 1.0, 1.1, and 2.0 
+documentation of OPEN (call 0Fh) contains the following statement: 
+
+  "The current block field (FCB bytes C-D) is set to zero [when an FCB 
+is opened]." 
+
+  This statement is NOT true of MS-DOS 1.25 or MS-DOS 2.00.  The 
+difference is intentional, and the reason is CP/M 1.4 compatibility.  
+Zeroing that field is not CP/M compatible.  Some CP/M programs will 
+not run when machine translated if that field is zeroed.  The reason 
+it is zeroed in the IBM versions is that IBM specifically requested 
+that it be zeroed.  This was the reason for the complaints from some 
+vendors about the fact that IBM MultiPlan would not run under MS-DOS. 
+It is probably the reason that some other very old IBM programs didn't
+run under MS-DOS. 
+
+NOTE: Do what all MS/PC-DOS systems programs do: Set every single FCB 
+field you want to use regardless of what the documentation says is 
+initialized. 
+
+
+
+.COM File Structure ............................................. 7**11
+
+  The COM file structure was designed for DOS 1.0 and maximum 
+compatibility with programs ported from the CP/M operating system.  
+COM files normally comprise one segment only.  A COM file is loaded as 
+a memory image of the disk file and the Instruction Pointer is set to 
+offset 100h within the program. 
+
+  The BIN files generated by EXE2BIN are COM files.
+
+
+
+.EXE File Structure ............................................. 7**12
+
+  The EXE file is the native mode for DOS.  EXE files may make use of 
+multiple segments for code, stack, and data.  The design of the EXE 
+file reflects the segmented design of the Intel 80x86 CPU 
+architecture.  EXE files may be as large as available memory and may 
+make references to specific segment addresses. 
+
+  The EXE files produced by the Microsoft linker program consist of 
+two parts, control and relocation information and the load module 
+itself. 
+
+  The control and relocation information, which is described below, is 
+at the beginning of the file in an area known as the header.  The load 
+module immediately follows the header.  The load module begins in the 
+memory image of the module contructed by the Microsoft linker. 
+
+  When you are loading a file with the name *.EXE, DOS does NOT assume 
+that it is an EXE format file.  It looks at the first two bytes for a 
+signature (the letters MZ) telling it that it is an EXE file.  If it 
+has the proper signature, then the load proceeds.  Otherwise, it 
+presumes the file to be a .COM format file. 
+
+  If the file has the EXE signature, then the internal consistency is 
+checked.  Pre-2.0 versions of MSDOS did not check the signature byte 
+for EXE files. 
+
+  The .EXE format can support programs larger than 64K.  It does this 
+by allowing separate segments to be defined for code, data, and the 
+stack, each of which can be up to 64K long.  Programs in EXE format 
+may contain explicit references to segment addresses.  A header in the 
+EXE file has information for DOS to resolve these references. 
+
+  EXE file size does not reflect the amount of RAM an EXE file might 
+use, since stack space or extra RAM may be allocated by the EXE loader 
+at init.  Some programs may also store their overlay files in the main 
+EXE file. 
+
+  EXE files produced by the Microsoft linker are considered to be 
+standard EXEs.  Digital Research's RASM86 linker produces quite 
+different EXE files, as do the linkers from SLR Systems and Phoenix.  
+Intel's original linker for their 8086 compiler is much more 
+sophisticated than the Microsoft linker, which originally was a simple 
+subset of the Intel linker.  Unfortunately the new fields added by 
+OS/2, Windows, and CodeView make the newer Microsoft linkers somewhat 
+different from the original Intel linker. 
+
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³                     E X E   F I L E   H E A D E R                     ³
+ÃÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ Offset  ³ Size ³                 C O N T E N T S                      ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³   00h   ³ BYTE ³ 4Dh ³ The Linker's signature to mark the file as a   ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄ´ valid .EXE file (ASCII letters M and Z, for    ³
+³   01h   ³ BYTE ³ 5Ah ³ Mark Zbikowski, one of the major DOS           ³
+³         ³      ³     ³ programmers at Microsoft)                      ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 02h-03h ³ WORD ³ Length of the image mod 512 (remainder after dividing³
+³         ³      ³ the load module image size by 512) (including header)³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 04h-05h ³ WORD ³ Size of the file in 512 byte pages including the     ³
+³         ³      ³ header.                                              ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 06h-07h ³ WORD ³ Number of relocation table items following the header³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 08h-09h ³ WORD ³ Size of the header in 16 byte (paragraphs).  This is ³
+³         ³      ³ used to locate the beginning of the load module in   ³
+³         ³      ³ the file.  Although the DOS loader will allow the    ³
+³         ³      ³ actual program to begin at any location specified by ³
+³         ³      ³ this value some debuggers, including Microsoft's,    ³
+³         ³      ³ need the program to be aligned on a 512-byte boundary³
+³         ³      ³ in the .EXE file.                                    ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 0Ah-0Bh ³ WORD ³ Minimum number of 16 byte paragraphs required above  ³
+³         ³      ³ the end of the loaded program.                       ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 0Ch-0Dh ³ WORD ³ Max number of 16 byte paragraphs required above the  ³
+³         ³      ³ end of the loaded program. If the minimum and maximum³
+³         ³      ³ number of paragraphs are both zero, the program will ³
+³         ³      ³ be loaded as high in memory as possible.             ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 0Eh-0Fh ³ WORD ³ Displacement in paragraphs of stack segment within   ³
+³         ³      ³ load module.  This size must be adjusted by          ³
+³         ³      ³ relocation.                                          ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 10h-11h ³ WORD ³Offset to be in SP register when the module is given  ³
+³         ³      ³ control  (stack offset)                              ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 12h-13h ³ WORD ³ Checksum - 16-bit negative sum of all the words in   ³
+³         ³      ³ the file, ignoring overflow.                         ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 14h-15h ³ WORD ³ Offset for the IP register when the module is given  ³
+³         ³      ³ control  (initial instruction pointer)               ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 16h-17h ³ WORD ³ Offset in paragraphs of code segment (CS) within load³
+³         ³      ³ module.  This size must be adjusted by relocation.   ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 18h-19h ³ WORD ³ Offset in bytes of the relocation pointer table.     ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 1Ah-1Bh ³ WORD ³ Overlay number (0 for the resident part of the       ³
+³         ³      ³ program)                                             ³
+ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³   1Ch   ³ BYTE ³ (undocumented) Microsoft compilers put 01h here,     ³
+³         ³      ³ which may indicate the version of .EXE header        ³
+³         ³      ³ structure for later changes.  Normally the relocation³
+³         ³      ³ table begins at 1Eh, but that can be changed to a    ³
+³         ³      ³ different location if the word at 18-19h is adjusted ³
+³         ³      ³ to match.                                            ³
+ÀÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+
+The Relocation Table ............................................ 7**13
+
+  The word at 18h locates the first entry in the relocation table.  
+The relocation table is made up of a variable number of relocation 
+items.  The number of items is contained at offset 06h.  The 
+relocation item contains two fields - a 2 byte offset value, followed 
+by a 2 byte segment value.  These two fields represent the 
+displacement into the load module before the module is given control.  
+The process is called relocation and is accomplished as follows: 
+
+1. The formatted part of the header is read into memory.  Its size
+   is 1Bh.
+
+2. A portion of memory is allocated depending on the size of the load 
+   module and the allocation numbers in offsets 0Ah and 0Ch. DOS 
+   always tries to allocate 0FFFFh paragraphs. Since this call will 
+   always fail, the function returns the amount of free memory. If 
+   this block is larger than the minimum specified at offset 0Ah and 
+   the loaded program size, DOS will allocate the size specified at 
+   offset 0Ch or the largest free memory space, whichever is less. 
+
+3. A Program Segment Prefix is built following the resident portion of 
+   the program that is performing the load operation. 
+
+4. The formatted part of the header is read into memory (its size is 
+   at offset 08h) 
+
+5. The load module size is determined by subtracting the header size 
+   from the file size. Offsets 04h and 08h can be used for this 
+   calculation. The actual size is downward adjusted based on the 
+   contents of offset 02h. Note that all files created by the Linker 
+   programs prior to version 1.10 always placed a value of 4 at this 
+   location, regardless of the actual program size. Therefore, 
+   Microsoft recommends that this field be ignored if it contains a 
+   value of 4. Based on the setting of the high/low loader switch, an 
+   appropriate segment is determined for loading the load module. This 
+   segment is called the start segment. 
+
+6. The load module is read into memory beginning at the start segment. 
+   The relocation table is an ordered list of relocation items. The 
+   first relocation item is the one that has the lowest offset in the 
+   file. 
+
+7. The relocation table items are read into a work area one or more at 
+   a time. 
+
+8. Each relocation table item segment value is added to the start 
+   segment value. The calculated segment, in conjunction with the 
+   relocation item offset value, points to a word in the load module 
+   to which is added the start segment value. The result is placed 
+   back into the word in the load module. 
+
+9. Once all the relocation items have been processed, the SS and SP 
+   registers are set from the values in the header and the start 
+   segment value is added to SS. The ES and DS registers are set to 
+   the segment address of the program segment prefix. The start 
+   segment value is added to the header CS register value. The result, 
+   along with the header IP value, is used to give the module control. 
+
+
+
+"NEW" .EXE Format (Microsoft Windows and OS/2) .................. 7**14
+
+  The "old" EXE format is documented here.  The "new" EXE format puts 
+more information into the header section and is currently used in 
+applications that run under Microsoft Windows.  The linker that 
+creates these files comes with the Microsoft Windows Software 
+Development Kit and is called LINK4.  If you try to run a Windows-
+linked program under DOS, you will get the error message "This program 
+requires Microsoft Windows".  The OS/2 1.x file format is essentially 
+the same as the Windows format. 
+
+  Windows executables have dynamic linking and all of the code/data 
+inside an EXE file is not necessarily loaded at run time. 
+
+  Offset 3Ch dword: offset of new .EXE header (for Microsoft Windows & 
+OS/2) 
+
+
+
+Standard File Control Block ..................................... 7**15
+
+  The standard file control block is defined as follows, with offsets 
+in hex: 
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³              F I L E      C O N T R O L      B L O C K                ³
+ÃÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³offset ³  size   ³                      Function                       ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³   0   ³ 1 byte  ³ Drive number. For example:                          ³
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ Before open:    00h = default drive                           ³
+³       ³                 01h = drive A:                                ³
+³       ³                 02h = drive B: etc.                           ³
+³       ³ After open:     00h = drive C:                                ³
+³       ³                 01h = drive A:                                ³
+³       ³                 02h = drive B: etc.                           ³
+³       ³ A zero is replaced by the actual drive number during opening. ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  1-8  ³ 8 bytes ³ Filename, left justified with blanks.               ³
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ If a reserved device name is placed here (such as PRN) do not ³
+³       ³ include the optional colon.                                   ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  9-B  ³ 3 bytes ³ Filename extension, left justified with trailing    ³
+³       ³         ³ blanks.                                             ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  C-D  ³ 2 bytes ³ Current block # relative to start of file, starting ³
+³       ³         ³ with 0                                              ³
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ (set to 0 by the OPEN function call).  A block consists of    ³
+³       ³ 128 records, each of the size specified in the logical record ³
+³       ³ size field.  The current block number is used with the current³
+³       ³ record field (below) for sequential reads and writes.         ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  E-F  ³ 2 bytes ³ Logical record size in bytes.                       ³
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ Set to 80h by OPEN function.  If this is not correct, you     ³
+³       ³ must set the value because DOS uses it to determine the       ³
+³       ³ proper locations in the file for all disk reads and writes.   ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 10-13 ³ 4 bytes ³ File size in bytes.                                 ³
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ In this field, the first word is the low-order part of the    ³
+³       ³ size.                                                         ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 14-15 ³ 2 bytes ³Date file was created or last updated.               ³
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ MM/DD/YY are mapped as follows:                               ³
+³       ³         15  14  13  12  11  10  9  8  7  6  5  4  3  2  1  0  ³
+³       ³         y   y   y   y   y   y   y  m  m  m  m  d  d  d  d  d  ³
+³       ³ where:            mm is 1-12                                  ³
+³       ³                   dd is 1-31                                  ³
+³       ³                   yy is 0-119 (1980-2099)                     ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 16-17 ³ 2 bytes³ Time file was created or last updated.               ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ These bytes contain the time when the file was created or     ³
+³       ³ last updated.  The time is mapped in the bits as follows:     ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³         B Y T E   16h         ³         B Y T E   17h         ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ F   E   D   C   B   A   9   8 ³ 7   6   5   4   3   2   1   0 ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ H   H   H   H   H ³ M   M   M   M   M   M ³ D   D   D   D   D ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ binary # hrs 0-23 ³ binary # minutes 0-59 ³ bin. # 2-sec incr ³
+³       ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ note: The time is stored with the least significant byte first³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 18-19 ³ 2 bytes³ Reserved for DOS.                                    ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  20   ³ 1 byte ³ Current relative record number.                      ³
+³       ÃÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ (0-127) within the current block.  This field and the Current ³
+³       ³ Block field at offset 0Ch make up the record pointer.  This   ³
+³       ³ field is not initialized by the OPEN (0Fh) function call.     ³
+³       ³ You must set this field before doing sequential read-write    ³
+³       ³ operations to the diskette.  To read the first record of a    ³
+³       ³ file, set this value to zero.                                 ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ 21-25 ³ 4 bytes ³ Relative Record.                                    ³
+³       ÃÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ Points to the currently selected record, counting from the    ³
+³       ³ beginning of the file starting with 0.  This field is not     ³
+³       ³ initialized by the OPEN system call.  You must set this field ³
+³       ³ before doing a random read or write to the file.              ³
+³       ³  If the record size is less than 64 bytes, both words are     ³
+³       ³ used.  Otherwise, only the first 3 bytes are used.  Note that ³
+³       ³ if you use the File Control Block at 5Ch in the program       ³
+³       ³ segment, the last byte of the FCB overlaps the first byte of  ³
+³       ³ the unformatted parameter area.                               ³
+ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        
+note 1) An unopened FCB consists of the FCB prefix (if used), drive 
+        number, and filename.ext properly filled in. An open FCB is 
+        one in which the remaining fields have been filled in by the 
+        CREAT or OPEN function calls. 
+     2) Bytes 0-5 and 32-36 must be set by the user program. Bytes 16-
+        31 are set by DOS and must not be changed by user programs. 
+     3) All word fields are stored with the least significant byte 
+        first. For example, a record length of 128 is stored as 80h at 
+        offset 14, and 00h at offset 15. 
+
+  Oddly, when Microsoft added the handle calls to DOS they still left 
+the old FCB calls with a few advantages.  Handle calls still can't 
+read volume labels or directory files and don't support wild card 
+deletions.  Microsoft has always claimed that they would eventually 
+fix these weaknesses, but we're up to DOS 6.0 and it isn't soup yet. 
+
+  Microsoft has always hinted that they would eventually drop FCB 
+support from DOS.  Since many compiler runtime libraries depend on FCB 
+calls since they are the only ones portable across all DOS versions, a 
+lot of existing (expensive) commercial software would no longer run.  
+Also note that even the OS/2 Compatibility Box supports FCB calls. 
+
+  Many of the handle calls are simply "front ends" for the existing 
+FCB code anyway.  It's unlikely the FCB calls will ever vanish from 
+DOS. 
+
+
+Extended File Control Block ..................................... 7**16
+
+  The extended file control block is used to create or search for 
+files in the disk directory that have special attributes. 
+
+  It adds a 7 byte prefix to the FCB, formatted as follows:
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³    E X T E N D E D     F I L E      C O N T R O L      B L O C K       ³
+ÃÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³Offset ³   Size  ³                      Function                        ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  00h  ³ 1 byte  ³ Flag byte containing 0FFh to indicate an extended FCB³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  01h  ³ 4 bytes ³ Reserved by Microsoft                                ³
+ÃÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³  06h  ³ 2 bytes ³ Attribute byte                                       ³
+³       ÃÄÄÄÄÄÂÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ hex ³bit³                       meaning                        ³
+³       ÃÄÄÄÄÄÅÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ 00h ³   ³ (no bits set) normal; can be read or written without ³
+³       ³     ³   ³ restriction                                          ³
+³       ³ 01h ³ 0 ³ file is marked read-only.  An attempt to open the    ³
+³       ³     ³   ³ file for output using int 21h/fn 3Dh will fail and   ³
+³       ³     ³   ³ an error code will be returned.  This value can be   ³
+³       ³     ³   ³ used with other values below.                        ³
+³       ³ 02h ³ 1 ³ indicates a hidden file.  The file is excluded from  ³
+³       ³     ³   ³ normal directory searches.                           ³
+³       ³ 04h ³ 2 ³ indicates a system file.  The file is excluded from  ³
+³       ³     ³   ³ normal directory searches.                           ³
+³       ³ 08h ³ 3 ³ indicates that the entry contains the volume label   ³
+³       ³     ³   ³ in the first 11 bytes.  The entry has no other       ³
+³       ³     ³   ³ usable information and may exist only in the root    ³
+³       ³     ³   ³ directory.                                           ³
+³       ³ 10h ³ 4 ³ indicates that the file is a subdirectory            ³
+³       ³ 20h ³ 5 ³ indicates an archive bit.  This bit is set to on     ³
+³       ³     ³   ³ whenever the file is written to and closed.  Used by ³
+³       ³     ³   ³ BACKUP and RESTORE.                                  ³
+³       ³     ³ 6 ³ reserved, set to 0                                   ³
+³       ³     ³ 7 ³ reserved, set to 0                                   ³
+³       ÃÄÄÄÄÄÁÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³       ³ note 1) Bits 6 and 7 may be used in OS/2.                      ³
+³       ³ note 2) Attributes 08h and 10h cannot be changed using         ³
+³       ³         int21/43h.    ³                                        ³
+³       ³ note 3) The system files IBMBIO.COM and IBMDOS.COM (or         ³
+³       ³         customized equivalent) are marked as read-only, hidden,³
+³       ³         and system  files.  Files can be marked hidden when    ³
+³       ³         they are created.                                      ³
+³       ³ note 4) Read-only, hidden, system and archive attributes may   ³
+³       ³         be changed with int21h/fn43h.                          ³
+³       ³                                                                ³
+³       ³ Refer to int 21h/fn11h (Search First) for details on using the ³
+³       ³ attribute bits during directory searches.  This function is    ³
+³       ³ present to allow applications to define their own files as     ³
+³       ³ hidden (and thereby excluded from normal directory searches)   ³
+³       ³ and to allow selective directory searches                      ³
+ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+  Any reference in the DOS function calls to an FCB, whether opened or 
+unopened, may use either a normal or extended FCB.  If you are using 
+an extended FCB, the appropriate register should be set to the first 
+byte of the prefix, rather than the drive-number field. 
+
+  Common practice is to refer to the extended FCB as a negative offset 
+from the first byte of a standard File Control Block. 
+
+
+Disk Transfer Area .............................................. 7**17
+
+  The old-style (DOS 1.x compatible) FCB-oriented function calls use a 
+buffer called the Disk Transfer Area (DTA) for disk access.  Use of 
+the DTA is documented in Chapter 6, "DOS Memory Control Blocks and 
+Work Areas." 
+
+

@@ -1,0 +1,161 @@
+
+                                    +------+
+                                    | PLAY |
+                                    +------+
+                            pøehrávaè melodií V1.20
+
+Program  PLAY  slouží  k jednokanálové reprodukci melodií. Ke zvukovému výstupu
+využívá  vestavìného  reproduktoru a standardního zvukového generátoru. Melodie
+je  možné  reprodukovat  též  v  pozadí, tedy bìhem provozu jiných programù. Je
+možné  vyvolávat  funkce  reprodukce melodie i z jiných programù a zajistit tak
+napøíklad zvukové efekty her.
+
+Po  spuštìní  se program PLAY nainstaluje do pamìti. Zadáním melodie se melodie
+dekóduje  do  vnitøního  tvaru a pøedá se rezidentní èásti programu. Rezidentní
+modul  programu  PLAY  pøehrává  melodii  v  pozadí,  nezávisle na probíhajícím
+programu.  Buffer  rezidentního  modulu PLAY pojme najednou úsek melodie dlouhý
+256 tónù. Delší úseky se pøenášejí do vyrovnávacího bufferu postupnì.
+
+Melodie  k  reprodukci mùže být uložena v bìžném textovém souboru. Jméno tohoto
+textového  souboru  se  uvede jako parametr pøi vyvolání programu PLAY (syntaxe
+notového  zápisu  bude uvedena níže). Dále mùže být melodie uvedena též pøímo v
+pøíkazovém øádku jako textový øetìzec uzavøený do uvozovek.
+
+Pøíklady: PLAY play.mus                - pøehraje se obsah souboru PLAY.MUS
+          PLAY "ceg+c3"                - zahraje se znìlka
+
+Zadáním parametru "/S" pøi spuštìní programu PLAY se pøeruší reprodukce melodie
+právì  probíhající  v  pozadí.  Je-li  zadána  nová  melodie,  zahájí  se ihned
+reprodukce této nové melodie.
+
+Zadáním parametru "/W" se program PLAY ukonèí až po úplném dokonèení reprodukce
+melodie.  Je možné spustit hru melodie, vyvolat nìjaký program (napø. zobrazení
+grafického  obrázku)  a  poté  zadáním pøikazu PLAY /W zajistit pokraèování, až
+melodie dohraje.
+
+Zadáním parametru "/!" se rezidentní modul PLAY odinstaluje z pamìti. Ohlásí-li
+PLAY  chybu,  je nutno odinstalovat nejdøíve programy nainstalované po programu
+PLAY.  Zadá-li  se  parametr  "/!"  aniž by byl program PLAY již nainstalovaný,
+instalace  programu  se  vùbec  neprovede  (jinak  se  program PLAY nainstaluje
+automaticky  pouhým  spuštìním).  Pøed  odinstalováním  programu  z  pamìti  se
+nejdøíve dokonèí reprodukce melodie (tj. jakoby byl zadán parametr "/W").
+
+Funkci programu PLAY lze bìhem èekání na ukonèení reprodukce pøerušit klávesami
+Ctrl-Break (reprodukce melodie se pøeruší).
+
+Pokud má být PLAY využíván pravidelnìji, doporuèuje se nainstalovat jej již pøi
+startu poèítaèe v AUTOEXEC.BAT zadáním pøíkazu PLAY (nemusí být parametry).
+
+
+Syntaxe zápisu melodie:
+-----------------------
+C, D, E, F, G, A, H     - tón
+R                       - mezera
+# uvedený pøed tónem    - zvýšení tónu o pùltón (lze uvést i více znakù "#")
+B uvedený pøed tónem    - snížení tónu o pùltón (lze uvést i více znakù "B")
+0 až 7 uvedená za tónem - nastavení  délky  tónu;  zvýšení èísla délky tónu o 1
+                          zdvojnásobí  délku tónu. Nastavená délka tónu platí i
+                          pro  všechny  následující  tóny  až do chvíle, než se
+                          uvede nová délka tónu. Délky tónù:
+                              0 ...... 18.2 tónù/sekundu (55 ms)
+                              1 ......  9.1 tónù/sekundu (110 ms)
+                              2 ......  4.5 tónù/sekundu (220 ms)
+                              3 ......  2.3 tónù/sekundu (440 ms)
+                              4 ......  1.1 tónù/sekundu (890 ms)
+                              5 ......  0.6 tónu/sekundu (1.76 s)
+                              6 ......  0.3 tónu/sekundu (3.50 s)
+                              7 ......  0.1 tónu/sekundu (7.02 s)
+On                      - nastavení oktávy (n=èíslo 0 až 9)
++                       - trvalé zvýšení oktávy o 1 (tj. zvýšení o 12 pùltónù)
+-                       - trvalé snížení oktávy o 1 (tj. snížení o 12 pùltónù)
+Sn                      - korekce rychlosti hry (n=èíslo 0 až 9)
+                            0=bìžná rychlost ... 8=polovièní rychlost
+                          Tento  parametr umožòuje jemné doregulování rychlosti
+                          hry  melodie  nebo  jejích  úsekù  tím, že se k délce
+                          každého  tónu  pøiète  n-násobek  1/8 jeho délky.  To
+                          mùže   mít   za  následek  vznik  nepøesnosti  pomìrù
+                          krátkých   tónù.   Doporuèuje   se   proto   používat
+                          pøednostnì  parametr /S4, potom parametry /S2 a /S6 a
+                          až v nejnutnìjším pøípadì parametry s lichým èíslem.
+;                       - komentáø do konce øádku
+
+
+Služby rezidentního modulu pøehrávaèe melodií:
+----------------------------------------------
+Služby se vyvolávají pomocí pøerušení INT 16h.
+
+VSTUP:  AX=3A40h identifikátor služby
+        BX=27ACh vstupní identifikátor PLAY
+        CX=poèet tónù definice melodie (není-li CX=0 ani CX=0FFFFh)
+             CX=0       test stavu pøehrávaèe
+             CX=0FFFFh  pøerušení reprodukce melodie, nulování bufferù
+        ES:SI=adresa melodie (pouze není-li CX=0 ani CX=0FFFFh)
+             melodie je definována jako posloupnost CX slov, 1 slovo = 1 tón
+                   nižší bajt = èíslo tónu 0 až 120 (0 = prodleva)
+                   vyšší bajt = délka tónu v 1/18 sekundy (násobek 55 ms)
+
+VÝSTUP: AH=verze ovladaèe PLAY v BCD kódu (12h = verze 1.20)
+        AL=stav: 0=stav klidu (neprobíhá reprodukce)
+                 1=vyrovnávací buffer prázdný, probíhá poslední tón
+                 2=melodie pøenesena do vyrovnávacího bufferu, hra v pozadí
+                 3=pøenáší se melodie do vyrovnávacího bufferu
+        BX=82D5h výstupní identifikátor PLAY (= je nainstalován)
+        DX=adresa ovladaèe v pamìti (pouze pro interní potøebu)
+
+Slovo  navrácené  v  registru  BX se používá k identifikaci, že ovladaè PLAY je
+nainstalován  v  pamìti.  Definicí  nové  melodie  se pøepíše starý ukazatel na
+melodii  (pokud není ještì melodie pøenesena do bufferu). Vyrovnávací buffer se
+novou definicí neovlivní. Délka melodie mùže být libovolná. Program musí udržet
+definici  melodie ve svém bufferu až do doby, kdy již je schopen pøehrávaè PLAY
+pojmout zbytek melodie do svého vyrovnávacího bufferu o velikosti 256 tónù (tj.
+až do doby, kdy je navrácen stav AL=2).
+
+Èísla tónù:
+     +----+----+----+----+----+----+----+----+-----+-----+
+     |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8  |  9  |
++----+----+----+----+----+----+----+----+----+-----+-----+
+|  C |  1 | 13 | 25 | 37 | 49 | 61 | 73 | 85 |  97 | 109 |
+| #C |  2 | 14 | 26 | 38 | 50 | 62 | 74 | 86 |  98 | 110 |
+|  D |  3 | 15 | 27 | 39 | 51 | 63 | 75 | 87 |  99 | 111 |
+| #D |  4 | 16 | 28 | 40 | 52 | 64 | 76 | 88 | 100 | 112 |
+|  E |  5 | 17 | 29 | 41 | 53 | 65 | 77 | 89 | 101 | 113 |
+|  F |  6 | 18 | 30 | 42 | 54 | 66 | 78 | 90 | 102 | 114 |
+| #F |  7 | 19 | 31 | 43 | 55 | 67 | 79 | 91 | 103 | 115 |
+|  G |  8 | 20 | 32 | 44 | 56 | 68 | 80 | 92 | 104 | 116 |
+| #G |  9 | 21 | 33 | 45 | 57 | 69 | 81 | 93 | 105 | 117 |
+|  A | 10 | 22 | 34 | 46 | 58 | 70 | 82 | 94 | 106 | 118 |
+| #A | 11 | 23 | 35 | 47 | 59 | 71 | 83 | 95 | 107 | 119 |
+|  H | 12 | 24 | 36 | 48 | 60 | 72 | 84 | 96 | 108 | 120 |
++----+----+----+----+----+----+----+----+----+-----+-----+
+
+Frekvence tónù [Hz]:
+     +----+-----+-----+-----+-----+------+------+------+-------+-------+
+     |  0 |   1 |  2  |  3  |  4  |   5  |   6  |   7  |   8   |   9   |
++----+----+-----+-----+-----+-----+------+------+------+-------+-------+
+|  C | 33 |  65 | 131 | 262 | 523 | 1050 | 2090 | 4190 |  8300 | 16800 |
+| #C | 35 |  69 | 139 | 277 | 554 | 1110 | 2220 | 4440 |  8800 | 17800 |
+|  D | 37 |  73 | 147 | 294 | 587 | 1170 | 2350 | 4700 |  9400 | 18900 |
+| #D | 39 |  78 | 156 | 311 | 622 | 1240 | 2490 | 4970 |  9900 | 19900 |
+|  E | 41 |  82 | 165 | 330 | 659 | 1320 | 2640 | 5280 | 10600 | 20900 |
+|  F | 44 |  87 | 175 | 349 | 699 | 1400 | 2790 | 5580 | 11200 | 22500 |
+| #F | 46 |  93 | 185 | 370 | 740 | 1480 | 2960 | 5910 | 11800 | 23900 |
+|  G | 49 |  98 | 196 | 392 | 784 | 1570 | 3140 | 6280 | 12600 | 24900 |
+| #G | 52 | 104 | 208 | 415 | 830 | 1660 | 3320 | 6630 | 13300 | 26500 |
+|  A | 55 | 110 | 220 | 440 | 880 | 1760 | 3520 | 7060 | 14000 | 28400 |
+| #A | 58 | 117 | 233 | 466 | 932 | 1860 | 3730 | 7460 | 14900 | 29800 |
+|  H | 62 | 124 | 247 | 494 | 988 | 1980 | 3950 | 7900 | 15900 | 31400 |
++----+----+-----+-----+-----+-----+------+------+------+-------+-------+
+
+
+PLAY  vyžaduje k provozu poèítaè IBM PC/XT/AT nebo plnì kompatibilní a operaèní
+systém DOS verze minimálnì 2.00.
+
+                  +-----------------------------------------+
+                  |                  GOLEM                  |
+                  | P.O.Box 66, 756 61 Rožnov pod Radhoštìm |
+                  |          tel/fax: (0651) 54044          |
+                  +-----------------------------------------+
+                  | Tento program je souèástí programového  |
+                  |      balíku DOS Manažer verze 1.56      |
+                  +-----------------------------------------+
+

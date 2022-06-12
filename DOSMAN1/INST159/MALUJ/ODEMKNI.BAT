@@ -1,0 +1,10 @@
+@echo off
+if "%1" == "" goto konec
+if exist %1.mal goto pripona
+attrib -r %1
+rem read0 %1
+goto konec
+:pripona
+attrib -r %1.mal
+rem read0 %1.mal
+:konec

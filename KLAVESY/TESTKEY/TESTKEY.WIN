@@ -1,0 +1,231 @@
+
+                                  +---------+
+                                  | TESTKEY |
+                                  +---------+
+                                test klávesnice
+
+
+Program  TESTKEY  je  urèen  pøedevším  pro  programátory a k servisním úèelùm.
+Zobrazuje   pøi  každém  pøerušení  klávesnice  INT  09h  pøicházející  kód  od
+klávesnice  a  po  návratu  z  obsluhy  BIOS též veškeré odezvy promìnných BIOS
+používaných  k  obsluze  klávesnice.  Lze  tak snadno zjistit kódy jednotlivých
+kláves  z  portu klávesnice, v bufferu klávesnice a kódy navrácené službami INT
+16h/00h a INT 16h/10h.
+
+TESTKEY ponechá nastavený poèet øádkù na displeji ve standardním textovém módu.
+Tak  lze  dosáhnout  zobrazení  více  øádkù najednou. Bìhem provozu programu se
+nedoporuèuje  vyvolávat rezidentní programy. U nìkterých programù by se poèítaè
+mohl  stát  neovladatelný.  TESTKEY  se  ukonèí  stiskem  klávesy  ESC  dvakrát
+bezprostøednì za sebou.
+
+
+Každé  pøerušení  od  klávesnice se zobrazí na samostatném øádku. Všechna èísla
+jsou uvádìna v hexadecimálním kódu. Význam jednotlivých sloupcù je následující:
+
+--------------------------- základní informace --------------------------------
+klavesa ... zobrazí  se  jméno  klávesy.  Pøi  uvolnìní  klávesy  se zobrazí na
+            zaèátku  øádku  znak  "*".  Pøi  výpisu  se  neodlišují  klávesy  v
+            numerickém   poli   (oznaèují   se   lomenými   závorkami   [])  od
+            rozšiøujících  øídicích  kláves  AT.  Tyto klávesy mají stejný kód,
+            liší se prefixem pøed kódem klávesy.
+[60] ...... kód pøicházející z portu klávesnice [60h].
+
+----------------------------- buffer klávesnice -------------------------------
+buff ...... kód  klávesy,  který  se  objeví  v bufferu klávesnice po návratu z
+            obsluhy BIOS (adresa bufferu 0040h:001Eh).
+IN00 ...... kód  klávesy  navrácený sloužbou 00h pøerušení INT 16h (bìžný vstup
+            znaku z klávesnice).
+IN10 ...... kód klávesy navrácený sloužbou 10h pøerušení INT 16h (vstup znaku z
+            rozšíøené klávesnice AT).
+
+--------------------------------- pøepínaèe -----------------------------------
+INS ....... stav  pøesmykaèe  Insert.  Znak  "x" oznaèuje zapnutí funkce Insert
+            (bit  7 bajtu 0040h:0017h). Znak "I" oznaèuje, že je klávesa Insert
+            stisknuta (bit 7 bajtu 0040h:0018h).
+CPS ....... stav  pøesmykaèe  Caps  Lock. Znak "x" oznaèuje zapnutí funkce Caps
+            Lock  (bit  6  bajtu 0040h:0017h). Znak "C" oznaèuje, že je klávesa
+            Caps Lock stisknuta (bit 6 bajtu 0040h:0018h).
+NUM ....... stav pøesmykaèe Num Lock. Znak "x" oznaèuje zapnutí funkce Num Lock
+            (bit  5  bajtu  0040h:0017h).  Znak "N" oznaèuje, že je klávesa Num
+            Lock stisknuta (bit 5 bajtu 0040h:0018h).
+SCR ....... stav  pøesmykaèe  Scroll  Lock.  Znak  "x"  oznaèuje zapnutí funkce
+            Scroll  Lock  (bit  4  bajtu 0040h:0017h). Znak "S" oznaèuje, že je
+            klávesa Scroll Lock stisknuta (bit 4 bajtu 0040h:0018h).
+
+----------------------------------- pøesmykaèe --------------------------------
+ALT ....... stav  pøesmykaèù  Alt.  Oznaèení  "L" indikuje, že je stisknut levý
+            pøesmykaè  Alt (bit 1 bajtu 0040h:0018h). Oznaèení "R" indikuje, že
+            je stisknut pravý pøesmykaè Alt (bit 3 bajtu 0040h:0096h). Oznaèení
+            "*"  indikuje  stisk  kteréhokoliv  pøesmykaèe  Alt  (bit  3  bajtu
+            0040h:0017h).
+CTR ....... stav  pøesmykaèù  Ctrl.  Oznaèení "L" indikuje, že je stisknut levý
+            pøesmykaè Ctrl (bit 0 bajtu 0040h:0018h). Oznaèení "R" indikuje, že
+            je  stisknut  pravý  pøesmykaè  Ctrl  (bit  2  bajtu  0040h:0096h).
+            Oznaèení  "*"  indikuje  stisk  kteréhokoliv pøesmykaèe Ctrl (bit 2
+            bajtu 0040h:0017h).
+SHF ....... stav  pøesmykaèù  Shift. Oznaèení "L" indikuje, že je stisknut levý
+            pøesmykaè  Shift  (bit 1 bajtu 0040h:0017h). Oznaèení "R" indikuje,
+            že  je  stisknut  pravý  pøesmykaè Shift (bit 0 bajtu 0040h:0017h).
+            Oznaèení  "*" indikuje stisk kteréhokoliv pøesmykaèe Shift (bit 0 a
+            1 bajtu 0040h:0017h).
+
+---------------------------------- indikátory LED -----------------------------
+N ......... Oznaèení "N" indikuje svítící indikátor LED "Num Lock" (bit 1 bajtu
+            0040h:0097h).
+C ......... Oznaèení  "C"  indikuje  svítící  indikátor  LED "Caps Lock" (bit 2
+            bajtu 0040h:0097h).
+S ......... Oznaèení  "S"  indikuje  svítící indikátor LED "Scroll Lock" (bit 0
+            bajtu 0040h:0097h).
+
+----------------------------- rozšiøující stavová slova -----------------------
+[0096] ........... Stavový bajt klávesnice na adrese 0040h:0096h. Význam bitù:
+                   (bajt je zobrazen od nejvyšších bitù, poèínaje bitem 7)
+                     bit 7: 1=probíhá ètení identifikace klávesy
+                     bit 6: 1=poslední znak byl prvním identifikaèním znakem
+                     bit 5: 1=platí Num Lock bìhem ètení identifikace a kódu
+                     bit 4: 1=je instalována klávesnice AT 101/102 kláves
+                     bit 3: 1=stisknut pravý pøesmykaè Alt
+                     bit 2: 1=stisknut pravý pøesmykaè Ctrl
+                     bit 1: 1=poslední kód byl rozšiøující kód prefixu E0h
+                     bit 0: 1=poslední kód byl rozšiøující kód Pause E1h
+[0097] ........... Stavový bajt klávesnice na adrese 0040h:0097h. Význam bitù:
+                   (bajt je zobrazen od nejvyšších bitù, poèínaje bitem 7)
+                     bit 7: 1=chyba komunikace s klávesnicí
+                     bit 6: 1=indikátory módu vyslány na klávesnici
+                     bit 5: 1=pøijat kód FEh opakovaného vyslání bajtu
+                     bit 4: 1=pøijato potvrzení pøíjmu povelu pro klávesnici
+                     bit 3: (rezervováno)
+                     bit 2: 1=svítí indikátor LED Caps Lock
+                     bit 1: 1=svítí indikátor LED Num Lock
+                     bit 0: 1=svítí indikátor LED Scroll Lock
+
+
+               Kódy kláves (CapsLock je vypnutý, NumLock zapnutý)
+               --------------------------------------------------
++-------------+---+-------------------+-------------------+-------------------+
+|   klávesa   |kod|buff.XT, služba 00h|buff. klávesnice AT|   služba 10h (AT) |
+|             |60h|    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+|     Esc     |01h|011B|011B|011B|  - |011B|011B|011B|01F0|011B|011B|011B|0100|
+|     1 !     |02h|0231|0221|  - |7800|0231|0221|  - |7800|0231|0221|  - |7800|
+|     2 @     |03h|0332|0340|0300|7900|0332|0340|0300|7900|0332|0340|0300|7900|
+|     3 #     |04h|0433|0423|  - |7A00|0433|0423|  - |7A00|0433|0423|  - |7A00|
+|     4 $     |05h|0534|0524|  - |7B00|0534|0524|  - |7B00|0534|0524|  - |7B00|
+|     5 %     |06h|0635|0625|  - |7C00|0635|0625|  - |7C00|0635|0625|  - |7C00|
+|     6 ^     |07h|0736|075E|071E|7D00|0736|075E|071E|7D00|0736|075E|071E|7D00|
+|     7 &     |08h|0837|0826|  - |7E00|0837|0826|  - |7E00|0837|0826|  - |7E00|
+|     8 *     |09h|0938|092A|  - |7F00|0938|092A|  - |7F00|0938|092A|  - |7F00|
+|     9 (     |0Ah|0A39|0A28|  - |8000|0A39|0A28|  - |8000|0A39|0A28|  - |8000|
+|     0 )     |0Bh|0B30|0B29|  - |8100|0B30|0B29|  - |8100|0B30|0B29|  - |8100|
+|     - _     |0Ch|0C2D|0C5F|0C1F|8200|0C2D|0C5F|0C1F|8200|0C2D|0C5F|0C1F|8200|
+|     = +     |0Dh|0D3D|0D2B|  - |8300|0D3D|0D2B|  - |8300|0D3D|0D2B|  - |8300|
+|  Back Space |0Eh|0E08|0E08|0E7F|  - |0E08|0E08|0E7F|0EF0|0E08|0E08|0E7F|0E00|
+|     Tab     |0Fh|0F09|0F00|  - |  - |0F09|0F00|9400|A500|0F09|0F00|9400|A500|
+|      Q      |10h|1071|1051|1011|1000|1071|1051|1011|1000|1071|1051|1011|1000|
+|      W      |11h|1177|1157|1117|1100|1177|1157|1117|1100|1177|1157|1117|1100|
+|      E      |12h|1265|1245|1205|1200|1265|1245|1205|1200|1265|1245|1205|1200|
+|      R      |13h|1372|1352|1312|1300|1372|1352|1312|1300|1372|1352|1312|1300|
+|      T      |14h|1474|1454|1414|1400|1474|1454|1414|1400|1474|1454|1414|1400|
+|      Y      |15h|1579|1559|1519|1500|1579|1559|1519|1500|1579|1559|1519|1500|
+|      U      |16h|1675|1655|1615|1600|1675|1655|1615|1600|1675|1655|1615|1600|
+|      I      |17h|1769|1749|1709|1700|1769|1749|1709|1700|1769|1749|1709|1700|
+|      O      |18h|186F|184F|180F|1800|186F|184F|180F|1800|186F|184F|180F|1800|
+|      P      |19h|1970|1950|1910|1900|1970|1950|1910|1900|1970|1950|1910|1900|
+|     [ {     |1Ah|1A5B|1A7B|1A1B|  - |1A5B|1A7B|1A1B|1AF0|1A5B|1A7B|1A1B|1A00|
+|     ] }     |1Bh|1B5D|1B7D|1B1D|  - |1B5D|1B7D|1B1D|1BF0|1B5D|1B7D|1B1D|1B00|
+|    Enter    |1Ch|1C0D|1C0D|1C0A|  - |1C0D|1C0D|1C0A|1CF0|1C0D|1C0D|1C0A|1C00|
+|   [Enter]   |1Ch|1C0D|1C0D|1C0A|  - |E00D|E00D|E00A|A600|E00D|E00D|E00A|A600|
+|    Ctrl-    |1Dh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|      A      |1Eh|1E61|1E41|1E01|1E00|1E61|1E41|1E01|1E00|1E61|1E41|1E01|1E00|
+|      S      |1Fh|1F73|1F53|1F13|1F00|1F73|1F53|1F13|1F00|1F73|1F53|1F13|1F00|
+|      D      |20h|2064|2044|2004|2000|2064|2044|2004|2000|2064|2044|2004|2000|
+|      F      |21h|2166|2146|2106|2100|2166|2146|2106|2100|2166|2146|2106|2100|
+|      G      |22h|2267|2247|2207|2200|2267|2247|2207|2200|2267|2247|2207|2200|
+|      H      |23h|2368|2348|2308|2300|2368|2348|2308|2300|2368|2348|2308|2300|
+|      J      |24h|246A|244A|240A|2400|246A|244A|240A|2400|246A|244A|240A|2400|
+|      K      |25h|256B|254B|250B|2500|256B|254B|250B|2500|256B|254B|250B|2500|
+|      L      |26h|266C|264C|260C|2600|266C|264C|260C|2600|266C|264C|260C|2600|
+|     ; :     |27h|273B|273A|  - |  - |273B|273A|  - |27F0|273B|273A|  - |2700|
+|     ' "     |28h|2827|2822|  - |  - |2827|2822|  - |28F0|2827|2822|  - |2800|
+|     ` ~     |29h|2960|297E|  - |  - |2960|297E|  - |29F0|2960|297E|  - |2900|
+| levý Shift- |2Ah|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|     \ |     |2Bh|2B5C|2B7C|2B1C|  - |2B5C|2B7C|2B1C|2BF0|2B5C|2B7C|2B1C|2B00|
+|      Z      |2Ch|2C7A|2C5A|2C1A|2C00|2C7A|2C5A|2C1A|2C00|2C7A|2C5A|2C1A|2C00|
+|      X      |2Dh|2D78|2D58|2D18|2D00|2D78|2D58|2D18|2D00|2D78|2D58|2D18|2D00|
+|      C      |2Eh|2E63|2E43|2E03|2E00|2E63|2E43|2E03|2E00|2E63|2E43|2E03|2E00|
+|      V      |2Fh|2F76|2F56|2F16|2F00|2F76|2F56|2F16|2F00|2F76|2F56|2F16|2F00|
+|      B      |30h|3062|3042|3002|3000|3062|3042|3002|3000|3062|3042|3002|3000|
+|      N      |31h|316E|314E|310E|3100|316E|314E|310E|3100|316E|314E|310E|3100|
+|      M      |32h|326D|324D|320D|3200|326D|324D|320D|3200|326D|324D|320D|3200|
+|     , <     |33h|332C|333C|  - |  - |332C|333C|  - |33F0|332C|333C|  - |3300|
+|     . >     |34h|342E|343E|  - |  - |342E|343E|  - |34F0|342E|343E|  - |3400|
+|     / ?     |35h|352F|353F|  - |  - |352F|353F|  - |35F0|352F|353F|  - |3500|
+|     [/]     |35h|352F|352F|  - |  - |E02F|E02F|9500|A400|E02F|E02F|9500|A400|
+| pravý Shift-|36h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| Print Screen|37h|  - |  - |7200|  - |  - |  - |7200|  - |  - |  - |7200|  - |
+|     [*]     |37h|372A|372A|  - |  - |372A|372A|9600|37F0|372A|372A|9600|3700|
+|     Alt-    |38h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|Space(mezera)|39h|3920|3920|3920|3920|3920|3920|3920|3920|3920|3920|3920|3920|
+|  Caps Lock  |3Ah|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|     F1      |3Bh|3B00|5400|5E00|6800|3B00|5400|5E00|6800|3B00|5400|5E00|6800|
+|     F2      |3Ch|3C00|5500|5F00|6900|3C00|5500|5F00|6900|3C00|5500|5F00|6900|
+|     F3      |3Dh|3D00|5600|6000|6A00|3D00|5600|6000|6A00|3D00|5600|6000|6A00|
+|     F4      |3Eh|3E00|5700|6100|6B00|3E00|5700|6100|6B00|3E00|5700|6100|6B00|
+|     F5      |3Fh|3F00|5800|6200|6C00|3F00|5800|6200|6C00|3F00|5800|6200|6C00|
+|     F6      |40h|4000|5900|6300|6D00|4000|5900|6300|6D00|4000|5900|6300|6D00|
+|     F7      |41h|4100|5A00|6400|6E00|4100|5A00|6400|6E00|4100|5A00|6400|6E00|
+|     F8      |42h|4200|5B00|6500|6F00|4200|5B00|6500|6F00|4200|5B00|6500|6F00|
+|     F9      |43h|4300|5C00|6600|7000|4300|5C00|6600|7000|4300|5C00|6600|7000|
+|     F10     |44h|4400|5D00|6700|7100|4400|5D00|6700|7100|4400|5D00|6700|7100|
+|  Num Lock   |45h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| Scroll Lock |46h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|    Break    |46h|  - |  - |0000|  - |  - |  - |0000|  - |  - |  - |0000|  - |
+|     [7]     |47h|4737|4700|7700|  - |4737|4700|7700|  - |4737|4700|7700|  - |
+|    Home     |47h|4700|4700|7700|  - |47E0|47E0|77E0|9700|47E0|47E0|77E0|9700|
+|     [8]     |48h|4838|4800|  - |  - |4838|4800|8D00|  - |4838|4800|8D00|  - |
+| Up (nahoru) |48h|4800|4800|  - |  - |48E0|48E0|8DE0|9800|48E0|48E0|8DE0|9800|
+|     [9]     |49h|4939|4900|8400|  - |4939|4900|8400|  - |4939|4900|8400|  - |
+|   Page Up   |49h|4900|4900|8400|  - |49E0|49E0|84E0|9900|49E0|49E0|84E0|9900|
+|     [-]     |4Ah|4A2D|4A2D|  - |  - |4A2D|4A2D|8E00|4AF0|4A2D|4A2D|8E00|4A00|
+|     [4]     |4Bh|4B34|4B00|7300|  - |4B34|4B00|7300|  - |4B34|4B00|7300|  - |
+| Left (vlevo)|4Bh|4B00|4B00|7300|  - |4BE0|4BE0|73E0|9B00|4BE0|4BE0|73E0|9B00|
+|     [5]     |4Ch|4C35|  - |  - |  - |4C35|4CF0|8F00|  - |4C35|4C00|8F00|  - |
+|     [6]     |4Dh|4D36|4D00|7400|  - |4D36|4D00|7400|  - |4D36|4D00|7400|  - |
+|Right(vpravo)|4Dh|4D00|4D00|7400|  - |4DE0|4DE0|74E0|9D00|4DE0|4DE0|74E0|9D00|
+|     [+]     |4Eh|4E2B|4E2B|  - |  - |4E2B|4E2B|9000|4EF0|4E2B|4E2B|9000|4E00|
+|     [1]     |4Fh|4F31|4F00|7500|  - |4F31|4F00|7500|  - |4F31|4F00|7500|  - |
+|     End     |4Fh|4F00|4F00|7500|  - |4FE0|4FE0|75E0|9F00|4FE0|4FE0|75E0|9F00|
+|     [2]     |50h|5032|5000|  - |  - |5032|5000|9100|  - |5032|5000|9100|  - |
+| Down (dolù) |50h|5000|5000|  - |  - |50E0|50E0|91E0|A000|50E0|50E0|91E0|A000|
+|     [3]     |51h|5133|5100|7600|  - |5133|5100|7600|  - |5133|5100|7600|  - |
+|  Page Down  |51h|5100|5100|7600|  - |51E0|51E0|76E0|A100|51E0|51E0|76E0|A100|
+|     [0]     |52h|5230|5200|  - |  - |5230|5200|9200|  - |5230|5200|9200|  - |
+|   Insert    |52h|5200|5200|  - |  - |52E0|52E0|92E0|A200|52E0|52E0|92E0|A200|
+|     [.]     |53h|532E|5300|  - |  - |532E|5300|9300|  - |532E|5300|9300|  - |
+|   Delete    |53h|53E0|53E0|  - |  - |53E0|53E0|93E0|A300|53E0|53E0|93E0|A300|
+|   Sys Rqst  |54h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| \ | zdvojená|56h|2B5C|2B7C|2B1C|  - |565C|567C|561C|  - |565C|567C|561C|  - |
+|     F11     |57h|  - |  - |  - |  - |8500|8700|8900|8B00|8500|8700|8900|8B00|
+|     F12     |58h|  - |  - |  - |  - |8600|8800|8A00|8C00|8600|8800|8A00|8C00|
+| ... prefix  |E0h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| .... pause  |E1h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| .... ready  |FAh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| ... repeat  |FEh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| ..... full  |FFh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+Klávesy   oznaèené  lomenými  závorkami  []  jsou  klávesy  v  numerickém  poli
+klávesnice.
+
+
+TESTKEY  vyžaduje  k  provozu  poèítaè  IBM  PC/XT/AT  nebo plnì kompatibilní a
+operaèní systém DOS verze minimálnì 2.00.
+
+                  +-----------------------------------------+
+                  |                  GOLEM                  |
+                  | P.O.Box 66, 756 61 Rožnov pod Radhoštìm |
+                  |          tel/fax: (0651) 54044          |
+                  +-----------------------------------------+
+                  | Tento program je souèástí programového  |
+                  |      balíku DOS Manažer verze 1.55      |
+                  +-----------------------------------------+
+

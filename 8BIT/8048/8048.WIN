@@ -1,0 +1,808 @@
+
+
+
+                     Jednoèipovı mikropoèítaè  8 0 4 8
+                     ---------------------------------
+Rozdìlení obvodù øady 48:
++----+--------+-----+-------+--------+-------+------+-----+------+--------+
+|typ |  pevná | RAM | instr.| kanál  |pøeruš.| A/D  | sér.|vnitø.|monost |
+|    |  pamì |     | cyklus|  V/V   |vni/vnì| pøev.|kanál|èítaè |rozšíø. |
++----+--------+-----+-------+--------+-------+------+-----+------+--------+
+|8020| 1K/ROM | 64 B|8,38 µs|2x8 bitù|   -   |  -   |  -  | 1x8  |   ne   |
+|8021| 1K/ROM | 64 B|8,38 µs|1x4 bity|   -   |  -   |  -  | 1x8  |   ne   |
+|8022| 2K/ROM | 64 B| 5 µs  |3x8 bitù|  1/1  |  2x  |  -  | 1x8  |   ne   |
++----+--------+-----+-------+--------+-------+------+-----+------+--------+
+|8041| 1K/ROM | 64 B| 2,5 µs|3x8 bitù|  1/-  |  -   |  -  | 1x8  |   ne   |
+|8741|1K/EPROM| 64 B| 2,5 µs|3X8 bitù|  1/-  |  -   |  -  | 1x8  |   ne   |
++----+--------+-----+-------+--------+-------+------+-----+------+--------+
+|8035|   -    | 64 B| 2,5 µs|3x8 bitù|  1/1  |  -   |  -  | 1x8  |   ano  |
+|8048| 1K/ROM | 64 B| 2,5 µs|3x8 bitù|  1/1  |  -   |  -  | 1x8  |   ano  |
+|8748|1K/EPROM| 64 B| 2,5 µs|3x8 bitù|  1/1  |  -   |  -  | 1x8  |   ano  |
++----+--------+-----+-------+--------+-------+------+-----+------+--------+
+|8039|   -    |128 B| 1,4 µs|3x8 bitù|  1/1  |  -   |  -  | 1x8  |   ano  |
+|8049| 2K/ROM |128 B| 1,4 µs|3x8 bitù|  1/1  |  -   |  -  | 1x8  |   ano  |
+|8749|2K/EPROM|128 B| 1,4 µs|3x8 bitù|  1/1  |  -   |  -  | 1x8  |   ano  |
++----+--------+-----+-------+--------+-------+------+-----+------+--------+
+|8031|   -    |128 B|  1 µs |4x8 bitù|  3/2  |  -   | ano | 2x16 |   ano  |
+|8051| 4K/ROM |128 B|  1 µs |4x8 bitù|  3/2  |  -   | ano | 2x16 |   ano  |
+|8751|4K/EPROM|128 B|  1 µs |4x8 bitù|  3/2  |  -   | ano | 2x16 |   ano  |
++----+--------+-----+-------+--------+-------+------+-----+------+--------+
+ 
+Základní uspoøádání obvodu:
+          +---------------------------------------------+--------+
+pøerušení |---   +---------------+      vnitøní sbìrnice|        |
+--------->|INT   |               |                  |   |        |
+          |      |               |                  |   |        |
+nulování  |----- |  pevná pamì  |                  |   |  V/V   | P10-P17
+--------->|RESET |               |                  |   |        |
+          |      |               |<---------------->|<->| kanál  |<------->
+odpojení  |      |               |                  |   |        |
+--------->|EA    |   ROM/EPROM   |                  |   |   1    |
+          |      |               |                  |   |        |
+krokování |--    |               |                  |   | 8 bitù |
+--------->|SS    |               |  +------------+  |   |        |
+          |      |   1K nebo 2K  |  |   èítaè    |  |   +--------+
+tst.vstup0|      |               |<-+instrukcí PC|<>|   |        |
+--------->|T0    |               |  |   11 bitù  |  |   |        |
+vıstup CLK|      |               |  +------------+  |   |  V/V   | DB0-DB7
+tst.vstup1|      +---------------+  |banka DBF 1b|  |   |        |
+--------->|T1    +---------------+  +------------+  |   | kanál  |<------->
+          |      |               |     +-------+    |<->|        |
+--------->|XTAL1 |               |     |støadaè|    |   |   0    |
+krystal   |      |     øadiè     |     |   A   |<-->|   |        |
+--------->|XTAL2 |               |     | 8 bitù|    |   | (sbìr- |
+          |      |   registru    |     +-------+    |   |  nice) |
+vyr.pamì |      |               |                  |   |        |
+<---------+ALE   |   instrukcí,  |<---------------->|   | 8 bitù |
+          |      |               |                  |   +--------+
+zápis     |--    |      ALU      |                  |   |        |
+<---------+WR    |               | +-------------+  |   |        |
+          |      +---------------+ |stavové slovo|<>|   |        |
+ètení     |--    +---------------+ | 8 bitù PSW  |  |   |        |
+<---------+RD    |               | +-------------+  |   |  V/V   | P20-P27
+          |      |   pamì RAM   |                  |   |        |
+ expander |      |               |                  |<->| kanál  |<------->
+<---------+PROG  |   64 B nebo   |<---------------->|   |        |
+          |      |               | +-------------+  |   |   2    |
+ètení prg.|      |     128 B     | |èítaè/èasovaè|  |   |        |
+<---------+PSEN  |               | |    8 bitù   |<>|   | 8 bitù |
+          |      +---------------+ +-------------+      |        |
+          +---------------------------------------------+--------+
+
+Signály:
+
+/INT     - poadavek na pøerušení z vnìjšího zdroje
+/RESET   - systémové nulování
+PROG     - vstup programovacího pulsu pro verzi EPROM
+         - vıstup signálu zápisu èi ètení pro expander
+EA       - odpojení vnitøní pamìti programu
+XTAL1,XTAL2 - pøipojení krystalu èi zdroje hodinového kmitoètu
+/SS      - krokování procesoru
+T0       - vstup testovatelnı programem, vıstup hodinového kmitoètu
+T1       - vstup testovatelnı programem nebo vstup èítaèe událostí
+ALE      - synchronizaèní signál zápisu adresy na sbìrnici
+PSEN     - ètení z vnìjší pamìti programu
+/WR      - zápis do pamìti dat
+/RD      - ètení z pamìti dat
+
+
+
+Èasování základních signálù:
+
+|  T1   |   T2  |   T3  |   T4  |   T5  |   T1  |   T2  |   T3  |   T4  |
+|       |       |       |       |       |       |       |       |       |
+|       |       |       |       |       |       |       |       |       |
+|FS     |       |       |       |       |       |       |       |       |
+|---+   +---+   +---+   +---+   +---+   +---+   +---+   +---+   +---+   +-
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+-
+|       |       |       |       |       |       |       |       |       |
+|FV,CLK |       |       |       |       |       |       |       |       |
+|----+ +-----+ +-----+ +-----+ +-----+ +-----+ +-----+ +-----+ +-----+ +--
++----+-+-----+-+-----+-+-----+-+-----+-+-----+-+-----+-+-----+-+-----+-+--
+|       |       |       |       |       |       |       |       |       |
+|ALE    |       |       |       |       |       |       |       |       |
+|       |       |   +--------+  |       |       |       |   +--------+  |
++-------------------+--------+------------------------------+--------+----
+|       |       |       |       |       |       |       |       |       |
+|/PSEN  |       |       |       |       |       |       |       |       |
+|       +-----------------------+       |       +-----------------------+
++-------+-----------------------+---------------+-----------------------+-
+|       |       |       |       |       |       |       |       |       |
+|/RD,/WR|       |       |       |       |       |       |       |       |
+|-----------------------------------+   |       |       +-----------------
++-----------------------------------+-------------------+-----------------
+|       |       |       |       |       |       |       |       |       |
+| /STB  |       |       |       |       |       |       |       |       |
+|---------------------------+                           +-----------------
++---------------------------+---------------------------+-----------------
+|
+| instrukèní cyklus:
++---------------------------------------+---------------------------------
+|                M 1                    |                M 1
++-------+-------+-----------------------+---------------------------------
+ adresa | PC+1  |
+  (PC)  |       |
++-------+-------+-----------------------+
+|ètení  | dekód.|  provedení instrukce  |
+|instr. | instr.|                       |
++-------+-------+-----------------------+-------+-------+
+|               |    vıstup pøíští adresy  (PC) | PC+1  |
+|               |                               |       |
+|               +-----------------------+-------+-------+-----------------
+|                                       | ètení | dekód.|provedení instr.
+|                                       | instr.| instr.|
+|                                       +-------+-------+-----------------
+
+
+
+Rozdìlení pamìti ROM:
+
+           +-----        +---------------------+
+           |         FFF |                     |
+           |             |                     |
+           |             |                     |
+    banka  |             |                     |
+    pamìti-+             |                     |
+      1    |             |                     |
+   DBF=1   |             |                     |
+ (SEL MB1) |             |                     |
+           |             |                     |
+           |             |                     |
+           +-----    800 |                     |
+           +-----        +---------------------+               -----+
+           |         7FF |      stránka 7      |                    |
+           |             |                     |                    |
+           |             |                     |                    |
+           |             |                     |                    |
+           |         400 |                     |                    |
+           |             +---------------------+         ----+      |
+           |         3FF |      stránka 3      |             |      |
+           |             |                     |             |      |
+           |             |                     | tabulky     |      |
+           |             |                     |   dat       |      |
+           |             |                     |             |      |
+           |         300 |                     |             |      |
+           |             +---------------------+             |      |
+           |         2FF |      stránka 2      |             |      |
+           |             |                     |             |      |
+           |             |                     |             |      |
+           |             |                     |             |      |
+           |             |                     |             |      |
+           |         200 |                     |             |      |
+           |             +---------------------+             |      |
+           |         1FF |      stránka 1      |             |      |
+           |             |                     |             |      |
+           |             |                     |             |      |
+    banka  |             |                     |             |      + 8049
+    pamìti-+             |                     |             |      |
+      0    |         100 |                     |             |      |
+   DBF=0   |      +-     +---------------------+             + 8048 |
+ (SEL MB0) |      |  0FF |      stránka 0      |             |      |
+           |      |      |                     |             |      |
+           |      |      |                     |             |      |
+           |      |      |                     |             |      |
+           |      |      +---------------------+             |      |
+           |      |  007 |                     |  TINT       |      |
+           |      |      +---------------------+ pøerušení   |      |
+           |      |  006 |                     | od èasovaèe |      |
+           |      |      +---------------------+             |      |
+           | str. |  005 |                     |             |      |
+           |  0  -+      +---------------------+             |      |
+           |      |  004 |                     |             |      |
+           |      |      +---------------------+             |      |
+           |      |  003 |                     |  INT        |      |
+           |      |      +---------------------+ vnìjší      |      |
+           |      |  002 |                     | pøerušení   |      |
+           |      |      +---------------------+             |      |
+           |      |  001 |                     |             |      |
+           |      |      +---------------------+             |      |
+           |      |  000 |                     |  RESET      |      |
+           +----  +-     +---------------------+ (start) ----+  ----+
+
+- Nìkteré  skokové  instrukce  umoòují  provádìt  skoky pouze uvnitø jedné
+  stránky.  Pøi  bìhu  programu se inkrementují pouze bity 0 a 10 registru
+  PC; bit 11 lze nastavit programovì instrukcí SEL MBx.
+Pamì RAM:                          +---------------+
+                               20-3F|               | --- volná pamì
+                                    +---------------+ -+   32 bajtù
+                                 1F |      R7'      |  |
+                                    +---------------+  |
+                                 1E |      R6'      |  |
+                                    +---------------+  |
+                                 1D |      R5'      |  |
+                                    +---------------+  |
+                                 1C |      R4'      |  +- banka registrù 1
+                                    +---------------+  |      (BS=1)
+                                 1B |      R3'      |  |
+                                    +---------------+  |
+                                 1A |      R2'      |  |
+                                    +---------------+  |
+                                 19 |      R1'      |  |
+                                    +---------------+  |
+                                 18 |      R0'      |  |
+           +-------------           +---------------+ -+
+           |                     17 |               |  |
+           |              SP=111    +----- S7 ------+  |
+           |                     16 |               |  |
+           |                        +---------------+  |
+           |                     15 |               |  |
+           |              SP=110    +----- S6 ------+  |
+           |                     14 |               |  |
+           |                        +---------------+  |
+           |                     13 |               |  |
+           |              SP=101    +----- S5 ------+  |
+                                 12 |               |  |
+   obsah uloeného                  +---------------+  |
+  slova v zásobníku              11 |               |  |
++--+--+--+--+--+--+--+--+ SP=100    +----- S4 ------+  |
+|C |AC|F0|BS|11|10| 9| 8|        10 |               |  |
++--+--+--+--+--+--+--+--+           +---------------+  +- zásobník
+| 7| 6| 5| 4| 3| 2| 1| 0|        0F |               |  |
++--+--+--+--+--+--+--+--+ SP=011    +----- S3 ------+  |
+                                 0E |               |  |
+           |                        +---------------+  |
+           |                     0D |               |  |
+           |              SP=010    +----- S2 ------+  |
+           |                     0C |               |  |
+           |                        +---------------+  |
+           |                     0B |               |  |
+           |              SP=001    +----- S1 ------+  |
+           |                     0A |               |  |
+           |                        +---------------+  |
+           |                     09 |               |  |
+           |              SP=000    +----- S0 ------+  |
+           |                     08 |               |  |
+           +-------------           +---------------+ -+
+                                 07 |      R7       |  |
+                                    +---------------+  |
+                                 06 |      R6       |  |
+                                    +---------------+  |
+                                 05 |      R5       |  |
+                                    +---------------+  |
+                                 04 |      R4       |  |
+                                    +---------------+  +- banka registrù 0
+                                 03 |      R3       |  |      (BS=0)
+                                    +---------------+  |
+                                 02 |      R2       |  |
+                                    +---------------+  |
+                                 01 |      R1       |  |
+                                    +---------------+  |
+                                 00 |      R0       |  |
+                                    +---------------+ -+
+Testovatelné stavy:
+
+
+C   - CARRY: bit pøenosu z bitu 7, nastaven pøi aritmet. operaci
+
+AC  - AUXILIARY CARRY: bit pomocného pøenosu z bity 3 do bitu 4, nelze jej
+                       pøímo testovat ani nastavovat
+
+F0  - FLAG 0: programovì øízenı pøíznakovı bit, je uschováván pøi skoku
+              do podprogramù a mùe bıt instrukcí RETR obnoven
+
+F1  - FLAG 1: programovì øízenı pøíznakovı bit, nelze jej uchovat, pouívá
+              se k pøedávání informací z podprogramu
+
+BS  - BANK SWITCH: pøepínaè banky registrù (BS=0: R0-R7; BS=1: R0'-R7')
+
+T0  - TEST 0: testovatelnı vıvod 0, lze jej pouít té jako hodinovı vıstup
+
+T1  - TEST 1: testovatelnı vıvod 1, lze jej pouít té jako vstup do èítaèe
+              vnìjších událostí
+
+TF  - TIMER FLAG: pøíznak pøeplnìní èasovaèe; èasovaè je inkrementován vdy
+                  po 32 instrukèních cyklech (32*15=taktù hodin), pøíznak
+                  je nastaven pøi pøechodu stavu èítaèe z FFh do 00h, pokud
+                  je povoleno pøerušení od èasovaèe, provede se pøerušení.
+
+I   - INTERRUPT: pøerušení z vnìjšího zdroje - provede se, pokud je povo-
+                 leno pøerušení instrukcí EN I.
+
+
+
+
+Stavové slovo programu PSW:
+
+        7      6      5      4      3      2      1      0
+    +------+------+------+------+------+------+------+------+
+    |   C  |  AC  |  F0  |  BS  |   1  |  SP2 |  SP1 |  SP0 |
+    +------+------+------+------+------+------+------+------+
+    +-------------+-------------+      +----------+---------+
+         ukládá se do zásobníku          ukazatel zásobníku
+
+    Stavové  slovo  PSW  je  registr  o  délce 8 bitù. Bity 4 a 7 obsahují
+testovatelné  bity  C,  AC,  F0 a BS (viz pøedešlı popis). Tato èást PSW se
+uchovává  pøi  provádìní  instrukce  CALL  a  pøi pøerušení spolu se stavem
+èítaèe  instrukcí (4 bity PSW a 12 bitù PC), tyto bity lze obnovit návratem
+z podprogramu intrukcí RETR.
+
+    Druhá èást slova PSW obsahuje v bitech 0 a 2 ukazatel zásobníku, kterı
+slouí  k  adresování  osmiúrovòového  zásobníku  v  pamìti. Tyto 3 bity se
+pouijí  jako bity 1 a 3 pøi adresaci slova v zásobníku, tvar adresy slova
+v zásobníku je potom:
+
+základní adresa zásobníku              0    0    1    0    0    0
+ukazatel zásobníku                     -    -   SP2  SP1  SP0   -
+sudı/lichı bajt slova                  -    -    -    -    -   0,1
+                                     --------------------------------
+vısledná adresa bajtu                  0   0,1 /SP2  SP1  SP0  0,1
+
+
+
+
+
+
+
+
+
+
+Pøerušení signálem /RESET:
+
+    Pøerušení  je  vyvoláno  pøivedením signálu L na nulovací vstup /RESET.
+Pouívá se k inicializaci, tj. k uvedení do poèáteèního definovaného stavu.
+Toto  pøerušení  nelze  ádnım  zpùsobem  maskovat.  Pøi tomto pøerušení se
+provedou následující operace:
+    - nulování èítaèe instrukcí PC
+    - nulování ukazatele zásobníku SP
+    - nulování ukazatele banky registrù BS (adresují se tedy registry 0)
+    - nulování registru banky programu DBF (= bit 11 adresy programu)
+    - nulování pøíznaku èasovaèe TF a pøíznakovıch bitù F0 a F1
+    - provede se zákaz pøerušení od vnìjší události i od èasovaèe
+    - zastaví se èítání èítaèe CT, ale nezmìní se jeho obsah
+    - vıvody kanálu 0 (sbìrnice) se nastaví do tøetího stavu
+    - vıvody kanálù 1 a 2 se nastaví na úroveò H (tedy jako vstupy)
+
+
+Pøerušení vnìjším signálem /INT:
+
+    Pøerušení  vnìjším  signálem  /INT  je  maskovatelné  (instrukce EN I a
+DIS·I). Vyvolá se pøechodem vstupu /INT z úrovnì H na úroveò L po dokonèení
+právì  provádìné  instrukce.  Provede se instrukce CALL se skokem na adresu
+003.  Pokud  není  pøerušení  povoleno,  lze  pouít  tento vstup jako jinı
+testovatelnı  vstup.  Pro  návrat z pøerušení by mìlo bıt pouito instrukce
+RETR. Tato instrukce znovu povolí pøerušení, které je vstupem do obsluného
+podprogramu  pøerušení  zakázáno.  Proto  pokud  se  pouívá uvnitø obsluhy
+pøerušení volání podprogramu, musí se k návratu z tohoto podprogramu pouít
+instrukce RET.
+
+
+Pøerušení od èasovaèe:
+
+    Pøerušení  od  èítaèe/èasovaèe  se  vyvolá pøechodem èítaèe/èasovaèe ze
+stavu  FFh  do  stavu  00h.  Toto  pøerušení  je maskovatelné. Pøi vyvolání
+pøerušení  se  provede  instrukcí  CALL  skok  na adresu 007. Kromì toho se
+nastaví  pøíznak pøeplnìní èasovaèe TF, kterı lze vynulovat pouze instrukcí
+JTF nebo pøerušením /RESET.
+
+
+    Pøi  zpracování  obou  poslednì  uvedenıch  pøerušení musí bıt umístìny
+všechny   obsluné   programu  pøerušení  v  bance  pamìti  0  (tj.  adresy
+000-07FFH),  protoe  je  bìhem  zpracování  pøerušení  nastaven  bit  PC11
+obvodovì  na  0  a  nelze  jej zmìnit. Lze zpracovávat souèasnì pouze jednu
+úroveò  pøerušení. Pøi souèasném pøíchodu vnìjšího pøerušení a pøerušení od
+èasovaèe má pøednost vnìjší pøerušení.
+
+
+
+Symboly_pro_popis_instrukcí:
+
+A   - Accumulator (støadaè)
+AC  - Auxiliary carry  (pomocnı pøenos)
+addr- Address 12 bit (dvanáctibitová adresa programu)
+adr - Address 8 bit (osmibitová adresa programu)
+Bb  - Bit Designator (urèení místa bitu ve slovì; b=0 a 7)
+BS  - Bank Switch (pøepínaè bank)
+BUS - BUS Port (kanál 0, vnìjší sbìrnice)
+C   - Carry (pøenos)
+CLK - Clock (hodinové impulsy)
+CNT - Event Counter (èítaè událostí)
+data- 8-Bit Digit or Expresion (osmibitové èíslo nebo vıraz)
+DBF - Memory Bank Flip-Flop (klopnı obvod pro vıbìr banky pamìti)
+F0  - Flag 0 (pøíznakovı bit 0)
+F1  - Flag 1 (pøíznakovı bit 1)
+I   - Interrupt (pøerušení)
+P   - Mnemonic for "in-page" Operation (oznaèení operace na pøítomné str.)
+PC  - Program Counter (èítaè programu)
+PCL - Program Counter Low Byte (niší bajt èítaèe programu - bity 0 a 7)
+PCH - Program Counter High Byte (vyšší bajt èítaèe programu - bity 8 a 11)
+Pp  - Port Designator (urèení kanálu)
+PSW - Program Status Word (stavové slovo programu)
+Rr  - Register Designator (urèení registru)
+SP  - Stack Pointer (ukazatel polohy zásobníku)
+T   - Timer (èasovaè)
+TF  - Timre Flag (pøíznak pøeplnìní èasovaèe)
+T0  - Test 0 (testovatelnı vstup 0)
+T1  - Test 1 (testovatelnı vstup 1)
+X   - Mnemonic for External RAM (oznaèení operace pro vnìjší pamì dat)
+#   - Immediate Address Prefix (oznaèení pøímıch dat)
+@   - Indirect Addres Prefix (oznaèení nepøímého adresování)
+$   - Current Value of PC (okamitá hodnota èítaèe programu)
+(X) - Contents of X (obsah X)
+((X)) - Contents of Location Addresed by X (obsah pamìti adresované X)
+<--   - Is Replaced by (je nahraen (èím))
+<-->  - Exchange (vımìna)
+
+Pøenosy_dat:
+
+MOV A,Rr      A<-Rr           (r=0-7) - pøenos registru do støadaèe
+MOV Rr,A      Rr<-A           (r=0-7) - pøenos støadaèe do registru
+MOV A,@Rr     A<-(Rr)         (r=0,1) - pøenos z pamìti do støadaèe
+MOV @Rr,A     (Rr)<-A         (r=0,1) - pøenos ze støadaèe do pamìti
+MOVX A,@Rr    A<-(Rr)         (r=0,1) - pøenos z vnìjší pamìti do støadaèe
+MOVX @Rr,A    (Rr)<-A         (r=0,1) - pøenos ze støadaèe do vnìjší pamìti
+MOV Rr,#data  Rr<-data        (r=0-7) - pøenos pøímé hodnoty do registru
+MOV @Rr,#data (Rr)<-data      (r=0,1) - pøenos pøímé hodnoty do pamìti
+MOV A,#data   A<-data                 - pøenos pøímé hodnoty do støadaèe
+MOV A,PSW     A<-PSW                  - pøenos obsahu PSW do støadaèe
+MOV PSW,A     PSW<-A                  - pøenos støadaèe do PSW
+MOV T,A       T<-A                    - pøenos støadaèe do èasovaèe
+MOV A,T       A<-T                    - pøenos èasovaèe do støadaèe
+MOVP A,@A     A<-(PCH|A)              - pøenos z ROM (adr.(A)) do støadaèe
+MOVP3 A,@A    A<-(3|A)                - pøenos ze stránky 3 do støadaèe
+
+Vımìny_dat:
+
+XCH A,Rr      A<->Rr          (r=0-7) - vımìna støadaèe s registrem
+XCH A,@Rr     A<->(Rr)        (r=0,1) - vımìna støadaèe a obsahu pamìti
+XCHD A,@Rr    A(0-3)<->(Rr(0-3)) (r=0,1) - vımìna 4 bitù støadaèe a pamìti
+SWAP A        A(4-7)<->A(0-3)         - vımìna 4 bitù uvnitø støadaèe
+
+Vstup/vıstup:
+
+INS A,BUS     A<-BUS                  - vstup dat z kanálu 0 do støadaèe
+IN A,Pp       A<-Pp           (p=1,2) - vstup dat z kanálu 1,2 do støadaèe
+OUTL BUS,A    BUS<-A                  - vıstup dat ze støadaèe na kanál 0
+OUTL Pp,A     Pp<-A           (p=1,2) - vıstup dat ze støad. na kanály 1,2
+MOVD A,Pp     A(0-3)<-Pp A(4-7)<-0 (p=4-7)-pøenos dat z kan.4-7 do støadaèe
+MOVD Pp,A     Pp<-A(0-3)      (p=4-7) - pøenos dat ze støad. do kanálù 4-7
+
+Operace_s_daty:
+
+ANL A,Rr      A<-A AND Rr     (r=0-7) - log. souèin støadaèe s registrem
+ANL A,@Rr     A<-A AND (Rr)   (r=1,2) - log. souèin støadaèe s pamìtí
+ANL A,#data   A<-A AND data           - log. souèin støadaèe s daty
+ANL BUS,#data BUS<-BUS AND data       - log. souèin kanálu 0 (BUS) s daty
+ANL Pp,#data  Pp<-Pp AND data (p=1,2) - log.souèin kanálù 1,2 s daty
+ANLD Pp,A     Pp<-Pp AND A(0-3)(p=4-7)- log.souèin kan.4-7 se støadaèem
+ORL A,Rr      A<-A OR Rr      (r=0-7) - log. souèet støadaèe s registrem
+ORL A,@Rr     A<-A OR (Rr)    (r=1,2) - log. souèet støadaèe s pamìtí
+ORL A,#data   A<-A OR data            - log. souèet støadaèe s daty
+ORL BUS,#data BUS<-BUS OR data        - log. souèet kanálu 0 (BUS) s daty
+ORL Pp,#data  Pp<-Pp OR data  (p=1,2) - log.souèet kanálù 1,2 s daty
+ORLD Pp,A     Pp<-Pp OR A(0-3)(p=4-7) - log.souèet kan.4-7 se støadaèem
+XRL A,Rr      A<-A XOR Rr     (r=0-7) - log. XOR støadaèe s registrem
+XRL A,@Rr     A<-A XOR (Rr)   (r=1,2) - log. XOR støadaèe s pamìtí
+XRL A,#data   A<-A XOR data           - log. XOR støadaèe s daty
+RR A          A(n)<-A(n+1),A(7)<-A(0) - rotace støadaèe vpravo
+RL A          A(n+1)<-A(n),A(0)<-A(7) - rotace støadaèe vlevo
+RRC A         A(n)<-A(n+1),A(7)<-C<-A(0) - rotace støadaèe vpravo pøes C
+RLC A         A(n+1)<-A(n),A(0)<-C<-A(7) - rotace støadaèe vlevo pøes C
+INC A         A<-A+1                  - zvıšení obsahu støadaèe o 1
+INC Rr        Rr<-Rr+1        (r=0-7) - zvıšení obsahu registru o 1
+INC @Rr       (Rr)<-(Rr)+1    (r=0,1) - zvıšení obsahu pamìti o 1
+DEC A         A<-A-1                  - sníení obsahu støadaèe o 1
+DEC Rr        Rr<-Rr-1        (r=0-7) - sníení obsahu registru o 1
+ADD A,Rr      A<-A+Rr         (r=0-7) - pøiètení registru ke støadaèi
+ADD A,@Rr     A<-A+(Rr)       (r=0,1) - pøiètení obsahu pamìti ke støadaèi
+ADD A,#data   A<-A+data               - pøiètení dat ke støadaèi
+ADDC A,Rr     A<-A+Rr+C       (r=0-7) - pøiètení registru a C ke støadaèi
+ADDC A,@Rr    A<-A+(Rr)+C     (r=0,1) - pøiètení pamìti a C ke støadaèi
+ADDC A,#data  A<-A+data+C             - pøiètení dat a C ke støadaèi
+CLR A         A<-0                    - nulování støadaèe
+CPL A         A<-NOT A                - komplement støadaèe
+DA A          desítková korekce A     - dekadické nastavení obsahu støadaèe
+
+Øídící_instrukce:
+
+CLR C         C<-0                    - nulování bitu pøenosu C
+CPL C         C<-NOT C                - komplement bitu pøenosu C
+CLR F0        F0<-0                   - nulování bitu pøíznaku F0
+CPL F0        F0<-NOT F0              - komplement bitu pøíznaku F0
+CLR F1        F1<-0                   - nulování bitu pøíznaku F1
+CPL F1        F1<-NOT F1              - komplement bitu pøíznaku F1
+EN I                                  - povolení vnìjšího pøerušení
+DIS I                                 - zákaz vnìjšího pøerušení
+EN TCNTI                              - povolení pøerušení od èít./èasovaèe
+DIS TCNTI                             - zákaz pøerušení od èítaèe/èasovaèe
+STRT T                                - start èasovaèe
+STRT CNT                              - start èítaèe událostí
+STOP TCNT                             - stop èítaèe/èasovaèe
+ENT0 CLK      T0<-CLK                 - povolení vıstupu hodin na T0
+SEL MB0       DBF<-0                  - vıbìr banky pamìti 0
+SEL MB1       DBF<-1                  - vıbìr banky pamìti 1
+SEL RB0       BS<-0                   - vıbìr banky registrù 0
+SEL RB1       BS<-1                   - vıbìr banky registrù 1
+NOP                                   - prázdná operace
+
+Pøedání_øízení:
+
+CALL addr                             - volání podprogramu
+RETR                                  - návrat z podprogr. s obnovením PSW
+RET                                   - návrat z podprogramu bez obnov. PSW
+JMP addr                              - nepodmínìnı skok
+JMPP @A                               - nepøímı skok v rozsahu stránky
+JC adr                                - skok, je-li C=1
+JNC adr                               - skok, je-li C=0
+JZ adr                                - skok, je-li A=0
+JNZ adr                               - skok, je-li A<>0
+JF0 adr                               - skok, je-li F0=1
+JF1 adr                               - skok, je-li F1=1
+JT0 adr                               - skok, je-li T0=1
+JNT0 adr                              - skok, je-li T0=0
+JT1 adr                               - skok, je-li T1=1
+JNT1 adr                              - skok, je-li T1=0
+JTF adr                               - skok, je-li TF=1
+JNI adr                               - skok, je-li I=0
+JBb adr                               - skok, je-li bit b støadaèe = 1
+DJNZ Rr,adr   Rr<-Rr-1        (r=0-7) - sníení registru a podmínìnı skok
+              je-li Rr<>0,pak PCL<-adr
+
+     +---------------+---------------+---------------+---------------+
+     |       0       |       1       |       2       |       3       |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 0 |      NOP      |               |  OUTL BUS,A   |  ADD A,#data  | 0 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 1 |    INC @R0    |    INC @R1    |    JB0 adr    |  ADDC A,#data | 1 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 2 |   XCH A,@R0   |   XCH A,@R1   |               |  MOV A,#data  | 2 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 3 |   XCHD A,@R0  |   XCHD A,@R1  |    JB1 adr    |               | 3 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 4 |   ORL A,@R0   |   ORL A,@R1   |    MOV A,T    |  ORL A,#data  | 4 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 5 |   ANL A,@R0   |   ANL A,@R1   |    JB2 adr    |  ANL A,#data  | 5 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 6 |   ADD A,@R0   |   ADD A,@R1   |    MOV T,A    |               | 6 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 7 |   ADDC A,@R0  |   ADDC A,@R1  |    JB3 adr    |               | 7 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 8 |   MOVX A,@R0  |   MOVX A,@R1  |               |      RET      | 8 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 9 |   MOVX @R0,A  |   MOVX @R1,A  |    JB4 adr    |     RETR      | 9 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | A |   MOV @R0,A   |   MOV @R1,A   |               |   MOVP A,@A   | A |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | B | MOV @R0,#data | MOV @R1,#data |    JB5 adr    |   JMPP @A     | B |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | C |               |               |               |               | C |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | D |   XRL A,@R0   |   XRL A,@R1   |    JB6 adr    |  XRL A,#data  | D |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | E |               |               |               |  MOVP3 A,@A   | E |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | F |   MOV A,@R0   |   MOV A,@R1   |    JB7 adr    |               | F |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+     +---------------+---------------+---------------+---------------+
+     |       4       |       5       |       6       |       7       |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 0 |  JMP addrs0   |     EN I      |               |    DEC A      | 0 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 1 |  CALL adrs0   |     DIS I     |    JTF adr    |    INC A      | 1 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 2 |  JMP addrs1   |   EN TCNTI    |   JNT0 adr    |    CLR A      | 2 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 3 |  CALL addrs1  |   DIS TCNTI   |    JT0 adr    |    CPL A      | 3 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 4 |  JMP addrs2   |   STRT CNT    |   JNT1 adr    |    SWAP A     | 4 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 5 |  CALL addrs2  |    STRT T     |    JT1 adr    |     DA A      | 5 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 6 |  JMP addrs3   |   STOP TCNT   |               |     RRC A     | 6 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 7 |  CALL addrs3  |   ENT0 CLK    |    JF1 adr    |     RR A      | 7 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 8 |  JMP addrs4   |    CLR F0     |    JNI adr    |               | 8 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 9 |  CALL addrs4  |    CPL F0     |    JNZ adr    |     CLR C     | 9 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | A |  JMP addrs5   |    CLR F1     |               |     CPL C     | A |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | B |  CALL addrs5  |    CPL F1     |    JF0 adr    |               | B |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | C |  JMP addrs6   |    SEL RB0    |    JZ adr     |   MOV A,PSW   | C |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | D |  CALL addrs6  |    SEL RB1    |               |   MOV PSW,A   | D |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | E |  JMP addrs7   |    SEL MB0    |    JNC adr    |     RL A      | E |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | F |  CALL addrs7  |    SEL MB1    |    JC adr     |     RLC A     | F |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+     +---------------+---------------+---------------+---------------+
+     |       8       |       9       |       A       |       B       |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 0 |  INS A,BUS    |   IN A,P1     |   IN A,P2     |               | 0 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 1 |    INC R0     |    INC R1     |    INC R2     |    INC R3     | 1 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 2 |   XCH A,R0    |   XCH A,R1    |   XCH A,R2    |   XCH A,R3    | 2 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 3 |               |   OUTL P1,A   |   OUTL P2,A   |               | 3 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 4 |   ORL A,R0    |   ORL A,R1    |   ORL A,R2    |   ORL A,R3    | 4 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 5 |   ANL A,R0    |   ANL A,R1    |   ANL A,R2    |   ANL A,R3    | 5 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 6 |   ADD A,R0    |   ADD A,R1    |   ADD A,R2    |   ADD A,R3    | 6 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 7 |   ADDC A,R0   |   ADDC A,R1   |   ADDC A,R2   |   ADDC A,R3   | 7 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 8 | ORL BUS,#data |  ORL P1,#data |  ORL P2,#data |               | 8 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 9 | ANL BUS,#data |  ANL P1,#data |  ANL P2,#data |               | 9 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | A |   MOV R0,A    |   MOV R1,A    |   MOV R2,A    |   MOV R3,A    | A |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | B |  MOV R0,#data |  MOV R1,#data |  MOV R2,#data |  MOV R3,#data | B |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | C |    DEC R0     |    DEC R1     |    DEC R2     |    DEC R3     | C |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | D |   XRL A,R0    |   XRL A,R1    |   XRL A,R2    |   XRL A,R3    | D |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | E |  DJNZ R0,adr  |  DJNZ R1,adr  |  DJNZ R2,adr  |  DJNZ R3,adr  | E |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | F |   MOV A,R0    |   MOR A,R1    |   MOR A,R2    |   MOV A,R3    | F |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+     +---------------+---------------+---------------+---------------+
+     |       C       |       D       |       E       |       F       |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 0 |   MOVD A,P4   |   MOVD A,P5   |   MOVD A,P6   |   MOVD A,P7   | 0 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 1 |    INC R4     |    INC R5     |    INC R6     |    INC R7     | 1 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 2 |   XCH A,R4    |   XCH A,R5    |   XCH A,R6    |   XCH A,R7    | 2 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 3 |   MOVD P4,A   |   MOVD P5,A   |   MOVD P6,A   |   MOVD P7,A   | 3 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 4 |   ORL A,R4    |   ORL A,R5    |   ORL A,R6    |   ORL A,R7    | 4 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 5 |   ANL A,R4    |   ANL A,R5    |   ANL A,R6    |   ANL A,R7    | 5 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 6 |   ADD A,R4    |   ADD A,R5    |   ADD A,R6    |   ADD A,R7    | 6 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 7 |   ADDC A,R4   |   ADDC A,R5   |   ADDC A,R6   |   ADDC A,R7   | 7 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 8 |   ORLD P4,A   |   ORLD P5,A   |   ORLD P6,A   |   ORLD P7,A   | 8 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | 9 |   ANLD P4,A   |   ANLD P5,A   |   ANLD P6,A   |   ANLD P7,A   | 9 |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | A |   MOV R4,A    |   MOV R5,A    |   MOV R6,A    |   MOV R7,A    | A |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | B |  MOV R4,#data |  MOV R5,#data |  MOV R6,#data |  MOV R7,#data | B |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | C |    DEC R4     |    DEC R5     |    DEC R6     |    DEC R7     | C |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | D |   XRL A,R4    |   XRL A,R5    |   XRL A,R6    |   XRL A,R7    | D |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | E |  DJNZ R4,adr  |  DJNZ R5,adr  |  DJNZ R6,adr  |  DJNZ R7,adr  | E |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+ |   |               |               |               |               |   |
+ | F |   MOV A,R4    |   MOV A,R5    |   MOV A,R6    |   MOV A,R7    | F |
+ |   |               |               |               |               |   |
+ +---+---------------+---------------+---------------+---------------+---+
+

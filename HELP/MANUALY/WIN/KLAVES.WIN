@@ -1,0 +1,83 @@
+                                 Klávesnice AT
+
+
+Konektor:     1  HODINY (otevøený kolektor)
+--------      2  DATA (otevøený kolektor)
+              3  RESET klávesnice (používá pouze XT)
+              4  ZEM
+              5  + 5 V
+
+Po  zapnutí  napájení  (nebo  pøi  systémovém testu klávesnice) zablokuje øadiè
+klávesnici  ztažením HODIN na 0. Po testu jsou vodièe HODIN a DAT uvolnìny. Pøi
+provozu  klávesnice vysílá klávesnice data na datovou sbìrnici (sériovì, 1=+5V,
+0=0V),  data  jsou  synchonizována hodinami vysílanými z klávesnice (AT: 33.144
+kHz, XT: 30 µs v "0" + 70 µs v "1").
+
+
+Protokol:     1 bit  - START bit
+--------      8 bitù - DATA
+              1 bit  - paritní bit (lichá parita)
+              1 bit  - STOP bit
+
+
+          |    |    |    |    |    |    |    |    |    |    |    |
+ "1" -----+    +----+    +----+    +----+    +----+    +---------------------
+          |    |    |    |    |    |    |    |    |    |    |    |
+ "0"      +----+    +----+    +----+    +----+    +----+
+          START  D0   D1   D2   D3   D4   D5   D6   D7 PARITA STOP
+
+
+Po  vyslání bajtu z klávesnice se èeká na potvrzení od øadièe. Pøi chybì pøíjmu
+je vyslán povel pro opakování pøenosu FEh.
+
+
+Vysílání dat ke klávesnici:
+--------------------------
+Pokud klávesnice vysílá data, ale nedosáhla ještì 10. impulsu hodin, mùže øadiè
+pøerušit  vysílání od klávesnice stažením HODIN na "0". Pokud již bylo dosaženo
+10. impulsu hodin, musí øadiè pøenos pøijat.
+
+Na  zaèátku  pøenosu  stáhne  øadiè signál HODINY po dobu více než 60 µs na "0"
+(zákaz  pøenosu dat z klávesnice). Pokud je øadiè pøipraven k vysílání, nastaví
+signál  DATA  na  úroveò "0" (= START bit) a uvolní signál HODINY na "1". Tento
+stav je klávesnicí detekován jako požadavek k vysílání. Klávesnice testuje stav
+vedení  HODINY  a  DATA  v intervalech zhruba 60 ms. Pøi detekování požadavku k
+vysílání  naèítá  klávesnice 11 bitù. Po 10. bitu stáhne klávesnice signál DATA
+na  "0".  Tato  operace  ohlásí systému, že klávesnice pøijala data. Po pøijetí
+tohoto signálu se navrátí øadiè do stavu pøipravenosti.
+
+
+Vyslání dat z klávesnice:
+------------------------
+Klávesnice  pøed  vysíláním nejdøíve zkontroluje stav vedení HODINY a DATA, zda
+není  požadavek  od  øadièe k vysílání. Jsou-li oba vodièe na úrovni "1", vyšle
+klávesnice  START  bit  (úroveò  "0"),  8  datových  bitù, 1 paritní bit (lichá
+parita)  a  1 STOP bit (úroveò "1"). Data jsou platná po vzestupné hranì a pøed
+sestupnou hranou vedení HODINY. Bìhem pøenosu testuje klávesnice vedení HODINY,
+zda  není  požadavek  øadièe  k  pøerušení  pøenosu.  Pokud  pøijde požadavek k
+pøerušení  pøed  nábìžnou hranou desátého bitu (paritní bit), uvolní klávesnice
+oba vodièe na "1", jinak dokonèí pøenos.
+
+
+Povely ke klávesnici:
+--------------------
+FF - reset
+FE - opakování pøenosu
+F6 - standardní nastavení parametrù klávesnice
+F5 - jako F6, klávesnice èeká na další povel
+F4 - uvolnìní klávesnice (+ vyprázdnìní bufferù)
+F3 - nastavení RATE a DELAY (následuje bajt parametrù)
+EE - echo (klávesnice navrátí EE - diagnostika)
+ED - nastavení indikátorù (následuje bajt parametrù)
+
+
+Povely od klávesnice:
+--------------------
+FE - opakování pøenosu
+FD - chyba diagnostiky
+FA - potvrzení pøíjmu povelu (jiného než EE nebo FE) od øadièe
+F0 - uvolnìní klávesy (následuje SCAN kód klávesy)
+EE - opakování echa EE z øadièe
+AA - dokonèen inicializaèní test klávesnice (pøi chybì vyšle FC)
+00 - pøeteèení bufferu klávesnice
+

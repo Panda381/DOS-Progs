@@ -1,0 +1,628 @@
+
+; *****************************************************************************
+;
+;               Modul opera‡n¡ho syst‚mu IBMIO.COM verze 1.00
+;
+; *****************************************************************************
+
+
+0060:0000 E96201         JMP    0165             ; start a inicializace
+0060:0003 E96D00         JMP    0073             ; test stavu kl vesnice DOS
+0060:0006 E9B200         JMP    00BB             ; vstup znaku z kl vesnice DOS
+0060:0009 E9D800         JMP    00E4             ; zobrazen¡ znaku AL
+0060:000C E9E800         JMP    00F7             ; v˜stup znaku na tisk rnu
+0060:000F E92401         JMP    0136             ; p©¡jem znaku z portu COM1
+0060:0012 E93A01         JMP    014F             ; vysl n¡ znaku na port COM1
+0060:0015 E95103         JMP    0369             ; ‡ten¡ z disku INT 25h
+0060:0018 E95203         JMP    036D             ; z pis na disk INT 26h
+0060:001B E94401         JMP    0162             ; ??? (vrac¡ AH=0)
+
+0060:0010  24 01 E9 3A 01 E9 51 03-E9 52 03 E9 44 01 B1 00  $.i:.iQ.iR.iD.1.
+0060:0020  22 00 42 49 4F 53 20 56-65 72 73 69 6F 6E 20 31  ".BIOS Version 1
+0060:0030  2E 30 30 A0 32 32 2D 4A-75 6C 2D 38 31 00 0D 0A  .00 22-Jul-81...
+0060:0040  4F 75 74 20 6F 66 20 70-61 70 65 F2 0D 0A 00 0D  Out of paper....
+0060:0050  0A 50 72 69 6E 74 65 72-20 66 61 75 6C F4 0D 0A  .Printer fault..
+0060:0060  00 0D 0A 41 75 78 20 49-2F 4F 20 65 72 72 6F F2  ...Aux I/O error
+0060:0070  0D 0A 00 2E A0 66 03 0A-C0 75 14 52 92 B4 01 CD  .... f..@u.R.4.M
+; -----------------------------------------------------------------------------
+;                   Test stavu kl vesnice DOS
+; -----------------------------------------------------------------------------
+0060:0073 2EA06603       MOV    AL,CS:[0366]     ; buffer kl vesy DOS
+0060:0077 0AC0           OR     AL,AL
+0060:0079 7514           JNZ    008F             ; je p©ipraven znak
+0060:007B 52             PUSH   DX
+0060:007C 92             XCHG   AX,DX
+0060:007D B401           MOV    AH,01
+0060:007F CD16           INT    16               ; test p©ipraven‚ kl vesy
+0060:0081 7409           JZ     008C
+0060:0083 3D0072         CMP    AX,7200
+0060:0086 7504           JNZ    008C
+0060:0088 B010           MOV    AL,10            ; n hrada ^P za PrintScreen
+0060:008A 0AC0           OR     AL,AL
+0060:008C 8AE6         * MOV    AH,DH
+0060:008E 5A             POP    DX
+0060:008F CB           * RETF
+; -----------------------------------------------------------------------------
+;                 Obsluha p©eru¨en¡ z kl vesnice INT 1Bh
+; -----------------------------------------------------------------------------
+0060:0090 2EC606660303   MOV    Byte Ptr CS:[0366],03 ; k¢d kl vesy ^C
+0060:0096 CF             IRET
+; -----------------------------------------------------------------------------
+;                 Obsluha chyby dˆlen¡ nulou INT 00h
+; -----------------------------------------------------------------------------
+0060:0097 FB             STI
+0060:0098 50             PUSH   AX
+0060:0099 52             PUSH   DX
+0060:009A BAA500         MOV    DX,00A5
+0060:009D E88400         CALL   0124             ; zobrazen¡ textu "Divide ..."
+0060:00A0 5A             POP    DX
+0060:00A1 58             POP    AX
+0060:00A2 CD23           INT    23               ; obsluha p©eru¨en¡ programu
+0060:00A4 CF           * IRET                    ; obsluha INT 1, INT 3, INT 4
+
+0060:00A0  5A 58 CD 23 CF 0D 0A 44-69 76 69 64 65 20 6F 76  ZXM#O..Divide ov
+0060:00B0  65 72 66 6C 6F F7 0D 0A-00 92 5A B0 00 2E 86 06  erflow....Z0....
+; -----------------------------------------------------------------------------
+;                    Vstup znaku z kl vesnice DOS
+; -----------------------------------------------------------------------------
+0060:00B9 92           * XCHG   AX,DX
+0060:00BA 5A             POP    DX
+
+0060:00BB B000         * MOV    AL,00
+0060:00BD 2E86066603     XCHG   AL,CS:[0366]     ; buffer kl vesy DOS
+0060:00C2 0AC0           OR     AL,AL
+0060:00C4 751D           JNZ    00E3             ; je ji‘ nˆjak  kl vesa
+0060:00C6 52             PUSH   DX
+0060:00C7 92             XCHG   AX,DX
+0060:00C8 B400           MOV    AH,00
+0060:00CA CD16           INT    16               ; vstup znaku z kl vesnice
+0060:00CC 0BC0           OR     AX,AX
+0060:00CE 74E9           JZ     00B9             ; je ^Break
+0060:00D0 3D0072         CMP    AX,7200          ; je Ctrl-PrintScreen ?
+0060:00D3 7502           JNZ    00D7
+0060:00D5 B010           MOV    AL,10            ; n hrada - ^P
+0060:00D7 3C00         * CMP    AL,00
+0060:00D9 7505           JNZ    00E0
+0060:00DB 2E88266603     MOV    CS:[0366],AH     ; buffer kl vesy DOS
+0060:00E0 8AE6         * MOV    AH,DH
+0060:00E2 5A             POP    DX
+0060:00E3 CB           * RETF
+; -----------------------------------------------------------------------------
+;                        Zobrazen¡ znaku AL
+; -----------------------------------------------------------------------------
+0060:00E4 55             PUSH   BP
+0060:00E5 50             PUSH   AX
+0060:00E6 53             PUSH   BX
+0060:00E7 56             PUSH   SI
+0060:00E8 57             PUSH   DI
+0060:00E9 B40E           MOV    AH,0E
+0060:00EB 2EBB0700       MOV    BX,0007
+0060:00EF CD10           INT    10
+0060:00F1 5F             POP    DI
+0060:00F2 5E             POP    SI
+0060:00F3 5B             POP    BX
+0060:00F4 58             POP    AX
+0060:00F5 5D             POP    BP
+0060:00F6 CB             RETF
+; -----------------------------------------------------------------------------
+;                        V˜stup znaku na tisk rnu
+; -----------------------------------------------------------------------------
+0060:00F7 50             PUSH   AX
+0060:00F8 52             PUSH   DX
+0060:00F9 2EC606650300   MOV    Byte Ptr CS:[0365],00
+0060:00FF BA0000       * MOV    DX,0000
+0060:0102 B400           MOV    AH,00
+0060:0104 CD17           INT    17               ; vysl n¡ znaku na tisk rnu
+0060:0106 BA3E00         MOV    DX,003E
+0060:0109 F6C420         TEST   AH,20                         ;' '
+0060:010C 7510           JNZ    011E             ; chyba "Nen¡ pap¡r"
+0060:010E BA4F00         MOV    DX,004F
+0060:0111 F6C405         TEST   AH,05
+0060:0114 740B           JZ     0121             ; nen¡ chyba tisk rny
+0060:0116 2E8036650301   XOR    Byte Ptr CS:[0365],01 p©¡znak druh‚ho pokusu
+0060:011C 75E1           JNZ    00FF             ; druh˜ pokus
+0060:011E E80300       * CALL   0124             ; chyba
+0060:0121 5A           * POP    DX
+0060:0122 58             POP    AX
+0060:0123 CB             RETF
+; -----------------------------------------------------------------------------
+;                     Zobrazen¡ textu CS:DX
+; -----------------------------------------------------------------------------
+0060:0124 87F2           XCHG   SI,DX
+0060:0126 2EAC           LODSB  CS:
+0060:0128 247F           AND    AL,7F
+0060:012A 7407           JZ     0133
+0060:012C 9AE4006000     CALL   0060:00E4        ; zobrazen¡ znaku
+0060:0131 EBF3           JMP    0126
+0060:0133 87F2         * XCHG   SI,DX
+0060:0135 C3             RET
+; -----------------------------------------------------------------------------
+;                        P©¡jem znaku z COM1
+; -----------------------------------------------------------------------------
+0060:0136 52             PUSH   DX
+0060:0137 50             PUSH   AX
+0060:0138 BA0000         MOV    DX,0000
+0060:013B B402           MOV    AH,02
+0060:013D CD14           INT    14               ; p©¡jem znaku z COM1
+0060:013F BA6100         MOV    DX,0061
+0060:0142 F6C40E         TEST   AH,0E
+0060:0145 7403           JZ     014A
+0060:0147 E8DAFF         CALL   0124             ; chyba AUX I/O ERROR
+0060:014A 5A           * POP    DX
+0060:014B 8AE6           MOV    AH,DH
+0060:014D 5A             POP    DX
+0060:014E CB             RETF
+; -----------------------------------------------------------------------------
+;                 Vysl n¡ znaku na port COM1
+; -----------------------------------------------------------------------------
+0060:014F 50             PUSH   AX
+0060:0150 52             PUSH   DX
+0060:0151 B401           MOV    AH,01
+0060:0153 BA0000         MOV    DX,0000
+0060:0156 CD14           INT    14               ; vysl n¡ znaku na COM1
+0060:0158 F6C480         TEST   AH,80
+0060:015B 74C4           JZ     0121             ; nen¡ chyba
+0060:015D BA6100         MOV    DX,0061
+0060:0160 EBBC           JMP    011E             ; chyba portu
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+0060:0162 B400           MOV    AH,00
+0060:0164 CB             RETF
+; -----------------------------------------------------------------------------
+;                      Start a inicializace
+;
+; Tato ‡ st programu (200H bajt– a‘ po adresu 0365h) se pozdˆji pou‘¡v 
+; jako buffer pro diskov‚ operace
+; -----------------------------------------------------------------------------
+0060:0165 FA             CLI
+0060:0166 8CC8           MOV    AX,CS
+0060:0168 8ED8           MOV    DS,AX            ; DS <- 60h
+0060:016A 8ED0           MOV    SS,AX            ; SS <- 60h
+0060:016C BC6503         MOV    SP,0365          ; konec z sobn¡ku
+0060:016F FB             STI
+0060:0170 32E4           XOR    AH,AH
+0060:0172 CD13           INT    13               ; reset disk–
+0060:0174 B0A3           MOV    AL,A3
+0060:0176 CD14           INT    14               ; inicializace COM1 (2400Bd/8b)
+0060:0178 B401           MOV    AH,01
+0060:017A CD17           INT    17               ; inicializace LPT1
+0060:017C CD11           INT    11               ; ‡ten¡ tabbulky vybaven¡
+0060:017E 25C000         AND    AX,00C0          ; po‡et disketov˜ch mechanik
+0060:0181 B90500         MOV    CX,0005
+0060:0184 D3E8           SHR    AX,CL
+0060:0186 050200         ADD    AX,0002
+0060:0189 250600         AND    AX,0006
+0060:018C 741F           JZ     01AD
+0060:018E 3C02           CMP    AL,02
+0060:0190 7507           JNZ    0199
+0060:0192 D1E0           SHL    AX,1
+0060:0194 C606680301     MOV    Byte Ptr [0368],01 ; po‡et disket. mechanik
+0060:0199 BBB602         MOV    BX,02B6
+0060:019C 03D8           ADD    BX,AX
+0060:019E C7070000       MOV    Word Ptr [BX],0000
+0060:01A2 C78702000000   MOV    Word Ptr [BX+0002],0000
+0060:01A8 D1E8           SHR    AX,1
+0060:01AA A2B502         MOV    [02B5],AL
+0060:01AD 1E           * PUSH   DS
+0060:01AE B80000         MOV    AX,0000
+0060:01B1 8ED8           MOV    DS,AX
+0060:01B3 B86000         MOV    AX,0060
+0060:01B6 A36E00         MOV    [006E],AX        ; segment obsluhy INT 1Bh (=^C)
+0060:01B9 C7066C009000   MOV    Word Ptr [006C],0090 ; offset obsluhy INT 1Bh
+0060:01BF C70600009700   MOV    Word Ptr [0000],0097 ; offset obsluhy INT 00h
+0060:01C5 A30200         MOV    [0002],AX
+0060:01C8 BBA400         MOV    BX,00A4
+0060:01CB 891E0400       MOV    [0004],BX
+0060:01CF A30600         MOV    [0006],AX        ; obsluha INT 01h
+0060:01D2 891E0C00       MOV    [000C],BX
+0060:01D6 A30E00         MOV    [000E],AX        ; obsluha INT 03h
+0060:01D9 891E1000       MOV    [0010],BX
+0060:01DD A31200         MOV    [0012],AX        ; obsluha INT 04h
+0060:01E0 B85000         MOV    AX,0050
+0060:01E3 8ED8           MOV    DS,AX            ; DS <- 50h
+0060:01E5 C70600000000   MOV    Word Ptr [0000],0000 ; inic. stav. slova PrtScr
+0060:01EB 06             PUSH   ES
+0060:01EC B8B100         MOV    AX,00B1          ; segment pro ulo‘en¡ BDOS.COM
+0060:01EF 8EC0           MOV    ES,AX            ; ES <- 0B1h
+0060:01F1 B98813         MOV    CX,1388          ; d‚lka BDOS.COM
+0060:01F4 FC             CLD
+0060:01F5 B8E000         MOV    AX,00E0
+0060:01F8 8ED8           MOV    DS,AX
+0060:01FA 33FF           XOR    DI,DI
+0060:01FC 8BF7           MOV    SI,DI
+0060:01FE F3             REPZ
+0060:01FF A5             MOVSW                   ; kopie modulu BDOS.COM
+0060:0200 07             POP    ES
+0060:0201 1F             POP    DS
+0060:0202 BEB502         MOV    SI,02B5
+0060:0205 9A0000B100     CALL   00B1:0000        ; inicializace BDOS.COM
+                                               ;* v DS je vr cen prvn¡ voln˜ PSP
+0060:020A FB             STI
+0060:020B BA0001         MOV    DX,0100          ; adresa pro ‡ten¡ COMMAND.COM
+0060:020E B41A           MOV    AH,1A
+0060:0210 CD21           INT    21               ; nastaven¡ adresy DTA
+0060:0212 8B0E0600       MOV    CX,[0006]        ; d‚lka voln‚ pamˆti pro COM
+0060:0216 81E90001       SUB    CX,0100          ; sn¡‘en¡ o PSP
+0060:021A 8CDB           MOV    BX,DS
+0060:021C 8CC8           MOV    AX,CS
+0060:021E 8ED8           MOV    DS,AX
+0060:0220 BA6902         MOV    DX,0269          ; soubor COMMAND.COM
+0060:0223 B40F           MOV    AH,0F
+0060:0225 CD21           INT    21               ; otev©en¡ souboru COMMAND.COM
+0060:0227 0AC0           OR     AL,AL
+0060:0229 7536           JNZ    0261             ; soubor nenalezen
+0060:022B C7068A020000   MOV    Word Ptr [028A],0000
+0060:0231 C7068C020000   MOV    Word Ptr [028C],0000
+0060:0237 C70677020100   MOV    Word Ptr [0277],0001
+0060:023D B427           MOV    AH,27
+0060:023F CD21           INT    21               ; ‡ten¡ bloku souboru COMMAND
+0060:0241 E31E           JCXZ   0261             ; nebyl p©e‡ten ‘ dn˜ sektor
+0060:0243 3C01           CMP    AL,01
+0060:0245 751A           JNZ    0261             ; chyba - nen¡ konec souboru
+0060:0247 8EDB           MOV    DS,BX
+0060:0249 8EC3           MOV    ES,BX
+0060:024B 8ED3           MOV    SS,BX
+0060:024D BC4000         MOV    SP,0040
+0060:0250 33C0           XOR    AX,AX
+0060:0252 50             PUSH   AX               ; adresa skoku na INT 20h
+0060:0253 8B168000       MOV    DX,[0080]
+0060:0257 B41A           MOV    AH,1A
+0060:0259 CD21           INT    21               ; nastaven¡ adresy DTA
+0060:025B 53             PUSH   BX
+0060:025C B80001         MOV    AX,0100          ; startovac¡ adresa
+0060:025F 50             PUSH   AX
+0060:0260 CB             RETF                    ; skok do programu COMMAND.COM
+
+                                               ;* chyba - nenalezen COMMAND.COM
+0060:0261 BA8E02       * MOV    DX,028E
+0060:0264 E8BDFE         CALL   0124
+0060:0267 7AFE           JPE    0267             ; zablokov n¡ programu
+
+0060:0260  CB BA 8E 02 E8 BD FE 7A-FE 01 43 4F 4D 4D 41 4E  K:..h=~z~.COMMAN
+0060:0270  44 20 43 4F CD 00 00 00-00 00 00 00 00 00 00 00  D COM...........
+0060:0280  00 00 00 00 00 00 00 00-00 00 00 00 00 00 0D 0A  ................
+0060:0290  42 61 64 20 6F 72 20 6D-69 73 73 69 6E 67 20 43  Bad or missing C
+0060:02A0  6F 6D 6D 61 6E 64 20 49-6E 74 65 72 70 72 65 74  ommand Interpret
+0060:02B0  65 F2 0D 0A 00 04 C2 02-C2 02 C2 02 C2 02 00 00  er....B.B.B.B...
+0060:02C0  00 00 00 02 01 01 00 02-40 00 40 01 00 00 00 00  ........@.@.....
+0060:02D0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:02E0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:02F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0300  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0310  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0320  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0330  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0340  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0350  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0360  00 00 00 00 00 00 00 00-00 B4 02 EB 02 B4 03 06  .........4.k.4..
+
+0060:0365                                        ; konec z sobn¡ku
+
+; -----------------------------------------------------------------------------
+;                    Za‡ tek obsluhy diskov˜ch operac¡
+; -----------------------------------------------------------------------------
+0060:0366                db     0                ; buffer kl vesy DOS
+0060:0368                db     0                ; po‡et disket. mechanik
+
+0060:0367 0000           ADD    [BX+SI],AL
+
+; -----------------------------------------------------------------------------
+;
+;                          Operace s diskem (INT 25h a INT 26h)
+;
+; VSTUP:  AL=‡¡slo disku
+;         DS:BX=adresa bufferu
+;         CX=po‡et sektor–
+;         DX=po‡ te‡n¡ relativn¡ sektor
+;
+; VSTUP: AX=chybov˜ k¢d (je-li CY)
+;
+; -----------------------------------------------------------------------------
+0060:0369 B402         * MOV    AH,02            ; slu‘ba ‡ten¡ z disku
+0060:036B EB02           JMP    036F
+
+0060:036D B403           MOV    AH,03            ; slu‘ba z pisu na disk
+0060:036F 06           * PUSH   ES
+0060:0370 1E             PUSH   DS
+0060:0371 1E             PUSH   DS
+0060:0372 07             POP    ES
+0060:0373 0E             PUSH   CS
+0060:0374 1F             POP    DS
+0060:0375 8926FD04       MOV    [04FD],SP
+0060:0379 8826FC04       MOV    [04FC],AH        ; po‘adovan  operace s diskem
+0060:037D 803E680301     CMP    Byte Ptr [0368],01 ; po‡et disket. mechanik
+0060:0382 7533           JNZ    03B7             ; nen¡ jen 1 mechanika
+                                               ;* je 1 mechanika - logick‚ disky
+0060:0384 1E             PUSH   DS
+0060:0385 33F6           XOR    SI,SI
+0060:0387 8EDE           MOV    DS,SI            ; DS <- 0
+0060:0389 8AE0           MOV    AH,AL            ; po‘adovan˜ disk
+0060:038B 86260405       XCHG   AH,[0504]        ; zmˆna aktivn¡ho disku
+0060:038F 1F             POP    DS
+0060:0390 3AC4           CMP    AL,AH
+0060:0392 7421           JZ     03B5             ; disk nen¡ zmˆnˆn
+                                               ;* v˜zva k v˜mˆnˆ diskety
+0060:0394 52             PUSH   DX
+0060:0395 0441           ADD    AL,41                         ;'A'
+0060:0397 A2C304         MOV    [04C3],AL        ; ozna‡en¡ diskety
+0060:039A BAA704         MOV    DX,04A7
+0060:039D E884FD         CALL   0124             ; v˜zva "Vlo‘te disketu..."
+0060:03A0 1E             PUSH   DS
+0060:03A1 33ED           XOR    BP,BP
+0060:03A3 8EDD           MOV    DS,BP
+0060:03A5 C6061A041E     MOV    Byte Ptr [041A],1E
+0060:03AA C6061C041E     MOV    Byte Ptr [041C],1E ; vypr zdnˆn¡ buff. kl vesn.
+0060:03AF 1F             POP    DS
+0060:03B0 B400           MOV    AH,00
+0060:03B2 CD16           INT    16               ; ‡ek n¡ na stisk kl vesy
+0060:03B4 5A             POP    DX
+                                               ;* p©epo‡et na ‡¡slo stopy/sekt.
+0060:03B5 B000         * MOV    AL,00            ; po‘adovan  mechanika A
+0060:03B7 92           * XCHG   AX,DX            ; po‡ te‡n¡ ‡¡slo sektoru
+0060:03B8 B608           MOV    DH,08
+0060:03BA F6F6           DIV    DH               ; v˜po‡et ‡¡sla stopy a sektoru
+0060:03BC FEC4           INC    AH               ; ‡¡slo sektoru
+0060:03BE 86C4           XCHG   AL,AH
+0060:03C0 91             XCHG   AX,CX            ; CX <- ‡¡slo stopy a sektoru
+0060:03C1 A3FF04         MOV    [04FF],AX        ; po‘adovan˜ po‡et sektor–
+                                               ;* omezen¡ sektor– na segment
+0060:03C4 B600           MOV    DH,00
+0060:03C6 8CC7           MOV    DI,ES
+0060:03C8 D1E7           SHL    DI,1
+0060:03CA D1E7           SHL    DI,1
+0060:03CC D1E7           SHL    DI,1
+0060:03CE D1E7           SHL    DI,1
+0060:03D0 03FB           ADD    DI,BX
+0060:03D2 81C7FF01       ADD    DI,01FF
+0060:03D6 721B           JB     03F3             ; le‘¡ na p©elomu segmentu
+0060:03D8 87DF           XCHG   BX,DI
+0060:03DA D0EF           SHR    BH,1
+0060:03DC B480           MOV    AH,80
+0060:03DE 2AE7           SUB    AH,BH
+0060:03E0 8BDF           MOV    BX,DI
+0060:03E2 3AE0           CMP    AH,AL
+0060:03E4 7602           JBE    03E8
+0060:03E6 8AE0           MOV    AH,AL            ; omezen˜ po‡et sektor–
+0060:03E8 50           * PUSH   AX
+0060:03E9 8AC4           MOV    AL,AH
+0060:03EB E84D00         CALL   043B             ; operace ‡ten¡/z pis AL sekt.
+0060:03EE 58             POP    AX
+0060:03EF 2AC4           SUB    AL,AH
+0060:03F1 7444           JZ     0437             ; nen¡ dal¨¡ sektor
+
+                                               ;* operace na p©elomu segmentu
+0060:03F3 FEC8         * DEC    AL
+0060:03F5 50             PUSH   AX
+0060:03F6 FC             CLD
+0060:03F7 53             PUSH   BX
+0060:03F8 06             PUSH   ES
+0060:03F9 803EFC0402     CMP    Byte Ptr [04FC],02 ; po‘adovan  operace s diskem
+0060:03FE 741B           JZ     041B             ; je ‡ten¡ z disku
+                                               ;* z pis na disk na p©elomu
+0060:0400 8BF3           MOV    SI,BX            ; adresa bufferu s daty
+0060:0402 51             PUSH   CX
+0060:0403 B90001         MOV    CX,0100          ; d‚lka 1 sektoru
+0060:0406 06             PUSH   ES
+0060:0407 1F             POP    DS
+0060:0408 0E             PUSH   CS
+0060:0409 07             POP    ES
+0060:040A BF6501         MOV    DI,0165          ; diskov˜ buffer
+0060:040D 8BDF           MOV    BX,DI
+0060:040F F3             REPZ
+0060:0410 A5             MOVSW                   ; p©enos sektoru
+0060:0411 59             POP    CX
+0060:0412 0E             PUSH   CS
+0060:0413 1F             POP    DS
+0060:0414 E87100         CALL   0488             ; z pis 1 sektoru na disk
+0060:0417 07             POP    ES
+0060:0418 5B             POP    BX
+0060:0419 EB15           JMP    0430             ; dal¨¡
+                                               ;* ‡ten¡ z disku na p©elomu
+0060:041B BB6501       * MOV    BX,0165          ; diskov˜ buffer
+0060:041E 0E             PUSH   CS
+0060:041F 07             POP    ES
+0060:0420 E86500         CALL   0488             ; ‡ten¡ 1 sektoru
+0060:0423 8BF3           MOV    SI,BX
+0060:0425 07             POP    ES
+0060:0426 5B             POP    BX
+0060:0427 8BFB           MOV    DI,BX
+0060:0429 51             PUSH   CX
+0060:042A B90001         MOV    CX,0100
+0060:042D F3             REPZ
+0060:042E A5             MOVSW                   ; p©enos sektoru do bufferu
+0060:042F 59             POP    CX
+
+0060:0430 80C702       * ADD    BH,02            ; zv˜¨en¡ adresy v pamˆti
+0060:0433 58             POP    AX
+0060:0434 E80400         CALL   043B             ; operace ‡ten¡/z pis AL sekt.
+0060:0437 1F           * POP    DS
+0060:0438 07             POP    ES
+0060:0439 F8             CLC                     ; operace OK
+0060:043A CB             RETF
+; -----------------------------------------------------------------------------
+;                     Operace na‡ten¡/z pis AL sektor–
+; -----------------------------------------------------------------------------
+0060:043B 0AC0           OR     AL,AL            ; je po‘adovan˜ nˆjak˜ sektor ?
+0060:043D 7467           JZ     04A6             ; jsou ji‘ v¨echny sektory
+0060:043F B409           MOV    AH,09            ; maxim ln¡ ‡¡slo sektoru
+0060:0441 2AE1           SUB    AH,CL            ; po‡et sektor– pro operaci
+0060:0443 3AE0           CMP    AH,AL
+0060:0445 7602           JBE    0449             ; vˆt¨¡ po‡et sektor– ne‘ max.
+0060:0447 8AE0           MOV    AH,AL            ; po‘adovan˜ po‡et sektor–
+0060:0449 50           * PUSH   AX
+0060:044A 8AC4           MOV    AL,AH            ; po‡et sektor–
+0060:044C E83B00         CALL   048A             ; operace ‡ten¡/z pis
+0060:044F 58             POP    AX
+0060:0450 2AC4           SUB    AL,AH
+0060:0452 D0E4           SHL    AH,1             ; *2 = 512 bajt–
+0060:0454 02FC           ADD    BH,AH            ; zv˜¨en¡ ul dac¡ adresy
+0060:0456 EBE3           JMP    043B             ; dal¨¡ sektor
+; -----------------------------------------------------------------------------
+
+0060:0458 97           * XCHG   AX,DI
+0060:0459 B400           MOV    AH,00
+0060:045B CD13           INT    13               ; reset disku
+0060:045D 4E             DEC    SI
+0060:045E 740A           JZ     046A             ; v¨echny pokusy ne£spˆ¨n‚
+0060:0460 8BC7           MOV    AX,DI
+0060:0462 80FC80         CMP    AH,80
+0060:0465 7403           JZ     046A
+0060:0467 58             POP    AX
+0060:0468 EB27           JMP    0491
+
+0060:046A 0E           * PUSH   CS
+0060:046B 07             POP    ES
+0060:046C 8BC7           MOV    AX,DI            ; chybov˜ k¢d
+0060:046E 8AC4           MOV    AL,AH            ; chybov˜ k¢d od ©adi‡e
+0060:0470 B90A00         MOV    CX,000A          ; po‡et chyb. kod–
+0060:0473 BFE804         MOV    DI,04E8          ; tabulka chybov˜ch k¢d–
+0060:0476 F2             REPNZ
+0060:0477 AE             SCASB                   ; nalezen¡ chybov‚ho k¢du
+0060:0478 8A850900       MOV    AL,[DI+0009]     ; chybov˜ k¢d DOS
+0060:047C 8B0EFF04       MOV    CX,[04FF]        ; po‡et zbyl˜ch sektor–
+0060:0480 8B26FD04       MOV    SP,[04FD]
+0060:0484 1F             POP    DS
+0060:0485 07             POP    ES
+0060:0486 F9             STC                     ; p©¡znak chyby
+0060:0487 CB             RETF
+; -----------------------------------------------------------------------------
+;                   Proveden¡ operace ‡ten¡/z pis pro 1 sektor
+; -----------------------------------------------------------------------------
+0060:0488 B001           MOV    AL,01            ; 1 sektor
+0060:048A BE0500       * MOV    SI,0005          ; ‡¡ta‡ pokus– o operaci
+0060:048D 8A26FC04       MOV    AH,[04FC]        ; po‘adovan  operace s diskem
+0060:0491 50             PUSH   AX
+0060:0492 CD13           INT    13               ; operace ‡ten¡/z pis
+0060:0494 72C2           JB     0458             ; chyba - resetov n¡ disku
+0060:0496 58             POP    AX
+0060:0497 2806FF04       SUB    [04FF],AL        ; sn¡‘en¡ po‡tu sektor–
+0060:049B 02C8           ADD    CL,AL            ; zv˜¨en¡ ‡¡sla sektoru
+0060:049D 80F908         CMP    CL,08
+0060:04A0 7604           JBE    04A6             ; nen¡ je¨tˆ posledn¡ sektor
+0060:04A2 FEC5           INC    CH               ; zv˜¨en¡ ‡¡sla stopy
+0060:04A4 B101           MOV    CL,01            ; 1.sektor
+0060:04A6 C3           * RET
+
+
+0060:04A0  76 04 FE C5 B1 01 C3 0D-0A 49 6E 73 65 72 74 20  v.~E1.C..Insert
+0060:04B0  64 69 73 6B 65 74 74 65-20 66 6F 72 20 64 72 69  diskette for dri
+0060:04C0  76 65 A0 41 3A 20 61 6E-64 20 73 74 72 69 6B E5  ve A: and strike
+0060:04D0  0D 0A 61 6E 79 20 6B 65-79 20 77 68 65 6E 20 72  ..any key when r
+0060:04E0  65 61 64 F9 0D 0A 0A 00-80 40 20 10 09 08 04 03  eady.....@ .....
+
+0060:04e8                db     80h,40h,20h,10h,9     ; chybov‚ k¢dy ©adi‡e
+                         db     8,4,3,2,1
+0060:04f2                db     2,6,0ch,4,0ch         ; chybov‚ k¢dy DOS
+                         db     4,8,0,0ch,0ch
+
+
+04fc                     db     2                ; po‘adovan  operace s diskem
+04fd                     db     0
+04ff                     db     0                ; po‘adovan˜ po‡et sektor–
+
+0060:0500  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+
+0060:0510                                      ;* sem se p©enesen BDOS.COM
+                                                 ; (na adresu 00B1:0000)
+
+0060:0510  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0520  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0530  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0540  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0550  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0560  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0570  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0580  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0590  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:05A0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:05B0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:05C0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:05D0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:05E0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:05F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0600  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0610  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0620  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0630  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0640  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0650  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0660  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0670  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0680  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0690  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:06A0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:06B0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:06C0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:06D0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:06E0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:06F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0700  00 C9 00 00 00 00 00 00-00 00 00 00 00 00 00 00  .I..............
+0060:0710  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0720  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0730  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0740  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0750  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0760  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0770  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0060:0780  00                                               .
+
+
+0060:0800                       ; zde je na‡ten modul BDOS.COM, p©enese
+                                ; se na adresu 00B1:0000 (=0060:0510)
+
+
+0060:0080  16 74 09 3D 00 72 75 04-B0 10 0A C0 8A E6 5A CB  .t.=.ru.0..@.fZK
+0060:0090  2E C6 06 66 03 03 CF FB-50 52 BA A5 00 E8 84 00  .F.f..O{PR:%.h..
+
+
+0060:00C0  66 03 0A C0 75 1D 52 92-B4 00 CD 16 0B C0 74 E9  f..@u.R.4.M..@ti
+0060:00D0  3D 00 72 75 02 B0 10 3C-00 75 05 2E 88 26 66 03  =.ru.0.<.u...&f.
+0060:00E0  8A E6 5A CB 55 50 53 56-57 B4 0E 2E BB 07 00 CD  .fZKUPSVW4..;..M
+0060:00F0  10 5F 5E 5B 58 5D CB 50-52 2E C6 06 65 03 00 BA  ._^[X]KPR.F.e..:
+0060:0100  00 00 B4 00 CD 17 BA 3E-00 F6 C4 20 75 10 BA 4F  ..4.M.:>.vD u.:O
+0060:0110  00 F6 C4 05 74 0B 2E 80-36 65 03 01 75 E1 E8 03  .vD.t...6e..uah.
+0060:0120  00 5A 58 CB 87 F2 2E AC-24 7F 74 07 9A E4 00 60  .ZXK.r.,$.t..d.`
+0060:0130  00 EB F3 87 F2 C3 52 50-BA 00 00 B4 02 CD 14 BA  .ks.rCRP:..4.M.:
+0060:0140  61 00 F6 C4 0E 74 03 E8-DA FF 5A 8A E6 5A CB 50  a.vD.t.hZ.Z.fZKP
+0060:0150  52 B4 01 BA 00 00 CD 14-F6 C4 80 74 C4 BA 61 00  R4.:..M.vD.tD:a.
+0060:0160  EB BC B4 00 CB FA 8C C8-8E D8 8E D0 BC 65 03 FB  k<4.Kz.H.X.P<e.{
+0060:0170  32 E4 CD 13 B0 A3 CD 14-B4 01 CD 17 CD 11 25 C0  2dM.0#M.4.M.M.%@
+0060:0180  00 B9 05 00 D3 E8 05 02-00 25 06 00 74 1F 3C 02  .9..Sh...%..t.<.
+0060:0190  75 07 D1 E0 C6 06 68 03-01 BB B6 02 03 D8 C7 07  u.Q`F.h..;6..XG.
+0060:01A0  00 00 C7 87 02 00 00 00-D1 E8 A2 B5 02 1E B8 00  ..G.....Qh"5..8.
+0060:01B0  00 8E D8 B8 60 00 A3 6E-00 C7 06 6C 00 90 00 C7  ..X8`.#n.G.l...G
+0060:01C0  06 00 00 97 00 A3 02 00-BB A4 00 89 1E 04 00 A3  .....#..;$.....#
+0060:01D0  06 00 89 1E 0C 00 A3 0E-00 89 1E 10 00 A3 12 00  ......#......#..
+0060:01E0  B8 50 00 8E D8 C7 06 00-00 00 00 06 B8 B1 00 8E  8P..XG......81..
+0060:01F0  C0 B9 88 13 FC B8 E0 00-8E D8 33 FF 8B F7 F3 A5  @9..|8`..X3..ws%
+0060:0200  07 1F BE B5 02 9A 00 00-B1 00 FB BA 00 01 B4 1A  ..>5....1.{:..4.
+0060:0210  CD 21 8B 0E 06 00 81 E9-00 01 8C DB 8C C8 8E D8  M!.....i...[.H.X
+0060:0220  BA 69 02 B4 0F CD 21 0A-C0 75 36 C7 06 8A 02 00  :i.4.M!.@u6G....
+0060:0230  00 C7 06 8C 02 00 00 C7-06 77 02 01 00 B4 27 CD  .G.....G.w...4'M
+0060:0240  21 E3 1E 3C 01 75 1A 8E-DB 8E C3 8E D3 BC 40 00  !c.<.u..[.C.S<@.
+0060:0250  33 C0 50 8B 16 80 00 B4-1A CD 21 53 B8 00 01 50  3@P....4.M!S8..P
+
+
+0060:0370  1E 1E 07 0E 1F 89 26 FD-04 88 26 FC 04 80 3E 68  ......&}..&|..>h
+0060:0380  03 01 75 33 1E 33 F6 8E-DE 8A E0 86 26 04 05 1F  ..u3.3v.^.`.&...
+0060:0390  3A C4 74 21 52 04 41 A2-C3 04 BA A7 04 E8 84 FD  :Dt!R.A"C.:'.h.}
+0060:03A0  1E 33 ED 8E DD C6 06 1A-04 1E C6 06 1C 04 1E 1F  .3m.]F....F.....
+0060:03B0  B4 00 CD 16 5A B0 00 92-B6 08 F6 F6 FE C4 86 C4  4.M.Z0..6.vv~D.D
+0060:03C0  91 A3 FF 04 B6 00 8C C7-D1 E7 D1 E7 D1 E7 D1 E7  .#..6..GQgQgQgQg
+0060:03D0  03 FB 81 C7 FF 01 72 1B-87 DF D0 EF B4 80 2A E7  .{.G..r.._Po4.*g
+0060:03E0  8B DF 3A E0 76 02 8A E0-50 8A C4 E8 4D 00 58 2A  ._:`v..`P.DhM.X*
+0060:03F0  C4 74 44 FE C8 50 FC 53-06 80 3E FC 04 02 74 1B  DtD~HP|S..>|..t.
+0060:0400  8B F3 51 B9 00 01 06 1F-0E 07 BF 65 01 8B DF F3  .sQ9......?e.._s
+0060:0410  A5 59 0E 1F E8 71 00 07-5B EB 15 BB 65 01 0E 07  %Y..hq..[k.;e...
+0060:0420  E8 65 00 8B F3 07 5B 8B-FB 51 B9 00 01 F3 A5 59  he..s.[.{Q9..s%Y
+0060:0430  80 C7 02 58 E8 04 00 1F-07 F8 CB 0A C0 74 67 B4  .G.Xh....xK.@tg4
+0060:0440  09 2A E1 3A E0 76 02 8A-E0 50 8A C4 E8 3B 00 58  .*a:`v..`P.Dh;.X
+0060:0450  2A C4 D0 E4 02 FC EB E3-97 B4 00 CD 13 4E 74 0A  *DPd.|kc.4.M.Nt.
+0060:0460  8B C7 80 FC 80 74 03 58-EB 27 0E 07 8B C7 8A C4  .G.|.t.Xk'...G.D
+0060:0470  B9 0A 00 BF E8 04 F2 AE-8A 85 09 00 8B 0E FF 04  9..?h.r.........
+0060:0480  8B 26 FD 04 1F 07 F9 CB-B0 01 BE 05 00 8A 26 FC  .&}...yK0.>...&|
+0060:0490  04 50 CD 13 72 C2 58 28-06 FF 04 02 C8 80 F9 08  .PM.rBX(....H.y.
+
+-q
+

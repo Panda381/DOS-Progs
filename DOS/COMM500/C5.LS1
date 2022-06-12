@@ -1,0 +1,2039 @@
+CONTEXT   0 207   0   3  72
+
+
+
+
+
+; -----------------------------------------------------------------------------
+;
+;                             COMMAND.COM
+;         povelov˜ interpreter opera‡n¡ho syst‚mu MS DOS 5.00
+;
+; -----------------------------------------------------------------------------
+
+0100 E95D14         JMP    1560             ; start a inicializace programu
+
+                    db     0                ; zarovn n¡ na sudou adresu
+
+                                          ;* tabulka adres
+0104                dd     1478h
+0108                dd     0eb7h            ; obsluha p©eru¨en¡ INT 2eh
+010c                dd     0d75h            ; obsluha p©eru¨en¡ INT 23h
+0110                dd     1185h            ; obsluha p©eru¨en¡ INT 24h
+0114                dd     0
+0118                dd     0
+011c                dd     0
+0120                dd     0                ; obsluha p©eru¨en¡ INT 22h
+0124                dd     0
+0128                dd     0
+012c                dd     0
+0130                dd     0                ; adresa ovlada‡e XMS
+
+0134 00             db     0                ; mo‘n˜ p©¡stup k extern¡ pamˆti XMS
+
+0135 FB             STI
+0136 E86400         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+0139 1E             PUSH   DS               ; £schova DS
+013A 0E             PUSH   CS               ; p©¡prava CS pro DS
+013B 2EFF2E0401     JMP    FAR CS:[0104]
+
+; -----------------------------------------------------------------------------
+;    Obsluha INT 2eh
+; -----------------------------------------------------------------------------
+
+0140 FB             STI                     ; povolen¡ p©eru¨en¡
+0141 E85900         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+0144 1E             PUSH   DS               ; £schova DS
+0145 0E             PUSH   CS               ; p©¡prava CS pro DS
+0146 2EFF2E0801     JMP    FAR CS:[0108]    ; obsluha p©eru¨en¡ INT 2eh
+
+; -----------------------------------------------------------------------------
+;    Obsluha INT 23h
+; -----------------------------------------------------------------------------
+
+014B FB             STI
+014C E84E00         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+014F 1E             PUSH   DS               ; £schova DS
+0150 0E             PUSH   CS               ; p©¡prava CS pro DS
+0151 2EFF2E0C01     JMP    FAR CS:[010C]    ; obsluha p©eru¨en¡ INT 23h
+
+; -----------------------------------------------------------------------------
+;    Obsluha INT 24h
+; -----------------------------------------------------------------------------
+
+0156 FB             STI
+0157 E84300         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+015A 1E             PUSH   DS               ; £schova DS
+015B 0E             PUSH   CS               ; p©¡prava CS pro DS
+015C 2EFF2E1001     JMP    FAR CS:[0110]    ; obsluha p©eru¨en¡ INT 24h
+
+
+0161 E83900         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+0164 1E             PUSH   DS               ; £schova DS
+0165 0E             PUSH   CS               ; p©¡prava CS pro DS
+0166 2EFF2E1401     JMP    FAR CS:[0114]
+
+
+016B E82F00         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+016E 1E             PUSH   DS               ; £schova DS
+016F 0E             PUSH   CS               ; p©¡prava CS pro DS
+0170 2EFF2E1801     JMP    FAR CS:[0118]
+
+
+
+0175 E82500         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+0178 1E             PUSH   DS               ; £schova DS
+0179 0E             PUSH   CS               ; p©¡prava CS pro DS
+017A 2EFF2E1C01     JMP    FAR CS:[011C]
+
+; -----------------------------------------------------------------------------
+;    Obsluha INT 22h - n vrat z programu
+; -----------------------------------------------------------------------------
+
+
+017F E81B00         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+0182 1E             PUSH   DS               ; £schova DS
+0183 0E             PUSH   CS               ; p©¡prava CS pro DS
+0184 2EFF2E2001     JMP    FAR CS:[0120]    ; obsluha p©eru¨en¡ INT 22h
+
+
+0189 E81100         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+018C 1E             PUSH   DS               ; £schova DS
+018D 0E             PUSH   CS               ; p©¡prava CS pro DS
+018E 2EFF2E2401     JMP    FAR CS:[0124]
+
+
+0193 E80700         CALL   019D             ; lok ln¡ povolen¡ adresace A20
+0196 1E             PUSH   DS               ; £schova DS
+0197 0E             PUSH   CS               ; p©¡prava CS pro DS
+0198 2EFF2E2801     JMP    FAR CS:[0128]
+
+; -----------------------------------------------------------------------------
+;    Povolen¡ adresace A20 pro p©¡m˜ p©¡stup k extern¡ pamˆti
+; -----------------------------------------------------------------------------
+
+019D 9C             PUSHF
+019E 2E803E340100   CMP    Byte Ptr CS:[0134],00 ; 1=mo‘n˜ p©¡stup k pamˆti XMS
+01A4 7408           JZ     01AE
+01A6 E80C00         CALL   01B5             ; test mo‘nosti adresace A20
+01A9 7303           JNB    01AE             ; adresa A20 je mo‘n 
+01AB E81A00         CALL   01C8             ; lok ln¡ povolen¡ adresace A20
+01AE 9D           * POPF
+01AF C3             RET
+
+01B0 EA35010000     JMP    0000:0135
+
+; -----------------------------------------------------------------------------
+;    Test, zda je povolena adresace sign lem A20 (CY=nen¡)
+; -----------------------------------------------------------------------------
+
+01B5 53           * PUSH   BX               ; £schova BX
+01B6 50             PUSH   AX               ; £schova AX
+01B7 B407           MOV    AH,07            ; funkce poskytnut¡ stavu A20
+01B9 2EFF1E3001     CALL   FAR CS:[0130]    ; slu‘ba ovlada‡e XMS
+01BE 0BC0           OR     AX,AX            ; je sign l A20 povolen ?
+01C0 58             POP    AX               ; n vrat AX
+01C1 5B             POP    BX               ; n vrat BX
+01C2 7502           JNZ    01C6             ; sign l A20 je povolen
+01C4 F9             STC                     ; p©¡znak - A20 nen¡ povolen
+01C5 C3             RET
+01C6 F8           * CLC                     ; p©¡znak - A20 je povolen
+01C7 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Lok ln¡ povolen¡ adresace A20 pro p©¡m˜ p©¡stup k extern¡ pamˆti
+; -----------------------------------------------------------------------------
+
+01C8 53             PUSH   BX               ; £schova BX
+01C9 50             PUSH   AX               ; £schova AX
+01CA B405           MOV    AH,05            ; funkce lok ln¡ povolen¡ A20
+01CC 2EFF1E3001     CALL   FAR CS:[0130]    ; slu‘ba ovlada‡e XMS
+01D1 0BC0           OR     AX,AX            ; operace probˆhla OK ?
+01D3 7403           JZ     01D8             ; byla chyba operace
+01D5 58             POP    AX               ; n vrat AX
+01D6 5B             POP    BX               ; n vrat BX
+01D7 C3             RET
+
+01D8 EBFE         * JMP    01D8             ; chyba extern¡ pamˆti - zablokov n¡
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+01DA CD21           INT    21
+
+01DC FA             CLI                     ; z kaz p©eru¨en¡
+01DD 0E             PUSH   CS
+01DE 17             POP    SS               ; SS <- CS
+01DF BC3E05         MOV    SP,053E          ; konec pracovn¡ho z sobn¡ku DOS
+01E2 FB             STI                     ; povolen¡ p©eru¨en¡
+01E3 0E             PUSH   CS
+01E4 1F             POP    DS               ; DS <- CS
+01E5 9C             PUSHF
+01E6 2EA04005       MOV    AL,CS:[0540]
+01EA A880           TEST   AL,80
+01EC 7407           JZ     01F5
+01EE 247F           AND    AL,7F
+01F0 2EFF1E2C01     CALL   FAR CS:[012C]
+01F5 2E802640057F * AND    Byte Ptr CS:[0540],7F
+01FB 9D             POPF
+01FC E962FF         JMP    0161
+
+
+01FF 0200           ADD    AL,[BX+SI]
+0201 0001           ADD    [BX+DI],AL
+0203 050241         ADD    AX,4102
+0206 0200           ADD    AL,[BX+SI]
+0208 0002           ADD    [BP+SI],AL
+020A 0C02           OR     AL,02
+020C 0000           ADD    [BX+SI],AL
+020E 0000           ADD    [BX+SI],AL
+0210 0000           ADD    [BX+SI],AL
+0212 0000           ADD    [BX+SI],AL
+0214 0002           ADD    [BP+SI],AL
+0216 1E             PUSH   DS
+0217 0203           ADD    AL,[BP+DI]
+0219 2C02           SUB    AL,02
+021B 032A           ADD    BP,[BP+SI]
+021D 0200           ADD    AL,[BX+SI]
+021F 0000           ADD    [BX+SI],AL
+0221 0000           ADD    [BX+SI],AL
+0223 0000           ADD    [BX+SI],AL
+0225 0000           ADD    [BX+SI],AL
+0227 0000           ADD    [BX+SI],AL
+0229 0000           ADD    [BX+SI],AL
+022B 0000           ADD    [BX+SI],AL
+022D 0000           ADD    [BX+SI],AL
+
+022e                db     0                ; atributy za©¡zen¡
+
+022F 0105           ADD    [DI],AX
+0231 0202           ADD    AL,[BP+SI]
+0233 0000           ADD    [BX+SI],AL
+0235 0138           ADD    [BX+SI],DI
+0237 0220           ADD    AH,[BX+SI]
+0239 026904         ADD    CH,[BX+DI+04]
+
+0238                db     0                ; ozna‡en¡ disku
+
+023C 0000           ADD    [BX+SI],AL
+023E 0000           ADD    [BX+SI],AL
+0240 0000           ADD    [BX+SI],AL
+0242 0000           ADD    [BX+SI],AL
+0244 0000           ADD    [BX+SI],AL
+0246 0000           ADD    [BX+SI],AL
+
+0241                dd     0                ; n vratov  adresa z INT 2eh
+
+0245                dw     0                ; aktivn¡ PSP (£schova)
+0247                dw     0                ; segment otcovsk‚ho PSP
+0249                dd     0                ; p–vodn¡ INT 22h z PSP
+
+024f                dw     0                ; £schova identif. Stdin a Stdout
+
+0251                db     0                ; 1=p©¡znak, ‘e nen¡ COMMAND.COM
+
+0248 0000           ADD    [BX+SI],AL
+024A 0000           ADD    [BX+SI],AL
+024C 0000           ADD    [BX+SI],AL
+024E 0000           ADD    [BX+SI],AL
+0250 0000           ADD    [BX+SI],AL
+0252 0000           ADD    [BX+SI],AL
+
+0252                dw     0                ; segment s identifikac¡ souboru BAT
+
+0254 0000           ADD    [BX+SI],AL
+0256 0000           ADD    [BX+SI],AL
+0258 0000           ADD    [BX+SI],AL
+025A 0000           ADD    [BX+SI],AL
+025C 0000           ADD    [BX+SI],AL
+025E 0000           ADD    [BX+SI],AL
+0260 0000           ADD    [BX+SI],AL
+0262 0000           ADD    [BX+SI],AL
+0264 0000           ADD    [BX+SI],AL
+0266 0000           ADD    [BX+SI],AL
+0268 0000           ADD    [BX+SI],AL
+026A 0000           ADD    [BX+SI],AL
+026C 0000           ADD    [BX+SI],AL
+026E 0000           ADD    [BX+SI],AL
+0270 0000           ADD    [BX+SI],AL
+0272 0000           ADD    [BX+SI],AL
+0274 0000           ADD    [BX+SI],AL
+0276 0000           ADD    [BX+SI],AL
+0278 0000           ADD    [BX+SI],AL
+027A 0000           ADD    [BX+SI],AL
+027C 0000           ADD    [BX+SI],AL
+027E 0000           ADD    [BX+SI],AL
+0280 0000           ADD    [BX+SI],AL
+0282 0000           ADD    [BX+SI],AL
+0284 0000           ADD    [BX+SI],AL
+0286 0000           ADD    [BX+SI],AL
+0288 0000           ADD    [BX+SI],AL
+028A 0000           ADD    [BX+SI],AL
+028C 0000           ADD    [BX+SI],AL
+028E 0000           ADD    [BX+SI],AL
+0290 0000           ADD    [BX+SI],AL
+0292 0000           ADD    [BX+SI],AL
+0294 0000           ADD    [BX+SI],AL
+0296 2C01           SUB    AL,01
+
+0298                dw     0                ; segment s p©echodnou ‡ st¡ COMMAND
+
+029A 0000           ADD    [BX+SI],AL
+029C 0000           ADD    [BX+SI],AL
+
+029d                db     0                ; aktivn¡ disk, zadan˜ disk (A=1,..)
+029e                dw     0                ; segment konce pamˆti
+
+
+029E 0000           ADD    [BX+SI],AL
+
+02a0                dw     0                ; kontroln¡ sou‡et COMMAND.COM
+
+02A0 0000           ADD    [BX+SI],AL
+02A2 0100           ADD    [BX+SI],AX
+
+02a2                db     1
+02a3                db     0                ; n vratov˜ k¢d COMMAND.COM
+02a4                db     0                ; zp–sob ukon‡en¡ programu
+
+02a6                db     1                ;
+02a8                db     0                ; identifik tor STDIN
+02a9                db     0                ; identifik tor STDOUT
+
+02A4 0000           ADD    [BX+SI],AL
+02A6 0101           ADD    [BX+DI],AX
+02A8 0000           ADD    [BX+SI],AL
+02AA 0000           ADD    [BX+SI],AL
+
+02aa                db     0                ; po‘adavek nastaven¡ aktiv.adres ©e
+
+02ab                db     0                ; po‡et znak– p©¡kaz. © dku
+02ac                dw     0                ; adresa p©¡kaz. © dku
+
+02AC 0000           ADD    [BX+SI],AL
+
+02ae                dw     -1               ; uschovan˜ p©¡znak VERIFY
+
+02AE FFFF           ???    DI
+02B0 0000           ADD    [BX+SI],AL
+02B2 0000           ADD    [BX+SI],AL
+02B4 0000           ADD    [BX+SI],AL
+02B6 0000           ADD    [BX+SI],AL
+02B8 0000           ADD    [BX+SI],AL
+02BA 0000           ADD    [BX+SI],AL
+
+02bc                db     0
+02bd                dd     0                ; adresa tabulky UPPERCASE
+
+
+02C0 0000           ADD    [BX+SI],AL
+02C2 0000           ADD    [BX+SI],AL
+
+02c5                dd     0                ; adresa tabulky LEAD
+
+
+02C4 0000           ADD    [BX+SI],AL
+02C6 0000           ADD    [BX+SI],AL
+
+02c9                dw     0                ; uschovan‚ stavov‚ slovo APPEND
+
+02C8 0000           ADD    [BX+SI],AL
+02CA 0000           ADD    [BX+SI],AL
+
+02cb                db     0                ; 0ffh=m  se nastavit APPEND
+
+02CC 0000           ADD    [BX+SI],AL
+02CE 0000           ADD    [BX+SI],AL
+02D0 0000           ADD    [BX+SI],AL
+02D2 0000           ADD    [BX+SI],AL
+02D4 0000           ADD    [BX+SI],AL
+02D6 0000           ADD    [BX+SI],AL
+02D8 0000           ADD    [BX+SI],AL
+02DA 0000           ADD    [BX+SI],AL
+02DC 0000           ADD    [BX+SI],AL
+02DE 0000           ADD    [BX+SI],AL
+02E0 0000           ADD    [BX+SI],AL
+02E2 0000           ADD    [BX+SI],AL
+02E4 0000           ADD    [BX+SI],AL
+02E6 0000           ADD    [BX+SI],AL
+02E8 0000           ADD    [BX+SI],AL
+02EA 0000           ADD    [BX+SI],AL
+02EC 0000           ADD    [BX+SI],AL
+02EE 0000           ADD    [BX+SI],AL
+02F0 0000           ADD    [BX+SI],AL
+02F2 0000           ADD    [BX+SI],AL
+02F4 0000           ADD    [BX+SI],AL
+02F6 0000           ADD    [BX+SI],AL
+02F8 0000           ADD    [BX+SI],AL
+02FA 0000           ADD    [BX+SI],AL
+02FC 0000           ADD    [BX+SI],AL
+02FE 0000           ADD    [BX+SI],AL
+0300 0000           ADD    [BX+SI],AL
+0302 0000           ADD    [BX+SI],AL
+0304 0000           ADD    [BX+SI],AL
+0306 0000           ADD    [BX+SI],AL
+0308 0000           ADD    [BX+SI],AL
+030A 0000           ADD    [BX+SI],AL
+030C 0000           ADD    [BX+SI],AL
+030E 0000           ADD    [BX+SI],AL
+0310 0000           ADD    [BX+SI],AL
+0312 0000           ADD    [BX+SI],AL
+0314 0000           ADD    [BX+SI],AL
+0316 0000           ADD    [BX+SI],AL
+0318 0000           ADD    [BX+SI],AL
+031A 0000           ADD    [BX+SI],AL
+031C 0001           ADD    [BX+DI],AL
+031E 0000           ADD    [BX+SI],AL
+
+031e                db     0
+031f                db     0                ; p©¡znak vytvo©en¡ p©echod. souboru
+
+0320                                        ; soubor
+
+0320 1E             PUSH   DS               ; £schova DS
+0321 06             PUSH   ES               ; £schova ES
+0322 0E             PUSH   CS
+0323 1F             POP    DS               ; DS <- CS
+0324 8B16CE1E       MOV    DX,[1ECE]
+0328 A1C21E         MOV    AX,[1EC2]
+032B 8B1EBE1E       MOV    BX,[1EBE]
+032F 8B0EC41E       MOV    CX,[1EC4]
+0333 50             PUSH   AX
+0334 53             PUSH   BX
+0335 51             PUSH   CX
+0336 8CDB           MOV    BX,DS            ;
+0338 8EC3           MOV    ES,BX            ; ES <- DS (= CS)
+033A 8B1EBF04       MOV    BX,[04BF]        ; velikost aloka‡n¡ho bloku
+033E B44A           MOV    AH,4A                         ;'J'
+0340 CD21           INT    21               ; nastaven¡ velikosti bloku programu
+0342 803EAB0201     CMP    Byte Ptr [02AB],01
+0347 7533           JNZ    037C
+0349 833E520200     CMP    Word Ptr [0252],+00
+034E 742C           JZ     037C
+
+0350 BB0400         MOV    BX,0004          ; po‘adovan  velikost 64 bajt–
+0353 B448           MOV    AH,48
+0355 CD21           INT    21               ; p©idˆlen¡ aloka‡n¡ho bloku pamˆti
+0357 7223           JB     037C             ; chyba - nen¡ voln  pamˆŸ
+0359 8EC0           MOV    ES,AX            ; segment vytvo©en‚ho bloku pamˆti
+
+035B 33FF           XOR    DI,DI
+035D 33F6           XOR    SI,SI
+035F 1E             PUSH   DS
+0360 8E1E5202       MOV    DS,[0252]
+0364 B92100         MOV    CX,0021
+0367 83C110         ADD    CX,+10
+036A FC             CLD
+036B F3             REPZ
+036C A4             MOVSB
+036D 1F             POP    DS
+036E 8CC1           MOV    CX,ES
+0370 8E065202       MOV    ES,[0252]
+0374 B449           MOV    AH,49                         ;'I'
+0376 CD21           INT    21               ; uvolnˆn¡ bloku pamˆti
+0378 890E5202       MOV    [0252],CX
+
+036f                                        ; soubor
+
+                                          ;* vytvo©en¡ vzorov‚ho prost©ed¡
+037C 59           * POP    CX
+037D 5B             POP    BX
+037E 5D             POP    BP
+037F B448           MOV    AH,48                         ;'H'
+0381 CD21           INT    21               ; p©idˆlen¡ aloka‡n¡ho bloku pamˆti
+0383 7265           JB     03EA
+0385 A34504         MOV    [0445],AX        ; segment vzorov‚ho prost©ed¡
+0388 A32C00         MOV    [002C],AX        ; nov‚ prost©ed¡ COMMAND.COM
+038B 8EC0           MOV    ES,AX
+038D 1E             PUSH   DS
+038E 8EDD           MOV    DS,BP
+0390 33F6           XOR    SI,SI
+0392 8BFE           MOV    DI,SI
+0394 FC             CLD
+0395 F3             REPZ
+0396 A4             MOVSB
+0397 1F             POP    DS
+0398 803E9C1E00     CMP    Byte Ptr [1E9C],00
+039D 7506           JNZ    03A5
+039F 8EC5           MOV    ES,BP
+03A1 B449           MOV    AH,49                         ;'I'
+03A3 CD21           INT    21                    ; uvolnˆn¡ bloku pamˆti
+03A5 C6069A0201     MOV    Byte Ptr [029A],01
+03AA 06             PUSH   ES
+03AB BE2023         MOV    SI,2320
+03AE BF0000         MOV    DI,0000
+03B1 B9C598         MOV    CX,98C5
+03B4 BBFFFF         MOV    BX,FFFF
+03B7 B448           MOV    AH,48                         ;'H'
+03B9 CD21           INT    21               ; p©idˆlen¡ bloku pamˆti
+03BB 3BDA           CMP    BX,DX
+03BD 722B           JB     03EA
+03BF B448           MOV    AH,48                         ;'H'
+03C1 CD21           INT    21               ; p©idˆlen¡ bloku pamˆti
+03C3 7225           JB     03EA
+03C5 50             PUSH   AX
+03C6 03C3           ADD    AX,BX
+03C8 2BC2           SUB    AX,DX
+03CA A39802         MOV    [0298],AX        ; segment s p©echodnou ‡ st¡ COMMAND
+03CD 8EC0           MOV    ES,AX
+03CF 58             POP    AX
+03D0 03F1           ADD    SI,CX
+03D2 4E             DEC    SI
+03D3 03F9           ADD    DI,CX
+03D5 4F             DEC    DI
+03D6 FD             STD
+03D7 F3             REPZ
+03D8 A4             MOVSB
+03D9 FC             CLD
+03DA 8EC0           MOV    ES,AX
+03DC B449           MOV    AH,49                         ;'I'
+03DE CD21           INT    21               ; uvolnˆn¡ bloku pamˆti
+03E0 C6061D0300     MOV    Byte Ptr [031D],00
+03E5 07             POP    ES
+03E6 1F             POP    DS
+03E7 E995FD         JMP    017F
+03EA E90F1A         JMP    1DFC
+
+
+
+03ED 0000           ADD    [BX+SI],AL
+03EF 0000           ADD    [BX+SI],AL
+03F1 0000           ADD    [BX+SI],AL
+03F3 0000           ADD    [BX+SI],AL
+03F5 0000           ADD    [BX+SI],AL
+03F7 0000           ADD    [BX+SI],AL
+03F9 0000           ADD    [BX+SI],AL
+03FB 0000           ADD    [BX+SI],AL
+03FD 0000           ADD    [BX+SI],AL
+03FF 0000           ADD    [BX+SI],AL
+0401 0000           ADD    [BX+SI],AL
+0403 0000           ADD    [BX+SI],AL
+0405 0000           ADD    [BX+SI],AL
+0407 0000           ADD    [BX+SI],AL
+0409 0000           ADD    [BX+SI],AL
+040B 0000           ADD    [BX+SI],AL
+040D 0000           ADD    [BX+SI],AL
+040F 0000           ADD    [BX+SI],AL
+0411 0000           ADD    [BX+SI],AL
+0413 0000           ADD    [BX+SI],AL
+0415 0000           ADD    [BX+SI],AL
+0417 0000           ADD    [BX+SI],AL
+0419 0000           ADD    [BX+SI],AL
+041B 0000           ADD    [BX+SI],AL
+041D 0000           ADD    [BX+SI],AL
+041F 0000           ADD    [BX+SI],AL
+0421 0000           ADD    [BX+SI],AL
+0423 0000           ADD    [BX+SI],AL
+0425 0000           ADD    [BX+SI],AL
+0427 0000           ADD    [BX+SI],AL
+0429 0000           ADD    [BX+SI],AL
+042B 0000           ADD    [BX+SI],AL
+042D 0000           ADD    [BX+SI],AL
+042F 0000           ADD    [BX+SI],AL
+0431 0000           ADD    [BX+SI],AL
+0433 0000           ADD    [BX+SI],AL
+0435 0000           ADD    [BX+SI],AL
+0437 0000           ADD    [BX+SI],AL
+0439 0000           ADD    [BX+SI],AL
+043B 0000           ADD    [BX+SI],AL
+043D 0000           ADD    [BX+SI],AL
+043F 0000           ADD    [BX+SI],AL
+0441 2003           AND    [BP+DI],AL
+0443 6F             OUTSW
+0444 0300           ADD    AX,[BX+SI]
+
+0445                dw     0                ; segment vzorov‚ho prost©ed¡
+
+0446 00800000       ADD    [BX+SI+0000],AL
+044A 005C00         ADD    [SI+00],BL
+044D 0000           ADD    [BX+SI],AL
+044F 6C             INSB
+0450 0000           ADD    [BX+SI],AL
+0452 00930100       ADD    [BP+DI+0001],DL
+
+0455                dw     0                ; segment programu COMMAND.COM
+
+0456 0000           ADD    [BX+SI],AL
+
+0457                dw     0                ; segment konce zaokrouhlen˜ na 64KB
+
+0458 002F           ADD    [BX],CH
+045A 5C             POP    SP
+045B DA01           FIADD  DWord Ptr [BX+DI]
+
+045d                dw     0                ; segment programu COMMAND.COM
+
+045D 0000           ADD    [BX+SI],AL
+045F 6B0100         IMUL   AX,[BX+DI],00
+
+
+0461                dw     0                ; segment programu COMMAND.COM
+
+0462 0000           ADD    [BX+SI],AL
+0464 0000           ADD    [BX+SI],AL
+
+
+
+0465                dw     0                ; segment pamˆŸ. bloku s programem
+
+
+
+0466 0000           ADD    [BX+SI],AL
+0468 0000           ADD    [BX+SI],AL
+046A 0000           ADD    [BX+SI],AL
+046C 0000           ADD    [BX+SI],AL
+046E 0000           ADD    [BX+SI],AL
+0470 0000           ADD    [BX+SI],AL
+0472 0000           ADD    [BX+SI],AL
+0474 0000           ADD    [BX+SI],AL
+0476 0000           ADD    [BX+SI],AL
+0478 0000           ADD    [BX+SI],AL
+047A 0000           ADD    [BX+SI],AL
+047C 0000           ADD    [BX+SI],AL
+047E 0000           ADD    [BX+SI],AL
+0480 0000           ADD    [BX+SI],AL
+0482 0000           ADD    [BX+SI],AL
+0484 0000           ADD    [BX+SI],AL
+0486 0000           ADD    [BX+SI],AL
+0488 0000           ADD    [BX+SI],AL
+048A 0000           ADD    [BX+SI],AL
+048C 0000           ADD    [BX+SI],AL
+048E 0000           ADD    [BX+SI],AL
+0490 0000           ADD    [BX+SI],AL
+0492 0000           ADD    [BX+SI],AL
+0494 0000           ADD    [BX+SI],AL
+0496 0000           ADD    [BX+SI],AL
+0498 0000           ADD    [BX+SI],AL
+049A 0000           ADD    [BX+SI],AL
+049C 0000           ADD    [BX+SI],AL
+049E 0000           ADD    [BX+SI],AL
+04A0 0000           ADD    [BX+SI],AL
+04A2 0000           ADD    [BX+SI],AL
+04A4 0000           ADD    [BX+SI],AL
+04A6 0000           ADD    [BX+SI],AL
+04A8 0000           ADD    [BX+SI],AL
+04AA 0000           ADD    [BX+SI],AL
+04AC 0000           ADD    [BX+SI],AL
+04AE 0000           ADD    [BX+SI],AL
+04B0 0000           ADD    [BX+SI],AL
+04B2 0000           ADD    [BX+SI],AL
+04B4 0000           ADD    [BX+SI],AL
+04B6 0000           ADD    [BX+SI],AL
+04B8 0000           ADD    [BX+SI],AL
+04BA 0000           ADD    [BX+SI],AL
+04BC 0000           ADD    [BX+SI],AL
+
+
+04bd                dw     0                ; adresa tabulky chybov˜ch text–
+
+04be                db     80h dup(0)
+                                            ; konec z sobn¡ku
+
+053e                dw     0
+
+0540                db     0
+
+; -----------------------------------------------------------------------------
+
+0541                db     'A'              ; volba "Abort"
+0542                db     'R'              ; volba "Retry"
+0543                db     'I'              ; volba "Ignore"
+0544                db     'F'              ; volba "Fail"
+
+0545                db     'Y'              ; volba "Yes"
+0546                db     'N'              ; volba "No"
+
+0547                db     5,'Abort'
+054d                db     7,', Retry'
+0555                db     8,', Ignore'
+055e                db     6,', Fail'
+
+0565                db     1,'?'
+
+0567                db     8,'reading',0
+0570                db     8,'writing',0
+
+0579                db     0eh,' %1 drive %2',13,10
+0588                db     0fh,' %1 device %2',13,10
+
+                                          ;* chybov  hl ¨en¡ v˜jime‡n˜ch stav–
+0598                db     26h,'Please insert volume %1 serial %2-%3',13,10
+05bf                db     25h,'File allocation table bad, drive %1',13,10
+05e5                db     15h,'Invalid COMMAND.COM',13,10
+05fb                db     21h,'Insert disk with %1 in drive %2',13,10
+061d                db     21h,'Press any key to continue . . .',13,10
+063f                db     1ch,13,10,'Terminate batch job (Y/N)?'
+065c                db     13h,'Cannot execute %1',13,10
+0670                db     13h,'Error in EXE file',13,10        ; 0bh
+0684                db     22h,'Program too big to fit in memory',13,10 ; 08h
+06a7                db     16h,13,10,'No free file handles'
+06be                db     1ah,'Bad Command or file name',13,10 ; 02h
+06d9                db     0eh,'Acces denied '                  ; 05h
+06e8                db     19h,13,10,'Memory allocation error'
+0702                db     26h,13,10,'Cannot load COMMAND, system halted',13,10
+0729                db     21h,13,10,'Cannot start COMMAND, exiting',13,10
+074b                db     2eh,13,10,'Top level process aborted, cannot '
+                    db     'continue',13,10
+077a                db     2,13,10
+
+077d                dw     0c8ch            ; tabulka adres chyb. hl ¨en¡ DOS
+077f                dw     1
+0781                dw     0a38h            ; tabulka adres vnit©n¡ch hl ¨en¡
+0783                dw     1
+0785                dw     0c8ch            ; tabulka adres chyb. hl ¨en¡ DOS
+0787                dw     1
+0789                dw     0
+078b                dw     0
+
+078d                dw     0189h
+078f                dw     0                ; segment programu COMMAND.COM
+
+; -----------------------------------------------------------------------------
+
+                                          ;* tabulka chybov˜ch hl ¨en¡ INT 24h
+0791                db     13h,'Write protect error'  ; 13h
+07a5                db     0ch,'Invalid unit'         ; 14h
+07b2                db     9,'Not ready'              ; 15h
+07bc                db     16h,'Invalid device request' ; 16h
+07d3                db     0ah,'Data error'           ; 17h
+07de                db     21h,'Invalid device request parametres' ; 18h
+0800                db     0ah,'Seek error'           ; 19h
+080b                db     12h,'Invalid media type'   ; 1ah
+081e                db     10h,'Sector not found'     ; 1bh
+082f                db     1ah,'Printer out of paper error' ; 1ch
+084a                db     11h,'Write fault error'    ; 1dh
+085c                db     10h,'Read fault error'     ; 1eh
+086d                db     0fh,'General failure'      ; 1fh
+087d                db     11h,'Sharing violation'    ; 20h
+088f                db     0eh,'Lock violation'       ; 21h
+089e                db     13h,'Invalid disk change'  ; 22h
+08b2                db     0fh,'FCB unavailable'      ; 23h
+08c2                db     19h,'System resource exhausted' ; 24h
+08dc                db     12h,'Code page mismatch'   ; 25h
+08ef                db     0ch,'Out of input'         ; 26h
+08fc                db     17h,'Insufficient disk space' ; 27h
+
+                                          ;* adresy chybov˜ch hl ¨en¡ INT 24h
+0914                dw     0791h
+0916                dw     07a5h
+0918                dw     07b2h
+091a                dw     07bch
+091c                dw     07d3h
+091e                dw     07deh
+0920                dw     0800h
+0922                dw     080bh
+0924                dw     081eh
+0926                dw     082fh
+0928                dw     084ah
+092a                dw     085ch
+092c                dw     086dh
+092e                dw     087dh
+0930                dw     088fh
+0932                dw     089eh
+0934                dw     08b2h
+0936                dw     08c2h
+0938                dw     08dch
+093a                dw     08efh
+093c                dw     08fch
+
+; -----------------------------------------------------------------------------
+
+                                          ;* tabulka vnit©n¡ch hl ¨en¡
+093e                db     13h,'Too many parameters'
+0952                db     1ah,'Required parameter missing'
+096d                db     0eh,'Invalid switch'
+097c                db     0fh,'Invalid keyword'
+098c                db     1,' '
+098e                db     20h,'Parameter value not in allowed range'
+09b3                db     1bh,'Parameter value not allowed'
+09cf                db     1bh,'Parameter value not allowed'
+09eb                db     1ch,'Parameter format not correct'
+0a08                db     11h,'Invalid parameter'
+0a1a                db     1dh,'Invalid parameter combination'
+
+                                          ;* adresy vnit©n¡ch hl ¨en¡
+0a38                dw     093eh
+0a3a                dw     0952h
+0a3c                dw     096dh
+0a3e                dw     097ch
+0a40                dw     098ch
+0a42                dw     098eh
+0a44                dw     09b3h
+0a46                dw     09cfh
+0a48                dw     09ebh
+0a4a                dw     0a08h
+0a4c                dw     0a1ah
+
+; -----------------------------------------------------------------------------
+
+                                          ;* chybov  hl ¨en¡ funkc¡ DOS
+
+0a4e                db     10h,'Invalid function'     ; 01h
+0a5f                db     0eh,'File not found'       ; 02h
+0a6e                db     0eh,'Path not found'       ; 03h
+0a7d                db     13h,'Too many open files'  ; 04h
+0a91                db     0eh,'Access denied '       ; 05h
+0aa0                db     0eh,'Invalid handle'       ; 06h
+0aaf                db     1fh,'Memory control blocks destroyed' ; 07h
+0acf                db     13h,'Insufficient memory'  ; 08h
+0ae3                db     1ch,'Invalid memory block address' ; 09h
+0b00                db     13h,'Invalid Environment'  ; 0ah
+0b14                db     0eh,'Invalid format'       ; 0bh
+0b23                db     1ah,'Invalid function parameter' ; 0ch
+0b3e                db     0ch,'Invalid data'         ; 0dh
+0b4b                db     1bh,'Invalid drive specification' ; 0fh
+0b67                db     23h,'Attempt to remove current directory' ; 10h
+0b8b                db     0fh,'Not same device'      ; 11h
+0b9b                db     0dh,'No more files'        ; 12h
+
+0ba9                db     0bh,'File exists'          ; 50h
+0bb5                db     1bh,'Cannot make directory entry' ; 52h
+0bd1                db     0eh,'Fail on INT 24'       ; 53h
+0be0                db     15h,'Too many redirections' ; 54h
+0bf6                db     15h,'Duplicate redirection' ; 55h
+0c0c                db     10h,'Invalid password'     ; 56h
+0c1d                db     11h,'Invalid parameter'    ; 57h
+0c2f                db     12h,'Network data fault'   ; 58h
+0c42                db     21h,'Function not supported by network' ; 59h
+0c64                db     27h,'Required system component not installed' ; 5ah
+
+                                          ;* adresy chybov˜ch hl ¨en¡ DOS
+0c8c                dw     0a4eh            ; 01
+0c8e                dw     0a5fh            ; 02
+0c90                dw     0a6eh            ; 03
+0c92                dw     0a7dh            ; 04
+0c94                dw     0a91h            ; 05
+0c96                dw     0aa0h            ; 06
+0c98                dw     0aafh            ; 07
+0c9a                dw     0acfh            ; 08
+0c9c                dw     0ae3h            ; 09
+0c9e                dw     0b00h            ; 0a
+0ca0                dw     0b14h            ; 0b
+0ca2                dw     0b23h            ; 0c
+0ca4                dw     0b3eh            ; 0d
+0ca6                dw     0                ; 0e
+0ca8                dw     0b4bh            ; 0f
+0caa                dw     0b67h            ; 10
+0cac                dw     0b8bh            ; 11
+0cae                dw     0b9bh            ; 12
+
+0cb0                dw     0791h            ; 13
+0cb2                dw     07a5h            ; 14
+0cb4                dw     07b2h            ; 15
+0cb6                dw     07bch            ; 16
+0cb8                dw     07d3h            ; 17
+0cba                dw     07deh            ; 18
+0cbc                dw     0800h            ; 19
+0cbe                dw     080bh            ; 1a
+0cc0                dw     081eh            ; 1b
+0cc2                dw     082fh            ; 1c
+0cc4                dw     084ah            ; 1d
+0cc6                dw     085ch            ; 1e
+0cc8                dw     086dh            ; 1f
+0cca                dw     087dh            ; 20
+0ccc                dw     088fh            ; 21
+0cce                dw     089eh            ; 22
+0cd0                dw     08b2h            ; 23
+0cd2                dw     08c2h            ; 24
+0cd4                dw     08dch            ; 25
+0cd6                dw     08efh            ; 26
+0cd8                dw     08fch            ; 27
+
+0cda                dw     28h dup(0)       ; 28h a‘ 4fh
+
+0d2a                dw     0ba9             ; 50h
+0d2c                dw     0                ; 51h
+0d2e                dw     0bb5             ; 52h
+0d30                dw     0bd1             ; 53h
+0d32                dw     0be0             ; 54h
+0d34                dw     0bf6             ; 55h
+0d36                dw     0c0c             ; 56h
+0d38                dw     0c1d             ; 57h
+0d3a                dw     0c2f             ; 58h
+0d3c                dw     0c42             ; 59h
+0d3e                dw     0c64             ; 5ah
+
+; -----------------------------------------------------------------------------
+;    Test v˜sledku po n vratu z programu
+; -----------------------------------------------------------------------------
+
+0D40 BBBE06       * MOV    BX,06BE          ; text "Bad Command or file name"
+0D43 3C02           CMP    AL,02
+0D45 741B           JZ     0D62
+
+0D47 BB8406         MOV    BX,0684          ; text "Program too big to fit in memory"
+0D4A 3C08           CMP    AL,08
+0D4C 7414           JZ     0D62
+
+0D4E BB7006         MOV    BX,0670          ; text "Error in EXE file"
+0D51 3C0B           CMP    AL,0B
+0D53 740D           JZ     0D62
+
+0D55 BBD906         MOV    BX,06D9          ; text "Acces denied "
+0D58 3C05           CMP    AL,05
+0D5A 7406           JZ     0D62
+
+0D5C BB5C06         MOV    BX,065C          ; text "Cannot execute %1"
+0D5F BE3902         MOV    SI,0239
+0D62 8BD3         * MOV    DX,BX
+0D64 E86D06         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+0D67 EB09           JMP    0D72
+
+
+0D69 72D5         * JB     0D40             ; byla chyba proveden¡ programu
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+0D6B B44D           MOV    AH,4D
+0D6D CD21           INT    21               ; poskytnut¡ n vratov‚ho k¢du
+0D6F A3A302         MOV    [02A3],AX        ; n vratov˜ k¢d z programu
+0D72 E97901         JMP    0EEE
+
+; -----------------------------------------------------------------------------
+;    Obsluha p©eru¨en¡ INT 23h
+; -----------------------------------------------------------------------------
+
+0D75 1F             POP    DS               ; DS <- CS
+0D76 F6061D0301     TEST   Byte Ptr [031D],01
+0D7B 740D           JZ     0D8A
+0D7D F6061D0302     TEST   Byte Ptr [031D],02
+0D82 7404           JZ     0D88
+0D84 1F             POP    DS
+0D85 E9CD0E         JMP    1C55
+
+0D88 1F           * POP    DS               ; n vrat DS
+0D89 CF             IRET
+
+
+0D8A F6061D0304   * TEST   Byte Ptr [031D],04
+0D8F 7412           JZ     0DA3
+0D91 80FC01         CMP    AH,01
+0D94 72F2           JB     0D88
+0D96 80FC0C         CMP    AH,0C
+0D99 77ED           JA     0D88
+0D9B 1F             POP    DS
+0D9C 83C406         ADD    SP,+06
+0D9F F9             STC
+0DA0 CA0200         RETF   0002
+
+
+0DA3 800E1D0304   * OR     Byte Ptr [031D],04
+0DA8 FB             STI
+0DA9 58             POP    AX
+0DAA A1AC02         MOV    AX,[02AC]
+0DAD 0BC0           OR     AX,AX
+0DAF 7506           JNZ    0DB7
+
+0DB1 50             PUSH   AX
+0DB2 B40D           MOV    AH,0D
+0DB4 CD21           INT    21               ; reset diskov‚ho syst‚mu
+0DB6 58             POP    AX
+
+0DB7 F7065202FFFF * TEST   Word Ptr [0252],FFFF
+0DBD 7452           JZ     0E11
+0DBF 0BC0           OR     AX,AX
+0DC1 754E           JNZ    0E11
+
+0DC3 E88D02         CALL   1053             ; nastav. Stdin a Stdout na Stderr
+0DC6 E8A003         CALL   1169
+0DC9 7340           JNB    0E0B
+
+0DCB 8A0EA602       MOV    CL,[02A6]
+0DCF 53             PUSH   BX
+
+0DD0 8E065202     * MOV    ES,[0252]
+0DD4 BF2000         MOV    DI,0020
+0DD7 268B1E0500     MOV    BX,ES:[0005]
+0DDC 83FB00         CMP    BX,+00
+0DDF 7408           JZ     0DE9
+
+0DE1 06             PUSH   ES
+0DE2 8EC3           MOV    ES,BX
+0DE4 B449           MOV    AH,49                         ;'I'
+0DE6 CD21           INT    21               ; uvolnˆn¡ bloku pamˆti
+0DE8 07             POP    ES
+
+0DE9 268A0E0100   * MOV    CL,ES:[0001]
+0DEE 268B1E0300     MOV    BX,ES:[0003]
+0DF3 B449           MOV    AH,49                         ;'I'
+0DF5 CD21           INT    21
+0DF7 891E5202       MOV    [0252],BX
+0DFB FF0EB502       DEC    Word Ptr [02B5]
+0DFF 75CF           JNZ    0DD0
+
+0E01 5B             POP    BX
+
+0E02 880EA602       MOV    [02A6],CL
+0E06 C6061E0300     MOV    Byte Ptr [031E],00
+0E0B E8C305         CALL   13D1             ; od© dkov n¡ textu
+0E0E E86B02         CALL   107C
+
+0E11 33C0         * XOR    AX,AX
+0E13 8BE8           MOV    BP,AX
+0E15 A2B102         MOV    [02B1],AL
+0E18 A2B202         MOV    [02B2],AL
+0E1B E81C00         CALL   0E3A
+0E1E 3906AC02       CMP    [02AC],AX
+0E22 7406           JZ     0E2A
+0E24 C706AC02FFFF   MOV    Word Ptr [02AC],FFFF
+0E2A 80261D03FB     AND    Byte Ptr [031D],FB
+0E2F 3806A202       CMP    [02A2],AL
+0E33 7503           JNZ    0E38
+0E35 E94501         JMP    0F7D
+0E38 F9             STC
+0E39 CB             RETF
+
+
+0E3A 50             PUSH   AX
+0E3B 33C0           XOR    AX,AX
+0E3D 86061E03       XCHG   AL,[031E]
+0E41 0AC0           OR     AL,AL
+0E43 7404           JZ     0E49
+0E45 D02EA602       SHR    Byte Ptr [02A6],1
+0E49 58           * POP    AX
+0E4A C3             RET
+
+; -----------------------------------------------------------------------------
+;    Chyba p©idˆlen¡ pamˆti
+; -----------------------------------------------------------------------------
+
+0E4B BAE806         MOV    DX,06E8          ; text - chyba alokace pamˆti
+
+0E4E E88305       * CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+0E51 803EAB0200     CMP    Byte Ptr [02AB],00
+0E56 7410           JZ     0E68
+0E58 833EAC0200     CMP    Word Ptr [02AC],+00
+0E5D 7509           JNZ    0E68
+
+                                          ;* chyba - nelze nat hnout COMMAND.COM
+0E5F BA0207         MOV    DX,0702          ; text - nelze spustit COMMAND
+0E62 E86F05         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+0E65 FB             STI                     ; p©eru¨en¡ povoleno
+0E66 EBFE         * JMP    0E66             ; zablokov n¡ syst‚mu
+
+                                          ;* chyba - nelze spustit COMMAND.COM
+0E68 BA2907         MOV    DX,0729          ; text - nelze prov‚st COMMAND.COM
+0E6B E86605         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+0E6E 803EAB0200     CMP    Byte Ptr [02AB],00
+0E73 7517           JNZ    0E8C
+0E75 A14702         MOV    AX,[0247]        ; segment otcovsk‚ho PSP
+0E78 A31600         MOV    [0016],AX        ; n vrat otcovsk‚ho PSP
+0E7B A14902         MOV    AX,[0249]        ; p–vodn¡ INT 22h z PSP (offset)
+0E7E A30A00         MOV    [000A],AX        ; n vrat adresy INT 22h (offset)
+0E81 A14B02         MOV    AX,[024B]        ; p–vodn¡ INT 22h z PSP (segment)
+0E84 A30C00         MOV    [000C],AX        ; n vrat adresy INT 22h (segment)
+0E87 B8004C         MOV    AX,4C00
+0E8A CD21           INT    21               ; ukon‡en¡ programu COMMAND.COM
+
+
+0E8C C706AC020000 * MOV    Word Ptr [02AC],0000
+0E92 8E066504       MOV    ES,[0465]        ; segment pamˆŸ. bloku s programem
+0E96 B449           MOV    AH,49                         ;'I'
+0E98 CD21           INT    21
+0E9A 8B1E4502       MOV    BX,[0245]        ; aktivn¡ PSP (£schova)
+0E9E B450           MOV    AH,50                         ;'P'
+0EA0 CD21           INT    21
+0EA2 A1A302         MOV    AX,[02A3]        ; n vratov˜ k¢d z programu
+0EA5 803EA20200     CMP    Byte Ptr [02A2],00
+0EAA 7502           JNZ    0EAE
+0EAC 33C0           XOR    AX,AX
+0EAE C606A20201     MOV    Byte Ptr [02A2],01
+0EB3 FF2E4102       JMP    FAR [0241]       ; n vrat do hlavn¡ho programu
+
+
+; -----------------------------------------------------------------------------
+;    Obsluha p©eru¨en¡ INT 2eh
+; -----------------------------------------------------------------------------
+
+0EB7 1F             POP    DS               ; DS <- CS
+0EB8 58             POP    AX               ; AX <- p–vodn¡ DS
+0EB9 8F064102       POP    [0241]           ; £schova IP z INT 2eh
+0EBD 8F064302       POP    [0243]           ; uschova CS z INT 2eh
+0EC1 83C402         ADD    SP,+02           ; zru¨en¡ registru p©¡znak–
+0EC4 1E             PUSH   DS               ;
+0EC5 07             POP    ES               ; ES <- CS
+0EC6 8ED8           MOV    DS,AX            ; DS <- p–vodn¡ DS
+0EC8 BF8000         MOV    DI,0080          ; adresa pracovn¡ho PSP
+0ECB B94000         MOV    CX,0040          ; d‚lka p©¡kazu (80h bajt–)
+0ECE F3             REPZ
+0ECF A5             MOVSW                   ; ulo‘en¡ p©¡kazu
+0ED0 B451           MOV    AH,51                         ;'Q'
+0ED2 CD21           INT    21               ; poskytnut¡ aktivn¡ho PSP
+0ED4 26891E4502     MOV    ES:[0245],BX     ; aktivn¡ PSP (£schova)
+0ED9 B450           MOV    AH,50                         ;'P'
+0EDB 06             PUSH   ES
+0EDC 1F             POP    DS               ; DS <- CS
+0EDD 8CDB           MOV    BX,DS            ; nov˜ aktivn¡ PSP
+0EDF CD21           INT    21               ; nastaven¡ nov‚ho aktivn¡ho PSP
+0EE1 C706AC028100   MOV    Word Ptr [02AC],0081 ; za‡ tek p©¡kaz. © dku
+0EE7 C606A20201     MOV    Byte Ptr [02A2],01
+0EEC 1E             PUSH   DS
+0EED 1E             PUSH   DS
+
+                                          ;* n vrat z programu
+0EEE 1F             POP    DS               ;
+0EEF 83C402         ADD    SP,+02
+0EF2 803EA20200     CMP    Byte Ptr [02A2],00
+0EF7 7503           JNZ    0EFC
+0EF9 E98100         JMP    0F7D
+
+0EFC BBFFFF       * MOV    BX,FFFF
+0EFF B448           MOV    AH,48                         ;'H'
+0F01 CD21           INT    21               ; zji¨tˆn¡ voln‚ pamˆti
+0F03 E80A00         CALL   0F10             ; velikost 2. ‡ sti COMMAND.COM
+0F06 052000         ADD    AX,0020          ; rezerva pro z sobn¡k
+0F09 3BD8           CMP    BX,AX
+0F0B 730B           JNB    0F18
+0F0D E93BFF         JMP    0E4B
+
+0F10 B8D498       * MOV    AX,98D4          ; velikost 2. ‡ sti COMMAND.COM
+0F13 B104           MOV    CL,04
+0F15 D3E8           SHR    AX,CL            ; velikost v odstavc¡ch
+0F17 C3             RET
+
+
+
+0F18 B448           MOV    AH,48                         ;'H'
+0F1A CD21           INT    21               ; p©idˆlen¡ pamˆti
+0F1C 72EF           JB     0F0D
+0F1E C606A20200     MOV    Byte Ptr [02A2],00
+0F23 A36504         MOV    [0465],AX        ; segment pamˆŸ. bloku s programem
+0F26 2500F0         AND    AX,F000
+0F29 050010         ADD    AX,1000
+0F2C 7212           JB     0F40
+0F2E 8B166504       MOV    DX,[0465]        ; segment pamˆŸ. bloku s programem
+0F32 03D3           ADD    DX,BX
+0F34 3BD0           CMP    DX,AX
+0F36 7608           JBE    0F40
+0F38 2BD0           SUB    DX,AX
+0F3A 81FA0010       CMP    DX,1000
+0F3E 7303           JNB    0F43
+0F40 A16504         MOV    AX,[0465]        ; segment pamˆŸ. bloku s programem
+0F43 A35704         MOV    [0457],AX        ; segment konce zaokrouhlen˜ na 64KB
+0F46 A16504         MOV    AX,[0465]        ; segment pamˆŸ. bloku s programem
+0F49 03D8           ADD    BX,AX
+0F4B 891E9E02       MOV    [029E],BX        ; segment konce pamˆti
+0F4F E8BEFF         CALL   0F10             ; velikost 2. ‡ sti COMMAND.COM
+0F52 2BD8           SUB    BX,AX
+0F54 3B1E9802       CMP    BX,[0298]        ; segment s p©echodnou ‡ st¡ COMMAND
+0F58 7423           JZ     0F7D
+0F5A B9C598         MOV    CX,98C5
+0F5D 7707           JA     0F66
+0F5F 33F6           XOR    SI,SI
+0F61 8BFE           MOV    DI,SI
+0F63 FC             CLD
+0F64 EB06           JMP    0F6C
+
+0F66 8BF1           MOV    SI,CX
+0F68 4E             DEC    SI
+0F69 8BFE           MOV    DI,SI
+0F6B FD             STD
+0F6C 1E             PUSH   DS
+0F6D 06             PUSH   ES
+0F6E 8EC3           MOV    ES,BX
+0F70 8E1E9802       MOV    DS,[0298]        ; segment s p©echodnou ‡ st¡ COMMAND
+0F74 F3             REPZ
+0F75 A4             MOVSB
+0F76 FC             CLD
+0F77 07             POP    ES
+0F78 1F             POP    DS
+0F79 891E9802       MOV    [0298],BX        ; segment s p©echodnou ‡ st¡ COMMAND
+
+0F7D 8CD8           MOV    AX,DS
+0F7F 8ED0           MOV    SS,AX
+0F81 BC3E05         MOV    SP,053E          ; konec z sobn¡ku
+0F84 E88300         CALL   100A             ; navr cen¡ obsluh
+0F87 33ED           XOR    BP,BP
+
+0F89 B8FFFF         MOV    AX,FFFF
+0F8C 8706AE02       XCHG   AX,[02AE]
+0F90 3DFFFF         CMP    AX,FFFF
+0F93 7404           JZ     0F99
+0F95 B42E           MOV    AH,2E                         ;'.'
+0F97 CD21           INT    21               ; nastaven¡ p©ep¡na‡e VERIFY
+
+0F99 833EAC02FF   * CMP    Word Ptr [02AC],-01
+0F9E 7503           JNZ    0FA3
+0FA0 E9CBFE         JMP    0E6E
+
+                                          ;* nov‚ na‡ten¡ COMMAND.COM
+0FA3 E88301         CALL   1129             ; kontroln¡ sou‡et COMMAND.COM
+0FA6 3B16A002       CMP    DX,[02A0]        ; souhlas¡ kontroln¡ sou‡et ?
+0FAA 7416           JE     0FC2             ; kontroln¡ sou‡et souhlas¡ OK
+0FAC C606510201     MOV    Byte Ptr [0251],01 ; p©¡znak, ‘e nen¡ COMMAND.COM
+0FB1 E82601         CALL   10DA             ; nov‚ na‡ten¡ 2. ‡ sti COMMAND.COM
+0FB4 E87201         CALL   1129             ; kontroln¡ sou‡et COMMAND.COM
+0FB7 3B16A002       CMP    DX,[02A0]        ; teƒ ji‘ sou‡et souhlas¡ ?
+0FBB 7405           JE     0FC2             ; kontroln¡ sou‡et souhlas¡ OK
+0FBD E86101         CALL   1121             ; chyba - nelze jej znovu na‡¡st
+0FC0 EBF2           JMP    0FB4             ; opakov n¡ pokusu
+
+0FC2 C606510200   * MOV    Byte Ptr [0251],00
+0FC7 BE5304         MOV    SI,0453
+0FCA BF758D         MOV    DI,8D75
+0FCD 8E069802       MOV    ES,[0298]        ; segment s p©echodnou ‡ st¡ COMMAND
+0FD1 FC             CLD
+0FD2 B96704         MOV    CX,0467
+0FD5 2BCE           SUB    CX,SI
+0FD7 F3             REPZ
+0FD8 A4             MOVSB
+0FD9 A19E02         MOV    AX,[029E]        ; segment konce pamˆti
+0FDC A30200         MOV    [0002],AX        ; nastaven¡ vrcholu pamˆti
+0FDF FF2E9602       JMP    FAR [0296]
+
+
+0FE3 1F             POP    DS
+0FE4 83C402         ADD    SP,+02
+0FE7 E80100         CALL   0FEB             ; zji¨tˆn¡, zda je disk v˜mˆnn˜
+0FEA CB             RETF
+
+; -----------------------------------------------------------------------------
+;    Zji¨tˆn¡, zda je disk v˜mˆnn˜
+; -----------------------------------------------------------------------------
+
+0FEB 50             PUSH   AX
+0FEC 53             PUSH   BX
+0FED 8BD8           MOV    BX,AX            ; ‡¡slo po‘adovan‚ho disku
+0FEF B80844         MOV    AX,4408          ; funkce dotazu na v˜mˆnnost
+0FF2 CD21           INT    21               ; dotaz, zda je disk v˜mˆnn˜
+0FF4 7304           JNB    0FFA             ;
+0FF6 0BC0           OR     AX,AX            ; nastaven¡ p©¡znaku NZ
+0FF8 EB05           JMP    0FFF
+
+0FFA 250100       * AND    AX,0001          ; 1=za©¡zen¡ nen¡ v˜mˆnn‚
+0FFD F7D0           NOT    AX               ; 0ffffh - za©¡zen¡ je v˜mˆnn‚
+0FFF 5B           * POP    BX
+1000 58             POP    AX
+1001 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Navr cen¡ obsluh po n vratu z programu
+; -----------------------------------------------------------------------------
+
+1002 1F             POP    DS
+1003 83C402         ADD    SP,+02
+1006 E80100         CALL   100A
+1009 CB             RETF
+
+
+100A E83601         CALL   1143             ; instalace obsluh p©eru¨en¡
+
+                                          ;* p©esmˆrov n¡ CON zpˆt
+100D 33DB           XOR    BX,BX            ; identif. stand. vstupn¡ho za©¡zen¡
+100F 8B0EA802       MOV    CX,[02A8]        ; identifik tor STDIN a STDOUT
+1013 8B161800       MOV    DX,[0018]        ; identifik tor soubor– 0 a 1
+
+                                          ;* navr cen¡ Stdin
+1017 3ACA           CMP    CL,DL
+1019 7408           JZ     1023             ; je shodn˜
+101B B43E           MOV    AH,3E
+101D CD21           INT    21               ; uzav©en¡
+101F 880E1800       MOV    [0018],CL        ; p©esmˆrov n¡ zpˆt
+
+                                          ;* navr cen¡ Stdout
+1023 43           * INC    BX
+1024 3AEE           CMP    CH,DH
+1026 7408           JZ     1030
+1028 B43E           MOV    AH,3E                         ;'>'
+102A CD21           INT    21
+102C 882E1900       MOV    [0019],CH
+
+                                          ;* uzav©en¡ v¨ech soubor–
+1030 83C304       * ADD    BX,+04           ; identifikace souboru 5
+1033 B90F00         MOV    CX,000F          ; max. 15 soubor–
+1036 B43E         * MOV    AH,3E                         ;'>'
+1038 CD21           INT    21
+103A 43             INC    BX
+103B E2F9           LOOP   1036             ; uzav©en¡ v¨ech soubor–
+
+103D 803ECB02FF     CMP    Byte Ptr [02CB],FF ; m  se APPEND nastavit ?
+1042 750E           JNE    1052
+1044 B807B7         MOV    AX,B707          ; funkce nastaven¡ stavu APPEND
+1047 8B1EC902       MOV    BX,[02C9]        ; uschovan‚ stavov‚ slovo APPEND
+104B CD2F           INT    2F               ; navr cen¡ stavu APPEND
+104D C606CB0200     MOV    Byte Ptr [02CB],00
+1052 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Nastaven¡ Stdin a Stdout na chybov‚ za©¡zen¡ Stderr
+; -----------------------------------------------------------------------------
+
+1053 53             PUSH   BX
+1054 50             PUSH   AX
+1055 06             PUSH   ES
+1056 1E             PUSH   DS
+1057 B451           MOV    AH,51                         ;'Q'
+1059 CD21           INT    21               ; poskytnut¡ aktivn¡ho PSP
+105B 8EDB           MOV    DS,BX            ; aktivn¡ PSP
+105D C51E3400       LDS    BX,[0034]        ; adresa tabulky otev©en˜ch soubor–
+1061 8B07           MOV    AX,[BX]          ; identifik tor Stdin a Stdout
+1063 07             POP    ES
+1064 06             PUSH   ES
+1065 26A34F02       MOV    ES:[024F],AX     ; £schova identif. Stdin a Stdout
+1069 26A01A00       MOV    AL,ES:[001A]     ; identifikace Stderr (konzola)
+106D 8AE0           MOV    AH,AL
+106F 8907           MOV    [BX],AX          ; nastaven¡ standardnˆ konzoly
+1071 1F             POP    DS
+1072 07             POP    ES
+1073 58             POP    AX
+1074 5B             POP    BX
+1075 C3             RET
+
+
+1076 E81F00         CALL   1098
+1079 E901FF         JMP    0F7D
+
+; -----------------------------------------------------------------------------
+;    N vrat Stdin a Stdout
+; -----------------------------------------------------------------------------
+
+107C 1E             PUSH   DS
+107D 53             PUSH   BX
+107E 50             PUSH   AX
+107F B451           MOV    AH,51                         ;'Q'
+1081 CD21           INT    21               ; poskytnut¡ aktivn¡ho PSP
+1083 A14F02         MOV    AX,[024F]        ; uschovan‚ identif. Stdin a Stdout
+1086 8EDB           MOV    DS,BX
+1088 C51E3400       LDS    BX,[0034]        ; adresa tabulky otev©en˜ch soubor–
+108C 8907           MOV    [BX],AX          ; n vrat p–vodn¡ch Stdin a Stdout
+108E 58             POP    AX
+108F 5B             POP    BX
+1090 1F             POP    DS
+1091 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Chyba - neplatn˜ COMMAND.COM (vy‘ d n¡ nov‚ho pokusu)
+; -----------------------------------------------------------------------------
+
+1092 BAE505         MOV    DX,05E5          ; text "Invalid COMMAND.COM"
+1095 E9B6FD         JMP    0E4E
+
+
+1098 A09D02         MOV    AL,[029D]        ; aktivn¡ disk, zadan˜ disk (A=1,..)
+109B E84DFF         CALL   0FEB             ; zji¨tˆn¡, zda je disk v˜mˆnn˜
+109E 75F2           JNZ    1092
+10A0 81FAE505       CMP    DX,05E5
+10A4 7506           JNZ    10AC
+10A6 BAE505         MOV    DX,05E5
+10A9 E82803         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+10AC 803E380200   * CMP    Byte Ptr [0238],00
+10B1 7509           JNZ    10BC
+
+10B3 B419           MOV    AH,19
+10B5 CD21           INT    21
+10B7 0441           ADD    AL,41                         ;'A'
+10B9 A23802         MOV    [0238],AL        ; ozna‡en¡ disku
+
+10BC BAFB05       * MOV    DX,05FB          ; text "Insert disk %1 with %2"
+10BF BE3202         MOV    SI,0232
+10C2 E80F03         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+10C5 BA1D06         MOV    DX,061D          ; text "Pres any key to continue ..."
+10C8 E80903         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+10CB E80100         CALL   10CF             ; ‡ek n¡ na stisk kl vesy
+10CE C3             RET
+
+; -----------------------------------------------------------------------------
+;    €ek n¡ na stisk kl vesy
+; -----------------------------------------------------------------------------
+
+10CF B8070C         MOV    AX,0C07
+10D2 CD21           INT    21               ; ‡ek n¡ na znak bez Ctrl-Break
+10D4 B8000C         MOV    AX,0C00
+10D7 CD21           INT    21               ; test Ctrl-Break
+10D9 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    Na‡ten¡ 2. ‡ sti COMMAND.COM opˆt do pamˆti
+; -----------------------------------------------------------------------------
+
+                                          ;* otev©en¡ souboru COMMAND.COM
+10DA 45             INC    BP
+10DB BA5402         MOV    DX,0254          ; jm‚no souboru COMMAND.COM
+10DE B8003D         MOV    AX,3D00          ; funkce otev©en¡ souboru
+10E1 CD21           INT    21               ; otev©en¡ souboru pro ‡ten¡
+10E3 7310           JNB    10F5             ; soubor otev©en OK
+
+                                          ;* chyba - soubor nelze otev©¡t
+10E5 3D0400         CMP    AX,0004          ; nen¡ voln˜ identifik tor souboru ?
+10E8 7506           JNZ    10F0             ; je nˆjak  jin  chyba
+10EA BAA706         MOV    DX,06A7          ; text "No free file handles"
+10ED E95EFD         JMP    0E4E             ; chyba - nen¡ voln˜ identifik tor
+10F0 E8A5FF       * CALL   1098             ; v˜zva k v˜mˆnˆ diskety
+10F3 EBE5           JMP    10DA
+
+                                          ;* nastaven¡ ukazatele na ‡ st 2
+10F5 8BD8         * MOV    BX,AX            ; identifik tor souboru COMMAND.COM
+10F7 BA2023         MOV    DX,2320          ; offset v souboru COMMAND.COM
+10FA 33C9           XOR    CX,CX            ; CX <- 0
+10FC B80042         MOV    AX,4200          ; funkce nastaven¡ ukazatele
+10FF CD21           INT    21               ; nastaven¡ ukazatele v COMMAND.COM
+1101 7210           JB     1113             ; chyba
+
+                                          ;* na‡ten¡ 2. ‡ sti COMMAND.COM
+1103 B9C597         MOV    CX,97C5          ; velikost 2. ‡ sti COMMAND.COM
+1106 1E             PUSH   DS
+1107 8E1E9802       MOV    DS,[0298]        ; segment s p©echodnou ‡ st¡ COMMAND
+110B BA0001         MOV    DX,0100          ; ukl dac¡ adresa
+110E B43F           MOV    AH,3F                         ;'?'
+1110 CD21           INT    21               ; na‡ten¡ programu znovu do pamˆti
+1112 1F             POP    DS
+
+                                          ;* uzav©en¡ souboru COMMAND.COM
+1113 9C           * PUSHF                   ; £schova p©¡znaku operace
+1114 50             PUSH   AX
+1115 B43E           MOV    AH,3E            ; funkce uzav©en¡ souboru
+1117 CD21           INT    21               ; uzav©en¡ souboru COMMAND.COM
+1119 58             POP    AX
+111A 9D             POPF                    ; n vrat p©¡znaku operace
+111B 7204           JB     1121             ; byla chyba ‡ten¡ z COMMAND.COM
+
+                                          ;* kontrola v˜sledku operace ‡ten¡
+111D 3BC1           CMP    AX,CX            ; souhlas¡ po‡et bajt– ?
+111F 74B8           JE     10D9             ; po‡et bajt– souhlas¡ - n vrat OK
+
+                                          ;*
+1121 BAE505         MOV    DX,05E5          ; chyba - nelze na‡¡st COMMAND.COM
+1124 E871FF         CALL   1098             ; chybov‚ hl ¨en¡
+1127 EBB1           JMP    10DA
+
+; -----------------------------------------------------------------------------
+;    Kontroln¡ sou‡et COMMAND.COM na vrcholu pamˆti
+; -----------------------------------------------------------------------------
+
+1129 1E             PUSH   DS
+112A 8E1E9802       MOV    DS,[0298]        ; segment s p©echodnou ‡ st¡ COMMAND
+112E BE0001         MOV    SI,0100          ; po‡ te‡n¡ adresa modulu
+1131 B9C287         MOV    CX,87C2          ; d‚lka ke kontrole
+1134 FC             CLD
+1135 D1E9           SHR    CX,1             ; po‡et slov ke kontrole
+1137 33D2           XOR    DX,DX            ; v˜choz¡ hodnota kontrol. sou‡tu
+1139 AD           * LODSW
+113A 03D0           ADD    DX,AX
+113C 83D200         ADC    DX,+00
+113F E2F8           LOOP   1139             ; kontroln¡ sou‡et programu
+1141 1F             POP    DS
+1142 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Instalace obsluh p©eru¨en¡
+; -----------------------------------------------------------------------------
+
+                                          ;* instalace obsluhy INT 22h
+1143 BA7F01         MOV    DX,017F          ; adresa obsluhy INT 22h
+1146 B82225         MOV    AX,2522          ; funkce nastaven¡ adresy INT 22h
+1149 89160A00       MOV    [000A],DX        ; offset obsluhy INT 22h
+114D 8C1E0C00       MOV    [000C],DS        ; segment obsluhy INT 22h
+1151 CD21           INT    21               ; instalace obsluhy INT 22h
+
+                                          ;* instalace obsluhy INT 23h
+1153 BA4B01         MOV    DX,014B          ; obsluha INT 23h
+1156 FEC0           INC    AL               ; ‡¡slo p©eru¨en¡ INT 23h
+1158 CD21           INT    21               ; instalace obsluhy INT 23h
+
+                                          ;* instalace obsluhy INT 24h
+115A BA5601         MOV    DX,0156          ; obsluha INT 24h
+115D FEC0           INC    AL               ; ‡¡slo p©eru¨en¡ INT 24h
+115F CD21           INT    21               ; instalace obsluhy INT 24h
+1161 C3             RET
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+
+1162 1F             POP    DS
+1163 83C402         ADD    SP,+02
+1166 E914FE         JMP    0F7D
+
+; -----------------------------------------------------------------------------
+                                          ;* hl ¨en¡ Terminate batch job (Y/N)?
+1169 BA3F06         MOV    DX,063F          ; text "Terminate batch job (Y/N)?"
+116C E86502         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+116F B8010C         MOV    AX,0C01
+1172 CD21           INT    21               ; n vrat s chybou 1
+
+
+1174 E8F802         CALL   146F             ; p©evod znaku AX na velk‚ p¡smeno
+1177 3A064605       CMP    AL,[0546]
+117B 7407           JZ     1184
+117D 3A064505       CMP    AL,[0545]
+1181 75E6           JNZ    1169
+1183 F9             STC
+1184 C3             RET
+
+; -----------------------------------------------------------------------------
+;    Obsluha p©eru¨en¡ INT 24h
+; -----------------------------------------------------------------------------
+
+1185 1F             POP    DS
+1186 8F063E05       POP    [053E]           ; konec z sobn¡ku
+118A FB             STI
+118B 06             PUSH   ES
+118C 56             PUSH   SI
+118D 51             PUSH   CX
+118E 57             PUSH   DI
+118F 51             PUSH   CX
+1190 50             PUSH   AX
+1191 1E             PUSH   DS
+1192 07             POP    ES
+1193 8EDD           MOV    DS,BP            ; segment z hlav¡ za©¡zen¡
+1195 8B4404         MOV    AX,[SI+04]       ; atributy za©¡zen¡
+1198 2688262E02     MOV    ES:[022E],AH     ; atributy za©¡zen¡
+119D BF0C02         MOV    DI,020C
+11A0 B90800         MOV    CX,0008
+11A3 83C60A         ADD    SI,+0A
+11A6 FC             CLD
+11A7 F3             REPZ
+11A8 A4             MOVSB
+11A9 58             POP    AX
+11AA 59             POP    CX
+11AB 5F             POP    DI
+11AC 06             PUSH   ES
+11AD 1F             POP    DS
+11AE E8A2FE         CALL   1053             ; nastav. Stdin a Stdout na Stderr
+11B1 52             PUSH   DX
+11B2 E81C02         CALL   13D1             ; od© dkov n¡ textu
+11B5 5A             POP    DX
+11B6 8826A502       MOV    [02A5],AH
+11BA 0441           ADD    AL,41                         ;'A'
+11BC A20502         MOV    [0205],AL
+11BF F6C480         TEST   AH,80
+11C2 740A           JZ     11CE
+11C4 F6062E0280     TEST   Byte Ptr [022E],80 ; atributy za©¡zen¡ - je disk ?
+11C9 7503           JNZ    11CE             ; je to za©¡zen¡ (nen¡ to disk)
+11CB E9F601         JMP    13C4             ; obsluha pro disk
+
+11CE BE6705         MOV    SI,0567
+11D1 F6C401         TEST   AH,01
+11D4 7403           JZ     11D9
+11D6 BE7005         MOV    SI,0570
+11D9 893E6704       MOV    [0467],DI
+
+11DD 06             PUSH   ES
+11DE 1E             PUSH   DS
+11DF 55             PUSH   BP
+11E0 56             PUSH   SI
+11E1 52             PUSH   DX
+11E2 51             PUSH   CX
+11E3 53             PUSH   BX
+11E4 B459           MOV    AH,59                         ;'Y'
+11E6 CD21           INT    21               ; poskytnut¡ chybov‚ho k¢du
+11E8 5B             POP    BX
+11E9 59             POP    CX
+11EA 5A             POP    DX
+11EB 5E             POP    SI
+11EC 5D             POP    BP
+11ED 1F             POP    DS
+
+11EE 893E3C02       MOV    [023C],DI
+11F2 8C063E02       MOV    [023E],ES
+11F6 07             POP    ES
+11F7 32E4           XOR    AH,AH
+11F9 8BF8           MOV    DI,AX
+11FB 83EF13         SUB    DI,+13
+11FE 7303           JNB    1203
+1200 BF0C00         MOV    DI,000C
+1203 C606400200     MOV    Byte Ptr [0240],00
+1208 83FF10         CMP    DI,+10
+120B 7405           JZ     1212
+120D 83FF11         CMP    DI,+11
+1210 7505           JNZ    1217
+1212 C606400201     MOV    Byte Ptr [0240],01
+1217 893E4D02       MOV    [024D],DI
+121B 83FF14         CMP    DI,+14           ; kontrola ‡¡sla chyby
+121E 7642           JBE    1262             ; ‡¡slo chyby OK
+
+1220 8BF8           MOV    DI,AX
+1222 B80005         MOV    AX,0500
+1225 CD2F           INT    2F               ; kontrola instalace obsluhy INT 24h
+1227 3CFF           CMP    AL,FF            ; je ovlada‡ INT 24h nainstalov n ?
+1229 752A           JNZ    1255             ; ovlada‡ INT 24h nen¡ nainstalov n
+
+122B 53             PUSH   BX
+122C 8BDF           MOV    BX,DI
+122E B80105         MOV    AX,0501          ; chyba k¢du chyby
+1231 CD2F           INT    2F               ; obsluha chybov‚ho stavu
+1233 5B             POP    BX
+1234 721F           JB     1255             ; byla vlastn¡ obsluha
+
+1236 A24002         MOV    [0240],AL
+1239 1E             PUSH   DS
+123A 06             PUSH   ES
+123B 1F             POP    DS
+123C 8BD7           MOV    DX,DI
+123E B9FFFF         MOV    CX,FFFF
+1241 32C0           XOR    AL,AL
+1243 FC             CLD
+1244 F2             REPNZ
+1245 AE             SCASB
+1246 C645FF24       MOV    Byte Ptr [DI-01],24           ;'$'
+124A B409           MOV    AH,09
+124C CD21           INT    21               ; zobrazen¡ textu
+124E C645FF00       MOV    Byte Ptr [DI-01],00
+1252 1F             POP    DS
+1253 EB15           JMP    126A
+
+1255 C606400200   * MOV    Byte Ptr [0240],00
+125A 8B3E6704       MOV    DI,[0467]
+125E 893E4D02       MOV    [024D],DI
+1262 83C713         ADD    DI,+13
+1265 87FA           XCHG   DI,DX
+1267 E88301         CALL   13ED             ; zobrazen¡ chyb. hl ¨en¡ INT 24h
+
+126A 803E400200   * CMP    Byte Ptr [0240],00
+126F 7405           JZ     1276
+1271 E85D01         CALL   13D1             ; od© dkov n¡ textu
+1274 EB31           JMP    12A7
+
+
+1276 46           * INC    SI
+1277 F6062E0280     TEST   Byte Ptr [022E],80 ; je to za©¡zen¡ nebo disk ?
+127C 740F           JZ     128D             ; je to disk
+
+                                          ;* chyba za©¡zen¡
+127E BA8805         MOV    DX,0588          ; text  "%1 device %2"
+1281 89360702       MOV    [0207],SI
+1285 BE0602         MOV    SI,0206
+1288 E84901         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+128B EB1A           JMP    12A7
+
+                                          ;* chyba disku
+128D BA7905         MOV    DX,0579          ; text  "%1 drive %2"
+1290 89360002       MOV    [0200],SI
+1294 BEFF01         MOV    SI,01FF
+1297 E83A01         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+129A 803E510200     CMP    Byte Ptr [0251],00
+129F 7406           JZ     12A7
+12A1 E8D8FD         CALL   107C
+12A4 E9CFFD         JMP    1076
+
+12A7 833E4D020F   * CMP    Word Ptr [024D],+0F
+12AC 751E           JNZ    12CC
+12AE 51             PUSH   CX
+12AF 1E             PUSH   DS
+12B0 07             POP    ES
+12B1 C5363C02       LDS    SI,[023C]
+12B5 57             PUSH   DI
+12B6 BF1E02         MOV    DI,021E
+12B9 B91000         MOV    CX,0010
+12BC FC             CLD
+12BD F3             REPZ
+12BE A4             MOVSB
+12BF 5F             POP    DI
+12C0 06             PUSH   ES
+12C1 1F             POP    DS
+12C2 59             POP    CX
+
+
+12C3 BA9805         MOV    DX,0598          ; Please insert volume %1 serial %2-%3
+12C6 BE1502         MOV    SI,0215
+12C9 E80801         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+                                          ;* nab¡dka k p©eru¨en¡ ABORT
+12CC BA4705         MOV    DX,0547          ; text "Abort"
+12CF E80201         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+                                          ;* nab¡dka k opakov n¡ RETRY
+12D2 F606A50210     TEST   Byte Ptr [02A5],10 ; povoleno opakov n¡ RETRY ?
+12D7 7406           JZ     12DF             ; nen¡ mo‘n‚ RETRY
+12D9 BA4D05         MOV    DX,054D          ; volba RETRY
+12DC E8F500         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+                                          ;* nab¡dka k ignorov n¡ IGNORE
+12DF F606A50220     TEST   Byte Ptr [02A5],20 ; povoleno ignorov n¡ ?
+12E4 7406           JZ     12EC             ; iognorov n¡ nepovoleno
+12E6 BA5505         MOV    DX,0555          ; text "Ignore"
+12E9 E8E800         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+                                          ;* nab¡dka k hl ¨en¡ FAIL
+12EC F606A50208     TEST   Byte Ptr [02A5],08 ; povoleno FAIL ?
+12F1 7406           JZ     12F9             ; nen¡ povoleno FAIL
+12F3 BA5E05         MOV    DX,055E          ; text ", Fail"
+12F6 E8DB00         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+                                          ;* z vˆre‡n˜ otazn¡k
+12F9 BA6505       * MOV    DX,0565          ; text "?"
+12FC E8D500         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+
+12FF F606B002FF     TEST   Byte Ptr [02B0],FF
+1304 7405           JZ     130B
+1306 B403           MOV    AH,03
+1308 E9AA00         JMP    13B5
+
+130B B8010C       * MOV    AX,0C01
+130E CD21           INT    21               ; p©eru¨en¡ programu s chybou
+
+
+1310 E8BE00         CALL   13D1             ; od© dkov n¡ textu
+1313 E85901         CALL   146F             ; p©evod znaku AX na velk‚ p¡smeno
+1316 B400           MOV    AH,00
+1318 F606A50220     TEST   Byte Ptr [02A5],20            ;' '
+131D 7406           JZ     1325
+131F 3A064305       CMP    AL,[0543]
+1323 7429           JZ     134E
+1325 FEC4           INC    AH
+1327 F606A50210     TEST   Byte Ptr [02A5],10
+132C 7406           JZ     1334
+132E 3A064205       CMP    AL,[0542]
+1332 741A           JZ     134E
+1334 FEC4           INC    AH
+1336 3A064105       CMP    AL,[0541]
+133A 7414           JZ     1350
+133C FEC4           INC    AH
+133E F606A50208     TEST   Byte Ptr [02A5],08
+1343 7406           JZ     134B
+1345 3A064405       CMP    AL,[0544]
+1349 7403           JZ     134E
+134B E959FF         JMP    12A7
+134E EB65           JMP    13B5
+
+1350 F6061D0301     TEST   Byte Ptr [031D],01
+1355 741A           JZ     1371
+1357 803EAB0200     CMP    Byte Ptr [02AB],00
+135C 7408           JZ     1366
+
+135E BA4B07         MOV    DX,074B          ; text "Top level process aborted"
+1361 E87000         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+1364 EBFE         * JMP    1364             ; zablokov n¡ po‡¡ta‡e
+
+                                          ;* ukon‡en¡ programu
+1366 A14702         MOV    AX,[0247]        ; segment otcovsk‚ho PSP
+1369 A31600         MOV    [0016],AX        ; n vrat PSP
+136C B8FF4C         MOV    AX,4CFF
+136F CD21           INT    21               ; n vrat s chybou 0ffh
+
+
+1371 F6069B02FF     TEST   Byte Ptr [029B],FF
+1376 7405           JZ     137D
+1378 C6069C0201     MOV    Byte Ptr [029C],01
+137D 8A161E03       MOV    DL,[031E]
+1381 E8B6FA         CALL   0E3A
+1384 0AD2           OR     DL,DL
+1386 740D           JZ     1395
+1388 833EAC0200     CMP    Word Ptr [02AC],+00
+138D 7406           JZ     1395
+138F C706AC02FFFF   MOV    Word Ptr [02AC],FFFF
+1395 833E4D0200     CMP    Word Ptr [024D],+00
+139A 7407           JZ     13A3
+139C 833E4D0202     CMP    Word Ptr [024D],+02
+13A1 7512           JNZ    13B5
+13A3 C606B20200     MOV    Byte Ptr [02B2],00
+13A8 833EAC0200     CMP    Word Ptr [02AC],+00
+13AD 7406           JZ     13B5
+13AF C706AC02FFFF   MOV    Word Ptr [02AC],FFFF
+13B5 8AC4           MOV    AL,AH
+13B7 8BD7           MOV    DX,DI
+
+13B9 E8C0FC         CALL   107C             ; n vrat Stdout a Stdin
+13BC 59             POP    CX
+13BD 5E             POP    SI
+13BE 07             POP    ES
+13BF 8E1E3E05       MOV    DS,[053E]        ; konec z sobn¡ku
+13C3 CF             IRET
+
+
+13C4 BABF05         MOV    DX,05BF          ; text "File allocation table bad"
+13C7 BE2F02         MOV    SI,022F
+13CA E80700         CALL   13D4             ; zobrazen¡ chybov‚ho textu DS:DX
+13CD B002           MOV    AL,02
+13CF EBE8           JMP    13B9
+
+
+; -----------------------------------------------------------------------------
+;    Od© dkov n¡ textu
+; -----------------------------------------------------------------------------
+
+13D1 BA7A07         MOV    DX,077A          ; text od© dkov n¡
+
+; -----------------------------------------------------------------------------
+;    Zobrazen¡ textu DS:DX (DS:SI=tabulka definic parametr–)
+; -----------------------------------------------------------------------------
+
+13D4 56             PUSH   SI               ; £schova SI
+13D5 50             PUSH   AX               ; £schova AX
+13D6 53             PUSH   BX               ; £schova BX
+13D7 51             PUSH   CX               ; £schova CX
+13D8 52             PUSH   DX               ; £schova DX
+
+13D9 8BDE           MOV    BX,SI            ; tabulka definic parametr–
+13DB 8BF2           MOV    SI,DX            ; adresa textu chybov‚ho hl ¨en¡
+13DD AC             LODSB                   ; d‚lka textu
+13DE 33C9           XOR    CX,CX            ; CX <- 0
+13E0 8AC8           MOV    CL,AL            ; CX <- d‚lka textu chyb. hl ¨en¡
+13E2 E303           JCXZ   13E7             ; nen¡ ‘ dn˜ text
+13E4 E81900         CALL   1400             ; zobrazen¡ textu DS:SI (d‚lka CX)
+
+13E7 5A           * POP    DX               ; n vrat DX
+13E8 59             POP    CX               ; n vrat CX
+13E9 5B             POP    BX               ; n vrat BX
+13EA 58             POP    AX               ; n vrat AX
+13EB 5E             POP    SI               ; n vrat SI
+13EC C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zobrazen¡ chybov‚ho hl ¨en¡ INT 24h (DX = k¢d chyby 13h a‘ 27h)
+; -----------------------------------------------------------------------------
+
+13ED 52           * PUSH   DX               ; £schova k¢du chyby
+13EE 87DA           XCHG   BX,DX            ; BX <- ‡¡slo chyby
+13F0 83EB13         SUB    BX,+13           ; ode‡ten¡ ‡¡sla prvn¡ chyby
+13F3 D1E3           SHL    BX,1             ; offset v tabulce adres
+13F5 8B9F1409       MOV    BX,[BX+0914]     ; adresy chybov˜ch hl ¨en¡ INT 24h
+13F9 87DA           XCHG   BX,DX            ; DX <- adresa textu chyby
+13FB E8D6FF         CALL   13D4             ; zobrazen¡ chybov‚ho hl ¨en¡
+13FE 5A             POP    DX               ; n vrat k¢du chyby
+13FF C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zobrazen¡ textu DS:SI (CX znak–, DS:BX=tabulka definic parametr–)
+; -----------------------------------------------------------------------------
+
+1400 AC           * LODSB                   ; znak k zobrazen¡
+1401 3C25           CMP    AL,25            ; je parametr "%" ?
+1403 7511           JNE    1416             ; nen¡ parametr "%"
+
+                                          ;* zobrazen¡ parametru "%n"
+1405 8A14           MOV    DL,[SI]          ; ‡¡slo parametru
+1407 80EA31         SUB    DL,"1"           ; korekce na bin rn¡ ‡¡slo
+140A 80FA09         CMP    DL,09            ; kontrola, zda je to ‡¡slice 1 a‘ 9
+140D 7307           JNB    1416             ; nen¡ to ‡¡slice 1 a‘ 9
+140F E80D00         CALL   141F             ; zobrazen¡ parametru DL
+1412 46             INC    SI               ; zv˜¨en¡ ukazatele textu
+1413 49             DEC    CX               ; sn¡‘en¡ ‡¡ta‡e znak–
+1414 EB06           JMP    141C             ; dal¨¡ znak k zobrazen¡
+
+                                          ;* zobrazen¡ znaku
+1416 8AD0         * MOV    DL,AL            ; znak k zobrazen¡
+1418 B402           MOV    AH,02            ; funkce zobrazen¡ znaku
+141A CD21           INT    21               ; zobrazen¡ znaku DL
+141C E2E2         * LOOP   1400             ; zobrazen¡ dal¨¡ho znaku
+141E C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zobrazen¡ parametru (DL=‡¡slo parametru, DS:BX=tabulka definic parametr–)
+; -----------------------------------------------------------------------------
+;    Struktura tabulky parametr– DS:BX:  1 bajt  - typ parametru
+;                                                   1 = znak
+;                                                   2 = text ASCIIZ
+;                                                   3 = slovo HEX
+;                                        2 bajty - adresa parametru
+;    V tabulce m–‘e b˜t definov no 1 a‘ 9 parametr– (‡¡sla 1 a‘ 9)
+; -----------------------------------------------------------------------------
+
+141F 53             PUSH   BX
+1420 51             PUSH   CX
+
+                                          ;* zji¨tˆn¡ odkazu na parametr
+1421 B003           MOV    AL,03            ; po‡et bajt– na parametr
+1423 F6E2           MUL    DL               ; offset v tabulce parametr–
+1425 03D8           ADD    BX,AX            ; adresa parametru v tabulce
+1427 8A07           MOV    AL,[BX]          ; p©¡znak parametru
+1429 8B5F01         MOV    BX,[BX+01]       ; adresa parametru
+142C FEC8           DEC    AL               ; parametrem je znak ?
+142E 7427           JZ     1457             ; 1=parametrem je 1 znak
+1430 FEC8           DEC    AL               ; parametrem je text ?
+1432 742B           JZ     145F             ; 2=parametrem je text
+
+                                          ;* parametrem je ‡¡slo HEX (slovo)
+1434 8B07           MOV    AX,[BX]          ; slovo k zobrazen¡
+1436 B90400         MOV    CX,0004          ; po‡et znak– HEX k zobrazen¡
+1439 D1C0         * ROL    AX,1
+143B D1C0           ROL    AX,1
+143D D1C0           ROL    AX,1
+143F D1C0           ROL    AX,1             ; rotace po‘adovan‚ tetr dy
+1441 50             PUSH   AX               ; £schova bajtu k zobrazen¡
+1442 240F           AND    AL,0F            ; ni‘¨¡ tetr da bajtu HEX
+1444 0430           ADD    AL,30            ; korekce na ‡¡slici ASCII
+1446 3C39           CMP    AL,39            ; je ‡¡slice > "9" ?
+1448 7602           JBE    144C             ; je platn  ‡¡slice
+144A 0407           ADD    AL,07            ; korekce na p¡smeno ASCII
+144C 8AD0         * MOV    DL,AL            ; znak k zobrazen¡
+144E B402           MOV    AH,02            ; funkce zobrazen¡ znaku DL
+1450 CD21           INT    21               ; zobrazen¡ znaku DL
+1452 58             POP    AX               ; n vrat bajtu k zobrazen¡
+1453 E2E4           LOOP   1439             ; zobrazen¡ dal¨¡ho znaku HEX
+1455 EB15           JMP    146C             ; konec
+
+                                          ;* zobrazen¡ znaku
+1457 8A17         * MOV    DL,[BX]          ; znak k zobrazen¡
+1459 B402           MOV    AH,02            ; funkce zobrazen¡ znaku DL
+145B CD21           INT    21               ; zobrazen¡ znaku DL
+145D EB0D           JMP    146C             ; konec
+
+                                          ;* zobrazen¡ textu parametru
+145F 8A17         * MOV    DL,[BX]          ; znak k zobrazen¡
+1461 0AD2           OR     DL,DL            ; je konec textu ?
+1463 7407           JZ     146C             ; je konec textu
+1465 B402           MOV    AH,02            ; funkce zobrazen¡ znaku DL
+1467 CD21           INT    21               ; zobrazen¡ znaku
+1469 43             INC    BX               ; zv˜¨en¡ ukazatele textu
+146A EBF3           JMP    145F             ; zobrazen¡ dal¨¡ho znaku
+
+146C 59           * POP    CX
+146D 5B             POP    BX
+146E C3             RET
+
+; -----------------------------------------------------------------------------
+;    P©evod znaku AX na velk‚ p¡smeno
+; -----------------------------------------------------------------------------
+
+146F 50             PUSH   AX               ; znak ke konverzi
+1470 B81312         MOV    AX,1213
+1473 CD2F           INT    2F
+1475 44             INC    SP
+1476 44             INC    SP               ; zru¨en¡ dat v z sobn¡ku
+1477 C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+1478 1F             POP    DS
+1479 3D2E12         CMP    AX,122E
+147C 742A           JZ     14A8
+147E 3D0055         CMP    AX,5500
+1481 741C           JZ     149F
+1483 50             PUSH   AX
+1484 50             PUSH   AX
+1485 55             PUSH   BP
+1486 50             PUSH   AX
+1487 8BEC           MOV    BP,SP
+1489 8B4608         MOV    AX,[BP+08]
+148C 894604         MOV    [BP+04],AX
+148F A1BB04         MOV    AX,[04BB]
+1492 894608         MOV    [BP+08],AX
+1495 A1B904         MOV    AX,[04B9]
+1498 894606         MOV    [BP+06],AX
+149B 58             POP    AX
+149C 5D             POP    BP
+149D 1F             POP    DS
+149E CB             RETF
+
+; -----------------------------------------------------------------------------
+;    Obsluha INT 2fh - slu‘ba 5500h
+; -----------------------------------------------------------------------------
+
+149F 58             POP    AX
+14A0 1E             PUSH   DS
+14A1 BE0401         MOV    SI,0104
+14A4 33C0           XOR    AX,AX
+14A6 EB11           JMP    14B9
+
+14A8 F6C201         TEST   DL,01
+14AB 750C           JNZ    14B9
+14AD 53             PUSH   BX
+14AE 8BDA           MOV    BX,DX
+14B0 32FF           XOR    BH,BH
+14B2 D1E3           SHL    BX,1
+14B4 C4BF7D07       LES    DI,[BX+077D]
+14B8 5B             POP    BX
+14B9 1F           * POP    DS
+14BA CF             IRET
+
+; -----------------------------------------------------------------------------
+;    Na‡ten¡ textu chyby ze souboru COMMAND.COM
+; -----------------------------------------------------------------------------
+
+14BB 1F             POP    DS
+14BC 50             PUSH   AX
+14BD 53             PUSH   BX
+14BE 51             PUSH   CX
+14BF 52             PUSH   DX
+14C0 56             PUSH   SI
+14C1 1E             PUSH   DS
+14C2 07             POP    ES
+14C3 BB0B00         MOV    BX,000B
+14C6 81FF380A       CMP    DI,0A38
+14CA 7403           JZ     14CF
+14CC BB5A00         MOV    BX,005A
+14CF 3BD8           CMP    BX,AX
+14D1 725A           JB     152D
+14D3 48             DEC    AX
+14D4 D1E0           SHL    AX,1
+14D6 03F8           ADD    DI,AX
+14D8 3B3EBD04       CMP    DI,[04BD]        ; adresa tabulky chybov˜ch text–
+14DC 7247           JB     1525
+
+                                          ;* otev©en¡ souboru
+14DE BE5402         MOV    SI,0254          ; jm‚no souboru COMMAND.COM
+14E1 BA0100         MOV    DX,0001
+14E4 BB0020         MOV    BX,2000          ;
+14E7 B8006C         MOV    AX,6C00
+14EA CD21           INT    21               ;
+14EC 723F           JB     152D
+
+14EE 8BD8           MOV    BX,AX            ; identifik tor souboru
+14F0 8BD7           MOV    DX,DI
+14F2 33F6           XOR    SI,SI
+14F4 81EA0001       SUB    DX,0100
+14F8 33C9           XOR    CX,CX
+14FA B80042         MOV    AX,4200
+14FD CD21           INT    21               ; nastaven¡ ukazatele
+
+14FF 721A           JB     151B
+1501 BA6904         MOV    DX,0469
+1504 B94000         MOV    CX,0040          ; max. d‚lka textu
+1507 B43F           MOV    AH,3F                         ;'?'
+1509 CD21           INT    21               ; na‡ten¡ textu chyby
+150B 720E           JB     151B
+
+150D 0BF6           OR     SI,SI
+150F 750A           JNZ    151B
+1511 46             INC    SI
+1512 8B166904       MOV    DX,[0469]
+1516 0BD2           OR     DX,DX
+1518 75DA           JNZ    14F4
+151A F9             STC
+151B 9C             PUSHF
+151C B43E           MOV    AH,3E                         ;'>'
+151E CD21           INT    21
+1520 9D             POPF
+1521 8BFA           MOV    DI,DX
+1523 EB08           JMP    152D
+
+1525 268B3D       * MOV    DI,ES:[DI]
+1528 0BFF           OR     DI,DI
+152A 7501           JNZ    152D
+152C F9             STC
+152D 5E           * POP    SI
+152E 5A             POP    DX
+152F 59             POP    CX
+1530 5B             POP    BX
+1531 58             POP    AX
+1532 1F             POP    DS
+1533 CB             RETF
+
+; -----------------------------------------------------------------------------
+;    Nastaven¡ strategie pamˆti
+; -----------------------------------------------------------------------------
+
+1534 8AE8           MOV    CH,AL
+1536 8AC8           MOV    CL,AL
+1538 B80058         MOV    AX,5800
+153B CD21           INT    21               ; poskytnut¡ strategie pamˆti
+153D 8BD8           MOV    BX,AX            ; £schova strategie pamˆti
+153F D0C9           ROR    CL,1             ;
+1541 80E180         AND    CL,80
+1544 80E37F         AND    BL,7F
+1547 0AD9           OR     BL,CL
+1549 B80158         MOV    AX,5801
+154C CD21           INT    21               ; nastaven¡ strategie pamˆti
+154E 8ADD           MOV    BL,CH
+1550 D0EB           SHR    BL,1
+1552 32FF           XOR    BH,BH
+1554 B80358         MOV    AX,5803
+1557 CD21           INT    21
+1559 CB             RETF
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+
+155A 0000           ADD    [BX+SI],AL       ; zarovn n¡ na odstavec
+155C 0000           ADD    [BX+SI],AL
+155E 0000           ADD    [BX+SI],AL
+

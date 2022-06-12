@@ -1,0 +1,415 @@
+
+;                          NETUNITS.SYS
+
+; Soubor NETUNITS.SYS slouë° k uráen°, kolik diskovòch jednotek bude pouëito
+; z vnàj®°ch poá°taáñ (slouë° tedy k rezervaci diskñ). Soubor se instaluje jako
+; driver za©°zen° do souboru CONFIG.SYS a lze uvÇst tyto parametry:
+;   @x - poáet rezervovanòch diskovòch jednotek (povinnò parametr, x=1 aë 16)
+;   SEC:x - maxim†ln° velikost sektoru (512 aë 16384 - pro rezervaci bufferu)
+;   COMPAQ - je operaán° systÇm COMPAQ 3.31 nebo DOS 4.x (vàt®° disky neë 32 MB)
+;
+; Tento driver obsluhuje pouze funkci pro instalaci za©°zen°.
+
+0000                 dd     ffff:ffffh           ; adresa n†sleduj°c°ho za©°zen°
+0004                 dw     0000                 ; atributy za©°zen°
+                                                 ; bit 1 = p©°znak "COMPAQ"
+                                                 ;  (mñëe bòt velkò disk)
+0006                 dw     0039h                ; offset rutiny strategie
+0008                 dw     004fh                ; offset rutiny p©eru®en°
+000a                 db     4                    ; poáet jednotek instalovanòch driverem
+000b                 db     0,0,0,0,0,0,0        ; rezervov†no pro jmÇno za©°zen°
+
+                                               ;* definice bloku dat k p©enosu
+0012                 db     'dj'                 ; identifikaán° slovo NETUNITS
+0014                 dw     00d1h                ; p©en†®enò blok dat (neplat°)
+
+                                                 ; tabulka adres obsluh funkc°
+
+0016                 dw     0190h                ; 00 inicializace za©°zen°
+0018                 dw     0099h                ; 01 chyba
+001a                 dw     0099h                ; 02 chyba
+001c                 dw     0099h                ; 03 chyba
+001e                 dw     0099h                ; 04 chyba
+0020                 dw     0099h                ; 05 chyba
+0022                 dw     0099h                ; 06 chyba
+0024                 dw     0099h                ; 07 chyba
+0026                 dw     0099h                ; 08 chyba
+0028                 dw     0099h                ; 09 chyba
+002a                 dw     0099h                ; 0a chyba
+002c                 dw     0099h                ; 0b chyba
+002e                 dw     0099h                ; 0c chyba
+
+0030                 dd     0                    ; adresa z†hlav° za©°zen°
+
+0034                 db     4                    ; disky instalovanÇ driverem
+
+; -----------------------------------------------------------------------------
+0035                 db     'N$25'               ; identifikace rutiny STRATEGIE
+
+                                               ;* rutina STRATEGIE
+0039  eb05         * jmp    0040                 ; skok do strategie
+003b  90             nop
+003c                 dd     0                    ; rezervace m°sta pro JMP FAR
+
+                                                 ; obsluha rutiny STRATEGIE
+                                                 ; uloëen° adresy z†hlav° za©°zen°
+0040  2e891e3000   * mov    cs:[0030],bx         ; offset adresy z†hlav° za©°zen°
+0045  2e8c063200     mov    cs:[0032],es         ; segment adresy z†hlav° za©°zen°
+004a  cb             ret    far
+
+; -----------------------------------------------------------------------------
+004b                 db     'N$25'               ; identifikace rutiny PûERUõENã
+
+                                               ;* obsluha rutiny PûERUõENã
+004f  eb05           jmp    0056                 ; skok na obsluhu p©eru®en°
+0051  90             nop
+0052                 dd     0                    ; rezervace m°sta pro JMP FAR
+
+                                               ;* obsluha rutiny PûERUõENã
+
+0056  50             push   ax                   ; £schova AX
+0057  53             push   bx                   ; £schova BX
+0058  51             push   cx                   ; £schova CX
+0059  52             push   dx                   ; £schova DX
+005a  57             push   di                   ; £schova DI
+005b  56             push   si                   ; £schova SI
+005c  55             push   bp                   ; £schova BP
+005d  1e             push   ds                   ; £schova DS
+005e  06             push   es                   ; £schova ES
+005f  8ccb           mov    bx,cs                ; BX <- CS
+0061  8edb           mov    ds,bx                ; DS <- CS
+0063  2ec43e3000     les    di,cs:[0030]         ; ES:DI-adresa z†hlav° poëadavku za©°zen°
+0068  33db           xor    bx,bx                ; BX <- 0000
+006a  26895d03       mov    es:[di+03],bx        ; nastaven° stavovÇho slova
+006e  268a5d02       mov    bl,es:[di+02]        ; BL <- k¢d povelu
+0072  80fb11         cmp    bl,11                ; kontrola max. á°sla povelu
+0075  f5             cmc                         ; CY - á°slo povelu vàt®° neë 16
+0076  b003           mov    al,03                ; k¢d chyby - nezn†mò povel
+0078  7208           jc     0082                 ; chybovò n†vrat
+007a  d1e3           shl    bx,1                 ; á°slo povelu * 2
+007c  fc             cld                         ; smàr p©enosu dat nahoru
+007d  2eff971600     call   cs:[bx+0016]         ; vyvol†n° funkce podle povelu
+                                                ;* v AL je zde uloëen k¢d chyby
+0082  2ec43e3000   * les    di,cs:[0030]         ; ES:DI <- adresa z†hlav° poëadavku
+0087  b402           mov    ah,02                ; nastaven° bitu "akce provedena"
+0089  d0dc           rcr    ah,1                 ; nastaven° bitu 15 (=chyba) z CF
+008b  26094503       or     es:[di+03],ax        ; nastaven° stavovÇho slova
+008f  07             pop    es                   ; n†vrat ES
+0090  1f             pop    ds                   ; n†vrat DS
+0091  5d             pop    bp                   ; n†vrat BP
+0092  5e             pop    si                   ; n†vrat SI
+0093  5f             pop    di                   ; n†vrat DI
+0094  5a             pop    dx                   ; n†vrat DX
+0095  59             pop    cx                   ; n†vrat CX
+0096  5b             pop    bx                   ; n†vrat BX
+0097  58             pop    ax                   ; n†vrat AX
+0098  cb             ret    far
+
+; -----------------------------------------------------------------------------
+                                               ;* chyba - vyvol†n neobslouëenò povel
+
+0099  b80700         mov    ax,0007              ; chyba - nezn†mÇ mÇdium
+009c  f9             stc                         ; nastaven° chybovÇho p©°znaku
+009d  c3             ret
+
+; -----------------------------------------------------------------------------
+                                               ;* blok parametrñ BIOS (BPB)
+
+009e                 dw     10h dup(00beh)       ; adresa bloku parametrñ BIOS
+
+                                                 ; blok parametrñ BIOS (BPB)
+
+00be                 dw     0200h                ; 00h: poáet bajtñ na sektor
+00c0                 db     2                    ; 02h: poáet sektorñ na alokaán° blok
+00c1                 dw     1                    ; 03h: poáet zav†dàc°ch a rezervovanòch sektorñ
+00c3                 db     2                    ; 05h: poáet alokaán°ch tabulek FAT
+00c4                 dw     70h                  ; 06h: max. poáet poloëek z†kl. adres†©e
+00c6                 dw     02d0h                ; 08h: celkovò poáet sektorñ na mÇdiu
+00c8                 db     0fdh                 ; 0ah: popisovaá mÇdia
+00c9                 dw     2                    ; 0bh: poáet sektorñ v jednÇ FAT
+                                               ;* od DOS 3.00
+00cb                 dw     9                    ; 0dh: poáet sektorñ na stopu
+00cd                 dw     2                    ; 0fh: poáet hlav
+00cf                 dd     0200h                ; 11h: poáet skrytòch sektorñ
+                                               ;* od DOS 4.00
+;                    dd     0                    ; 15h: celkovò poáet sektorñ (je-li 08h=0)
+;                                                ; 19h: 7 bajtñ rezervov†no
+
+00d3                 dw     0                    ; maxim†ln° dÇlka sektorñ
+00d5                 dw     0                    ; verze operaán°ho systÇmu
+
+00d7                 db     0                    ; konec rezidentn° á†sti driveru
+
+                                                 ; zde koná° rezidentn° á†st driveru
+
+; *****************************************************************************
+;                       inicializace (nezñst†v† rezidentn°)
+; *****************************************************************************
+                                               ;* pokraáov†n° inicializace, pokud byla
+                                               ;* zadan† maxim†ln° dÇlka sektorñ
+
+00d8  b430         * mov    ah,30                ; funkce poskytnut° verze OS
+00da  cd21           int    21                   ; poskytnut° verze OS
+00dc  2ea3d500       mov    cs:[00d5],ax         ; verze operaán°ho systÇmu
+                                               ;* poskytnut° seznamu DOS
+00e0  b452           mov    ah,52                ; funkce poskytnut° seznamu seznamñ DOS
+00e2  cd21           int    21                   ; poskytnut° adresy seznamu seznamñ DOS
+00e4  2e803ed50004   cmp    cs:[00d5],04         ; je verze 4.0 ?
+00ea  7209           jc     00f5                 ; je nië®° verze neë 4.0
+00ec  2ea1d300       mov    ax,cs:[00d3]         ; maxim†ln° dÇlka sektorñ
+00f0  26894710       mov    es:[bx+10],ax        ; max. dÇlka bloku blokovÇho za©°zen°
+00f4  c3             ret
+                                               ;* zde se provede nastaven° pro nië®° verze neë 4.00
+                                               ;* (mus° se vytvo©it vlastn° buffery)
+00f5  bd9001       * mov    bp,0190              ; konec za programem
+00f8  2e813ed3000002 cmp    cs:[00d3],0200       ; poëadovan† dÇlka sektoru men®° neë 512 bajtñ ?
+00ff  767a           jna    017b                 ; dÇlka sektoru je men®° neë 512 bajtñ
+0101  b90002         mov    cx,0200              ; dÇlka sektoru 512 bajtñ
+                                                ;* nejd©°ve se nalezne v tabulce DOS £daj o dÇlce bloku
+0104  26394f11     * cmp    es:[bx+11],cx        ; souhlas° dÇlka bloku ?
+0108  740e           jz     0118                 ; je tato dÇlka bloku
+010a  4b             dec    bx                   ; sn°ëen° ukazatele pro DOS 3.1, 3.2
+010b  26394f11       cmp    es:[bx+11],cx        ; je tato dÇlka sektoru ?
+010f  7407           jz     0118                 ; je tato dÇlka sektoru
+0111  43             inc    bx                   ; n†vrat ukazatele tabulky
+0112  d1e1           shl    cx,1                 ; dÇlka sektoru * 2
+0114  75ee           jnz    0104                 ; nen° je®tà konec hled†n°
+0116  eb63           jmp    017b                 ; nenalezena spr†vn† dÇlka sektoru
+                                                ;* zde se zaálen° vlastn° buffer
+0118  2e390ed300   * cmp    cs:[00d3],cx         ; poëadovan† maxim†ln° dÇlka sektoru
+011d  765c           jna    017b                 ; poëadovan† dÇlka je men®° neë nastaven†
+011f  2ea1d300       mov    ax,cs:[00d3]         ; poëadovan† dÇlka sektoru
+0123  26894711       mov    es:[bx+11],ax        ; nastaven° novÇ dÇlky bloku
+0127  83c313         add    bx,0013              ; BX <- BX+13h adresa
+012a  8cca           mov    dx,cs                ; DX <- CS porovn†van† hodnota
+012c  8bf3         * mov    si,bx                ; SI <- BX+13h ukazatel diskovòch bufferñ
+012e  8cc7           mov    di,es                ; DI <- ES segment n†sleduj°c°ho bufferu
+0130  26c41f         les    bx,es:[bx]           ; ES:BX <- [ES:BX+13h] adresa dal®°ho disk. bufferu
+0133  83fbff         cmp    bx,ffff              ; je jië konec bufferñ ?
+0136  7443           jz     017b                 ; je konec bufferñ - nastaven°
+0138  26c64704ff     mov    es:[bx+04],ff        ; nastaven° - buffer nen° pouëit
+013d  8bc3           mov    ax,bx                ; offset adresy
+013f  b104           mov    cl,04                ; poáet rotac°
+0141  d3e8           shr    ax,cl                ; offset adresy / 16 = poáet odstavcñ
+0143  8cc1           mov    cx,es                ; segment adresy
+0145  03c1           add    ax,cx                ; + poáet odstavcñ = segment zaá†tku bufferu
+0147  3bc2           cmp    ax,dx                ; porovn†n° s CS - je vy®®° segment ?
+0149  77e1           ja     012c                 ; nen° je®tà vàt®° neë CS - dal®° buffer
+014b  26c41f         les    bx,es:[bx]           ; adresa n†sleduj°c°ho bufferu
+014e  87f3           xchg   si,bx                ; SI<-n†sleduj°c°, BX<-p©edchoz° buffer
+0150  06             push   es                   ; ES=segment n†sleduj°c°ho bufferu
+0151  8ec7           mov    es,di                ; ES<-segment p©edchoz°ho bufferu
+0153  5f             pop    di                   ; DI<-segment n†sleduj°c°ho bufferu
+0154  26892f         mov    es:[bx],bp           ; nastaven° adresy bufferu za t°mto programem
+0157  268c4f02       mov    es:[bx+02],cs        ; segment adresy bufferu
+015b  2e897600       mov    cs:[bp+00],si        ; offset adresy n†sleduj°c°ho bufferu
+015f  2e897e02       mov    cs:[bp+02],di        ; segment adresy n†sleduj°c°ho bufferu
+0163  2ec64604ff     mov    cs:[bp+04],ff        ; n†sleduj°c° buffer - nepouëitò
+0168  2e032ed300     add    bp,cs:[00d3]         ; adresa bufferu + dÇlka sektoru
+016d  83c510         add    bp,0010              ; zaokrouhlen° na odstavce
+0170  83ffff         cmp    di,ffff              ; byl to posledn° buffer ?
+0173  7406           jz     017b                 ; byl posledn° buffer
+0175  8bde           mov    bx,si                ; offset adresy n†sleduj°c°ho bufferu
+0177  8ec7           mov    es,di                ; segment adresy n†sleduj°c°ho bufferu
+0179  ebb1           jmp    012c                 ; test dal®°ho bufferu
+                                                ;* nov† dÇlka rezidentn° á†sti
+017b  2ea1d300     * mov    ax,cs:[00d3]         ; poëadovan† maxim†ln° dÇlka sektoru
+017f  2ea3be00       mov    cs:[00be],ax         ; nastaven° dÇlky sektoru v tabulce BPB
+0183  83c50f         add    bp,000f              ; zaokrouhlen° bufferñ na odstavec
+0186  2ec43e3000     les    di,cs:[0030]         ; ES:DI <- adresa z†hlav° poëadavku
+018b  26896d0e       mov    es:[di+0e],bp        ; koneán† adresa rezidentn°ho k¢du
+018f  c3             ret
+
+                                                 ; na tÇto adrese je um°stàn buffer
+                                                 ; pro ukl†d†n° sektorñ, pokud
+                                                 ; jsou vàt®° sektory neë 512 bajtñ
+
+; -----------------------------------------------------------------------------
+                                               ;* inicializace driveru
+                                                 ; - tato funkce se vyvol† p©i
+                                                 ;   instalaci driveru do pamàti
+
+0190  c6063900ea   * mov    [0039],ea            ; instrukce JMP FAR
+0195  c7063a004000   mov    [003a],0040          ; offset skoku na obsluhu STRATEGIE
+019b  8c0e3c00       mov    [003c],cs            ; segment skoku (JMP FAR CS:0040h)
+019f  c6064f00ea     mov    [004f],ea            ; instrukce JMP FAR
+01a4  c70650005600   mov    [0050],0056          ; offset skoku na obsluhu PûERUõENã
+01aa  8c0e5200       mov    [0052],cs            ; segment skoku (JMP FAR CS:0056h)
+01ae  e83800         call   01e9                 ; dek¢dov†n° parametrñ z CONFIG.SYS
+01b1  2ec43e3000     les    di,cs:[0030]         ; ES:DI <- adresa z†hlav° poëadavku
+01b6  2ea03400       mov    al,cs:[0034]         ; disky instalovanÇ driverem
+01ba  2688450d       mov    es:[di+0d],al        ; poáet jednotek definovanòch driverem
+01be  2ea20a00       mov    cs:[000a],al         ; poáet jednotek definovanòch driverem
+01c2  26c7450ed700   mov    es:[di+0e],00d7      ; offset koneánÇ adresy rezidentn°ho k¢du
+01c8  268c4d10       mov    es:[di+10],cs        ; segment koneánÇ adresa rezid. k¢du
+01cc  26c745129e00   mov    es:[di+12],009e      ; offset adresy bloku parametrñ BIOS
+01d2  268c4d14       mov    es:[di+14],cs        ; segment adresy BPB
+01d6  2e833ed30000   cmp    cs:[00d3],0000       ; max. dÇlka sektorñ = 0 ?
+01dc  7403           jz     01e1                 ; max. dÇlka sektorñ nen° definovan†
+01de  e9f7fe         jmp    00d8                 ; dÇlka sektorñ je definovan† - inicializace
+01e1  2ec706d3000002*mov    cs:[00d3],0200       ; dÇlka sektorñ = 512 Bajtñ
+01e8  c3             ret
+
+; -----------------------------------------------------------------------------
+                                               ;* rozk¢dov†n° zadanòch parametrñ z CONFIG.SYS
+
+01e9  2ec43e3000   * les    di,cs:[0030]         ; ES:DI <- adresa z†hlav° poëadavku
+01ee  26c57512       lds    si,es:[di+12]        ; adresa ©etàzce ASCIIZ z CONFIG.SYS
+01f2  83c608         add    si,0008              ; p©eskoáen° jmÇna NETUNITS
+01f5  b92800         mov    cx,0028              ; max. poáet znakñ = 50
+01f8  e87a00       * call   0275                 ; naáten° znaku z p©°kazovÇho ©†dku CONFIG.SYS
+01fb  7277           jc     0274                 ; je jië konec ©†dku - konec
+                                                ;* test, zda je zad†n parametr "@x" - poáet diskñ
+01fd  3c40           cmp    al,40                ; je znak "@" ?
+01ff  7513           jnz    0214                 ; nen° znak "@" - dal®° povel
+0201  e88a00         call   028e                 ; naáten° á°sla - poáet diskñ
+0204  0bd2           or     dx,dx                ; je zad†n nàjakò poáet diskñ ?
+0206  74f0           jz     01f8                 ; nen° zad†n ë†dnò disk - d†le
+0208  80fa11         cmp    dl,11                ; je poáet diskñ vàt®° neë 16 ?
+020b  73eb           jnc    01f8                 ; poáet diskñ je vàt®° neë 16 - ignorovat
+020d  2e88163400     mov    cs:[0034],dl         ; nastaven° poátu diskñ
+0212  ebe4           jmp    01f8                 ; dal®° test zad†n° parametrñ
+                                                ;* test, zda je zad†n parametr "SEC:x"
+0214  3c53         * cmp    al,53                ; je znak "S" ?
+0216  752d           jnz    0245                 ; nen° znak "S" - dal®° p©°kaz
+0218  e85a00         call   0275                 ; p©eáten° dal®°ho znaku
+021b  3c45           cmp    al,45                ; je znak "E" ?
+021d  7524           jnz    0243                 ; nen° znak "E" - dal®° test parametrñ
+021f  e85300         call   0275                 ; p©eáten° dal®°ho znaku
+0222  3c43           cmp    al,43                ; je znak "C" ?
+0224  751d           jnz    0243                 ; nen° znak "C" - dal®° test parametrñ
+0226  e84c00         call   0275                 ; p©eáten° dal®°ho znaku
+0229  3c3a           cmp    al,3a                ; je znak ":" ?
+022b  7516           jnz    0243                 ; nen° znak ":" - dal®° test parametrñ
+022d  e85e00         call   028e                 ; naáten° á°sla - max. dÇlka sektorñ
+0230  2e8916d300     mov    cs:[00d3],dx         ; maxim†ln° dÇlka sektorñ
+0235  56             push   si                   ; £schova ukazatele textu
+0236  be0603         mov    si,0306              ; vòstupn° text "....H Bytes"
+0239  e88800         call   02c4                 ; p©evod bin†rn°ho á°sla na HEX
+023c  beee02         mov    si,02ee              ; text "Sektor Puffer ..."
+023f  e87100         call   02b3                 ; zobrazen° textu na displej
+0242  5e             pop    si                   ; n†vrat ukazatele textu CONFIG.SYS
+0243  ebb3         * jmp    01f8                 ; dal®° test zad†n° parametrñ
+                                                ;* test, zda je zad†n parametr "COMPAQ"
+0245  3c43         * cmp    al,43                ; je znak "C" ?
+0247  7529           jnz    0272                 ; nen° znak "C" - dal®° test p©°kazu
+0249  e82900         call   0275                 ; naáten° dal®°ho znaku
+024c  3c4f           cmp    al,4f                ; je znak "O" ?
+024e  7522           jnz    0272                 ; nen° znak "O" - dal®° test p©°kazu
+0250  e82200         call   0275                 ; naáten° dal®°ho znaku
+0253  3c4d           cmp    al,4d                ; je znak "M" ?
+0255  751b           jnz    0272                 ; nen° znak "M" - dal®° test p©°kazu
+0257  e81b00         call   0275                 ; naáten° dal®°ho znaku
+025a  3c50           cmp    al,50                ; je znak "P" ?
+025c  7514           jnz    0272                 ; nen° znak "P" - dal®° test p©°kazu
+025e  e81400         call   0275                 ; naáten° dal®°ho znaku
+0261  3c41           cmp    al,41                ; je znak "A" ?
+0263  750d           jnz    0272                 ; nen° znak "A" - dal®° test p©°kazu
+0265  e80d00         call   0275                 ; naáten° dal®°ho znaku
+0268  3c51           cmp    al,51                ; je znak "Q" ?
+026a  7506           jnz    0272                 ; nen° znak "Q" - dal®° test p©°kazu
+026c  2e800e040002   or     cs:[0004],02         ; nastaven° p©°znaku "COMPAQ"
+0272  eb84         * jmp    01f8                 ; dal®° test p©°kazu
+0274  c3           * ret                         ; n†vrat po nalezen° konce ©†dku
+
+; -----------------------------------------------------------------------------
+                                                ;* naáten° znaku z p©°kazovÇho
+                                                ;* ©†dku CONFIG s p©evodem na
+                                                ;* velkÇ p°smeno (CY=konec textu)
+                                                 ; VSTUP: DS:SI=ukazatel textu
+                                                 ;        CX=á°taá znakñ
+                                                 ; VùSTUP: AL=naátenò znak
+                                                 ;         CY=nen° jië dal®° znak
+
+0275  e315         * jcxz   028c                 ; je jië konec ©†dku (á°taá znakñ = 0)
+0277  ac             lodsb                       ; naáten° znaku z p©°kaz. ©†dku
+0278  49             dec    cx                   ; sn°ëen° á°taáe znakñ
+0279  3c0d           cmp    al,0d                ; je znak konce ©†dku <CR> ?
+027b  740c           jz     0289                 ; je konec ©†dku
+027d  3c61           cmp    al,61                ; je znak men®° neë "a" ?
+027f  7206           jc     0287                 ; je znak men®° neë "a" - nep©ev†d° se
+0281  3c7b           cmp    al,7b                ; je znak vàt®° neë "z" ?
+0283  7302           jnc    0287                 ; je znak vàt®° neë "z" - nep©ev†d° se
+0285  3420           xor    al,20                ; zmàna malÇho p°smene na velkÇ p°smeno
+0287  f8           * clc                         ; p©°znak CN - je platnò znak
+0288  c3             ret                         ; n†vrat s platnòm znakem
+0289  4e           * dec    si                   ; n†vrat ukazatele znakñ
+028a  33c9           xor    cx,cx                ; nejsou jië dal®° znaky
+028c  f9           * stc                         ; p©°znak chyby CY - konec ©†dku
+028d  c3             ret                         ; n†vrat, je-li konec ©†dku
+; -----------------------------------------------------------------------------
+                                               ;* naáten° á°sla z p©°kaz. ©†dku CONFIG.SYS
+                                                 ; VSTUP: DS:SI=ukazatel textu
+                                                 ;        CX=á°taá znakñ
+                                                 ; VùSTUP: DX=naátenÇ á°slo
+
+028e  33d2         * xor    dx,dx                ; poá†teán° vynulov†n° st©adaáe
+0290  e320         * jcxz   02b2                 ; nejsou jië dal®° znaky
+0292  ac             lodsb                       ; naáten° znaku (á°slice)
+0293  49             dec    cx                   ; sn°ëen° á°taáe znakñ
+0294  8ae0           mov    ah,al                ; naátenò znak
+0296  80ec30         sub    ah,30                ; je znak men®° neë "0" ?
+0299  7215           jc     02b0                 ; neplatnò znak - konec
+029b  80fc0a         cmp    ah,0a                ; je znak vàt®° neë "9" ?
+029e  7310           jnc    02b0                 ; neplatnò znak - konec
+02a0  50             push   ax                   ; £schova naátenÇ á°slice
+02a1  b80a00         mov    ax,000a              ; AX <- 10 n†sobek
+02a4  f7e2           mul    dx                   ; st©adaá * 10
+02a6  8bd0           mov    dx,ax                ; DX <- dosud naáten† hodnota * 10
+02a8  58             pop    ax                   ; AL = naáten† á°slice
+02a9  02d4           add    dl,ah                ; p©iáten° á°slice ke st©adaái
+02ab  80d600         adc    dh,00                ; p©iáten° p©enosu do vy®®°ho bajtu
+02ae  ebe0           jmp    0290                 ; naáten° dal®° á°slice
+02b0  4e           * dec    si                   ; n†vrat ukazatele p©i chybà
+02b1  41             inc    cx                   ; n†vrat á°taáe p©i chybà
+02b2  c3           * ret
+
+; -----------------------------------------------------------------------------
+                                               ;* zobrazen° textu na displej
+02b3  2e8a04       * mov    al,cs:[si]           ; znak k zobrazen°
+02b6  3c24           cmp    al,24                ; je znak konce "$" ?
+02b8  7409           jz     02c3                 ; je konec textu
+02ba  b40e           mov    ah,0e                ; funkce vòstupu znaku
+02bc  56             push   si                   ; £schova ukazatele textu
+02bd  cd10           int    10                   ; vòstup znaku v CTTY m¢du
+02bf  5e             pop    si                   ; n†vrat ukazatele textu
+02c0  46             inc    si                   ; zvò®en° ukazatele textu
+02c1  ebf0           jmp    02b3                 ; dal®° znak k zobrazen°
+02c3  c3           * ret
+
+; -----------------------------------------------------------------------------
+                                               ;* p©evod bin†rn°ho á°sla na HEX slovo
+                                                 ; VSTUP: CS:SI=buffer k uloëen° á°sla HEX
+                                                 ;        DX=á°slo k p©evodu
+
+02c4  8ac6         * mov    al,dh                ; vy®®° bajt k p©evodu
+02c6  e80200         call   02cb                 ; p©evod vy®®°ho bajtu na HEX bajt
+02c9  8ac2           mov    al,dl                ; nië®° bajt k p©evodu
+                                                ;* p©evod bajtu na á°slo HEX
+02cb  8ae0         * mov    ah,al                ; AH <- £schova bajtu k p©evodu
+02cd  d0e8           shr    al,1
+02cf  d0e8           shr    al,1
+02d1  d0e8           shr    al,1
+02d3  d0e8           shr    al,1                 ; nastaven° vy®®° tetr†dy jako nië®°
+02d5  e80200         call   02da                 ; p©evod nië®° tetr†dy na á°slici HEX
+02d8  8ac4           mov    al,ah                ; nië®° tetr†da k p©evodu
+                                                ;* p©evod bin. á°sla na HEX á°slici
+02da  240f         * and    al,0f                ; á°slo k p©evodu
+02dc  3c0a           cmp    al,0a                ; je á°slo vàt®° neë 10 ?
+02de  7207           jc     02e7                 ; je men®° neë 10
+02e0  2c0a           sub    al,0a                ; je vàt®° neë 10 - korekce na p°smeno
+02e2  0441           add    al,41                ; korekce na p°smeno HEX
+02e4  eb03           jmp    02e9                 ; uloëen° znaku
+02e6  90             nop
+02e7  0430         * add    al,30                ; korekce na á°slici ASCII
+02e9  2e8804       * mov    cs:[si],al           ; uloëen° á°slice do bufferu
+02ec  46             inc    si                   ; zvò®en° ukazatele bufferu
+02ed  c3             ret
+
+; -----------------------------------------------------------------------------
+
+02ee                 db     'Sektor Puffer sind nun: '
+0306                 db     '....H Bytes',13,10,'$'
+
+; -----------------------------------------------------------------------------
+

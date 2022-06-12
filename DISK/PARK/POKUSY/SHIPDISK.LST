@@ -1,0 +1,143 @@
+
+                ; parkovac¡ program SHIPDISK.COM
+
+0100 EB11           JMP    0113
+0102 90             NOP
+
+0100  EB 11 90 45 44 53 59 50-41 52 4B 31 20 20 20 00  k..EDSYPARK1   .
+
+
+010F 0000           ADD    [BX+SI],AL
+0111 B203           MOV    DL,03
+
+0113 EB0F         * JMP    0124
+0115 90             NOP
+
+0117                dw     0                ; parkovac¡ stopa prvn¡ho disku
+
+0116 800000         ADD    Byte Ptr [BX+SI],00
+0119 81000000       ADD    Word Ptr [BX+SI],0000
+011D 0000           ADD    [BX+SI],AL
+011F 0001           ADD    [BX+DI],AL
+0121 0000           ADD    [BX+SI],AL
+
+0122                db     0                ; ozna‡en¡ pevn‚ho disku "C"
+0123 002B           ADD    [BP+DI],CH
+
+0123                db     0                ; po‡et pevn˜ch disk– v syst‚mu
+
+0124 2BC0           SUB    AX,AX
+0126 B408           MOV    AH,08            ; funkce poskytnut¡ po‡tu disk–
+0128 B280           MOV    DL,80
+012A CD13           INT    13               ; poskytnut¡ po‡tu pevn˜ch disk–
+012C 88162301       MOV    [0123],DL        ; po‡et pevn˜ch disk–
+0130 2BC0           SUB    AX,AX
+0132 B280           MOV    DL,80
+0134 CD13           INT    13               ; reset pevn‚ho disku 80h
+                                          ;* zaparkov n¡ prvn¡ho pevn‚ho disku
+0136 06             PUSH   ES               ; £schova ES
+0137 2BDB           SUB    BX,BX            ; BX <- 0
+0139 8EC3           MOV    ES,BX            ; ES <- 0
+013B 268B1E0401     MOV    BX,ES:[0104]     ; adresa INT 41h
+0140 268B160601     MOV    DX,ES:[0106]     ; segment INT 41h
+0145 8EC2           MOV    ES,DX            ; segment INT 41h
+0147 268B570C       MOV    DX,ES:[BX+0C]    ; parkovac¡ stopa prvn¡ho disku
+014B 89161701       MOV    [0117],DX        ; parkovac¡ stopa prvn¡ho disku
+014F 07             POP    ES               ; n vrat ES
+0150 A01601         MOV    AL,[0116]        ; ‡¡slo prvn¡ho pevn‚ho disku (80h)
+0153 C606220143     MOV    Byte Ptr [0122],43 ; ozna‡en¡ pevn‚ho disku "C"
+0158 A21E01         MOV    [011E],AL
+015B A11701         MOV    AX,[0117]
+015E A31C01         MOV    [011C],AX
+0161 E84B00         CALL   01AF             ; zaparkov n¡ prvn¡ho pevn‚ho disku
+0164 803E230102     CMP    Byte Ptr [0123],02 ; jsou 2 pevn‚ disky ?
+0169 7403           JZ     016E             ; je je¨tˆ 2. pevn˜ disk
+016B EB2F           JMP    019C
+016D 90             NOP
+                                          ;* zaparkov n¡ druh‚ho pevn‚ho disku
+016E 06           * PUSH   ES
+016F 2BDB           SUB    BX,BX
+0171 8EC3           MOV    ES,BX
+0173 268B1E1801     MOV    BX,ES:[0118]
+0178 268B161A01     MOV    DX,ES:[011A]
+017D 8EC2           MOV    ES,DX
+017F 268B570C       MOV    DX,ES:[BX+0C]
+0183 89161A01       MOV    [011A],DX
+0187 07             POP    ES
+0188 A01901         MOV    AL,[0119]
+018B C606220144     MOV    Byte Ptr [0122],44            ;'D'
+0190 A21E01         MOV    [011E],AL
+0193 A11A01         MOV    AX,[011A]
+0196 A31C01         MOV    [011C],AX
+0199 E81300         CALL   01AF             ; zaparkov n¡ disku
+
+019C 36C70670007411*MOV    Word Ptr SS:[0070],1174
+01A3 36C606720000   MOV    Byte Ptr SS:[0072],00
+01A9 CD9F           INT    9F
+01AB 33C0           XOR    AX,AX
+01AD CD22           INT    22               ; n vrat z programu
+
+                                          ;* zaparkov n¡ pevn‚ho disku
+
+01AF C606210100     MOV    Byte Ptr [0121],00 ; ‡¡ta‡ vystaven¡
+01B4 FE062101     * INC    Byte Ptr [0121]  ; zv˜¨en¡ ‡¡ta‡e vystaven¡
+01B8 B8010C         MOV    AX,0C01          ; funkce vystaven¡ na stopu
+01BB 8A161E01       MOV    DL,[011E]
+01BF 8A361F01       MOV    DH,[011F]
+01C3 8B0E1C01       MOV    CX,[011C]
+01C7 86E9           XCHG   CH,CL
+01C9 D0C9           ROR    CL,1
+01CB D0C9           ROR    CL,1
+01CD 0A0E2001       OR     CL,[0120]
+01D1 CD13           INT    13               ; vystaven¡ na parkovac¡ stopu
+01D3 803E210103     CMP    Byte Ptr [0121],03 ; jsou ji‘ 3 pokusy ?
+01D8 77DA           JA     01B4             ; dal¨¡ vystaven¡
+01DA 80FC00         CMP    AH,00            ; byla operace OK ?
+01DD 7522           JNZ    0201             ; operace nebyla OK
+01DF BB2201         MOV    BX,0122
+01E2 36C70670007011 MOV    Word Ptr SS:[0070],1170
+01E9 36C606720001   MOV    Byte Ptr SS:[0072],01
+01EF CD9F           INT    9F
+01F1 36C70670007111 MOV    Word Ptr SS:[0070],1171
+01F8 36C606720000   MOV    Byte Ptr SS:[0072],00
+01FE CD9F           INT    9F
+0200 C3             RET
+
+0201 36C70670007311*MOV    Word Ptr SS:[0070],1173
+0208 36C606720000   MOV    Byte Ptr SS:[0072],00
+020E CD9F           INT    9F
+0210 BB2201         MOV    BX,0122
+0213 36C70670007011 MOV    Word Ptr SS:[0070],1170
+021A 36C606720001   MOV    Byte Ptr SS:[0072],01
+0220 CD9F           INT    9F
+0222 36C70670007211 MOV    Word Ptr SS:[0070],1172
+0229 36C606720000   MOV    Byte Ptr SS:[0072],00
+022F CD9F           INT    9F
+0231 C3             RET
+
+0230  9F C3 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  .CSTACK STACK ST
+0240  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+0250  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+0260  4B 20 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  K STACK STACK ST
+0270  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+0280  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+0290  4B 20 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  K STACK STACK ST
+02A0  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+02B0  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+02C0  4B 20 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  K STACK STACK ST
+02D0  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+02E0  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+02F0  4B 20 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  K STACK STACK ST
+0300  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+0310  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+0320  4B 20 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  K STACK STACK ST
+0330  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+0340  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+0350  4B 20 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  K STACK STACK ST
+0360  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+0370  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+0380  4B 20 53 54 41 43 4B 20-53 54 41 43 4B 20 53 54  K STACK STACK ST
+0390  41 43 4B 20 53 54 41 43-4B 20 53 54 41 43 4B 20  ACK STACK STACK
+03A0  53 54 41 43 4B 20 53 54-41 43 4B 20 53 54 41 43  STACK STACK STAC
+03B0  4B                                               K
+

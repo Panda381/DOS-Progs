@@ -1,0 +1,617 @@
+; *****************************************************************************
+;
+;              Emul†tor grafickÇ karty CGA pro kartu Hercules
+;
+; *****************************************************************************
+0100 E9F901         JMP    02FC             ; instalace programu
+
+0103                dd      0               ; adresa pñvodn° obsluhy INT 08h
+0107                dd      0               ; adresa pñvodn° obsluhy INT 10h
+010b                dw      0               ; £schova AX
+010d                dw      0               ; £schova CX
+010f                dw      0               ; £schova SI
+0111                dw      0               ; £schova DI
+0113                dw      0               ; £schova ES
+0115                dw      0               ; £schova DS
+0117                dw      2000h           ; cyklick† adresa pro operace
+0119                dw      0
+011b                dw      0400h           ; poáet kop°rovanòch slov 2->3
+011d                dw      0               ; poáet kop°rovanòch slov 1->4
+011f                db      2
+0120                db      50h
+0121                db      0
+0122                dd      0040:0010h      ; adresa tabulky vybaven°
+0126                dd      0040:0063h      ; adresa b†zovÇ ©°dic° adresy disp.
+012a                dw      6000h           ; (sn°ëeno o 2*poáet_znakñ/©†dek)
+                                          ;* tabulka parametrñ inicializace
+012c                db      35h             ; 0:poáet znakñ na ©†dek - 1 (=53)
+012d                db      28h             ; 1:poáet vidit. znakñ na ©†dek (=34)
+012e                db      2eh             ; 2:pozice prvn°ho znaku (=30)
+012f                db      7               ; 3:poáet znakñ na synchronizaci (=7)
+0130                db      79h             ; 4:poáet vertik†ln°ch ©†dkñ-1 (=121)
+0131                db      2               ; 5:poáet linek k poátu ©†dkñ (2)
+0132                db      64h             ; 6:poáet viditelnòch ©†dkñ (=100)
+0133                db      73h             ; 7:©†dek zpàtnÇho bàhu (=115)
+0134                db      2               ; 8:1=prokl†d†n°, 2=normal
+0135                db      2               ; 9:poáet linek na znak - 1 (=2)
+0136                db      0               ; 0a:prvn° linka kurzoru
+0137                db      2               ; 0b:koncov† linka kurzoru
+0138                db      0ffh            ; 0c:
+
+                                          ;* obsluha INT 08h
+0139 2EA30B01       MOV     CS:[010B],AX    ; £schova AX
+013D 2E8C061301     MOV     CS:[0113],ES    ; £schova ES
+0142 E421           IN     AL,21            ; maska ©adiáe p©eru®en°
+0144 0C01           OR     AL,01            ; z†kaz p©eru®en° od hodin
+0146 E621           OUT     21,AL           ; novÇ nastaven° masky
+0148 FB             STI                     ; povolen° p©eru®en°
+0149 33C0           XOR     AX,AX           ; AX <- 0
+014B 8EC0           MOV     ES,AX           ; ES <- 0
+014D 26803E490403   CMP     Byte Ptr ES:[0449],03 ; je m¢d displeje CGA ?
+0153 7676           JBE     01CB            ; je m¢d displeje CGA
+                                          ;* obsluha pro displej HGC
+0155 2E8C1E1501     MOV     CS:[0115],DS    ; £schova DS
+015A 2E89360F01     MOV     CS:[010F],SI    ; £schova SI
+015F 2E893E1101     MOV     CS:[0111],DI    ; £schova DI
+0164 2E890E0D01     MOV     CS:[010D],CX    ; £schova CX
+0169 B800B8         MOV     AX,B800         ; segment videopamàti CGA
+016C 8EC0           MOV     ES,AX           ; ES <- segment videopamàti CGA
+016E 8ED8           MOV     DS,AX           ; DS <- segment videopamàti CGA
+
+0170 2E8B361701     MOV     SI,CS:[0117]    ; adresa obsluhovanÇho £seku 2
+0175 8BFE           MOV     DI,SI           ; adresa obsluhovanÇho £seku
+0177 81C70020       ADD     DI,2000
+017B 2E8B0E1B01     MOV     CX,CS:[011B]    ; poáet kop°rovanòch slov 2->3
+0180 E30C           JCXZ     018E
+0182 FC             CLD
+0183 F3             REPZ
+0184 A5             MOVSW                   ; p©enos bloku
+0185 81FE0040       CMP     SI,4000         ; je jië 4000h ?
+0189 7203           JB     018E             ; nen° je®tà 4000H
+018B BE0020         MOV     SI,2000         ; p©esun na 2000h
+018E 2E89361701   * MOV     CS:[0117],SI    ; uloëen° novÇ cyklickÇ adresy
+
+0193 2E8B361901     MOV     SI,CS:[0119]
+0198 8BFE           MOV     DI,SI
+019A 2E033E2A01     ADD     DI,CS:[012A]
+019F 2E8B0E1D01     MOV     CX,CS:[011D]    ; poáet kop°rovanòch slov 1->4
+01A4 E30C           JCXZ     01B2
+01A6 FC             CLD
+01A7 F3             REPZ
+01A8 A5             MOVSW
+01A9 81FE0020       CMP     SI,2000
+01AD 7203           JB     01B2
+01AF BE0000         MOV     SI,0000
+01B2 2E89361901   * MOV     CS:[0119],SI
+
+01B7 2E8B0E0D01     MOV     CX,CS:[010D]    ; n†vrat CX
+01BC 2E8B3E1101     MOV     DI,CS:[0111]    ; n†vrat DI
+01C1 2E8B360F01     MOV     SI,CS:[010F]    ; n†vrat SI
+01C6 2E8E1E1501     MOV     DS,CS:[0115]    ; n†vrat DS
+
+01CB FA           * CLI
+01CC E421           IN     AL,21                         ;'!'
+01CE 24FE           AND     AL,FE
+01D0 E621           OUT     21,AL                         ;'!'
+01D2 2E8E061301     MOV     ES,CS:[0113]
+01D7 2EA10B01       MOV     AX,CS:[010B]
+01DB 2EFF2E0301     JMP     FAR CS:[0103]
+
+                                          ;* vymaz†n° textovÇ videopamàti CGA
+01E0 51             PUSH     CX
+01E1 50             PUSH     AX
+01E2 57             PUSH     DI
+01E3 06             PUSH     ES
+01E4 B90040         MOV     CX,4000
+01E7 B800B8         MOV     AX,B800
+01EA 8EC0           MOV     ES,AX
+01EC 33C0           XOR     AX,AX
+01EE 8BF8           MOV     DI,AX
+01F0 FC             CLD
+01F1 F3             REPZ
+01F2 AB             STOSW
+01F3 07             POP     ES
+01F4 5F             POP     DI
+01F5 58             POP     AX
+01F6 59             POP     CX
+01F7 C3             RET
+
+                                          ;* vymaz†n° textovÇ videopamàti HGC
+01F8 51             PUSH     CX
+01F9 50             PUSH     AX
+01FA 57             PUSH     DI
+01FB 06             PUSH     ES
+01FC B90040         MOV     CX,4000         ; dÇlka videopamàti
+01FF B800B0         MOV     AX,B000         ; segment videopamàti
+0202 8EC0           MOV     ES,AX           ; segment videopamàti
+0204 33FF           XOR     DI,DI           ; ukçadac° adresa = 0
+0206 B8200F         MOV     AX,0F20         : mazac° slovo (mezera)
+0209 FC             CLD
+020A F3             REPZ
+020B AB             STOSW                   ; vymaz†n° videopamàti
+020C 07             POP     ES
+020D 5F             POP     DI
+020E 58             POP     AX
+020F 59             POP     CX
+0210 C3             RET
+
+                                          ;* inicializace video©adiáe
+0211 51             PUSH     CX
+0212 52             PUSH     DX
+0213 B003           MOV     AL,03
+0215 BABF03         MOV     DX,03BF
+0218 EE             OUT     DX,AL           ; zapnut° grafickÇho reëimu
+0219 B002           MOV     AL,02
+021B BAB803         MOV     DX,03B8
+021E EE             OUT     DX,AL
+021F BAB403         MOV     DX,03B4
+0222 B90C00         MOV     CX,000C         ; poáet registrñ
+0225 8D362C01       LEA     SI,[012C]
+0229 8CC8           MOV     AX,CS
+022B 8ED8           MOV     DS,AX
+022D B400           MOV     AH,00
+022F FC             CLD
+0230 8AC4         * MOV     AL,AH
+0232 EE             OUT     DX,AL           ; nastaven° registru
+0233 42             INC     DX
+0234 AC             LODSB                   ; naáten° inicializaán°ho bajtu
+0235 EE             OUT     DX,AL
+0236 FEC4           INC     AH              ; zvò®en° á°sla registru
+0238 4A             DEC     DX
+0239 E2F5           LOOP     0230           ; dal®° registr
+023B B08A           MOV     AL,8A
+023D BAB803         MOV     DX,03B8
+0240 EE             OUT     DX,AL
+0241 5A             POP     DX
+0242 59             POP     CX
+0243 C3             RET
+; -----------------------------------------------------------------------------
+0244                                      ;* obsluha INT 10h
+
+                                          ;* dotaz na instalaci ovladaáe
+0244 FB             STI                     ; povolen° p©eru®en°
+0245 80FCBB         CMP     AH,BB           ; je dotaz na instalaci ?
+0248 7504           JNZ     024E            ; nen° dotaz na instalaci
+024A B83412         MOV     AX,1234         ; p©°znak instalace ovladaáe EMU
+024D CF             IRET
+
+                                          ;* vypnut° ovladaáe EMU
+024E 80FCBC         CMP     AH,BC           ; je vypnut° ovladaáe ?
+0251 7531           JNZ     0284            ; nen° vypnut° ovladaáe
+0253 1E             PUSH     DS             ; £schova DS
+0254 52             PUSH     DX             ; £schova DX
+                                          ;* odinstalov†n° INT 08h
+0255 2EC5160301     LDS     DX,CS:[0103]    ; adresa pñvodn° obsluhy INT 08h
+025A 8CD8           MOV     AX,DS           ; segment adresy
+025C 0BC0           OR     AX,AX            ; je adresa definovan† ?
+025E 740B           JZ     026B             ; nen° provedena instalace INT 08h
+0260 B80825         MOV     AX,2508
+0263 CD21           INT     21              ; zpàtn† instalace INT 08h
+0265 33C0           XOR     AX,AX
+0267 2EA30501       MOV     CS:[0105],AX    ; p©°znak odinstalov†n° INT 08h
+                                          ;* odinstalov†n° INT 10h
+026B 2EC5160701   * LDS     DX,CS:[0107]    ; adresa pñvodn° obsluhy INT 10h
+0270 8CD8           MOV     AX,DS           ; segment adresy
+0272 0BC0           OR     AX,AX            ; je adresa definovan† ?
+0274 740B           JZ     0281             ; nen° provedena instalace INT 10h
+0276 B81025         MOV     AX,2510         
+0279 CD21           INT     21              ; zpàtn† instalace INT 10h
+027B 33C0           XOR     AX,AX           
+027D 2EA30901       MOV     CS:[0109],AX    ; p©°znak odinstalov†n° INT 10h
+0281 5A             POP     DX              ; n†vrat DX
+0282 1F             POP     DS              ; n†vrat DS
+0283 CF             IRET
+
+0284 80FC00       * CMP     AH,00           ; je inicializace videom¢du ?
+0287 7405           JZ     028E             ; je inicializace videom¢du
+0289 2EFF2E0701     JMP     FAR CS:[0107]   ; skok na pñvodn° obsluhu
+
+                                          ;* inicializace videom¢du
+028E 3C07         * CMP     AL,07           ; je standardn° videom¢d MDA ?
+0290 7503           JNZ     0295            ; nen° MDA
+0292 EB43           JMP     02D7            ; inicializace MDA
+0294 90             NOP
+0295 3C03           CMP     AL,03           ; je CGA m¢d ?
+0297 763E           JBE     02D7            ; je CGA textovò m¢d
+
+                                          ;* inicializace grafickÇho m¢du
+0299 1E             PUSH     DS
+029A 56             PUSH     SI
+029B 50             PUSH     AX
+029C FA             CLI
+029D 2EC5362201     LDS     SI,CS:[0122]    ; adresa tabulky vybaven°
+02A2 8A04           MOV     AL,[SI]         ; bajt vybaven°
+02A4 24EF           AND     AL,EF           ;
+02A6 0C20           OR     AL,20            ; nastaven° barevnÇho videom¢du
+02A8 8804           MOV     [SI],AL         ; uloëen° novÇ hodnoty
+02AA E864FF         CALL     0211           ; inicializace video©adiáe
+02AD FB             STI
+02AE 58             POP     AX
+02AF 9C             PUSHF
+02B0 2EFF1E0701     CALL     FAR CS:[0107]  ; nastaven° grafickÇho m¢du
+02B5 50             PUSH     AX
+02B6 53             PUSH     BX
+02B7 B40B           MOV     AH,0B
+02B9 33DB           XOR     BX,BX
+02BB 9C             PUSHF
+02BC 2EFF1E0701     CALL     FAR CS:[0107]  ; inicializace palet displeje
+02C1 E834FF         CALL     01F8           ; vymaz†n° textovÇ videopamàti HGC
+02C4 E819FF         CALL     01E0           ; vymaz†n° textovÇ videopamàti CGA
+02C7 2EC53E2601     LDS     DI,CS:[0126]    ; adresa b†zovÇ ©°dic° adresy disp.
+02CC B8B403         MOV     AX,03B4         ; adresa pro displej HGC (MDA)
+02CF 8905           MOV     [DI],AX         ; nastaven° b†zovÇ ©°dic° adresy
+02D1 5B             POP     BX
+02D2 58             POP     AX
+02D3 5E             POP     SI
+02D4 1F             POP     DS
+02D5 FB             STI
+02D6 CF             IRET
+
+                                          ;* inicializace textovÇho videom¢du
+02D7 FA           * CLI
+02D8 1E             PUSH     DS
+02D9 52             PUSH     DX
+02DA 50             PUSH     AX
+02DB 56             PUSH     SI
+02DC 2EC5362201     LDS     SI,CS:[0122]    ; adresa tabulky vybaven°
+02E1 800C30         OR     Byte Ptr [SI],30 ; p©°znak videom¢du 80x25 mono
+02E4 B000           MOV     AL,00
+02E6 BABF03         MOV     DX,03BF
+02E9 EE             OUT     DX,AL           ; p©epnut° do textovÇho m¢du
+02EA B80700         MOV     AX,0007
+02ED 9C             PUSHF
+02EE 2EFF1E0701     CALL     FAR CS:[0107]  ; vol†n° pñvodn° obsluhy INT 10h
+02F3 E802FF         CALL     01F8           ; vymaz†n° textovÇ videopamàti
+02F6 5E             POP     SI
+02F7 58             POP     AX
+02F8 5A             POP     DX
+02F9 1F             POP     DS
+02FA FB             STI
+02FB CF             IRET
+; *****************************************************************************
+;
+;                       instalace programu
+;
+; *****************************************************************************
+                                          ;* odinstalov†n° programu
+02FC B064           MOV    AL,"d"
+02FE B465           MOV    AH,"e"
+0300 E84D01         CALL    0450            ; naáten° parametru "DE"
+0303 740E           JZ    0313              ; parametr nenalezen
+0305 B800BC         MOV    AX,BC00          ; p©°kaz pro odinstalov†n°
+0308 CD10           INT    10               ; odinstalov†n° programu
+030A BAD909         MOV    DX,09D9
+030D B409           MOV    AH,09
+030F CD21           INT    21               ; hl†®en° o deaktivaci emul†toru
+0311 CD20           INT    20
+
+                                          ;* parametr "??"
+0313 BAC0C0       * MOV    DX,C0C0
+0316 8BDA           MOV    BX,DX            ; BX <- 0c0c0h
+0318 93             XCHG    AX,BX           ; AX <- 0c0c0h
+0319 F7D0           NOT    AX               ; AX <- "??"
+031B 50             PUSH    AX              ; £schova "??"
+031C E83101         CALL    0450            ; naáten° parametru "/??"
+031F 7411           JZ    0332              ; nenalezen parametr "/??"
+0321 8CC8           MOV    AX,CS            ; AX <- CS
+0323 8ED8           MOV    DS,AX            ; DS <- CS
+0325 8D362205       LEA    SI,[0522]        ; adresa zak¢dovanÇho textu
+0329 8EC0           MOV    ES,AX            ; ES <- CS
+032B 8D3E9F05       LEA    DI,[059F]        ; ukl†dac° adresa textu
+032F E8D901         CALL    050B            ; dek¢dov†n° licenán°ch informac°
+0332 58           * POP    AX
+                                          ;* parametr "/?" zobrazen° n†povàdy
+0333 B400           MOV    AH,00            ; AH <- 0, AL<- "?"
+0335 E81801         CALL    0450            ; naáten° parametru "/?"
+0338 7409           JZ    0343              ; nenalezen parametr "/??"
+033A BA9F05         MOV    DX,059F          ; £vodn° hl†®en°
+033D B409           MOV    AH,09
+033F CD21           INT    21               ; zobrazen° n†povàdy
+0341 CD20           INT    20               ; n†vrat z programu
+                                          ;* odinstalov†n° emul†toru v pamàti
+0343 B4BB           MOV    AH,BB
+0345 CD10           INT    10               ; dotaz na instalaci
+0347 3D3412         CMP    AX,1234          ; je emul†tor nainstalov†n ?
+034A 7504           JNZ    0350             ; emul†tor nen° naintalov†n
+034C B4BC           MOV    AH,BC            ; funkce deaktivov†n°
+034E CD10           INT    10               ; odinstalov†n° programu
+0350 B003         * MOV    AL,03
+0352 BABF03         MOV    DX,03BF          ;
+0355 EE             OUT    DX,AL
+                                          ;* parametr "/NT" - nepouë°t áasovaá
+0356 1E             PUSH    DS              ; £schova DS
+0357 33C0           XOR    AX,AX            ; AX <- 0
+0359 8ED8           MOV    DS,AX            ; DS <- 0
+035B B06E           MOV    AL,6E            ; znak 'n'
+035D B474           MOV    AH,74            ; znak 't' (parametr "/NT")
+035F E8EE00         CALL    0450            ; naáten° parametru (s á°slem)
+0362 751C           JNZ    0380             ; je parametr "/NT"
+                                          ;* instalace obsluhy INT 08h
+0364 B80835         MOV    AX,3508
+0367 CD21           INT    21               ; poskytnut° adresy INT 08h
+0369 2E891E0301     MOV    CS:[0103],BX
+036E 2E8C060501     MOV    CS:[0105],ES
+0373 8CC8           MOV    AX,CS
+0375 8ED8           MOV    DS,AX            ; DS <- CS
+0377 8D163901       LEA    DX,[0139]        ; adresa obsluhy INT 08h
+037B B80825         MOV    AX,2508
+037E CD21           INT    21               ; instalace obsluhy INT 08h
+                                          ;* instalace obsluhy INT 10h
+0380 B81035       * MOV    AX,3510
+0383 CD21           INT    21               ; poskytnut° adresy INT 10h
+0385 2E891E0701     MOV    CS:[0107],BX
+038A 2E8C060901     MOV    CS:[0109],ES     ; adresa pñvodn° obsluhy INT 10h
+038F 8CC8           MOV    AX,CS
+0391 8ED8           MOV    DS,AX
+0393 8D164402       LEA    DX,[0244]
+0397 B81025         MOV    AX,2510
+039A CD21           INT    21               ; instalace obsluhy INT 10h
+
+039C 2EC5362201     LDS    SI,CS:[0122]     ; adresa tabulky vybaven°
+03A1 8A04           MOV    AL,[SI]          ; áten° tabulky vybaven°
+03A3 24EF           AND    AL,EF            ; nulov†n° p©°znaku "barevnò"
+03A5 0C20           OR    AL,20             ; nastaven° p©°znaku 80x25
+03A7 8804           MOV    [SI],AL          ; nastaven° videom¢du 80x25 barevnò
+03A9 1F             POP    DS               ; n†vrat DS
+03AA B80700         MOV    AX,0007
+03AD CD10           INT    10               ; vymaz†n° obrazovky
+03AF BA5B05         MOV    DX,055B
+03B2 B409           MOV    AH,09
+03B4 CD21           INT    21               ; zobrazen° £vodn°ho hl†®en°
+                                          ;* parametr "/B1" - kop°r. z banky 2
+03B6 B062           MOV    AL,62                         ;'b'
+03B8 B431           MOV    AH,31                         ;'1'
+03BA 2E8B1E1B01     MOV    BX,CS:[011B]     ; poáet kop°rovanòch slov 2->3
+03BF E88E00         CALL    0450            ; naáten° parametru (s á°slem)
+03C2 2E891E1B01     MOV    CS:[011B],BX     ; novò poáet kop°rovanòch slov 2->3
+                                          ;* parametr "/B2" - kop°r. z banky 1
+03C7 B062           MOV    AL,62                         ;'b'
+03C9 B432           MOV    AH,32                         ;'2'
+03CB 2E8B1E1D01     MOV    BX,CS:[011D]     ; poáet kop°rovanòch slov 1->4
+03D0 E87D00         CALL    0450            ; naáten° parametru (s á°slem)
+03D3 2E891E1D01     MOV    CS:[011D],BX     ; poáet kop°rovanòch slov 1->4
+
+03D8 E81100         CALL    03EC            ; dek¢dov†n° ostatn°ch parametrñ
+03DB 8D16FB02       LEA    DX,[02FB]        ; adresa konce rezidentn° á†sti
+03DF 42             INC    DX
+03E0 CD27           INT    27               ; instalace rezidentn° á†sti, konec
+; -----------------------------------------------------------------------------
+;                Podprogramy pro instalaci programu
+; -----------------------------------------------------------------------------
+                                          ;* modifikace á°selnÇho parametru
+03E2 8A1D           MOV    BL,[DI]          ; pñvodn° á°slenò parametr
+03E4 57             PUSH    DI              ; £schova ukazatele dat
+03E5 E86800         CALL    0450            ; naáten° parametru (s á°slem)
+03E8 5F             POP    DI               ; n†vrat ukazatele dat
+03E9 93             XCHG    AX,BX           ; AL <- nov† hodnota parametru
+03EA AA             STOSB                   ; uloëen° novÇ hodnoty
+03EB C3             RET
+; -----------------------------------------------------------------------------
+                                          ;* instalace ostatn°ch parametrñ
+03EC 0E           * PUSH    CS
+03ED 07             POP    ES               ; ES <- CS
+03EE 8D3E2C01       LEA    DI,[012C]        ; adresa dat
+                                          ;* parametr "/H1nn" - znakñ na ©†dek
+03F2 B068           MOV    AL,68                         ;'h'
+03F4 B431           MOV    AH,31                         ;'1'
+03F6 E8E9FF         CALL    03E2
+                                          ;* parametr "/H2nn" - viditel. znakñ
+03F9 B068           MOV    AL,68                         ;'h'
+03FB B432           MOV    AH,32                         ;'2'
+03FD E8E2FF         CALL    03E2
+                                          ;* parametr "/H3nn" - pozice 1. znaku
+0400 32E4           XOR    AH,AH
+0402 D1E0           SHL    AX,1
+0404 2E29062A01     SUB    CS:[012A],AX     ; sn°ëen° o 2*poáet_znakñ/©†dek
+0409 B068           MOV    AL,68                         ;'h'
+040B B433           MOV    AH,33                         ;'3'
+040D E8D2FF         CALL    03E2
+                                          ;* parametr "/H4nn" znakñ na synchro
+0410 B068           MOV    AL,68                         ;'h'
+0412 B434           MOV    AH,34                         ;'4'
+0414 E8CBFF         CALL    03E2
+                                          ;* parametr "/V1nn" poáet vert. linek
+0417 B076           MOV    AL,76                         ;'v'
+0419 B431           MOV    AH,31                         ;'1'
+041B E8C4FF         CALL    03E2
+                                          ;* parametr "/V2nn"
+041E B076           MOV    AL,76                         ;'v'
+0420 B432           MOV    AH,32                         ;'2'
+0422 E8BDFF         CALL    03E2
+                                          ;* parametr "/V3nn" viditelnÇ ©†dky
+0425 B076           MOV    AL,76                         ;'v'
+0427 B433           MOV    AH,33                         ;'3'
+0429 E8B6FF         CALL    03E2
+                                          ;* parametr "/V4nn" ©†dek zpàt. bàhu
+042C B076           MOV    AL,76                         ;'v'
+042E B434           MOV    AH,34                         ;'4'
+0430 E8AFFF         CALL    03E2
+                                          ;* parametr "/In" prokl†d†n°
+0433 B069           MOV    AL,69                         ;'i'
+0435 B400           MOV    AH,00
+0437 E8A8FF         CALL    03E2
+                                          ;* parametr "/Nn" linek na ©†dek
+043A B06E           MOV    AL,6E                         ;'n'
+043C B400           MOV    AH,00
+043E E8A1FF         CALL    03E2
+                                          ;* parametr "/S1nn" prvn° linka kurz.
+0441 B073           MOV    AL,73                         ;'s'
+0443 B431           MOV    AH,31                         ;'1'
+0445 E89AFF         CALL    03E2
+                                          ;* parametr "/S2nn" posl. linka kurz.
+0448 B073           MOV    AL,73                         ;'s'
+044A B432           MOV    AH,32                         ;'2'
+044C E893FF         CALL    03E2
+044F C3             RET
+; -----------------------------------------------------------------------------
+                                          ;* naáten° parametru (s á°slem)
+
+                                          ;* VSTUP: AX=hledanÇ znaky parametru
+                                          ;* VùSTUP: AX=0 parametr nenalezen
+
+0450 1E             PUSH    DS              ; £schova DS
+0451 0E             PUSH    CS
+0452 1F             POP    DS               ; DS <- CS
+0453 BE8000         MOV    SI,0080          ; zaá†tek parametrñ z p©°kaz. ©†dku
+0456 8A0C           MOV    CL,[SI]          ; poáet znakñ zadanòch parametrñ
+0458 B500           MOV    CH,00            ; CH <- 0
+045A 8BFE           MOV    DI,SI            ; DI <- 80h
+045C 03F9           ADD    DI,CX            ; DI <- konec parametrñ
+045E 91             XCHG    AX,CX           ; AX <- poáet znakñ zadanÇho textu
+045F 33D2           XOR    DX,DX            ; DX <- 0
+0461 81C92020       OR    CX,2020           ; korekce na mal† p°smena
+                                          ;* nalezen° oddàlovaáe parametrñ
+0465 3BF7         * CMP    SI,DI            ; je jië konec textu ?
+0467 7F38           JG    04A1              ; konec - n†vrat z podprogramu
+0469 AC             LODSB                   ; naáten° dal®°ho znaku
+046A 3C2F           CMP    AL,"/"           ; je oddàlovaá parametrñ "/" ?
+046C 7417           JZ    0485              ; nalezen oddàlovaá parametrñ "/"
+046E 3C2D           CMP    AL,"-"           ; je oddàlovaá parametrñ "-" ?
+0470 7413           JZ    0485              ; nalezen oddàlovaá parametrñ "-"
+0472 3C3F           CMP    AL,3F            ; je otazn°k "?" ?
+0474 75EF           JNZ    0465             ; nen° otazn°k - dal®° znak
+0476 80F93F         CMP    CL,3F            ; byl hledanò otazn°k "?" ?
+0479 75EA           JNZ    0465             ; nen° poëadov†n otazn°k - dal®° znak
+047B 80FD20         CMP    CH,20            ; byl poëadov†n dal®° znak ?
+047E 7515           JNZ    0495             ; poëadov†n dal®° znak
+0480 F7D2           NOT    DX               ; p©°znak nalezen° parametru "/? "
+0482 E99800         JMP    051D             ; n†vrat z podprogramu
+                                          ;* nalezen oddàlovaá parametrñ
+0485 3BF7         * CMP    SI,DI            ; je jië konec textu ?
+0487 7F18           JG    04A1              ; konec - n†vrat z podprogramu
+0489 AC             LODSB                   ; naáten° dal®°ho znaku
+048A 0C20           OR    AL,20             ; p©evod na malÇ p°smeno
+048C 3AC1           CMP    AL,CL            ; nalezen poëadovanò znak ?
+048E 75D5           JNZ    0465             ; nen° poëadovanò znak - dal®° znak
+0490 80FD20         CMP    CH,20            ; byl poëadov†n dal®° znak ?
+0493 740F           JZ    04A4              ; nebyl poëadov†n dal®° znak - OK
+                                          ;* test druhÇho poëadovanÇho znaku
+0495 3BF7         * CMP    SI,DI            ; je jië konec ?
+0497 7F08           JG    04A1              ; je jië konec textu
+0499 AC             LODSB                   : naáten° dal®°ho znaku
+049A 3AC5           CMP    AL,CH            ; je to poëadovanò znak ?
+049C 75C7           JNZ    0465             ; nen° poëadovanò znak
+049E EB04           JMP    04A4             ; nalezen poëadovanò parametr
+04A0 90             NOP
+
+04A1 EB7A         * JMP    051D             ; n†vrat z podprogramu
+04A3 90             NOP
+
+04A4 F7D2           NOT    DX               ; p©°znak nalezen° parametru
+04A6 3BF7           CMP    SI,DI            ; je jië konec textu ?
+04A8 7FF7           JG    04A1              ; je jië konec textu
+04AA AC             LODSB                   ; naáten° dal®°ho znaku
+04AB 3C24           CMP    AL,24            ; je oddàlovaá á°sla HEX "$" ?
+04AD 742C           JZ    04DB              ; bude á°slo HEX
+04AF 746C           JZ    051D
+
+04B1 3C30           CMP    AL,30            ; je znak pod "0" ?
+04B3 72F1           JB    04A6              ; nen° to á°slice
+04B5 3C39           CMP    AL,39            ; je znak nad "9" ?
+04B7 77ED           JA    04A6              ; nen° to á°slice
+04B9 B400           MOV    AH,00            ; AH <- 0
+04BB 2C30           SUB    AL,30            ; korekce na bin†rn° á°slo
+04BD 93             XCHG    AX,BX           ; £schova á°sla AX
+04BE 3BF7         * CMP    SI,DI            ; je jië konec textu ?
+04C0 7F5B           JG    051D              ; je jië konec textu
+04C2 AC             LODSB                   ; naáten° p©°®t°ho znaku
+04C3 2C30           SUB    AL,30            ; korekce na á°slici
+04C5 7C56           JL    051D              ; nen° platn† á°slice - konec
+04C7 3C09           CMP    AL,09            ; je á°slice ?
+04C9 7F52           JG    051D              ; nen° platn† á°slice - konec
+04CB 93             XCHG    AX,BX           ; n†vrat naátenÇho á°sla
+04CC 52             PUSH    DX              ; £schova DX
+04CD BA0A00         MOV    DX,000A          ; DX <- 10 á°selnò z†klad
+04D0 F7E2           MUL    DX               ; st©†danÇ á°slo AX * 10
+04D2 5A             POP    DX               ; n†vrat DX
+04D3 93             XCHG    AX,BX           ; £schova AX
+04D4 03D8           ADD    BX,AX            ; p©iáten° novÇ á°slice
+04D6 EBE6           JMP    04BE             ; naáten° dal®° á°slice
+
+04D8 EB43           JMP    051D             ; konec programu
+04DA 90             NOP
+                                          ;* naáten° á°sla HEX
+04DB 33DB         * XOR    BX,BX            ; BX <- 0 (st©adaá á°sla)
+04DD 3BF7           CMP    SI,DI            ; je jië konec textu ?
+04DF 7F3C           JG    051D              ; je jië konec textu
+04E1 AC             LODSB                   ; naáten° dal®°ho znaku
+04E2 0C20           OR    AL,20             ; p©evod na malÇ p°smeno
+04E4 3C61           CMP    AL,61            ; je p°smeno < "a" ?
+04E6 720B           JB    04F3              ; nen° platnò znak HEX
+04E8 3C66           CMP    AL,66            ; je vàt®° neë "f" ?
+04EA 7731           JA    051D              ; nen° platnò znak HEX
+04EC 2C61           SUB    AL,61            ; korekce znaku na á°slo
+04EE 040A           ADD    AL,0A            ; korekce znaku > 10
+04F0 EB09           JMP    04FB
+04F2 90             NOP
+04F3 2C30         * SUB    AL,30            ; korekce á°slice na bin†rn°
+04F5 7C26           JL    051D              ; nen° platn† á°slice
+04F7 3C09           CMP    AL,09            ; je platnÇ á°slo ?
+04F9 7F22           JG    051D              ; nen° platn† á°slice
+04FB 93           * XCHG    AX,BX           ; £schova st©adaáe á°sla
+04FC 52             PUSH    DX              ; £schova DX
+04FD BA1000         MOV    DX,0010          ; DX <- 16 (á°selnò z†klad)
+0500 F7E2           MUL    DX               ; AX * 16
+0502 5A             POP    DX               ; n†vrat DX
+0503 93             XCHG    AX,BX           ; n†vrat AX
+0504 03D8           ADD    BX,AX            ; p©iáten° novÇho á°sla
+0506 EBD5           JMP    04DD             ; naáten° dal®° á°slice
+
+0508 EB13           JMP    051D
+050A 90             NOP
+                                          ;* dek¢dov†n° licenán°ch informac°
+050B AC           * LODSB                   ; naáten° dal®°ho znaku
+050C B400           MOV    AH,00            ; AH <- 0
+050E 8BC8           MOV    CX,AX            ; CX <- naátenò znak
+0510 8AE0           MOV    AH,AL            ; AH <- naátenò znak
+0512 E308           JCXZ    051C            ; nen° ë†dnò text (je 0)
+0514 AC           * LODSB                   ; naáten° dal®°ho znaku
+0515 02E0           ADD    AH,AL            ; dek¢dov†n° licence
+0517 8AC4           MOV    AL,AH
+0519 AA             STOSB                   ; uloëen° znaku
+051A E2F8           LOOP    0514            ; dek¢dov†n° dal®°ho znaku
+051C C3           * RET
+
+051D 92           * XCHG    AX,DX
+051E 0BC0           OR    AX,AX             ; nastaven° p©°znaku ZF
+0520 1F             POP    DS               ; n†vrat DS
+0521 C3             RET
+
+0522                                      ;* zak¢dovanò informaán° text
+0520  1F C3 38 10 19 0F 00 09-A7 25 28 08 F4 05 F9 B9  .C8.....'%(.t.y9
+0530  46 0C FD FE B3 2D 1C 02-FA C7 F4 32 0F 08 05 F7  F.}~3-..zGt2...w
+0540  0D AE 41 0D F6 BC 28 19-11 00 07 A7 41 13 AC 28  ..A.v<(....'A.,(
+0550  1D 04 04 06 FC F6 0F F4-B8 01 03 43 47 41 2D 45  ....|v.t8..CGA-E
+
+055b                                      ;* nadpis p©i instalaci
+0560  6D 75 6C 61 74 6F 72 20-56 65 72 2E 20 31 2E 30  mulator Ver. 1.0
+0570  20 28 43 29 20 31 39 38-37 20 62 79 20 48 65 69   (C) 1987 by Hei
+0580  6D 73 6F 65 74 68 20 53-6F 66 74 77 61 72 65 20  msoeth Software
+0590  47 6D 62 48 20 26 20 43-6F 20 4B 47 0D 0A 24 43  GmbH & Co KG..$C
+
+059f                                      ;* text n†povàdy
+CGA-Emulator Ver. 1.0 (C) 1987 by Heimsoeth Software GmbH & Co KG
+$CGA-Emulator usage: EMU [possible switches]
+   -B1:nn (1024) = copy nn words from bank 2 to 3 per timer tick
+   -B2:nn (   0) = copy nn words from bank 1 to 4 per timer tick
+ 6845 register parameters for graphics mode:
+ Horizontal:
+   -H1:nn (  53) = Num. chars per row minus 1
+   -H2:nn (  34) = Num. visible chars per row
+   -H3:nn (  30) = Pos. of first char during sync minus 1
+   -H4:nn (   7) = Num. chars during sync per row minus 1
+ Vertical:
+   -V1:nn ( 121) = Num. rows minus 1
+   -V2:nn (   2) = Num. scans in addition to number of rows
+   -V3:nn ( 100) = Num. visible rows
+   -V4:nn ( 115) = Row number to begin retrace
+ Other:
+   -I:nn  (   2) = 1=interlace, 2=normal
+   -N:nn  (   2) = Num. scans per row minus 1
+   -S1:nn (   0) = First scan where cursor will overlay a char
+   -S2:nn (   2) = Last  scan where cursor will overlay a char
+   -NT           = Do NOT use timer tick (default is used)
+   -DE           = Deactivate installed EMU
+ Note: Parameters preceded with a dollar sign are interpreted in hexadecimal
+$EMU deactivated$
+

@@ -1,0 +1,581 @@
+
+         .z80
+
+EXTERNAL Font08
+
+bit0     EQU       1
+bit1     EQU       2
+bit2     EQU       4
+bit3     EQU       8
+bit4     EQU       10h
+bit5     EQU       20h
+bit6     EQU       40h
+bit7     EQU       80h
+HI       EQU       256
+
+VRAMGen  EQU       0c000h
+VRAMTxt  EQU       0d000h
+VRAMCol  EQU       0d800h
+Pozic    EQU       40
+Radku    EQU       25
+
+; ------ k¢dy ©°dic°ch kl†ves
+
+CLeft    EQU       1                        ; Ctrl-vlevo
+CDown    EQU       3                        ; Ctrl-dolñ
+Right    EQU       4                        ; vpravo
+Up       EQU       5                        ; nahoru
+CRight   EQU       6                        ; Ctrl-vpravo
+Delete   EQU       7                        ; Delete
+BackSpc  EQU       8                        ; BackSpace
+TAB      EQU       9                        ; Tab
+LF       EQU       10                       ; novò ©†dek
+CR       EQU       13                       ; Enter
+CUp      EQU       18                       ; Ctrl-nahoru
+Left     EQU       19                       ; vlevo
+CDelete  EQU       20                       ; Ctrl-Delete
+CBreak   EQU       21                       ; Ctrl-Break
+Insert   EQU       22                       ; Insert
+Down     EQU       24                       ; dolñ
+Escape   EQU       27                       ; ESC
+
+; ------ k¢dy p©esmykaáñ
+
+SShift   EQU       bit0
+SCtrl    EQU       bit1
+SAlpha   EQU       bit2
+SGraph   EQU       bit3
+SBreak   EQU       bit4
+SInsert  EQU       bit5
+SDelete  EQU       bit6
+SBlank   EQU       bit7
+
+; ------ p©edefinov†n° fontñ - mus° bòt adresa 2000h aë 0bfffh !
+
+Start:   ld        sp,Zasob
+
+         ld        hl,Font08                ; definice fontñ 8 znakñ
+         call      SetFont                  ; nastaven° definice fontñ
+
+
+;         ld        hl,VRAMTxt
+;         ld        b,0
+;         ld        a,0
+;Start4:  ld        (hl),a
+;         inc       a
+;         inc       hl
+;         djnz      Start4
+
+
+         ld        hl,UvText
+         call      OutText                  ; vòstup textu
+
+         jp        $
+
+; *****************************************************************************
+;
+;                           Obsluha kl†vesnice
+;
+; -----------------------------------------------------------------------------
+;     K¢d:                Kl†vesa:           Displej:          Editor:
+;  ----------           -----------        -----------       -----------
+;   1 (Ctrl-A) ......... Ctrl-vlevo ........... - .......... slovo vlevo
+;   2 (Ctrl-B) ............. - ................ - ....... form†tov†n° odstavce
+;   3 (Ctrl-C) ......... Ctrl-dolñ ............ - .......... str†nka dolñ
+;   4 (Ctrl-D) ........... vpravo ........... vpravo ......... vpravo
+;   5 (Ctrl-E) ........... nahoru ........... nahoru ......... nahoru
+;   6 (Ctrl-F) ........ Ctrl-vpravo ........... - .......... slovo vpravo
+;   7 (Ctrl-G) ........... Delete ............. - ......... maz†n° znaku za
+;   8 (Ctrl-H) ........ BackSpace (BLANK) .. BackSpace ... maz†n° znaku p©ed
+;   9 (Ctrl-I) ............ Tab ............ Tabul†tor .. na tabelaán° pozici
+;  10 (Ctrl-J) .......... Ctrl-CR ............ dolñ ......... n†povàda
+;  11 (Ctrl-K) ............. - ................ - ............. bloky
+;  12 (Ctrl-L) ............. - ................ - .......... hledat d†le
+;  13 (Ctrl-M) ............. CR ........... zaá†tek ©†dku ... novò ©†dek
+;  14 (Ctrl-N) ............. - ................ - .......... vloëen° ©†dku
+;  15 (Ctrl-O) ............. - ................ - ............ p©ep°naáe
+;  16 (Ctrl-P) ............. - ................ - .............. p°smo
+;  17 (Ctrl-Q) ............. - ................ - .......... p©esuny kurzoru
+;  18 (Ctrl-R) ........ Ctrl-nahoru ........... - .......... str†nka nahoru
+;  19 (Ctrl-S) .......... vlevo ............. vlevo ............ vlevo
+;  20 (Ctrl-T) ........ Ctrl-Delete ........... - ....... maz†n° slova vpravo
+;  21 (Ctrl-U) ............ F1 ................ - ................ F1
+;  22 (Ctrl-V) .......... Insert .............. - ............. Insert
+;  23 (Ctrl-W) ............. - .......... rolov†n° dolñ .. posun pohledu o ©†dek nahoru
+;  24 (Ctrl-X) ........... dolñ .............. dolñ ............ dolñ
+;  25 (Ctrl-Y) ............. - ................ - ........... maz†n° ©†dku
+;  26 (Ctrl-Z) ............. - ......... rolov†n° nahoru . posun pohledu o ©†dek dolñ
+;  27 (Ctrl-[) ............ ESC ............... - ............ p©eru®en°
+;  28 (Ctrl-\) ............ F2 ................ - ................ F2
+;  29 (Ctrl-]) ............ F3 ................ - ................ F3
+;  30 (Ctrl-^) ............ F4 ................ - ................ F4
+;  31 (Ctrl-_) ............ F5 ................ - ................ F5
+;  32 aë 255 .......... ASCII znaky ...... ASCII znaky ....... ASCII znaky
+; *****************************************************************************
+;˛
+
+
+
+
+; -----------------------------------------------------------------------------
+;        vstup znaku z kl†vesnice
+; -----------------------------------------------------------------------------
+
+InpChr:
+
+         ret
+
+; -----------------------------------------------------------------------------
+;        test stisku kl†vesy o sou©adnic°ch A
+; -----------------------------------------------------------------------------
+
+
+; -----------------------------------------------------------------------------
+;        áten° p©esmykaáñ z kl†vesnice
+; -----------------------------------------------------------------------------
+; VùSTUP v A: bit 0: 1=Shift-
+;             bit 1: 1=Ctrl-
+;             bit 2: 1=Alpha (Alt-)
+;             bit 3: 1=Graph
+;             bit 4: 1=Break
+;             bit 5: 1=Insert
+;             bit 6: 1=Delete
+;             bit 7: 1=Blank (BackSpace)
+; -----------------------------------------------------------------------------
+
+
+
+
+
+; -----------------------------------------------------------------------------
+;        naáten° mapy kl†vesnice
+; -----------------------------------------------------------------------------
+
+; ------ £schova registrñ
+
+KlavRead:push      af
+         push      bc
+         push      de
+         push      hl
+
+; ------ £schova mapy stisknutòch kl†ves
+
+         ld        hl,MapaKlav              ; mapa stisknutòch kll†ves
+         ld        de,MapaStsk              ; mapa prvn°ho stisku kl†ves
+         push      hl
+         push      de
+         ld        bc,10                    ; poáet bajtñ v tabulce
+         ldir                               ; £schova tabulky kl†ves
+         pop       hl                       ; mapa prvn°ho stisku kl†ves
+         pop       de                       ; mapa stisknutòch kl†ves
+
+; ------ naáten° jednoho sloupce kl†ves
+
+         di                                 ; zak†z†no p©eru®en°
+         ld        bc,10*HI + 0f0h          ; B <- poáet sloupcñ, C <- sloupec 0
+KlavRea1:ld        a,c                      ; A <- maska sloupce
+         out       (0d0h),a                 ; nastaven° sloupce kl†vesnice
+         nop                                ; mal† prodleva
+         in        a,(0d1h)                 ; naáten° sloupce kl†vesnice
+         cpl                                ; 1=stisk kl†vesy
+         ld        (de),a                   ; uloëen° stavu sloupce kl†vesnice
+
+; ------ mapa prvn°ho stisku kl†ves
+
+         cpl
+         or        (hl)                     ; 0=je prvn° stisk
+         cpl
+         ld        (hl),a                   ; 1=je prvn° stisk kl†vesy
+
+; ------ p©°prava pro dal®° sloupec
+
+         inc       de                       ; zvò®en° ukl†dac° adresy
+         inc       hl                       ; zvò®en° ukl†dac° adresy
+         inc       c                        ; zvò®en° á°sla sloupce
+         djnz      KlavRea1                 ; áten° dal®°ho sloupce
+         ei                                 ; povolen° p©eru®en°
+
+; ------ n†vrat registrñ
+
+         pop       hl
+         pop       de
+         pop       bc
+         pop       af
+         ret
+
+; ------ mapa stisknutòch kl†ves (1=stisknuto)
+
+MapaKlav:db        00000000b                ; 0: bit 0: BLANK (BackSpace)
+                                            ;    bit 1: GRAPH (Prefix)
+                                            ;    bit 2: libra
+
+; ------ mapa stisku kl†ves (1=je prvn° stisk)
+
+MapaStsk:db        0,0,0,0,0,0,0,0,0,0
+
+; ------ tabulka generovanòch k¢dñ kl†ves bez SHIFT
+
+TabKlav: db        CR,':;',TAB,0,0,0,'_'
+         db        0,0,0,'][@zy'
+         db        'xwvutsrq'
+         db        'ponmlkji'
+         db        'hgfedcba'
+         db        '87654321'
+         db        '.,90 -^\'
+         db        '/?',Left,Right,Down,Up,Delete,Insert
+
+; *****************************************************************************
+;
+;                        Obsluha displeje
+;
+; *****************************************************************************
+;˛
+; -----------------------------------------------------------------------------
+;        definice fontñ HL (mus° bòt na adres†ch 2000h aë 0BFFFh !)
+; -----------------------------------------------------------------------------
+
+; ------ £schova registrñ
+
+SetFont: push      af
+         push      bc
+         push      de
+         push      hl
+
+; ------ zapnut° m¢du gener†toru znakñ
+
+         in        a,(0e0h)                 ; zapnut° gener†toru znakñ
+
+         ld        de,VRAMGen
+         ld        b,8
+SetFont1:push      bc
+         ld        b,0
+SetFont2:push      bc
+         ld        b,8
+         ld        a,(hl)
+SetFont3:rlca
+         rr        c
+         djnz      SetFont3
+         ex        de,hl
+         ld        (hl),c
+         ex        de,hl
+         inc       hl
+         inc       de
+         pop       bc
+         djnz      SetFont2
+         pop       bc
+         djnz      SetFont1
+
+; ------ vypnut° gener†toru znakñ
+
+         in        a,(0e1h)                 ; vypnut° gener†toru znakñ
+
+; ------ n†vrat registrñ
+
+         pop       hl
+         pop       de
+         pop       bc
+         pop       af
+         ret
+
+; -----------------------------------------------------------------------------
+;        vòstup textu HL (ASCIIZ) v telegrafn°m m¢du
+; -----------------------------------------------------------------------------
+
+OutText: push      af
+OutText1:ld        a,(hl)
+         inc       hl
+         or        a
+         jr        z,OutText2
+         call      OutChr                   ; zobrazen° znaku
+         jr        OutText1
+
+OutText2:pop       af
+         ret
+
+; -----------------------------------------------------------------------------
+;        vòstup znaku A v telegrafn°m m¢du
+; -----------------------------------------------------------------------------
+
+; ------ £schova registrñ
+
+OutChr:  push      bc
+         push      de
+
+; ------ obsluha CR
+
+         cp        CR
+         jr        nz,OutChr1
+         push      af
+         ld        a,0
+         ld        (Kurzor),a
+         pop       af
+         jr        OutChr9
+
+; ------ obsluha LF
+
+OutChr1: cp        LF
+         jr        nz,OutChr3
+         push      af
+         ld        a,(Kurzor+1)
+         inc       a
+         ld        (Kurzor+1),a
+         cp        Radku
+         jr        c,OutChr2
+         call      RollUp                   ; rolov†n° obrazovky nahoru
+OutChr2: pop       af
+         jr        OutChr9
+
+; ------ zobrazen° znaku
+
+OutChr3:
+         push      af
+         ld        a,(Color)                ; aktu†ln° barva
+         ld        c,a                      ; C <- aktu†ln° barva
+         pop       af
+         ld        de,(Kurzor)              ; aktu†ln° kurzor
+         call      DispChr                  ; zobrazen° znaku
+         ld        (Kurzor),de              ; novò aktu†ln° kurzor
+
+; ------ n†vrat registrñ
+
+OutChr9: pop       de
+         pop       bc
+         ret
+
+;; -----------------------------------------------------------------------------
+;;        nastaven° barvy pro zobrazen° textu na A
+;; -----------------------------------------------------------------------------
+;
+;SetColor:ld        (Color),a
+;         ret
+;
+;; -----------------------------------------------------------------------------
+;;        poskytnut° aktu†ln° nastavenÇ barvy textu -> A
+;; -----------------------------------------------------------------------------
+;
+;GetColor:ld        a,(Color)
+;         ret
+;
+;; -----------------------------------------------------------------------------
+;;        nastaven° kurzoru E pozice, D ©†dek
+;; -----------------------------------------------------------------------------
+;
+;SetKurz: ld        (Kurzor),de
+;         ret
+;
+;; -----------------------------------------------------------------------------
+;;        poskytnut° kurzoru -> E pozice, D ©†dek
+;; -----------------------------------------------------------------------------
+;
+;GetKurz: ld        de,(Kurzor)
+;         ret
+
+; -----------------------------------------------------------------------------
+;        rolov†n° obrazovky o ©†dek nahoru
+; -----------------------------------------------------------------------------
+
+; ------ £schova registrñ
+
+RollUp:  push      af
+         push      bc
+         push      de
+         push      hl
+
+; ------ rolov†n° textu obrazovky o ©†dek nahoru
+
+         ld        de,VRAMTxt               ; text - ©†dek 0
+         ld        hl,VRAMTxt+Pozic         ; text - ©†dek 1
+         ld        bc,Pozic*(Radku-1)       ; poáet bajtñ k rolov†n°
+         ldir                               ; rolov†n° textu obrazovky nahoru
+
+; ------ vymaz†n° textu posledn°ho ©†dku
+
+         ld        h,d
+         ld        l,e
+         ld        a," "                    ; mazac° znak mezery
+         ld        (hl),a                   ; vymaz†n° znaku
+         inc       de
+         ld        bc,Pozic-1
+         ldir                               ; vymaz†n° textu posledn°ho ©†dku
+
+; ------ rolov†n° barev obrazovky o ©†dek nahoru
+
+         ld        de,VRAMCol               ; text - ©†dek 0
+         ld        hl,VRAMCol+Pozic         ; text - ©†dek 1
+         ld        bc,Pozic*(Radku-1)       ; poáet bajtñ k rolov†n°
+         ldir                               ; rolov†n° barev obrazovky nahoru
+
+; ------ vymaz†n° barev posledn°ho ©†dku
+
+         ld        h,d
+         ld        l,e
+         ld        a,(Color)                ; mazac° barva
+         ld        (hl),a                   ; vymaz†n° barvy
+         inc       de
+         ld        bc,Pozic-1
+         ldir                               ; vymaz†n° barvy posledn°ho ©†dku
+
+; ------ sn°ëen° ©†dku kurzoru
+
+         ld        a,(Kurzor+1)
+         or        a
+         jr        z,RollUp2                ; je jië prvn° ©†dek
+         dec       a
+RollUp2: ld        (Kurzor+1),a
+
+; ------ n†vrat registrñ
+
+         pop       hl
+         pop       de
+         pop       bc
+         pop       af
+         ret
+
+; -----------------------------------------------------------------------------
+;        zobrazen° textu HL/B znakñ/C barva/pozice E/©†dek D
+; -----------------------------------------------------------------------------
+
+DispTxt: ld        a,(hl)
+         inc       hl
+         call      DispChr
+         djnz      DispTxt
+         ret
+
+; -----------------------------------------------------------------------------
+;        zobrazen° znaku A, barva C na pozici E, ©†dek D
+; -----------------------------------------------------------------------------
+
+; ------ kontrola ©†dku a pozice
+
+DispChr: push      af
+         ld        a,Radku-1                ; celkovò poáet ©†dkñ displeje
+         cp        d
+         jr        c,DispChr2
+         ld        a,Pozic-1                ; celkovò poáet pozic na ©†dek
+         cp        e
+         jr        c,DispChr2
+         pop       af
+
+; ------ £schova registrñ
+
+         push      de
+         push      hl
+
+; ------ adresa ve videopamàti
+
+         push      bc
+         ld        bc,AdrVRAML
+         ld        l,d                      ; L <- ©†dek D
+         ld        h,0
+         add       hl,hl                    ; offset v tabulce
+         add       hl,bc                    ; adresa v tabulce
+         ld        c,e                      ; C <- pozice na ©†dku
+         ld        b,0
+         ld        e,(hl)
+         inc       hl
+         ld        d,(hl)                   ; adresa ©†dku ve videopamàti
+         ex        de,hl
+         add       hl,bc                    ; adresa znaku ve videopamàti
+
+; ------ uloëen° znaku
+
+         ld        (hl),a                   ; zobrazen° znaku
+         ld        bc,VRAMCol-VRAMTxt
+         add       hl,bc
+         pop       bc
+         ld        (hl),c                   ; uloëen° barvy
+
+; ------ n†vrat registrñ
+
+         pop       hl
+         pop       de
+         inc       e                        ; zvò®en° ukazatele pozice
+         ret
+
+; ------ n†vrat p©i chybà
+
+DispChr2:pop       af
+         inc       e
+         ret
+
+; -----------------------------------------------------------------------------
+;        naáten° znaku z videopamàti pozice E, ©†dek D -> znak A, barva C
+; -----------------------------------------------------------------------------
+
+; ------ kontrola ©†dku a pozice
+
+GetChr:  ld        a,Radku-1                ; celkovò poáet ©†dkñ displeje
+         cp        d
+         jr        c,GetChr2
+         ld        a,Pozic-1                ; celkovò poáet pozic na ©†dek
+         cp        e
+         jr        c,GetChr2
+
+; ------ £schova registrñ
+
+         push      de
+         push      hl
+
+; ------ adresa ve videopamàti
+
+         push      bc
+         ld        bc,AdrVRAML
+         ld        l,d                      ; L <- ©†dek D
+         ld        h,0
+         add       hl,hl                    ; offset v tabulce
+         add       hl,bc                    ; adresa v tabulce
+         ld        c,e                      ; C <- pozice na ©†dku
+         ld        b,0
+         ld        e,(hl)
+         inc       hl
+         ld        d,(hl)                   ; adresa ©†dku ve videopamàti
+         ex        de,hl
+         add       hl,bc                    ; adresa znaku ve videopamàti
+
+; ------ naáten° znaku
+
+         ld        a,(hl)                   ; naáten° znaku
+         ld        bc,VRAMCol-VRAMTxt
+         add       hl,bc
+         pop       bc
+         ld        c,(hl)                   ; naáten° barvy
+
+; ------ n†vrat registrñ
+
+         pop       hl
+         pop       de
+         inc       e                        ; zvò®en° ukazatele pozice
+         ret
+
+; ------ n†vrat p©i chybà
+
+GetChr2: inc       e
+         ld        a," "                    ; n†hradn° znak - mezera
+         ld        c,70h                    ; n†hradn° barva - b°l† na áernÇ
+         ret
+
+; ------ adresy ©†dkñ videopamàti
+
+Y        DEFL      0
+AdrVRAML:REPT      25
+         dw        VRAMTxt+Y*Pozic
+Y        DEFL      Y+1
+         ENDM
+
+Kurzor:  dw        0                        ; aktu†ln° ukazatel kurzoru
+Color:   db        70h                      ; aktu†ln° barva textu
+
+
+
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+UvText:  db        'Zku®ebn° text - zobrazen° znakovÇ sady.',13,10,0
+
+         ds        200                      ; z†sobn°k
+Zasob:
+
+         END       Start
+

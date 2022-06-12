@@ -1,0 +1,155 @@
+[IDENT=DOSMAN_MENU][KOD=LATIN2][PAGE=9999][RIGHT=9999][TAB=8][CURS=1,10][TOP=1,1]
+
+#.MENU 73,,,                   ; definice okna menu: ç¡ýka,vìçka,pozice,ý dek
+#.INTENS Y                     ; intenzivn¡ pozad¡ Y|N (N=blik n¡)
+#.COLRAM 70,7F                 ; barva r mu
+#.COLTIT 70                    ; barva titulku
+#.COLHEA 3F,3E                 ; barva textu z hlav¡: bØ§n , intenzivn¡
+#.COLTXT 70,74                 ; barva bØ§n‚ho textu: bØ§n , intenzivn¡
+#.COLCUR 30,34                 ; barva kurzoru v textu: bØ§n , intenzivn¡
+#.COLHLP 30,34                 ; barva ý dku n povØdy: bØ§n , intenzivn¡
+
+; ============ Titulek a z hlav¡ menu ===========
+        U§ivatelsk‚ %{*90} M %{*E0} E %{*C0} N %{*A0} U %{*N}
+        ú
+        Zvuk, konverze, pýehr v n¡ a editace zvukovìch soubor…
+        ú
+;* Programy shareware nechat bez pý¡pony - spust¡ se poprv‚ BAT, pý¡çtØ EXE *
+; -----------------------------------------------------------------------
+BMaster Editor zvukovìch soubor… %{*}BLASTER Master%{*} (VOC, WAV, SND)
+        %3BMASTER\bmaster
+#? Editor zvukovìch soubor… VOC, WAV, SND (t‚§ Alt-F4 na souboru)
+; -----------------------------------------------------------------------
+CP      Cubic Player - pýehr vaŸ hudebn¡ch soubor… MOD, XM, S3M,...
+        %3CP\CP
+#? Pýehr vaŸ hudebn¡ch soubor… MOD, XM, S3M, OKT, MTM, WOW, NST, DMF, ...
+; -----------------------------------------------------------------------
+Inform  Informace o zvukov‚m souboru pod kurzorem (t‚§ Alt-F3)
+        @echo off
+        %3CONVERT\convert %1
+        %3UTILITY\wait
+#? Zobrazen¡ informac¡ o zvukov‚m souboru pod kurzorem (jako Alt-F3)
+; -----------------------------------------------------------------------
+Listing Vìpist informac¡ o oznaŸenìch zvukovìch souborech do %{*}SND_INFO%{*}
+@D      @echo off
+        %3CONVERT\convert @%6$DOSMAN$.LST > %2SND_INFO
+        if exist %6$DOSMAN$.LST del %6$DOSMAN$.LST
+#? Vìpist informac¡ o oznaŸenìch souborech do %{*}SND_INFO%{*} v protØjç¡m oknØ
+; -----------------------------------------------------------------------
+Play    Pýehr n¡ oznaŸenìch zvukovìch soubor… (jako Enter na souboru)
+        @echo off
+        %3UTILITY\detadlib > NUL
+        if errorlevel 1 goto Speaker
+#.FOR s=@D
+#. CASE '%5'
+#.  IN VOC
+        %3PLAYMID\vplay %1
+#.  IN MOD,NST,WOW,XM,S3M,DMF,MTM,ULT,669,OKT,PTM,AMS,MDL,IT
+        %3CP\CP %1
+#.  IN CMF
+        %3PLAYMID\play %1
+#.  IN MID
+        if exist C:\SB16\SFBANK\*.SBK goto 1%4%5
+        if exist %SOUND%\DRV\*.DRV goto 1%4%5
+        %3PLAYMID\play %1
+        goto 2%4%5
+        :1%4%5
+        %{$DH}:
+        cd > %6$_DIR_$.TMP
+        cd %{$\PH\}SBKPLAY
+        %3SBKPLAY\sbkplay /GM %7%1
+        %3UTILITY\setdir @%6$_DIR_$.TMP
+        if exist %6$_DIR_$.TMP del %6$_DIR_$.TMP
+        cd %7.
+        %{$D}:
+        :2%4%5
+#.  IN WAV
+        %3QVIEW\qv %1 /s
+#.  IN SND,SAM,NTI,FRQ,SPK
+        %3UTILITY\sound %1 /c0
+#. ENDCASE
+        %3UTILITY\inkey @
+        if errorlevel 1 goto Konec
+#.ENDFOR
+        goto Konec
+        :Speaker
+#.FOR s=@D
+#. CASE '%5'
+#.  IN MOD
+        %3UTILITY\music %1 /c0
+#.  IN MID, CMF
+#.  IN WAV,VOC,SND,SAM,NTI,FRQ,SPK
+        %3UTILITY\sound %1 /c0
+#. ENDCASE
+        %3UTILITY\inkey @
+        if errorlevel 1 goto Konec
+#.ENDFOR
+        :Konec
+#? Pýehr n¡ oznaŸenìch zvukovìch soubor… VOC, WAV, MID, MOD, SND, ...
+; -----------------------------------------------------------------------
+
+#*------------------------- Konverze soubor… --------------------------
+
+AU      Konverze oznaŸenìch soubor… na form t AU
+        @echo off
+#.FOR s=@D
+#. CASE '%5'
+#.  IN AU
+#.  OUT
+        %3CONVERT\convert %1 -AU
+#. ENDCASE
+#.ENDFOR
+#? Konverze oznaŸenìch zvukovìch soubor… na form t AU
+; -----------------------------------------------------------------------
+Dump    Konverze soubor… se zvukovìmi stopami CD disku na soubory WAV
+        @echo off
+#.FOR s=@D
+        %3CONVERT\snd2wav %1 -i -16 -s -2 -f44100 -b0
+#.ENDFOR
+#? Konverze oznaŸenìch soubor… zvukovìch stop CD disku (RAW) na soubory WAV
+; -----------------------------------------------------------------------
+RAW     Konverze zvukovìch soubor… na volnì form t RAW (napý. pro CD)
+        @echo off
+#.FOR s=@D
+        %3CONVERT\convert %1 -RAW
+#.ENDFOR
+#? Konverze na volnì form t RAW (pro CD disk mus¡ bìt 44100 Hz, stereo, 16 bit…)
+; -----------------------------------------------------------------------
+SBK     Import oznaŸenìch zvukovìch soubor… do banky n stroj… SBK
+#.SET JMENOSBK="%4"
+#.GET JMENOSBK="Zadejte jm‚no souboru banky n stroj… (8 znak…, bez pý¡pony):"
+@       @echo off
+        copy %6$DOSMAN$.LST %6%JMENOSBK%.$$$ > NUL
+        if exist %6$DOSMAN$.LST del %6$DOSMAN$.LST
+        if not exist %6%JMENOSBK%.$$$ goto Konec
+        %3CONVERT\convert @%6%JMENOSBK%.$$$ -SBK
+        del %6%JMENOSBK%.$$$
+        :Konec
+#? Import oznaŸenìch zvukovìch soubor… do banky n stroj… SBK zadan‚ho jm‚na
+; -----------------------------------------------------------------------
+VOC     Konverze oznaŸenìch soubor… na form t VOC
+        @echo off
+#.FOR s=@D
+#. CASE '%5'
+#.  IN VOC
+#.  IN SND
+        %3CONVERT\snd2voc %1 %4.voc
+#.  OUT
+        %3CONVERT\convert %1 -VOC
+#. ENDCASE
+#.ENDFOR
+#? Konverze oznaŸenìch zvukovìch soubor… na form t VOC
+; -----------------------------------------------------------------------
+WAV     Konverze oznaŸenìch soubor… (t‚§ SBK, PAT, MOD) na form t WAV
+        @echo off
+#.FOR s=@D
+#. CASE '%5'
+#.  IN WAV
+#.  IN SND
+        %3CONVERT\snd2wav %1
+#.  OUT
+        %3CONVERT\convert %1 -WAV
+#. ENDCASE
+#.ENDFOR
+#? Konverze oznaŸenìch zvukovìch soubor… na form t WAV (t‚§ SBK, PAT, MOD)
+; -----------------------------------------------------------------------

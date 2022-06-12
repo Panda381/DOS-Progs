@@ -1,0 +1,148 @@
+CONTEXT   0 241   0   0  88
+; program l dovan˜ do BDT p©i inicializaci
+
+      AF           XOR       A              ; A <- 0
+      CD8C0C       CALL      0c8ch          ; p©enos dat za CALL
+      D41B         dw        1bd4h          ; c¡lov  adresa k p©enosu dat
+      02           db        2              ; po‡et bajt– k p©enosu
+      003F         dw        003fh
+      19           db        19h
+
+      37           SCF                      ; nastaven¡ p©¡znaku CF
+      CD8C0C       CALL      0c8ch          ; p©enos dat za CALL
+      CA1B         dw        1bcah          ; c¡lov  adresa
+      02           db        2              ; po‡et bajt– k p©enosu
+      00           db        0
+
+      210200       LD        HL,2           ; HL <- 2
+      22D01B       LD        (1b0dh),HL     ; (1b0dh) <- HL
+      01B218       LD        BC,18b2h       ; BC <- 18b2h
+      11CA1B       LD        DE,1bcah       ; DE <- 1bcah
+      210000       LD        HL,0           ; HL <- 0
+      CD3602       CALL      236h           ; vol n¡ slu‘by 19
+                                          ;* instalace obsluhy sn¡ma‡e ¨t¡tk–
+      3AF418       LD        A,(18f4h)      ; A <- (18f4h) p©¡znaky
+      CB47         BIT       0,A            ; je obsluha instalov na ?
+      2010         JR        NZ,+10h        ; obsluha je ji‘ instalov na
+      E6F8         AND       0f8h           ; nulov n¡ bit– 0 a‘ 2 registru A
+      F601         OR        1              ; nastaven¡ p©¡znaku obsluhy sn¡ma‡e
+      32F418       LD        (18f4h),A      ; (18f4h) <- A zpˆtn‚ ulo‘en¡ p©¡zn.
+      11953C       LD        DE,3c95h       ; DE <- 3c95h adresa obsluhy sn¡ma‡e
+      210500       LD        HL,5           ; HL <- 5 ‡¡slo vektoru 5 (sn¡ma‡)
+      CD0F02       CALL      020fh          ; slu‘ba 6 - nastaven¡ vektoru 5
+                                            ;            na adresu 3c95h
+                                          ;* inicializace sn¡ma‡e ¨t¡tk–
+      0E0E       * LD        C,0eh          ; C <- 0eh (adresa portu sn¡ma‡e)
+      21CB3C       LD        HL,3ccbh       ; HL <- 3ccbh (adresa dat)
+      0605         LD        B,5            ; B <- 5 (po‡et bajt– k vysl n¡)
+      EDB3         OTIR                     ; vysl n¡ 5 bajt– na port 0eh
+      3E06         LD        A,6            ; A <- 6
+      323F19       LD        (193fh),A      ; (193fh) <- A
+      3E80         LD        A,80h          ; A <- 80h (sign l RES)
+      D30C         OUT       (0ch),A        ; port (0ch) <- A vygenerov n¡ RES
+      AF           XOR       A              ; A <- 0
+      D30C         OUT       (0ch),A        ; port (0ch) <- A konec sign lu RES
+      DB0C         IN        A,(0ch)        ; A <- port (0ch)
+      E67F         AND       7fh            ; nulov n¡ bitu 7 registru A
+      FE20         CP        20h            ; A = 20h ? (je sn¡ma‡ OK) ?
+      280A         JR        Z,+0ah         ; sn¡ma‡ je OK
+      213F19       LD        HL,193fh       ; HL <- 193fh
+      3601         LD        (HL),1         ; bajt (193fh) <- 1
+      C3863C       JP        3c86h          ; cbyba - sn¡ma‡ nen¡ p©ipraven
+
+      02           db        0
+      00           db        0
+
+                                          ;* maz n¡ bufferu vstupu ze sn¡ma‡e
+      214019       LD        HL,1940h       ; HL <- 1940h (za‡ tek bufferu)
+      223C19       LD        (193ch),HL     ; nastaven¡ adresy bufferu sn¡ma‡e
+      114119       LD        DE,1941h       ; DE <- 1941h (za‡ tek bufferu + 1)
+      012B00       LD        BC,2bh         ; BC <- 2bh (d‚lka bufferu - 1)
+      36FF         LD        (HL),0ffh      ; mazac¡ bajt 0ffh
+      EDB0         LDIR                     ; vymaz n¡ bufferu bajtem 0ffh
+
+      3E28         LD        A,50           ; A <- 50 doba pro TIME-OUT vstupu
+      323E19       LD        (193eh),A      ; bajt (193eh) <- 50 doba TIME-OUT
+      213B19       LD        HL,193bh       ; HL <- 193bh
+      CBA6         RES       4,(HL)         ; nulov n¡ bitu 4 bajtu (193bh)
+      CBB6         RES       6,(HL)         ; nulov n¡ bitu 6 bajtu (193bh)
+      213A19       LD        HL,193ah       ; HL <- 193ah
+      CB96         RES       2,(HL)         ; nulov n¡ bitu 2 bajtu (193ah)
+      3E83         LD        A,83h          ; A <- 83h
+      D30E         OUT       (0eh),A        ; port (0eh) <- A povolen¡ p©eru¨en¡
+
+      C5           PUSH      BC             ; £schova BC do z sobn¡ku
+      01C618       LD        BC,18c6h       ; BC <- 18ch
+      D5           PUSH      DE             ; £schova DE do z sobn¡ku
+      110000       LD        DE,0           ; DE <- 0
+      E5           PUSH      HL             ; £schova HL do z sobn¡ku
+      21D01B       LD        HL,1bd0h       ; HL <- 1bd0h
+      CD3602       CALL      236h           ; vol n¡ slu‘by 19
+      E1           POP       HL             ; n vrat HL ze z sobn¡ku
+      D1           POP       DE             ; n vrat DE ze z sobn¡ku
+      C1           POP       BC             ; n vrat BC ze z sobn¡ku
+
+      3AD21B       LD        A,(1bd2h)      ; A <- (1bd2h)
+      FE00         CMP       0              ; je registr A = 0 ?
+      C2B23B       JP        NZ,3bb2h       ; pokud je A r–zn˜ od 0, skok
+      CB56         BIT       2,(HL)         ; test bitu 2 bajtu (193ah)
+      CA873B       JP        Z,3b87h        ; pokud je bit 2 nulov˜, skok
+      3E03         LD        A,3            ; A <- 3
+      D30E         OUT       (0eh),A        ; port (0eh) <- z kaz p©eru¨en¡
+      213F19       LD        HL,193fh       ; HL <- 193fh
+      3680         LD        (HL),80h       ; bajt (193fh) <- 80h vyp. sn¡ma‡e
+      C3863C       JP        3c86h
+
+                                          ;* ‡ek n¡ na p©ipravenost sn¡ma‡e
+      21603B     * LD        HL,3b60h       ; HL <- 3b60h
+      CD3902       CALL      239h           ; vol n¡ slu‘by 20
+      213B19       LD        HL,193bh       ; HL <- 193bh
+      CB66         BIT       4,(HL)         ; test bitu 4 bajtu (193bh)
+      CBA6         RES       4,(HL)         ; nulov n¡ bitu 4 bajtu (193bh)
+      C2B23B       JP        NZ,3bb2h       ; pokud byl bit 4 nastaven, skok
+      DB0C         IN        A,(0ch)        ; A <- port (0ch) vstup dat
+      E61F         AND       1fh            ; maskov n¡ datov˜ch bit–
+      2806         JR        Z,+6           ; v¨echna ‡idla jsou OK
+      213E19       LD        HL,193eh       ; HL <- 193eh ‡¡ta‡ TIME-OUT vstupu
+      35           DEC       (HL)           ; dekrementace bajtu (193eh)
+      20E4         JR        NZ,-1ch        ; nen¡ je¨tˆ TIME-OUT - dal¨¡ vstup
+      3E03       * LD        A,3            ; A <- 3
+      D30E         OUT       (0eh),A        ; port (0eh) <- A z kaz p©eru¨en¡
+
+                                          ;* ulo‘en¡ p©ijat‚ho znaku
+      3A3F19       LD        A,(193fh)      ; A <- (193fh)
+      57           LD        D,A            ; D <- A
+      0E00         LD        C,0            ; C <- 0
+      214019       LD        HL,1904h       ; HL <- 1904h
+      7E           LD        A,(HL)         : A <- (1904h) p©ijat˜ znak
+      FEFF         CMP       0ffh           ; je A = 0ffh ?
+      2848         JR        Z,+48h         ; pokud je A = 0ffh, skok
+      E61F         AND       1fh            ; ponech n¡ datov˜ch bit–
+      EE1F         XOR       1fh            ; inverze bit– 0 a‘ 4 registru A
+      EA223C       JP        PE,3c22h       ; parita sud  - chyba parity znaku
+      E60F         AND       0fh            ; nulov n¡ paritn¡ho bitu 4
+      FE0E         CP        0eh            ; je p©ijat˜ znak = 0eh ?
+      200D         JR        NZ,+0dh        ; je-li A r–zn˜ od 0eh, skok
+      CB52         BIT       2,D            ; test bitu 2 registru D
+      2004         JR        NZ,4           ; je-li bit 2 reg. D nastaven, skok
+      CBE2         SET       4,D            ; nastaven¡ bitu 4 registru D
+      1822         JR        +22h
+      CB92         RES       2,D            ; nulov n¡ bitu 2 registru D
+      226E19       LD        (196eh),HL     ; (196eh) <- HL
+      FE0A         CP        0ah            ; je registr A = 0ah ?
+      280C         JR        Z,+0ch         ; je-li registr A = 0ah, skok
+      FE0B         CP        0bh            ; je registr A = 0bh ?
+........................................................................
+      2808         JR        Z,+8           ; pokud je registr A = 0bh, skok
+      FE0C         CP        0ch            ; je registr A = 0ch ?
+      2804         JR        Z,+4           ; pokud je registr A = 0ch, skok
+      FE0D         CP        0dh            ; je registr A = 0dh ?
+      200D         JR        NZ,+0dh        ; je-li registr A r–zn˜ od 0dh, skok
+      CB4A       * BIT       1,D            ; je nastaven bit 1 registru D ?
+      2004         JR        NZ,+4          ; je-li bit 1 reg. D nastaven, skok
+      CBDA         SET       3,D            ; nastaven¡ bitu 3 registru D
+      1805         JR        +5
+
+      CB8A         RES       1,D            ; nulov n¡ bitu 1 registru D
+      226C19       LD        (196ch),HL     ; (196ch) <- HL
+

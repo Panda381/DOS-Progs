@@ -1,0 +1,586 @@
+
+;    Opera‡n¡ syst‚m BDT
+
+
+
+
+data:
+
+pio1a:   db        0
+page:    db        0                        ; aktivnˆ zobrazen  str nka displeje
+
+bufd0:   db        0,0,0,0,0,0,0,0          ; buffer displeje - str nka 0
+         db        0,0,0,0,0,0,0,0
+
+bufd1:   db        0,0,0,0,0,0,0,0          ; buffer displeje - str nka 1
+         db        0,0,0,0,0,0,0,0
+
+
+
+
+beepof:                                   ;* vypnut¡ zvukov‚ho gener toru
+         push      af
+         ld        a,[pio1a]                ; v˜stupn¡ bajt na PIO1-A (displej)
+         and       not 80h                  ; vypnut¡ v˜stupu HUPE
+         ld        [pio1a],a                ; nov  hodnota v˜stupn¡ho bajtu
+         out       [8],a                    ; v˜stup na port
+         pop       af
+         ret
+
+beepon:                                   ;* zapnut¡ zvukov‚ho gener toru
+         push      af
+         ld        a,[pio1a]                ; v˜stupn¡ bajt na PIO1-A (displej)
+         and       80h                      ; zapnut¡ v˜stupu HUPE
+         ld        [pio1o],a                ; nov  hodnota v˜stupn¡ho bajtu
+         out       [8],a                    ; v˜stup na port
+         pop       af
+         ret
+
+getpag:                                   ;* poskytnut¡ zobraz. str nky displeje
+                                            ; VSTUP: A=zobrazen  str nka displ.
+         mov       al,[page]
+         ret
+
+setpag:                                   ;* nastaven¡ zobraz. str nky displeje
+                                            ; VSTUP: A=nov  zobrazen  str nka
+
+         push      af
+         push      bc
+         and       1                        ; bit zobrazen‚ str nky
+         ld        [page],a                 ; aktivnˆ zobrazen  str nka displeje
+         rrca                               ; rotace na bit 7
+         rrca                               ; rotace na bit 6
+         ld        c,a                      ; po‘adovan‚ nastaven¡ videostr nky
+         ld        a,[pio1a]                ; v˜stupn¡ bajt na PIO1-A (displej)
+         and       not 40h                  ; nulov n¡ bitu zobraz. str nky
+         or        c                        ; nastaven¡ nov‚ videostr nky
+         ld        [pio1a],a                ; nov  hodnota v˜stupn¡ho bajtu
+         out       [8],a                    ; v˜stup na port
+         pop       bc
+         pop       af
+         ret
+
+displ:                                    ;* zobrazen¡ textu v bufferu
+                                            ; VSTUP: A=po‘adovan  str nka
+
+
+
+
+
+
+struktura znaku:    7   6   5   4   3   2   1   0
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+0                 ³   ³   ³   ³0/4³0/3³0/2³0/1³0/0³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+1                 ³1/4³1/3³1/2³1/1³1/0³2/4³2/3³2/2³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+2                 ³2/1³2/0³   ³3/4³3/3³3/2³3/1³3/0³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+3                 ³4/4³4/3³4/2³4/1³4/0³5/4³5/3³5/2³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+4                 ³5/1³5/0³   ³6/4³6/3³6/2³6/1³6/0³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+
+
+
+
+
+
+
+; ......................................................
+                                          ;* zobrazen¡ textu obrazu 0
+0e20:06 00      lab216: ld      b,0
+0e22:18 02              jr      lab217
+; ......................................................
+                                          ;* v˜stup textu obrazu 1
+0e24:06 40      lab213: ld      b,40h
+0e26:3a 32 19   lab217: ld      a,(btpi1a)  ; v˜stupn¡ bajt na PIO1-A (displej)
+0e29:e6 bf              and     0bfh        ; zru¨en¡ p©ep¡na‡e obrazu
+0e2b:b0                 or      b           ; nastaven¡ p©ep¡na‡e obrazu
+0e2c:32 32 19           ld      (btpi1a),a  ; v˜stupn¡ bajt na PIO1-A (displej)
+0e2f:3a f4 18   lab218: ld      a,(ddb1)    ; p©¡znak testu RAM (10h)
+0e32:cb 67              bit     4,a
+0e34:20 39              jr      nz,lab214
+0e36:d5                 push    de          ; £schova DE
+0e37:11 dd 0f           ld      de,dtb22    ; obsluha p©eru¨en¡ 4 - kl vesnice
+0e3a:e5                 push    hl          ; £schova HL
+0e3b:21 04 00           ld      hl,4        ; ‡¡slo vektoru = 4
+0e3e:cd 0f 02           call    vekt6       ; nastaven¡ adr. vektoru L na adr.DE
+0e41:e1                 pop     hl          ; n vrat HL
+0e42:d1                 pop     de          ; n vrat DE
+                                            ; pokra‡uje se v˜stupem na displej
+; -----------------------------------------------------------------------------
+;                    Zobrazen¡ textov‚ho bufferu na displeji
+; -----------------------------------------------------------------------------
+
+                tsktxt:                   ;* v˜stup textu na displej
+0e43:21 ec 10           ld      hl,tabznk   ; tabulka gener toru znak–
+0e46:22 38 19           ld      (adtbzn),hl ; adresa tabulky znak–
+0e49:21 d8 0f           ld      hl,setklv   ; tabulka pro inicializaci PIO1-B
+0e4c:0e 0b              ld      c,0bh       ; ©¡zen¡ PIO1-B - vstup z kl vesnice
+0e4e:06 05              ld      b,5         ; po‡et inicializa‡n¡ch bajt–
+0e50:ed b3              otir                ; nastaven¡ PIO1-B - kl vesnice
+0e52:af                 xor     a           ; A <- 0
+0e53:32 33 19           ld      (ddb2),a    ; = 0
+0e56:32 34 19           ld      (ddb3),a    ; = 0
+0e59:32 00 19           ld      (ddb4),a    ; = 0 (0e59h) £schova © dku kl ves
+0e5c:32 0c 19           ld      (ddb5),a    ; = 0
+0e5f:32 0d 19           ld      (ddb6),a    ; = 0
+0e62:3e 9f              ld      a,9fh       ; v˜stupn¡ bajt na PIO1-A (z pis)
+0e64:32 32 19           ld      (btpi1a),a  ; v˜stupn¡ bajt na PIO1-A (displej)
+0e67:32 ff 18           ld      (ddb8),a    ; v˜stupn¡ bajt na PIO1-A (displej)
+0e6a:21 f4 18           ld      hl,ddb1     ; p©¡znak testu RAM (10h)
+0e6d:cb e6              set     4,(hl)      ; nastav. p©¡znak v˜stupu na displej
+0e6f:3a 0c 19   lab214: ld      a,(ddb5)    ; = 0
+0e72:32 35 19           ld      (ddb9),a    ; = 0
+0e75:3a 0d 19           ld      a,(ddb6)    ; = 0
+0e78:4f                 ld      c,a
+0e79:07                 rlca    
+0e7a:07                 rlca    
+0e7b:47                 ld      b,a
+0e7c:e6 03              and     3
+0e7e:32 37 19           ld      (ddb10),a   ; = 0
+0e81:78                 ld      a,b
+0e82:e6 c0              and     0c0h
+0e84:47                 ld      b,a
+0e85:79                 ld      a,c
+0e86:e6 0f              and     0fh
+0e88:b0                 or      b
+0e89:32 36 19           ld      (ddb11),a   ; = 0
+0e8c:3a 32 19           ld      a,(btpi1a)  ; v˜stupn¡ bajt na PIO1-A (displej)
+0e8f:d3 08              out     (8),a       ; zapnut¡ z pisu na displej
+0e91:21 9b 0d           ld      hl,setdis   ; tabulka pro inicializaci PIO1-A
+0e94:06 03              ld      b,3         ; po‡et znak– pro inicializaci
+0e96:0e 0a              ld      c,0ah       ; ©¡zen¡ kan lu PIO1-A (displej)
+0e98:ed b3              otir                ; inicializace PIO1-A (displej)
+0e9a:af                 xor     a           ; A <- 0
+0e9b:32 2e 19           ld      (citrad),a  ; ‡¡ta‡ zobrazen˜ch © dk–
+0e9e:06 20              ld      b,20h       ; po‡et bajt– linky k v˜stupu
+0ea0:3a 32 19           ld      a,(btpi1a)  ; v˜stupn¡ bajt na PIO1-A (displej)
+0ea3:cb 8f              res     1,a         ;
+0ea5:cb af      lab8:                       ; vymaz n¡ spodn¡ho © dku
+                        res     5,a         ; generov n¡ sign lu TAKT
+0ea7:d3 08              out     (8),a       ; vysl n¡ sign lu TAKT
+0ea9:cb ef              set     5,a         ; n vrat sign lu TAKT
+0eab:d3 08              out     (8),a       ; n vrat sign lu TAKT
+0ead:10 f6              djnz    lab8        ; dal¨¡ znak
+
+0eaf:2a 35 19           ld      hl,(ddb9)   ; = 0
+0eb2:22 2f 19           ld      (ddw3),hl   ; = 0
+0eb5:3a 37 19           ld      a,(ddb10)   ; = 0
+0eb8:32 31 19           ld      (ddb13),a   ; = 0
+                lab17:                      ; zobrazen¡ 1 linky textu
+0ebb:06 10              ld      b,10h       ; po‡et znak– na v˜stup = 16
+0ebd:3a 2e 19           ld      a,(citrad)  ; ‡¡ta‡ zobrazen˜ch © dk–
+0ec0:4f                 ld      c,a         ; ‡¡ta‡ © dk–
+0ec1:fd 21 0e 19        ld      iy,txtbuf   ; textov˜ buffer (16 znak–)
+0ec5:dd 2a 38 19 lab11: ld      ix,(adtbzn) ; adresa tabulky znak–
+0ec9:fd 7e 00           ld      a,(iy+0)    ; znak k v˜stupu na displej
+0ecc:3d                 dec     a           ; znak - 1
+0ecd:dd be fe           cp      (ix-2)      ; kontrola horn¡ hranice znaku
+0ed0:30 06              jr      nc,lab9     ; je vˆt¨¡ - nezobraz¡ se
+0ed2:3c                 inc     a           ; znak
+0ed3:dd 96 ff           sub     (ix-1)      ; kontrola doln¡ hranice znaku
+0ed6:30 03              jr      nc,lab21    ; je vˆt¨¡ - bude zobrazen
+0ed8:af         lab9:   xor     a           ; n hradn¡ font - nezobraz¡ se
+0ed9:18 1b              jr      lab10       ; zobrazen¡ znaku
+0edb:16 00      lab21:  ld      d,0         ; D <- 0
+0edd:5f                 ld      e,a         ; E <- znak relativnˆ v tabulce
+0ede:dd 19              add     ix,de       ; tabulka + znak
+0ee0:eb                 ex      de,hl       ; HL <- znak
+0ee1:29                 add     hl,hl       ; znak * 2
+0ee2:29                 add     hl,hl       ; znak * 4
+0ee3:eb                 ex      de,hl       ; DE <- znak * 4
+0ee4:dd 19              add     ix,de       ; tabulka + znak*5 (adresa znaku)
+0ee6:79                 ld      a,c         ; ‡¡slo zobrazovan‚ linky znaku
+0ee7:0f                 rrca                ; =linka/2
+0ee8:38 2b              jr      c,lab22     ; je linka 1,5
+0eea:0f                 rrca                ; =linka/4
+0eeb:38 37              jr      c,lab24     ; je linka 2,6
+0eed:07                 rlca                ; =linka 0,4,8/2
+0eee:5f                 ld      e,a         ; =linka 0,4,8/2
+0eef:16 00              ld      d,0         ; D <- 0
+0ef1:dd 19              add     ix,de       ; adresa linek 0,2 v tabulce
+0ef3:dd 7e 00           ld      a,(ix+0)    ; bajt linek 0,2
+0ef6:e6 1f      lab10:  and     1fh         ; ponech  pouze 5 bit– linky
+0ef8:fd 77 10           ld      (iy+10h),a  ; ulo‘. do bufferu linky pro v˜stup
+0efb:fd 23              inc     iy          ; dal¨¡ znak k dek¢dov n¡
+0efd:10 c6              djnz    lab11       ; dek¢dov n¡ linky dal¨¡ho znaku
+
+0eff:0c         lab12:  inc     c           ; zv˜¨en¡ ukazatele linky
+0f00:79                 ld      a,c         ; zobrazen  linka
+0f01:e6 03              and     3           ; linka
+0f03:fe 03              cp      3           ; je n sobek 3 ?
+0f05:28 f8              jr      z,lab12     ; je n sobek 3 - p©esko‡en¡ ‡¡sla
+0f07:79                 ld      a,c         ; linka
+0f08:fe 09              cp      9           ; jsou ji‘ v¨echny linky ?
+0f0a:32 2e 19           ld      (citrad),a  ; ‡¡ta‡ zobrazen‚ linky
+0f0d:20 2d              jr      nz,lab13    ; nejsou je¨tˆ v¨echny linky
+0f0f:af                 xor     a
+0f10:32 2e 19           ld      (citrad),a  ; citac zobrazenych radku
+0f13:18 27              jr      lab13       ; zobrazeni sloupcu textu
+; ......................................................
+                lab22:                      ; je linka 1,5
+0f15:0f                 rrca                ; linka 1,5/4
+0f16:0f                 rrca                ; linka 1,5/8
+0f17:dd 7e 01           ld      a,(ix+1)    ; bajt 1 znaku (pro 1.linku)
+0f1a:30 03              jr      nc,lab23    ; je linka 1
+0f1c:dd 7e 03           ld      a,(ix+3)    ; bajt 3 znaku (pro 5.linku)
+0f1f:0f         lab23:  rrca                ; (rotace o 3 bity vpravo)
+0f20:0f                 rrca
+0f21:0f                 rrca                ; zde jsou p©ipraveny bity
+0f22:18 d2              jr      lab10       ; ulo‘en¡ © dku do bufferu
+; .....................................................
+0f24:0f         lab24:                      ; je linka 2,6
+                        rrca                ; linka 2,6/8
+0f25:30 04              jr      nc,lab25    ; je linka 2
+0f27:dd 23              inc     ix          ; adresa + 1
+0f29:dd 23              inc     ix          ; adresa + 2
+0f2b:dd 6e 01   lab25:  ld      l,(ix+1)    ; bajt 1
+0f2e:dd 66 02           ld      h,(ix+2)    ; bajt 2
+0f31:cb 14              rl      h
+0f33:cb 15              rl      l
+0f35:cb 14              rl      h
+0f37:cb 15              rl      l
+0f39:7d                 ld      a,l         ; bajt linky 2,6
+0f3a:18 ba              jr      lab10       ; ulo‘en¡ © dku do bufferu
+; ......................................................
+                lab13:                      ; zobrazen¡ linky textu
+0f3c:21 1e 19           ld      hl,slpbuf   ; buffer linky pro v˜stup na displej
+0f3f:06 10              ld      b,10h       ; po‡et linek k v˜stupu
+0f41:0e 08              ld      c,8         ; adresa PIO1-A (displej)
+0f43:3a 32 19   lab16:  ld      a,(btpi1a)  ; v˜stupn¡ bajt na PIO1-A (displej)
+0f46:cb 66              bit     4,(hl)      ; je nastaven bit 5 znaku ?
+0f48:28 02              jr      z,lab14     ; nen¡ nastaven bit 5 znaku
+0f4a:cb 87              res     0,a         ; nastaven¡ indikace bitu 5 znaku
+0f4c:57         lab14:  ld      d,a         ; £schova linky k v˜stupu
+0f4d:78                 ld      a,b         ; ‡¡ta‡ linek
+0f4e:fe 10              cp      10h         ; je prvn¡ linka ?
+0f50:20 18              jr      nz,lab15    ; nen¡ prvn¡ linka
+                                            ; p©i prvn¡ lince se nastav¡ LED
+0f52:e5                 push    hl          ; £schova HL
+0f53:21 2f 19           ld      hl,ddw3     ; nastaven¡ LED
+0f56:cb 46              bit     0,(hl)      ; m  b˜t rozsv¡cena LED ?
+0f58:28 02              jr      z,lab18     ; LED nen¡ rozsv¡cena
+0f5a:cb 9a              res     3,d         ; nastaven¡ (rozsv¡cen¡) LED X3
+0f5c:cb 76      lab18:  bit     6,(hl)      ; m  b˜t rozsv¡cena LED ?
+0f5e:28 02              jr      z,lab19     ; LED nen¡ rozsv¡cena
+0f60:cb 92              res     2,d         ; nastaven¡ rozv¡cen¡ LED
+0f62:23         lab19:  inc     hl          ; druh˜ bajt LED
+0f63:cb 66              bit     4,(hl)      ; m  b˜t rozsv¡cena LED ?
+0f65:28 02              jr      z,lab20     ; LED nen¡ rozsv¡cena
+0f67:cb 8a              res     1,d         ; nastaven¡ (rozsv¡cen¡) LED
+0f69:e1         lab20:  pop     hl          ; n vrat HL
+
+0f6a:7a         lab15:  ld      a,d         ; prvn¡ ‡ st linky
+0f6b:ed 79              out     (c),a       ; v˜stup prvn¡ ‡ sti linky
+0f6d:cb ef              set     5,a         ; nastaven¡ sign lu TAKT
+0f6f:ed 79              out     (c),a       ; nastaven¡ sign lu TAKT (z pis dat)
+0f71:e6 d0              and     0d0h        ; ukon‡en¡ sign lu TAKT
+0f73:57                 ld      d,a         ; £schova bajtu k v˜stupu
+0f74:7e                 ld      a,(hl)      ; linka k v˜stupu
+0f75:e6 0f              and     0fh         ; spodn¡ ‡ st linky k v˜stupu
+0f77:ee 0f              xor     0fh         ; inverze bit–
+0f79:b2                 or      d           ; n vrat ©¡dic¡ch sign l–
+0f7a:ed 79              out     (c),a       ; z pis druh‚ ‡ sti linky
+0f7c:cb ef              set     5,a         ; nastaven¡ sign lu TAKT
+0f7e:ed 79              out     (c),a       ; nastaven¡ sign lu TAKT (z pis dat)
+0f80:23                 inc     hl          ; adresa linky dal¨¡ho znaku
+0f81:10 c0              djnz    lab16       ; zobrazen¡ linky dal¨¡ho znaku
+0f83:3a 2e 19           ld      a,(citrad)  ; ‡¡ta‡ zobrazen˜ch © dk–
+0f86:fe 01              cp      1           ; je linka 1 ?
+0f88:ca bb 0e           jp      z,lab17     ; je linka 1 - dal¨¡ linka
+0f8b:21 31 19           ld      hl,ddb13    ; = 0
+0f8e:cb 3e              srl     (hl)
+0f90:2b                 dec     hl
+0f91:cb 1e              rr      (hl)
+0f93:2b                 dec     hl
+0f94:cb 1e              rr      (hl)
+0f96:3a 2e 19           ld      a,(citrad)  ; ‡¡ta‡ zobrazen˜ch © dk–
+0f99:a7                 and     a
+0f9a:c2 bb 0e           jp      nz,lab17    ; nen¡ je¨tˆ © dek 0
+0f9d:21 98 0d           ld      hl,dtb11    ; tabulka zpˆtn‚ inic. PIO1-A
+0fa0:0e 0a              ld      c,0ah       ; ©¡zen¡ kan lu PIO1-A (displej)
+0fa2:06 03              ld      b,3         ; po‡et bajt–
+0fa4:ed b3              otir                ; nastaven¡ kan lu PIO1-A (uveden¡
+                                            ;  v˜stup– do vysokoimp. stavu)
+0fa6:3a 32 19           ld      a,(btpi1a)  ; v˜stupn¡ bajt na PIO1-A (displej)
+0fa9:f6 20              or      20h         ; ukon‡en¡ sign lu TAKT
+0fab:e6 ef              and     0efh        ; zru¨en¡ sign lu WR
+0fad:d3 08              out     (8),a       ; uveden¡ sign l– do klidov‚ho stavu
+0faf:c9                 ret     
+
+; ......................................................
+0fb0:           dtb75:  db   1eh,2ah,1dh,2dh,33h,1fh,0,0,80h,84h,58h,30h
+0fbc:                   db   2eh,59h,0,0,81h,85h,45h,31h,32h,46h,0,0,82h
+0fc9:                   db   86h,43h,34h,35h,36h,44h,0,83h,87h,41h,37h,38h
+0fd5:                   db   39h,42h,0
+
+0fd8:           setklv:                     ; tabulka pro inicializaci PIO-B
+                                            ; pro vstup z kl vesnice (z 0e50h)
+                        db      0cfh        ; re‘im - bitov˜ vstup/v˜stup
+                        db      0ffh        ; maska - v¨echny bity vstupy
+                        db      88h         ; vektor p©eru¨en¡
+                        db      97h         ; povolen¡ p©eru¨en¡ od v¨ech bit–
+                        db      0e0h        ; maska - p©eru¨en¡ od bit– kl ves
+
+                                          ;* p©eru¨en¡ od kl vesnice
+
+0fdd:f5         dtb22:  push    af          ; £schova AF
+0fde:e5                 push    hl          ; £schova HL
+0fdf:db 09              in      a,(9)       ; vstup z kl vesnice
+0fe1:6f                 ld      l,a         ; data z kl vesnice
+0fe2:e6 1f              and     1fh         ; data jednoho © dku
+0fe4:fe 1f              cp      1fh         ; je nˆjak  kl vesa ?
+0fe6:ca 3d 10           jp      z,lab222    ; nen¡ ‘ dn  kl vesa - n vrat
+0fe9:7d                 ld      a,l         ; stisknut‚ kl vesy
+0fea:21 34 19           ld      hl,ddb3     ; = 0
+0fed:cb 4e              bit     1,(hl)
+0fef:20 4a              jr      nz,lab223
+0ff1:32 00 19           ld      (ddb4),a    ; = 0 (0e59h) £schova © dku kl ves
+0ff4:cb ce              set     1,(hl)
+0ff6:cb c6              set     0,(hl)
+0ff8:fe 4f              cp      4fh         ; je kl vesa A (zru¨en¡) ?
+0ffa:28 1f              jr      z,lab224    ; je kl vesa A
+0ffc:fe 5d              cp      5dh         ; je kl vesa X (alternat. zru¨en¡) ?
+0ffe:20 00              jr      nz,lab227
+1000:21 3a 19   lab227: ld      hl,dtb26
+1003:fe d7              cp      0d7h        ; je kl vesa D ?
+1005:20 04              jr      nz,lab228   ; mem¡ kl vesa D
+1007:cb de              set     3,(hl)
+1009:18 17              jr      lab230
+
+100b:fe bd      lab228: cp      0bdh        ; je kl vesa Y ?
+100d:20 04              jr      nz,lab229   ; nen¡ kl vesa Y
+100f:cb ee              set     5,(hl)
+1011:18 0f              jr      lab230
+
+1013:fe cf      lab229: cp      0cfh        ; je kl vesa B ?
+1015:20 0b              jr      nz,lab230   ; nen¡ kl vesa B
+1017:cb f6              set     6,(hl)
+1019:18 07              jr      lab230
+
+101b:21 3a 19   lab224: ld      hl,dtb26    ;
+
+101e:7e                 ld      a,(hl)
+101f:f6 17              or      17h
+1021:77                 ld      (hl),a
+1022:21 ce 18   lab230: ld      hl,dtb27
+1025:cd 09 02           call    vekt4
+1028:db 08              in      a,(8)       ; ‡ten¡ dat z registru videopamˆti
+102a:6f                 ld      l,a         ; £schova stavu videopamˆti
+102b:e6 7f              and     7fh         ; vypnut¡ zvukov‚ signalizace
+102d:d3 08              out     (8),a       ; vypnut¡ zvukov‚ signalizace
+102f:f6 80              or      80h         ; zapnut¡ zvukov‚ signalizace
+1031:d3 08              out     (8),a       ; zapnut¡ zvukov‚ signalizace
+1033:7d                 ld      a,l         ; p–vodn¡ nastaven¡ portu
+1034:d3 08              out     (8),a       ; zpˆtn‚ nastaven¡ v˜stupu
+1036:e1                 pop     hl          ; n vrat HL
+1037:f1                 pop     af          ; n vrat AF
+1038:c3 06 02           jp      vekt3
+
+103b:cb c6      lab223: set     0,(hl)
+103d:e1         lab222: pop     hl
+103e:f1                 pop     af
+103f:fb                 ei      
+1040:ed 4d              reti    
+; ......................................................
+
+1042:01 ce 18   lab233: ld      bc,dtb27
+1045:11 00 00           ld      de,0
+1048:21 00 00           ld      hl,0
+104b:cd 36 02           call    vekt19
+104e:3a ff 18           ld      a,(ddb8)    ; v˜stupn¡ bajt na PIO1-A (displej)
+1051:a7                 and     a
+1052:20 0c              jr      nz,lab231
+1054:01 cc 18           ld      bc,dtb25
+1057:11 00 00           ld      de,0
+105a:21 00 00           ld      hl,0
+105d:cd 2d 02           call    vekt16
+1060:21 c6 10   lab231: ld      hl,dtb43
+1063:cd 39 02           call    vekt20
+1066:21 34 19           ld      hl,ddb3     ; = 0
+1069:cb 46              bit     0,(hl)
+106b:cb 86              res     0,(hl)
+106d:20 f1              jr      nz,lab231
+106f:cb 8e              res     1,(hl)
+1071:18 cf              jr      lab233
+; ......................................................
+1073:37         lab239: scf     
+1074:cd 8c 0c           call    lab203      ; p©enos dat za CALL
+1077:f5 18              dw      18f5h       ; c¡lov  adresa
+1079:02                 db      2           ; po‡et bajt– k p©enosu
+107a:                   db      0,21h       ; data k p©enosu
+
+107c:28 00      lab234: jr      z,lab235
+107e:22 01 19   lab235: ld      (ddw28),hl
+1081:01 b6 18           ld      bc,dtb29
+1084:11 f5 18           ld      de,dtb71
+1087:21 00 00           ld      hl,0
+108a:cd 36 02           call    vekt19
+108d:af                 xor     a
+108e:32 ff 18           ld      (ddb8),a    ; v˜stupn¡ bajt na PIO1-A (displej)
+1091:01 cc 18           ld      bc,dtb25
+1094:11 00 00           ld      de,0
+1097:21 01 19           ld      hl,ddw28
+109a:cd 36 02           call    vekt19
+109d:3a 03 19           ld      a,(ddb28)
+10a0:fe 00              cp      0
+10a2:ca be 10           jp      z,lab236
+10a5:cd c8 10           call    lab240
+10a8:37         lab237: scf     
+10a9:cd 8c 0c           call    lab203      ; p©enos dat za CALL
+10ac:fb 18              dw      18fbh       ; c¡lov  adresa
+10ae:01                 db      1           ; po‡et bajt– k p©enosu
+10af:                   db      0           ; bajt k p©enosu
+
+
+10b0:01 f9 18   lab238: ld      bc,dtb73
+10b3:11 fb 18           ld      de,dtb74
+10b6:21 00 00           ld      hl,0
+10b9:cd 2d 02           call    vekt16
+10bc:18 b5              jr      lab239
+; ......................................................
+10be:3e ff      lab236: ld      a,0ffh
+10c0:32 ff 18           ld      (ddb8),a    ; v˜stupn¡ bajt na PIO1-A (displej)
+10c3:c3 a8 10           jp      lab237
+; ......................................................
+10c6:           dtb43:  db   2,0
+10c8:3a 00 19   lab240: ld      a,(ddb4)    ; = 0 (0e59h) £schova © dku kl ves
+10cb:06 05              ld      b,5
+10cd:21 b0 0f           ld      hl,dtb75
+10d0:11 08 00           ld      de,8
+10d3:1f         lab242: rra                 ; bit = 0 ?
+10d4:30 03              jr      nc,lab241   ; je konec
+10d6:19                 add     hl,de
+10d7:10 fa              djnz    lab242
+10d9:3a 00 19   lab241: ld      a,(ddb4)    ; = 0 (0e59h) £schova © dku kl ves
+10dc:07                 rlca    
+10dd:07                 rlca    
+10de:07                 rlca
+10df:e6 07              and     7           ; vy¨¨¡ 3 bity adresy
+10e1:5f                 ld      e,a
+10e2:16 00              ld      d,0
+10e4:19                 add     hl,de
+10e5:7e                 ld      a,(hl)
+10e6:32 ff 18           ld      (ddb8),a    ; v˜stupn¡ bajt na PIO1-A (displej)
+10e9:c9                 ret     
+; ......................................................
+
+10ea:           higznk: db   7fh            ; nejvy¨¨¡ znak v tabulce znak–
+10eb:           lowznk: db   10h            ; nejni‘¨¡ znak v tabulce znak–
+
+                tabznk:                     ; tabulka gener toru znak–
+                                            ; (ka‘d˜ znak 5 bajt–, organizace
+
+struktura znaku:    7   6   5   4   3   2   1   0
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+0                 ³   ³   ³   ³0/4³0/3³0/2³0/1³0/0³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+1                 ³1/4³1/3³1/2³1/1³1/0³2/4³2/3³2/2³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+2                 ³2/1³2/0³   ³3/4³3/3³3/2³3/1³3/0³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+3                 ³4/4³4/3³4/2³4/1³4/0³5/4³5/3³5/2³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+                  ÚÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄÂÄÄÄ¿
+4                 ³5/1³5/0³   ³6/4³6/3³6/2³6/1³6/0³
+                  ÀÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÙ
+
+10ec:                   db   15h,55h,4ah,0aah,95h,0ah,0aah,95h,55h,4ah,1fh
+10f7:                   db   0,0,0,0,0,0f8h,0,0,0,0,7,0c0h,0,0,0,0,0,0f8h
+1109:                   db   0,0,0,0,7,0c0h,10h,84h,10h,84h,10h,8,42h,8
+1117:                   db   42h,8,4,21h,4,21h,4,2,10h,82h,10h,82h,1,8,41h
+1126:                   db   8,41h,1fh,0ffh,0dfh,0ffh,0dfh,4,21h,4,0abh
+1131:                   db   84h,0,20h,9fh,11h,0,0,22h,1fh,41h,0,0,0,0,0
+1140:                   db   0,4,21h,4,20h,4,0ah,52h,80h,0,0,0ah,57h,0cah
+114e:                   db   0fah,8ah,0,8bh,8ah,74h,40h,18h,0c8h,84h,44h
+1159:                   db   0c3h,4,52h,8ch,0ach,8dh,4,22h,0,0,0,2,22h,8
+1167:                   db   41h,2,8,20h,82h,11h,8,0,25h,4eh,0a9h,0,0,21h
+1175:                   db   1fh,21h,0,0,0,0ch,62h,10h,0,0,1fh,0,0,0,0,0
+1185:                   db   3,0ch,0,8,84h,44h,0,0eh,8ch,0d5h,0cch,4eh,4
+1192:                   db   61h,4,21h,0eh,0eh,88h,46h,44h,1fh,1fh,8,86h
+119e:                   db   0ch,4eh,2,32h,92h,0f8h,82h,1fh,87h,81h,0ch
+11a9:                   db   4eh,7,44h,1eh,8ch,4eh,1fh,8,84h,42h,8,0eh,8ch
+11b6:                   db   4eh,8ch,4eh,0eh,8ch,4fh,8,9ch,0,63h,0,63h,0
+11c3:                   db   0,1,0,21h,8,2,22h,10h,41h,2,0,7,0c0h,0f8h,0
+11d2:                   db   8,20h,81h,11h,8,0eh,88h,42h,20h,4,0eh,8ch,0d5h
+11df:                   db   0bch,0eh,4,54h,51h,0fch,51h,1eh,8ch,5eh,8ch
+11ea:                   db   5eh,0eh,8ch,10h,84h,4eh,1eh,4ah,49h,4ah,5eh
+11f5:                   db   1fh,84h,1eh,84h,1fh,1fh,84h,1eh,84h,10h,0eh
+1200:                   db   84h,17h,8ch,4eh,11h,8ch,5fh,8ch,51h,0eh,21h
+120b:                   db   4,21h,0eh,1,8,41h,0ch,4eh,11h,95h,18h,0a4h
+1217:                   db   91h,10h,84h,10h,84h,1fh,11h,0ddh,55h,8ch,51h
+1222:                   db   11h,8eh,55h,9ch,51h,0eh,8ch,51h,8ch,4eh,1eh
+122d:                   db   8ch,5eh,84h,10h,0eh,8ch,51h,0ach,8dh,1eh,8ch
+1238:                   db   5eh,0a4h,91h,0eh,8ch,0eh,0ch,4eh,1fh,21h,4
+1243:                   db   21h,4,11h,8ch,51h,8ch,4eh,11h,8ch,4ah,51h,4
+124f:                   db   11h,8ch,55h,0adh,4ah,11h,8ah,84h,54h,51h,11h
+125a:                   db   8ah,84h,21h,4,1fh,8,84h,44h,1fh,1ch,84h,10h
+1266:                   db   84h,1ch,0,82h,4,10h,40h,7,8,41h,8,47h,4,75h
+1274:                   db   44h,21h,4,0,0,0,0,1fh,12h,0adh,5dh,0adh,52h
+1281:                   db   4,54h,51h,0fch,51h,1fh,84h,1eh,8ch,5eh,12h
+128c:                   db   94h,92h,97h,0c1h,0eh,52h,8ah,57h,0d1h,1fh,84h
+1297:                   db   1eh,84h,1fh,4,0fdh,55h,0afh,0c4h,1fh,8ch,10h
+12a2:                   db   84h,10h,11h,8ah,84h,54h,51h,11h,8ch,0d5h,0cch
+12ad:                   db   51h,0eh,4,53h,0aeh,51h,11h,95h,18h,0a4h,91h
+12b8:                   db   7,4ah,49h,4ah,51h,11h,0ddh,55h,8ch,51h,11h
+12c3:                   db   8ch,5fh,8ch,51h,0eh,8ch,51h,8ch,4eh,1fh,8ch
+12ce:                   db   51h,8ch,51h,0fh,8ch,4fh,2ah,51h,1eh,8ch,5eh
+12d9:                   db   84h,10h,0eh,8ch,10h,84h,4eh,1fh,21h,4,21h,4
+12e5:                   db   11h,8ch,4ah,22h,10h,11h,0adh,4eh,0adh,51h,1eh
+12f0:                   db   8ch,5eh,8ch,5eh,10h,87h,91h,8ch,5eh,11h,8ch
+12fb:                   db   59h,0adh,59h,0eh,88h,46h,0ch,4eh
+,11h,0adh,55h 0adh,5fh
+,1ch,10h,4fh,8,9ch,
+15h,0adh,55h,0afh,0c1h,
+11h,8ch,5fh,8,41h,
+1ch,0a1h,6,29h,46h
+
+
+131c:           dtb127: db   "  ADR:"
+1322:           dtb129: db   "  V:07"
+
+                lab245:                     ; kontroln¡ sou‡et RAM
+1328:21 00 3b           ld      hl,dtb81    ; adresa za‡ tku pamˆti RAM 1
+132b:ed 4b a1 1e        ld      bc,(1ea1h)  ; d‚lka pamˆti RAM 1
+132f:cd fd 03           call    lab122      ; kontr.sou‡et pamˆti -> HL
+1332:ed 4b a9 1e        ld      bc,(1ea9h)  ; p©edpokl dan˜ kontroln¡ sou‡et
+1336:b7                 or      a
+1337:ed 42              sbc     hl,bc       ; kontrola kontroln¡ho sou‡tu
+1339:3e 4a              ld      a,4ah       ; chyba pamˆti RAM
+133b:c0                 ret     nz          ; n vrat p©i chybˆ pamˆti
+133c:21 00 2b           ld      hl,dtb82    ; adresa za‡ tku pamˆti RAM 2
+133f:ed 4b a3 1e        ld      bc,(1ea3h)  ; d‚lka pamˆti RAM 2
+1343:cd fd 03           call    lab122      ; kontr.sou‡et pamˆti -> HL
+1346:ed 4b ab 1e        ld      bc,(1eabh)  ; p©edpokl dan˜ kontroln¡ sou‡et
+134a:b7                 or      a           ; CF <- 0
+134b:ed 42              sbc     hl,bc       ; kontrola kontroln¡ho sou‡tu
+134d:c8                 ret     z           ; n vrat - kontr. sou‡et OK
+134e:3e 4b              ld      a,4bh       ; chyba pamˆti RAM
+1350:c9                 ret     
+; ......................................................
+                                            ; inicializace buffer– pro "LOADING"
+1351:21 f5 18   lab258: ld      hl,dtb71
+1354:11 f6 18           ld      de,dtb115
+1357:36 00              ld      (hl),0
+1359:01 9f 05           ld      bc,59fh
+135c:ed b0              ldir                ; vymaz n¡
+135e:21 e3 1e           ld      hl,dtb77
+1361:11 e4 1e           ld      de,dtb117
+1364:36 00              ld      (hl),0
+1366:01 d6 03           ld      bc,03d6h
+1369:ed b0              ldir                ; vymaz n¡
+136b:21 77 13           ld      hl,dtb119   ; text "    LOADING     7"
+136e:11 05 1f           ld      de,dtb120   ; program pro l dov n¡
+1371:01 3f 00           ld      bc,3fh      ; d‚lka dat
+1374:ed b0              ldir                ; p©enos textu LOADING 7
+1376:c9                 ret
+

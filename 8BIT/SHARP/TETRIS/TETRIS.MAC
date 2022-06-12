@@ -1,0 +1,942 @@
+
+VRAMTxt  EQU       0d000h                   ; adresa videopamˆti - text
+VRAMCol  EQU       0d800h                   ; adresa videopamˆti - barvy
+Pozic    EQU       40                       ; po‡et pozic na © dek displeje
+Radku    EQU       25                       ; po‡et © dk– displeje
+VRAMSize EQU       Pozic*Radku              ; velikost videopamˆti (bajt–)
+Cihla    EQU       2                        ; znak cihly
+Mezera   EQU       8                        ; znak mezery
+Pocatek  EQU       VRAMTxt+2*Pozic+15       ; po‡ te‡n¡ pozice pole
+Rychlost EQU       8                        ; rychlost
+Blikani  EQU       40                       ; prodleva pro blik n¡
+
+CR       EQU       66h                      ; znak CR
+
+         .z80
+         org       1200h
+
+Start:   ld        ix,TabDat                ; tabulka dat
+
+; ------ vymaz n¡ videopamˆti ‡ervenou barvou
+
+         ld        hl,VRAMCol               ; videopamˆŸ - barvy
+         ld        de,VRAMCol+1
+         ld        (hl),20h                 ; ‡erven  barva na ‡ern‚m podkladu
+         call      MazCol                   ; vymaz n¡ videopamˆti - barvy
+
+; ------ zobrazen¡ £vodn¡ obrazovky
+
+         ld        hl,UvObr                 ; vzor £vodn¡ obrazovky
+         ld        de,VRAMTxt               ; videopamˆŸ - text
+         ld        bx,VRAMSize              ; velikost videopamˆti
+         ldir                               ; p©enesen¡ do videopamˆti
+
+; ------ ‡ek n¡ na zad n¡ znaku z kl vesnice
+
+Start0:  call      InputC                   ; vstup znaku z kl vesnice
+         cp        " "                      ; je mezera ?
+         jr        z,Start1                 ; start se sou‡asnou £rovn¡
+         cp        CR                       ; je CR ?
+         jr        z,Start1                 ; start se sou‡asnou £rovn¡
+         cp        "9"+1
+         jr        nc,Start0                ; nen¡ ‡¡slice
+         sub       "0"
+         jr        c,Start0
+         ld        (Uroven),a               ; zadan  £rove¤
+
+; ------ inicializa‡n¡ zobrazen¡ obrazovky
+
+Start1:  ld        hl,Obraz                 ; obrazovka
+         call      ZobrTxt                  ; zobrazen¡ obrazovky
+         call      HiLev                    ; zobrazen¡ aktu ln¡ £rovnˆ
+
+; ------ zobrazen¡ maxim ln¡ £rovnˆ
+
+         ld        hl,(MxSkore)             ; maxim ln¡ sk¢re
+         ld        de,VRAMTxt+7*Pozic+7     ; adresa k ulo‘en¡
+         ld        a,5                      ; po‡et ‡¡slic
+         call      Numer                    ; zobrazen¡ maxim ln¡ £rovnˆ
+
+; ------ vymaz n¡ tabulky dat
+
+         ld        hl,ZacMaz                ; adresa za‡ tku maz n¡ dat
+         ld        de,ZacMaz+1
+         ld        bc,KonMaz-ZacMaz-1       ; velikost dat k vymaz n¡
+         ld        (hl),0                   ; nulovac¡ bajt
+         ldir                               ; vymaz n¡ tabulky dat
+
+; ------ vygenerov n¡ p©¡¨t¡ cihly
+
+NovaC0:  call      RandCih                  ; vygenerov n¡ nov‚ cihly
+
+; ------ vygenerov n¡ nov‚ cihly
+
+NovaCih: ld        hl,(Body)                ; po‡et bod– za cihlu
+         ld        (Bodu),hl                ; ‡¡ta‡ bod– za cihlu
+         ld        hl,Param                 ; parametry
+         bit       0,(hl)                   ; zobraz¡ se p©¡¨t¡ cihla ?
+         jr        z,NovCih0                ; nov  cihla se nezobraz¡
+         res       0,(hl)
+         call      ObrNext                  ; zobrazen¡ p©¡¨t¡ cihly
+         set       0,(hl)
+NovCih0: res       1,(hl)
+         dec       hl
+         ld        (hl),1                   ; sou©adnice Y
+         dec       hl
+         ld        (hl),5                   ; sou©adnice X
+         call      RandCih                  ; vygenerov n¡ p©¡¨t¡ cihly
+         call      TestCih                  ; test pozice cihly
+         jp        c,KonHry1
+
+
+
+
+L1273:  CD 46 15                CALL    L1546
+L1276:  DA 07 14                JP      C,L1407
+L1279:  CD DA 14                CALL    L14DA
+L127C:  3A FC 21                LD      A,(L21FC)
+L127F:  21 BB 15                LD      HL,L15BB
+L1282:  06 07                   LD      B,BEL
+L1284:  BE                      CP      (HL)
+L1285:  28 05                   JR      Z,L128C
+L1287:  23                      INC     HL
+L1288:  10 FA                   DJNZ    L1284
+L128A:  18 21                   JR      L12AD
+L128C:  3E 08                   LD      A,BS
+L128E:  90                      SUB     B
+L128F:  47                      LD      B,A
+L1290:  48                      LD      C,B
+L1291:  21 0D D2                LD      HL,LD20D
+L1294:  11 28 00                LD      DE,L0028
+L1297:  19                      ADD     HL,DE
+L1298:  10 FD                   DJNZ    L1297
+L129A:  EB                      EX      DE,HL
+L129B:  21 E7 21                LD      HL,L21E7
+L129E:  09                      ADD     HL,BC
+L129F:  09                      ADD     HL,BC
+L12A0:  34                      INC     (HL)
+L12A1:  7E                      LD      A,(HL)
+L12A2:  23                      INC     HL
+L12A3:  20 01                   JR      NZ,L12A6
+L12A5:  34                      INC     (HL)
+L12A6:  66                      LD      H,(HL)
+L12A7:  6F                      LD      L,A
+L12A8:  3E 04                   LD      A,EOT
+L12AA:  CD 52 14                CALL    L1452
+L12AD:  2A F7 21                LD      HL,(L21F7)
+L12B0:  DD CB 1C 4E             BIT     1,(IX+01CH)
+L12B4:  28 03                   JR      Z,L12B9
+L12B6:  21 01 00                LD      HL,L0001
+L12B9:  CD 4B 15                CALL    L154B
+L12BC:  CD 04 22                CALL    L2204
+L12BF:  CA 4A 13                JP      Z,L134A
+L12C2:  F5                      PUSH    AF
+L12C3:  CD 48 15                CALL    L1548
+L12C6:  F1                      POP     AF
+L12C7:  FE 14                   CP      DC4
+L12C9:  20 0D                   JR      NZ,L12D8
+L12CB:  DD 35 1A                DEC     (IX+01AH)
+L12CE:  CD 46 15                CALL    L1546
+L12D1:  30 74                   JR      NC,L1347
+L12D3:  DD 34 1A                INC     (IX+01AH)
+L12D6:  18 6F                   JR      L1347
+L12D8:  FE 13                   CP      XOFF
+L12DA:  20 0D                   JR      NZ,L12E9
+L12DC:  DD 34 1A                INC     (IX+01AH)
+L12DF:  CD 46 15                CALL    L1546
+L12E2:  30 63                   JR      NC,L1347
+L12E4:  DD 35 1A                DEC     (IX+01AH)
+L12E7:  18 5E                   JR      L1347
+L12E9:  FE 20                   CP      ' '
+L12EB:  28 04                   JR      Z,L12F1
+L12ED:  FE 11                   CP      XON
+L12EF:  20 09                   JR      NZ,L12FA
+L12F1:  DD CB 1C CE             SET     1,(IX+01CH)
+L12F5:  21 01 00                LD      HL,L0001
+L12F8:  18 4D                   JR      L1347
+L12FA:  FE 12                   CP      DC2
+L12FC:  20 24                   JR      NZ,L1322
+L12FE:  E5                      PUSH    HL
+L12FF:  3A FC 21                LD      A,(L21FC)
+L1302:  F5                      PUSH    AF
+L1303:  4F                      LD      C,A
+L1304:  06 00                   LD      B,NUL
+L1306:  21 C1 15                LD      HL,L15C1
+L1309:  09                      ADD     HL,BC
+L130A:  09                      ADD     HL,BC
+L130B:  09                      ADD     HL,BC
+L130C:  09                      ADD     HL,BC
+L130D:  09                      ADD     HL,BC
+L130E:  7E                      LD      A,(HL)
+L130F:  32 FC 21                LD      (L21FC),A
+L1312:  CD 46 15                CALL    L1546
+L1315:  38 04                   JR      C,L131B
+L1317:  F1                      POP     AF
+L1318:  E1                      POP     HL
+L1319:  18 2C                   JR      L1347
+L131B:  F1                      POP     AF
+L131C:  32 FC 21                LD      (L21FC),A
+L131F:  E1                      POP     HL
+L1320:  18 25                   JR      L1347
+L1322:  FE 5A                   CP      'Z'
+L1324:  20 10                   JR      NZ,L1336
+L1326:  3A E5 21                LD      A,(L21E5)
+L1329:  3C                      INC     A
+L132A:  FE 0A                   CP      LF
+L132C:  30 08                   JR      NC,L1336
+L132E:  32 E5 21                LD      (L21E5),A
+L1331:  CD B3 14                CALL    L14B3
+L1334:  18 11                   JR      L1347
+L1336:  FE 41                   CP      'A'
+L1338:  20 0D                   JR      NZ,L1347
+L133A:  3A FF 21                LD      A,(L21FF)
+L133D:  EE 01                   XOR     SOH
+L133F:  32 FF 21                LD      (L21FF),A
+L1342:  CD DA 14                CALL    L14DA
+L1345:  18 00                   JR      L1347
+L1347:  CD 4B 15                CALL    L154B
+L134A:  2B                      DEC     HL
+L134B:  7C                      LD      A,H
+L134C:  B5                      OR      L
+L134D:  C2 BC 12                JP      NZ,L12BC
+L1350:  DD CB 1C 4E             BIT     1,(IX+01CH)
+L1354:  20 03                   JR      NZ,L1359
+L1356:  DD 35 18                DEC     (IX+018H)
+L1359:  CD 48 15                CALL    L1548
+L135C:  DD 34 1B                INC     (IX+01BH)
+L135F:  CD 46 15                CALL    L1546
+L1362:  D2 AD 12                JP      NC,L12AD
+L1365:  2A E6 21                LD      HL,(L21E6)
+L1368:  3A FB 21                LD      A,(L21FB)
+L136B:  4F                      LD      C,A
+L136C:  06 00                   LD      B,NUL
+L136E:  09                      ADD     HL,BC
+L136F:  DD CB 1C 46             BIT     0,(IX+01CH)
+L1373:  28 05                   JR      Z,L137A
+L1375:  0E 05                   LD      C,ENQ
+L1377:  B7                      OR      A
+L1378:  ED 42                   SBC     HL,BC
+L137A:  22 E6 21                LD      (L21E6),HL
+L137D:  11 6F D1                LD      DE,LD16F
+L1380:  3E 05                   LD      A,ENQ
+L1382:  CD 52 14                CALL    L1452
+L1385:  DD 35 1B                DEC     (IX+01BH)
+L1388:  CD 4B 15                CALL    L154B
+L138B:  21 0F D8                LD      HL,LD80F
+L138E:  0E 28                   LD      C,'('
+L1390:  3A FE 21                LD      A,(L21FE)
+L1393:  B7                      OR      A
+L1394:  28 04                   JR      Z,L139A
+L1396:  09                      ADD     HL,BC
+L1397:  3D                      DEC     A
+L1398:  20 FC                   JR      NZ,L1396
+L139A:  06 04                   LD      B,EOT
+L139C:  C5                      PUSH    BC
+L139D:  06 0A                   LD      B,LF
+L139F:  E5                      PUSH    HL
+L13A0:  11 5F D8                LD      DE,LD85F
+L13A3:  B7                      OR      A
+L13A4:  ED 52                   SBC     HL,DE
+L13A6:  E1                      POP     HL
+L13A7:  E5                      PUSH    HL
+L13A8:  38 48                   JR      C,L13F2
+L13AA:  3E 02                   LD      A,STX
+L13AC:  BE                      CP      (HL)
+L13AD:  20 43                   JR      NZ,L13F2
+L13AF:  23                      INC     HL
+L13B0:  10 FA                   DJNZ    L13AC
+L13B2:  E1                      POP     HL
+L13B3:  EB                      EX      DE,HL
+L13B4:  D5                      PUSH    DE
+L13B5:  62                      LD      H,D
+L13B6:  6B                      LD      L,E
+L13B7:  01 28 00                LD      BC,L0028
+L13BA:  B7                      OR      A
+L13BB:  ED 42                   SBC     HL,BC
+L13BD:  E5                      PUSH    HL
+L13BE:  01 64 D8                LD      BC,LD864
+L13C1:  B7                      OR      A
+L13C2:  ED 42                   SBC     HL,BC
+L13C4:  E1                      POP     HL
+L13C5:  38 09                   JR      C,L13D0
+L13C7:  E5                      PUSH    HL
+L13C8:  01 0A 00                LD      BC,L000A
+L13CB:  ED B0                   LDIR
+L13CD:  D1                      POP     DE
+L13CE:  18 E5                   JR      L13B5
+L13D0:  3A E8 21                LD      A,(L21E8)
+L13D3:  3C                      INC     A
+L13D4:  32 E8 21                LD      (L21E8),A
+L13D7:  F5                      PUSH    AF
+L13D8:  CD A0 14                CALL    L14A0
+L13DB:  F1                      POP     AF
+L13DC:  01 0A 00                LD      BC,L000A
+L13DF:  91                      SUB     C
+L13E0:  38 03                   JR      C,L13E5
+L13E2:  04                      INC     B
+L13E3:  18 FA                   JR      L13DF
+L13E5:  3A E5 21                LD      A,(L21E5)
+L13E8:  B8                      CP      B
+L13E9:  30 07                   JR      NC,L13F2
+L13EB:  78                      LD      A,B
+L13EC:  32 E5 21                LD      (L21E5),A
+L13EF:  CD B3 14                CALL    L14B3
+L13F2:  E1                      POP     HL
+L13F3:  C1                      POP     BC
+L13F4:  11 28 00                LD      DE,L0028
+L13F7:  19                      ADD     HL,DE
+L13F8:  E5                      PUSH    HL
+L13F9:  11 70 DB                LD      DE,LDB70
+L13FC:  B7                      OR      A
+L13FD:  ED 52                   SBC     HL,DE
+L13FF:  E1                      POP     HL
+L1400:  30 02                   JR      NC,L1404
+L1402:  10 98                   DJNZ    L139C
+L1404:  C3 54 12                JP      L1254
+L1407:  2A E6 21                LD      HL,(L21E6)
+L140A:  E5                      PUSH    HL
+L140B:  ED 5B E3 21             LD      DE,(L21E3)
+L140F:  B7                      OR      A
+L1410:  ED 52                   SBC     HL,DE
+L1412:  E1                      POP     HL
+L1413:  30 01                   JR      NC,L1416
+L1415:  EB                      EX      DE,HL
+L1416:  22 E3 21                LD      (L21E3),HL
+L1419:  21 21 16                LD      HL,L1621
+L141C:  11 CF D3                LD      DE,LD3CF
+L141F:  01 0A 00                LD      BC,L000A
+L1422:  ED B0                   LDIR
+L1424:  21 28 00                LD      HL,L0028
+L1427:  CD 04 22                CALL    L2204
+L142A:  C2 00 12                JP      NZ,L1200
+L142D:  2B                      DEC     HL
+L142E:  7D                      LD      A,L
+L142F:  B4                      OR      H
+L1430:  20 F5                   JR      NZ,L1427
+L1432:  21 CF D3                LD      HL,LD3CF
+L1435:  11 D0 D3                LD      DE,LD3D0
+L1438:  36 00                   LD      (HL),NUL
+L143A:  01 09 00                LD      BC,L0009
+L143D:  ED B0                   LDIR
+L143F:  21 28 00                LD      HL,L0028
+L1442:  CD 04 22                CALL    L2204
+L1445:  C2 00 12                JP      NZ,L1200
+L1448:  2B                      DEC     HL
+L1449:  7D                      LD      A,L
+L144A:  B4                      OR      H
+L144B:  20 F5                   JR      NZ,L1442
+L144D:  18 B8                   JR      L1407
+
+L144F:  C3 00 00                JP      L0000
+
+; -----------------------------------------------------------------------------
+;        zobrazen¡ ‡¡sla HL na adresu DE (A=po‡et ‡¡slic)
+; -----------------------------------------------------------------------------
+
+Numer:   res       2,(ix+Param-TabDat)      ; nulov n¡ p©¡znaku nuly
+         cp        1                        ; po‡et ‡¡slic
+         jr        z,Numer1                 ; 1 ‡¡slice
+         cp        2
+         jr        z,Numer2                 ; 2 ‡¡slice
+         cp        3
+         jr        z,Numer3                 ; 3 ‡¡slice
+         cp        4
+         jr        z,Numer4                 ; 4 ‡¡slice
+         ld        bc,10000                 ; dˆlitel pro 5 ‡¡slic
+         call      Cislo                    ; v˜po‡et ‡¡slice des¡tek tis¡c
+Numer4:  ld        bc,1000                  ; dˆlitel pro 4 ‡¡slice
+         call      Cislo                    ; v˜po‡et ‡¡slice jednotek tis¡c
+Numer3:  ld        bc,100                   ; dˆlitel pro 3 ‡¡slice
+         call      Cislo                    ; v˜po‡et ‡¡slice stovek
+Numer2:  ld        bc,10                    ; dˆlitel pro 2 ‡¡slice
+         call      Cislo                    ; v˜po‡et ‡¡slice des¡tek
+Numer1:  ld        bc,1                     ; dˆlitel pro 1 ‡¡slici
+
+Cislo:   xor       a                        ; A <- 0 ‡¡ta‡ ‡¡sla
+Cislo1:  or        a                        ; nulov n¡ CF
+         sbc       hl,bc                    ; HL <- HL - BC
+         inc       a                        ; zv˜¨en¡ ‡¡ta‡e ‡¡sla
+         jr        nc,Cislo1                ; nen¡ je¨tˆ p©ete‡en¡
+         add       hl,bc                    ; n vrat posledn¡ho ‡¡sla
+         add       a,20h-1
+         cp        20h                      ; je nula ?
+         jr        nz,Cislo2                ; nen¡ nula
+         bit       2,(ix+Param-TabDat)      ; je povolena nula ?
+         jr        nz,Cislo3                ; je povolena nula
+         ld        a,0                      ; n hrada mezerou
+         jr        Cislo3
+Cislo2:  set       2,(ix+Param-TabDat)      ; p©¡znak povolen¡ nuly
+Cislo3:  ld        (de),a                   ; ulo‘en¡ znaku
+         inc       de                       ; zv˜¨eni ukl dac¡ adresy
+         ret
+
+; -----------------------------------------------------------------------------
+;        zobrazen¡ po‡tu © dk–
+; -----------------------------------------------------------------------------
+
+HiRad:   push      hl
+         push      de
+         ld        al,(Line)                ; po‡et cel˜ch © dk–
+         ld        l,a
+         ld        h,0
+         ld        de,VRAMTxt+4*Pozic+9     ; pozice k zobrazen¡
+         ld        a,3
+         call      Numer                    ; zobrazen¡ po‡tu © dk–
+         pop       de
+         pop       hl
+         ret
+
+; -----------------------------------------------------------------------------
+;        zobrazen¡ aktu ln¡ £rovnˆ
+; -----------------------------------------------------------------------------
+
+HiLev:   push      hl
+         push      de
+         ld        a,(Uroven)               ; aktu ln¡ £rove¤
+         ld        c,a
+         ld        a,24
+         add       a,c
+         add       a,c
+         add       a,c
+         ld        (Body),a                 ; po‡et bod–
+         ld        a,10
+         sub       c
+         ld        b,a
+         ld        de,Rychlost
+         ld        hl,0
+Level2:  add       hl,de
+         djnz      Level2
+         ld        (Prodl),hl               ; prodleva
+         ld        a,c
+         add       a," "
+         ld        (VRAMTxt+2*Pozic+11),a   ; zobrazen¡ £rovnˆ
+         pop       de
+         pop       hl
+         ret
+
+
+L14DA:  3A FC 21                LD      A,(L21FC)
+L14DD:  E5                      PUSH    HL
+L14DE:  F5                      PUSH    AF
+L14DF:  3A FA 21                LD      A,(L21FA)
+L14E2:  32 FC 21                LD      (L21FC),A
+L14E5:  2A FD 21                LD      HL,(L21FD)
+L14E8:  E5                      PUSH    HL
+L14E9:  21 11 14                LD      HL,L1411
+L14EC:  22 FD 21                LD      (L21FD),HL
+L14EF:  DD CB 1C 46             BIT     0,(IX+01CH)
+L14F3:  28 05                   JR      Z,L14FA
+L14F5:  CD 4B 15                CALL    L154B
+L14F8:  18 03                   JR      L14FD
+L14FA:  CD 48 15                CALL    L1548
+L14FD:  E1                      POP     HL
+L14FE:  22 FD 21                LD      (L21FD),HL
+L1501:  F1                      POP     AF
+L1502:  32 FC 21                LD      (L21FC),A
+L1505:  E1                      POP     HL
+L1506:  C9                      RET
+
+; -----------------------------------------------------------------------------
+;        zobrazen¡ obrazovky
+; -----------------------------------------------------------------------------
+
+Zobraz:  ld        de,VRAMTxt               ; videopamˆŸ - text
+         ld        bx,VRAMSize              ; velikost videopamˆti
+         ldir                               ; p©enesen¡ obrazu obrazovky
+         ld        de,VRAMCol               ; videopamˆŸ - barvy
+MazCol:  ld        bx,VRAMSize              ; velikost videopamˆti
+         ldir                               ; p©enesen¡ barev obrazovky
+         ret
+
+; -----------------------------------------------------------------------------
+;        vygenerov n¡ nov‚ cihly
+; -----------------------------------------------------------------------------
+
+RandCih: call      Random                   ; gener tor n hodn‚ho ‡¡sla
+         and       1fh
+         ld        hl,Povol                 ; tabulka povolen˜ch cihel
+         ld        b,7                      ; d‚lka tabulky
+RandCih1:cp        (hl)                     ; je cihla povolena ?
+         jr        z,RandCih2               ; cihla povolena OK
+         djnz      RandCih1                 ; dal¨¡ cihla
+         jr        RandCih                  ; vygenerov n¡ dal¨¡ cihly
+RandCih2:ld        (NextCih),a              ; p©¡¨t¡ cihla
+         ret
+
+; -----------------------------------------------------------------------------
+;        gener tor n hodn‚ho ‡¡sla
+; -----------------------------------------------------------------------------
+
+Random:  ld        hl,(RandUk)              ; ukazatel gener toru
+         inc       hl                       ; zv˜¨en¡ ukazatele gener toru
+         ld        a,h
+         cp        0fh                      ; dosa‘eno adresy 0f000h ?
+         jr        c,Random0                ; nen¡ je¨tˆ adresa 0f000h
+         ld        h,0                      ; vynulov n¡ adresy
+Random0: ld        a,r                      ; A <- refresh registr
+         ld        b,10                     ; ‡¡ta‡ pro cyklus
+Random1: xor       (hl)
+         inc       hl                       ; zv˜¨en¡ ukazatele
+         rrca
+         djnz      Random1
+         ld        (RandUk),hl              ; nov˜ ukazatel gener toru
+         ret
+
+; -----------------------------------------------------------------------------
+;        test cihly, zda je voln  pozice
+; -----------------------------------------------------------------------------
+
+TestCih: xor       a                        ; p©¡znak testov n¡ cihly
+         db        1                        ; instrukce LD BC,...
+
+; -----------------------------------------------------------------------------
+;        vymaz n¡ cihly
+; -----------------------------------------------------------------------------
+
+MazCih:  ld        a,Mezera                 ; znak mezery
+         db        1                        ; instrukce LD BC,...
+
+; -----------------------------------------------------------------------------
+;        zobrazen¡ cihly
+; -----------------------------------------------------------------------------
+
+TiskCih: ld        a,Cihla                  ; znak cihly
+
+; ------ adresa definice cihly
+
+         push      hl
+         ld        b,(ix+Prvek-TabDat)      ; aktu ln¡ cihla
+         ld        hl,TabCih-5              ; tabulka definice cihel
+         ld        de,5                     ; p©¡rustek adresy jedn‚ cihly
+TiskCih1:add       hl,de                    ; zv˜¨en¡ adresy v tabulce
+         djnz      TiskCih1                 ; nalezen¡ adresy definice cihly
+
+; ------ adresa cihly ve videopamˆti
+
+         push      hl                       ; adresa nalezen‚ cihly
+         ld        hl,Pocatek-Pozic*3-2     ; pole k zobrazen¡ cihly
+         ld        e,Pozic                  ; po‡et pozic na © dek
+         ld        b,(ix+SY-TabDat)         ; sou©adnice Y cihly
+         inc       b                        ; p©ednastaven¡ ‡¡ta‡e Y
+TiskCih2:add       hl,de                    ; zv˜¨en¡ adresy ve videopamˆti
+         djnz      TiskCih2                 ; dal¨¡ linka
+         ld        e,(ix+SX-TabDat)         ; sou©adnice X cihly
+         add       hl,de                    ; po‡ te‡n¡ adresa cihly ve VRAM
+         pop       de                       ; adresa definice cihly
+
+         ld        b,4                      ; po‡et bajt– v tabulce
+TiskCih3:push      hl                       ; ukazatel adresy ve videopamˆti
+         push      bc                       ; ‡¡ta‡ bajt– v tabulce cihly
+         ld        b,0
+         ex        de,hl
+         ld        c,(hl)                   ; offset znaku cihly ve VRAM
+         ex        de,hl
+         inc       de                       ; zv˜¨en¡ ukazatele definice cihly
+         add       hl,bc                    ; adresa znaku cihly ve VRAM
+         or        a                        ; je nastaven¡ cihly ?
+         jr        nz,TiskCih4              ; je nastaven¡ cihly
+         ld        a,Mezera                 ; znak mezery
+         xor       (hl)                     ; je znak mezery ?
+         jr        z,TiskCih5               ; pozice je voln  - dal¨¡ znak
+         pop       bc
+         pop       hl
+         pop       hl
+         scf                                ; p©¡znak nepovolen‚ pozice cihly
+         ret
+
+TiskCih4:ld        (hl),a                   ; ulo‘en¡ znaku cihly
+TiskCih5:pop       bc
+         pop       hl
+         djnz      TiskCih3                 ; obsluha dal¨¡ho znaku cihly
+         pop       hl
+         ret
+
+; -----------------------------------------------------------------------------
+;        vstup znaku z kl vesnice
+; -----------------------------------------------------------------------------
+
+InpChr:
+
+L158B:  C5                      PUSH    BC
+L158C:  D5                      PUSH    DE
+L158D:  E5                      PUSH    HL
+L158E:  DD E5                   PUSH    IX
+L1590:  CD 1B 00                CALL    L001B    ; vstup znaku z kl vesnice
+L1593:  FE 64                   CP      'd'
+L1595:  CA 4F 14                JP      Z,L144F  ; konec
+L1598:  FE 60                   CP      '`'
+L159A:  28 0C                   JR      Z,L15A8
+L159C:  FE 61                   CP      'a'
+L159E:  28 08                   JR      Z,L15A8
+L15A0:  FE 15                   CP      NAK
+L15A2:  28 04                   JR      Z,L15A8
+L15A4:  FE 16                   CP      SYN
+L15A6:  20 06                   JR      NZ,L15AE
+L15A8:  CD 1B 00                CALL    L001B
+L15AB:  B7                      OR      A
+L15AC:  28 FA                   JR      Z,L15A8
+L15AE:  B7                      OR      A
+L15AF:  DD E1                   POP     IX
+L15B1:  E1                      POP     HL
+L15B2:  D1                      POP     DE
+L15B3:  C1                      POP     BC
+L15B4:  C9                      RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+L15B5:  CD 04 22                CALL    L2204
+L15B8:  28 FB                   JR      Z,L15B5
+L15BA:  C9                      RET
+
+Povol:   db        1,2,4,8,12,16,18         ; tabulka povolen˜ch cihel
+
+TabCih:                                     ; tabulka definice cihel
+         db        81,82,121,122,1          ; 1
+         db        80,81,82,83,3            ; 2
+         db        1,41,81,121,2            ; 3
+         db        80,81,82,120,5           ; 4
+         db        41,81,121,122,6          ; 5
+         db        120,121,122,82,7         ; 6
+         db        40,41,81,121,4           ; 7
+         db        80,81,82,122,9           ; 8
+         db        41,42,81,121,10          ; 9
+         db        80,120,121,122,11        ; 10
+         db        41,81,121,120,8          ; 11
+         db        80,81,82,121,13          ; 12
+         db        41,81,121,82,14          ; 13
+         db        81,120,121,122,15        ; 14
+         db        80,41,81,121,12          ; 15
+         db        81,82,120,121,17         ; 16
+         db        40,80,81,121,16          ; 17
+         db        80,81,121,122,19         ; 18
+         db        41,81,80,120,18          ; 19
+
+TxtKonec:db        0bh,0fh,0eh,5,3,0,8,12h,19h,0
+
+Obraz:   db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0                ; 0
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0                ; 1
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,15h,12h,15,16h,5,14,2ah,0,0,2ah,0,0,0,0,0,0,0,0    ; 2
+         db        0,0,0,0,0,0,0,0,0,14,1,16,15,16h,5,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0                ; 3
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,12h,1,4,11,14h,0,2ah,0,0,20h,0,0,0,0,0,0,0,0       ; 4
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0                ; 5
+         db        0,0,0,0,0,0,0,0,0,2dh,16h,12,5,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0                ; 6
+         db        0,0,0,0,0,0,0,0,0,2dh,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0                ; 7
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 8
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 9
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 10
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 11
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 12
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 13
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 14
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 15
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 16
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 17
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 18
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 19
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 20
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 21
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 22
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 23
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 24
+         db        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+
+;1620: 12 0B 0F 0E 05 03 00 08  12 19 00 00 00 00 00 00  ........ ........
+;1630: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1640: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1650: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1660: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1670: 00 00 00 00 00 00 00 00  00 00 00 00 00 15 12 0F  ........ ........
+;1680: 16 05 0E 2A 00 00 2A 00  00 20 00 00 00 00 00 00  ...*..*. . ......
+;1690: 00 00 00 00 00 00 00 00  0E 01 10 0F 16 05 04 01  ........ ........
+;16A0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;16B0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;16C0: 00 00 00 00 00 00 00 00  00 00 00 00 00 12 01 04  ........ ........
+;16D0: 0B 14 00 2A 00 00 20 00  00 00 00 00 00 00 00 00  ...*.. . ........
+;16E0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;16F0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1700: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1710: 2D 16 0C 05 16 0F 00 00  00 00 00 00 00 00 00 00  -....... ........
+;1720: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1730: 00 00 00 00 00 00 00 00  2D 16 10 12 01 16 0F 00  ........ -.......
+;1740: 00 00 00 00 00 0D 01 18  00 2A 00 00 00 00 20 00  ........ .*.... .
+;1750: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1760: 2D 0F 14 01 03 05 00 00  00 00 00 00 00 00 00 00  -....... ........
+;1770: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1780: 00 00 00 00 00 00 00 00  2D 04 0E 0C 15 00 00 00  ........ -.......
+;1790: 00 00 00 00 00 02 0E 04  19 2A 00 00 00 00 20 00  ........ .*.... .
+;17A0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 1A  ........ ........
+;17B0: 2D 1A 12 19 03 08 0C 09  00 00 00 00 00 00 00 00  -....... ........
+;17C0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;17D0: 00 00 00 00 00 00 00 01  2D 1A 0F 02 12 01 1A 00  ........ -.......
+;17E0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;17F0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 2C 0D  ........ ......,.
+;1800: 05 1A 00 2E 2D 04 0E 0C  15 00 00 00 00 00 00 00  ....-... ........
+;1810: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1820: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1830: 00 00 00 00 00 13 14 01  14 09 13 14 09 0B 01 00  ........ ........
+;1840: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1850: 00 00 00 00 00 00 00 00  00 00 00 00 00 FA F5 2A  ........ .....zu*
+;1860: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1870: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1880: 00 00 00 00 00 F3 F3 2A  00 00 00 00 00 00 00 00  .....ss* ........
+;1890: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;18A0: 00 10 12 09 13 14 09 00  00 00 00 00 00 F7 F1 2A  ........ .....wq*
+;18B0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;18C0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;18D0: 00 00 00 00 00 F3 F5 2A  00 00 00 00 00 00 00 00  .....su* ........
+;18E0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;18F0: 00 00 00 00 00 00 00 00  00 00 00 00 00 FB F1 2A  ........ .....{q*
+;1900: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1910: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1920: 00 00 00 00 00 FE F1 2A  00 00 00 00 00 00 00 00  .....~q* ........
+;1930: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1940: 00 00 00 00 00 00 00 00  00 00 00 00 00 FB F4 2A  ........ .....{t*
+;1950: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1960: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1970: 00 00 00 00 00 2D 2D 2D  2D 2D 2D 2D 2D 2D 2D 00  .....--- -------.
+;1980: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1990: 00 00 00 00 00 00 00 00  00 00 00 00 00 13 00 2A  ........ .......*
+;19A0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;19B0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;19C0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;19D0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;19E0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;19F0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1A00: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1A10: 00 00 00 04 04 04 04 04  04 04 04 04 04 04 04 04  ........ ........
+;1A20: 04 04 04 04 04 04 04 04  04 04 04 04 04 04 04 04  ........ ........
+;1A30: 04 04 04 04 04 04 04 04  04 04 04 04 71 71 71 71  ........ ....qqqq
+;1A40: 71 71 71 71 71 71 71 71  04 06 06 06 06 06 06 06  qqqqqqqq ........
+;1A50: 06 06 06 06 06 04 7A 7A  7A 7A 7A 7A 7A 7A 7A 7A  ......zz zzzzzzzz
+;1A60: 7A 7A 04 04 71 71 71 71  71 71 71 71 71 71 71 71  zz..qqqq qqqqqqqq
+;1A70: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 7A 7A  ........ ......zz
+;1A80: 7A 7A 7A 7A 7A 7A 7A 7A  7A 7A 04 04 71 71 71 71  zzzzzzzz zz..qqqq
+;1A90: 71 71 71 71 71 71 71 71  04 06 01 01 01 01 01 01  qqqqqqqq ........
+;1AA0: 01 01 01 01 06 04 7A 7A  7A 7A 7A 7A 7A 7A 7A 7A  ......zz zzzzzzzz
+;1AB0: 7A 7A 04 04 71 71 71 71  71 71 71 71 71 71 71 71  zz..qqqq qqqqqqqq
+;1AC0: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 7E 7E  ........ ......~~
+;1AD0: 7E 7E 7E 7E 7E 7E 7E 7E  7E 7E 04 04 71 71 71 71  ~~~~~~~~ ~~..qqqq
+;1AE0: 71 71 71 71 71 71 71 71  04 06 01 01 01 01 01 01  qqqqqqqq ........
+;1AF0: 01 01 01 01 06 04 7E 7E  7E 7E 7E 7E 7E 7E 7E 7E  ......~~ ~~~~~~~~
+;1B00: 7E 7E 04 04 79 79 79 79  79 79 79 79 79 79 79 79  ~~..yyyy yyyyyyyy
+;1B10: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 7E 7E  ........ ......~~
+;1B20: 7E 7E 7E 7E 7E 7E 7E 7E  7E 7E 04 04 79 79 79 79  ~~~~~~~~ ~~..yyyy
+;1B30: 79 79 79 79 79 79 79 79  04 06 01 01 01 01 01 01  yyyyyyyy ........
+;1B40: 01 01 01 01 06 04 7E 7E  7E 7E 7E 7E 7E 7E 7E 7E  ......~~ ~~~~~~~~
+;1B50: 7E 7E 04 04 79 79 79 79  79 79 79 79 79 79 79 79  ~~..yyyy yyyyyyyy
+;1B60: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 7E 7E  ........ ......~~
+;1B70: 7E 7E 7E 7E 7E 7E 7E 7E  7E 7E 04 04 79 79 79 79  ~~~~~~~~ ~~..yyyy
+;1B80: 79 79 79 79 79 79 79 79  04 06 01 01 01 01 01 01  yyyyyyyy ........
+;1B90: 01 01 01 01 06 04 7E 7E  7E 7E 7E 7E 7E 7E 7E 7E  ......~~ ~~~~~~~~
+;1BA0: 7E 7E 04 04 79 79 79 79  79 79 79 79 79 79 79 79  ~~..yyyy yyyyyyyy
+;1BB0: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 7E 7E  ........ ......~~
+;1BC0: 7E 7E 7E 7E 7E 7E 7E 7E  7E 7E 04 04 04 04 04 04  ~~~~~~~~ ~~......
+;1BD0: 04 04 04 04 04 04 04 04  04 06 01 01 01 01 01 01  ........ ........
+;1BE0: 01 01 01 01 06 04 7E 7E  7E 7E 7E 7E 7E 7E 7E 7E  ......~~ ~~~~~~~~
+;1BF0: 7E 7E 04 04 6C 6C 6C 6C  6C 6C 6C 6C 6C 6C 6C 6C  ~~..llll llllllll
+;1C00: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 7E 7E  ........ ......~~
+;1C10: 7E 7E 7E 7E 7E 7E 7E 7E  7E 7E 04 04 6C 6C 6C 6C  ~~~~~~~~ ~~..llll
+;1C20: 6C 6C 6C 6C 6C 6C 6C 6C  04 06 01 01 01 01 01 01  llllllll ........
+;1C30: 01 01 01 01 06 04 04 04  04 04 04 04 04 04 04 04  ........ ........
+;1C40: 04 04 04 04 6C 6C 6C 6C  6C 6C 6C 6C 6C 6C 6C 6C  ....llll llllllll
+;1C50: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 75 75  ........ ......uu
+;1C60: 75 75 75 75 75 75 75 75  75 75 04 04 6C 6C 6C 6C  uuuuuuuu uu..llll
+;1C70: 6C 6C 6C 6C 6C 6C 6C 6C  04 06 01 01 01 01 01 01  llllllll ........
+;1C80: 01 01 01 01 06 04 75 75  75 75 75 75 75 75 75 75  ......uu uuuuuuuu
+;1C90: 75 75 04 04 6C 6C 6C 6C  6C 6C 6C 6C 6C 6C 6C 6C  uu..llll llllllll
+;1CA0: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 75 75  ........ ......uu
+;1CB0: 75 75 75 75 75 75 75 75  75 75 04 04 6C 6C 6C 6C  uuuuuuuu uu..llll
+;1CC0: 6C 6C 6C 6C 6C 6C 6C 6C  04 06 01 01 01 01 01 01  llllllll ........
+;1CD0: 01 01 01 01 06 04 06 06  06 06 06 06 06 06 06 06  ........ ........
+;1CE0: 06 06 04 04 6C 6C 6C 6C  6C 6C 6C 6C 6C 6C 6C 6C  ....llll llllllll
+;1CF0: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 06 01  ........ ........
+;1D00: 01 01 01 01 01 01 01 01  01 06 04 04 6C 6C 6C 6C  ........ ....llll
+;1D10: 6C 6C 6C 6C 6C 6C 6C 6C  04 06 01 01 01 01 01 01  llllllll ........
+;1D20: 01 01 01 01 06 04 06 01  01 01 01 01 01 01 01 01  ........ ........
+;1D30: 01 06 04 04 6C 6C 6C 6C  6C 6C 6C 6C 6C 6C 6C 6C  ....llll llllllll
+;1D40: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 06 01  ........ ........
+;1D50: 01 01 01 01 01 01 01 01  01 06 04 04 6C 6C 6C 6C  ........ ....llll
+;1D60: 6C 6C 6C 6C 6C 6C 6C 6C  04 06 01 01 01 01 01 01  llllllll ........
+;1D70: 01 01 01 01 06 04 06 01  01 01 01 01 01 01 01 01  ........ ........
+;1D80: 01 06 04 04 6C 6C 6C 6C  6C 6C 6C 6C 6C 6C 6C 6C  ....llll llllllll
+;1D90: 04 06 01 01 01 01 01 01  01 01 01 01 06 04 06 01  ........ ........
+;1DA0: 01 01 01 01 01 01 01 01  01 06 04 04 6C 6C 6C 6C  ........ ....llll
+;1DB0: 6C 6C 6C 6C 6C 6C 6C 6C  04 06 06 06 06 06 06 06  llllllll ........
+;1DC0: 06 06 06 06 06 04 06 06  06 06 06 06 06 06 06 06  ........ ........
+;1DD0: 06 06 04 04 04 04 04 04  04 04 04 04 04 04 04 04  ........ ........
+;1DE0: 04 04 04 04 04 04 04 04  04 04 04 04 04 04 04 04  ........ ........
+
+UvObr:                                      ; £vodn¡ obrazovka
+
+
+;1DF0: 04 04 04 04 04 04 04 04  04 04 04 01 01 01 01 01  ........ ........
+;1E00: 01 01 01 01 01 01 01 01  01 01 01 01 01 01 01 01  ........ ........
+;1E10: 01 01 01 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E20: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E30: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E40: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E50: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E60: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E70: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E80: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1E90: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1EA0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1EB0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1EC0: 00 00 00 00 00 00 00 00  00 14 00 05 00 14 00 12  ........ ........
+;1ED0: 00 09 00 13 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1EE0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1EF0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F00: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F10: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F20: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F30: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F40: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F50: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F60: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F70: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F80: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1F90: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1FA0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1FB0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1FC0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1FD0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1FE0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;1FF0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2000: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2010: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2020: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2030: 00 1A 01 04 05 0A 00 15  12 0F 16 05 0E 00 2A 00  ........ ......*.
+;2040: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2050: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2060: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2070: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2080: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2090: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;20A0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;20B0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;20C0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;20D0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;20E0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;20F0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2100: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2110: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2120: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2130: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2140: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2150: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2160: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2170: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2180: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;2190: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;21A0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;21B0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;21C0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;21D0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ........ ........
+;21E0: 00 00 00 E9 2B 02 D9 05  10 0B 00 0A 00 08 00 0B  ...i+.Y. ........
+;21F0: 00 0C 00 0A 00 0E 00 40  00 1E 08 1E 04 04 01 05  .......@ ........
+;2200: A9 02 00 00 CD 8B 15 DD  BE 1F 28 05 DD 77 1F B7  )...M..] >.(.]w.7
+;2210: C9 AF C9 D5 B7 ED 52 23  23 44 4D E1 D1 CD EA 40  I/IU7mR# #DMaQMj@
+
+; -----------------------------------------------------------------------------
+;        tabulka dat
+; -----------------------------------------------------------------------------
+
+TabDat:
+
+MaxSkore:dw        0                        ; maxim ln¡ dosa‘en‚ sk¢re
+Uroven:  db        0                        ; aktivn¡ £rove¤
+
+ZacMaz:                                     ; za‡ tek maz n¡ dat
+
+Skore:   dw        0                        ; aktu ln¡ sk¢re
+Line:    db        0                        ; ‡¡ta‡ cel˜ch © dk–
+
+Cihla1:  dw        0
+Cihla2:  dw        0
+Cihla3:  dw        0
+Cihla4:  dw        0
+Cihla5:  dw        0
+Cihla6:  dw        0
+Cihla7:  dw        0
+
+KonMaz:                                     ; konec maz n¡ dat
+
+Prodleva dw        0                        ; prodleva 1 kroku
+Body:    db        0                        ; body za cihlu
+NextCih: db        0                        ; p©¡¨t¡ cihla
+Bodu:    db        0                        ; ‡¡ta‡ bod– p©i posunu cihly
+Prvek:   db        0                        ; aktu ln¡ prvek (cihla)
+
+SX:      db        0                        ; sou©adnice X (zachovat po©ad¡ !)
+SY:      db        0                        ; sou©adnice Y (zachovat po©ad¡ !)
+Param:   db        0                        ; parametry (zachovat po©ad¡ !)
+                                            ;   bit 3: zobrazuj¡ se nuly v ‡¡sle
+
+RandUk:  dw        0e000h                   ; ukazatel pro n hodn‚ ‡¡slo
+Znak:    db        0                        ; posledn¡ stisknut˜ znak
+
+; -----------------------------------------------------------------------------
+;        Vstup znaku z kl vesnice
+; -----------------------------------------------------------------------------
+
+Input:   call      InpChr                   ; vstu znaku z kl vesnice
+         cp        (ix+Znak-TabDat)         ; je zmˆna kl vesy ?
+         jr        z,Input3                 ; nen¡ zmˆna kl vesy
+         ld        (ix+Znak-TabDat),a       ; £schova kl vesy
+         or        a                        ; p©¡znak, ‘e kl vesa plat¡
+         ret
+
+Input3:  xor       a                        ; p©¡znak, ‘e kl vesa neplat¡
+         ret
+

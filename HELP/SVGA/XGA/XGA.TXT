@@ -1,0 +1,930 @@
+  IBM XGA      1024*768 interlaced
+  IBM XGA-NI   1024*768 Non-interlaced
+
+All register accesses happen through a block of 16 registers starting
+at a adapter dependant register (called xga in the following).
+The register xga+0Ah works as an indexed register i.e.. xga+0Ah is the
+index register and xga+0Bh is the data register.
+
+Also a block of 128 bytes memory mapped registers exists, primarily used for
+the accelerator functions.
+
+General note:
+When writing to XGA registers undefined bits must be set to 0 unless
+otherwise specified. When reading the undefined bits may be truly undefined,
+i.e. random.
+
+0100h  W(R):  Identification Word
+bit  0-15  Identification Word ID'íng the XGA board.
+             8FDAh = The IBM XGA-NI.
+             8FDBh = Original IBM XGA
+             (8FD8h-8FDBh is reserved for IBM XGA's).
+           VESA defines the following ranges for XGA compatible boards:
+             240h-27Fh, 830h-0A7F, 0A90h-0BFFh and 8FD0h-8FD3h(reserved)
+Note: POS register access must be enabled.
+
+0102h  (R/W):  XGA Configuration Register
+bit     0  XGA_ENABLE. If set the XGA registers can be accessed, when cleared
+           only the POS registers (100h-105h) can be accessed.
+      1-3  INSTANCE. IDs the particular XGA adapter (there can be up to 8 in
+           a system). This value is used to define the XGA base address
+           (21x0h) and which 128 byte block of the 1KB external memory the
+           memory mapped registers are located in.
+      4-7  EXT_MEM_ADDR. Defines the address the 8KB (usually 7KB ROM and 1KB
+           dedicated to XGA memory mapped registers) external memory is mapped
+           to:
+             0 = 0C000h,  1 = 0C2000h,  2 = 0C4000h,  3 = 0C6000h
+             4 = 0C800h,  5 = 0CA000h,  6 = 0CC000h,  7 = 0CE000h
+             8 = 0D000h,  9 = 0D2000h, 0A = 0D4000h, 0B = 0D6000h
+            0C = 0D800h, 0D = 0DA000h, 0E = 0DC000h, 0F = 0DE000h
+           The external memory can be disabled by clearing the EXT_MEM_ENABLE
+           bit in the Bus Arbitration Register (103h). 
+
+0103h  (R/W):  Bus Arbitration Register
+bit     1  EXT_MEM_ENABLE. If set the 8KB external memory block can be
+           accesses, if clear only the 1KB memory mapped registers can be
+           accessed.
+        2  FAIR_ENABLE. If set the MCA fairness protocol is enabled.
+      3-6  ARB_LEVEL. The MCA bus arbitration level.
+Note: for VESA systems set 106h to 0 to access this register.
+
+0104h  (R/W):  Display Memory Base Address
+bit     0  DISP_MEM_ACCESS. If set the display memory is mapped as a
+           contiguous 4MB chunk at the address described below.
+      1-7  DISP_MEM_BASE. The upper 7 bits (25-31) of the display memory
+           address. Bit 22-24 is taken from the INSTANCE field of register
+           102h.
+Note: for VESA local bus systems set 106h to 0 to access this register.
+
+0104h index 1 (R):  Manufactor ID low                                   (VESA)
+bit   0-7  Low byte of manufactor ID.
+Note: Set 106h to 1 to read this register
+Note: This register may be implemented as Read only or Read/Write.
+
+0104h index 2 (R):  Manufactor ID high                                  (VESA)
+bit   0-7  High byte of manufactor ID.
+           This register is optional and reads as 0 if not implemented
+Note: Set 106h to 2 to read this register
+Note: This register may be implemented as Read only or Read/Write.
+
+0104h index 3 (R/W):  VGA BIOS Configuration                            (VESA)
+bit     0  VGA BIOS ROM Decode Enabled if set
+      1-3  VGA BIOS ROM Decode Location. VGA BIOS ROM at:
+             0: C000h, 1: C800h, 2: D000h, 3: D800h, 4: E000h, 5: E800h
+Note: Set 106h to 1 to read this register
+
+0105h  (R/W):  1MB Aperture Base Address
+bit   0-3  BASE_1MB. Determines the address of the 1MB aperture where the
+           video memory will be mapped. 0 indicates that a 1MB block could not
+           be found in the lower 16MB of the address space.
+Note: When writing to this register bits 4-7 must be written as 1101b,
+      i.e.. 0BFh.
+
+0106h  W(W):  POS index                                                 (VESA)
+bit  0-15  This register determines the content of register 0103h and 0104h.
+           Values 4-0Fh are reserved. When this register is 0 the registers at
+           0103h and 0104h are fully compatible with the IBM XGA and XGA-NI.
+           For 0103h only index 0 is defined, for 0104 index 0-3 are defined.
+
+0109h (R/W):  ISA POS Enable                                      (VESA - ISA)
+bit   0-2  Instance Number (must match the instance (i.e.. 1) to enable)
+        3  Setup Mode Enable. If set the POS registers (0100h-0107h) may be
+           accessed.
+Note: VESA reserves 0108h-010Fh for systems with more than one XGA, but
+      currently only implements instance 1 (0109h).
+
+21x0h  (R/W):  Operating Mode Register
+bit   0-2  DISPLAY_MODE. 
+             0 = VGA mode, disable XGA address decode
+             1 = VGA mode, enable XGA address decode
+             2 = 132 column text mode, disable XGA address decode
+             3 = 132 column text mode, enable XGA address decode.
+             4 = XGA Extended Graphics mode.  
+        3  REG_FORMAT. If set the memory mapped registers use Motorola or
+           "Big-endian" format rather than Intel or "little-endian".
+           In Big-endian format the byte order in each double word (4 bytes)
+           is swapped except for the Short Stroke (2Ch) and Command (7Ch)
+           registers.
+        4  (XGA-NI only) MFI_CTRL_ENAB. If set the MFI Control register (index
+           6Dh) is enabled. This bit is write only.
+
+21x1h  (R/W):  Video Memory Aperture Control
+bit   0-1  MEMWIN_ACCESS.
+             0 = disable 64k aperture
+             1 = enable 64k aperture at 0A0000h
+             2 = enable 64k aperture at 0B0000h
+
+21x4h  (R/W):  Interrupt Enable Register
+bit     0  START_BLNK_ENAB. If set an interrupt is issued at the start of the
+           Vertical Blanking period.
+        1  START_PIC_ENAB. If set an interrupt is issued when the Vertical
+           Blanking period ends, i.e.. at the start of the frame.
+        2  SPRT_DSPCMP_ENAB. If set an interrupt is issued when the hardware
+           sprite has been displayed, i.e.. when the beam passes the lower
+           right corner.
+        6  ACCESS_REJ_ENAB. If set an interrupt is issued if the XGA Memory
+           Registers are written to while an XGA command is active, which can
+           corrupt the command.
+        7  CMD_DONE_ENAB. If set an interrupt is issued
+           whenever a graphics command completes.
+Note: These bits control the issuing of IRQ2 interrupts.
+
+21x5h  (R/W):  Interrupt Status Register
+bit     0  START_BLNK_STAT. Set when the Vertical Blanking starts.
+        1  START_PIC_STAT. Set when the Vertical Blanking ends.
+        2  SPRT_DSPCMP_STAT. Set when the beam passes the hardware sprite.
+        6  ACCESS_REJ_STAT. Set if the XGA Memory Registers are written to
+           while an XGA command is active.
+        7  CMD_DONE_STAT. Set whenever an XGA command completes.
+Note: These bits are set whenever the specified event occurs and remains set
+      until cleared by writing a 1 to the field. The bits are set whether the
+      corresponding flag in 21x4h is enabled or not.
+
+21x6h  (R/W):  Virtual Memory Control
+bit     0  ENAB_VIRT_LU. If set all XGA addresses are translated through the
+           386 Memory Management Unit, if clear all addresses are physical.
+        2  USER_SUPER. If set the XGA performs access checking. It also
+           generates an I/O exception when this register is written to.
+           If clear no access or I/O control is performed.
+        6  PROT_VIOL_ENAB. If set the XGA will issue an IRQ2 interrupt when
+           a memory protection violation occurs.
+        7  PAGE_NP_ENAB. If set the XGA will issue an IRQ2 interrupt when a
+           virtual page is accessed which is not in memory.
+
+21x7h  (R/W):  Virtual Memory Interrupt Status Register
+bit     6  PROT_VIOL_STAT. Set if a protection violation was found.
+        7  PAGE_NP_STAT. Set if a not-present page has been accessed.
+Note: The bits are set whether or not the corresponding flag in 21x6h is set.
+      The bits are cleared by writing a 1 to the bit, but as this will cause
+      a page retry of the failed access, care should be taken.
+
+21x8h  (R/W):  Video Memory Aperture Index.
+bit   0-5  MEMWIN_BANK. If in 64k aperture mode, this defines the 64k block
+           mapped at 0A0000h or 0B0000h. If in 1MB aperture mode bits 4-5
+           defines which 1MB block is mapped at the 1MB aperture. bits 0-3
+           should be set to 0.
+
+21x9h  (R/W):  Memory Access Mode
+bit   0-2  MEMPIX_SIZE. Defines bits/pixel.
+             0 = 1bit, 1 = 2 bits, 2 = 4 bits, 3 = 8 bits, 4 = 16 bits. 
+        3  MEMPIX_FORMAT. If set the video memory is in Motorola or "Big-
+           endian" format.
+
+21xAh  (R/W):  Index Register
+bit   0-7  The index for the following access to 21xB.
+           21xBh accesses the index register set in 21xAh.
+           21xCh-21xFh accesses the index register set in 21xAh + 0-3.
+           I.e.. a word read of 210Eh (and thus 210Fh) will read (index+2 &
+           index+3). 
+
+21xAh index  0  (R/W):  Memory Configuration 0
+bit   0-1  VRAM_SERDATA_WID. The width of serial VRAM transfers.
+             1 = 16bit, 2 = 32bit.
+
+21xAh index  1  (R/W):  Memory Configuration 1
+bit     0  VRAM_RASCAS_EXT. If set extended CAS and RAS cycles are used for
+           all cycles except refresh.
+        1  VRAM_RAS_PRECH. If set extended RAS precharge time is used
+           between consecutive VRAM cycles.
+        2  VRAM_REF_EXT. If set extended CAS and RAS cycles are used for
+           refresh.
+
+21xAh index  2  (R/W):  Memory Configuration 2
+bit     3  VRAM_SER_LEN. If set the VRAM serializer is 512 bits long rather
+           than 256 bits.
+
+21xAh index  4  (R):  Auto-Configuration
+bit     0  (XGA,XGA-NI) BUS_SIZE. If set the XGA is in a 32bit system (MCA,
+           EISA, LocalBus), if clear it is in an ISA slot and no 4MB aperture
+           mode.
+      0,3  (VESA) BUS_SIZE. 0 = 16bit, 1 = 32 bit, 2 = 8 bit.
+      4-5  (VESA) Subsystem Interface Configuration.
+                   0 = MCA, 1 = ISA, 3 = EISA.
+
+21xAh index 0Ch (R/W):  State A Data
+Note: The XGA state can be saved by suspending the current operation in the
+      Control Register, then reading the number of DWORDs from the State A
+      Data register specified in the State A Length Memory register, then
+      reading the number of DWORDs from the State B Data Register specified in
+      the State B Length Memory Register and finally saving the frame buffer.
+      To restore the state follow the procedure in reverse order ending with
+      enabling the suspended operation in the Control Register.
+
+21xAh index 0Dh (R/W):  State B Data
+Note: see State Save/Restore process under 21xAh index 0Ch.
+
+21xAh index 10h  W(R/W): Horizontal Total
+bit  0-15  Total number of character clocks in a scanline.
+           The number of pixels in a scanline is (value+1)*8
+
+21xAh index 12h  W(R/W): Horizontal Displayed.
+bit  0-15  Number of displayed character clocks in a scanline.
+           The number of displayed pixels is (value+1)*8
+
+21xAh index 14h  W(R/W): Horizontal Blanking Start.
+bit  0-15  The character clock at which blanking starts relative to the start
+           of display. The pixel is (value+1)*8
+
+21xAh index 16h  W(R/W): Horizontal Blanking End.
+bit  0-15  The character clock at which blanking ends relative to the start
+           of display. The pixel is (value+1)*8
+
+21xAh index 18h  W(R/W): Horizontal Sync Start.
+bit  0-15  The character clock at which Horizontal Sync starts relative to
+           the start of display. In pixels: (value+1)*8
+
+21xAh index 1Ah  W(R/W): Horizontal Sync End.
+bit  0-15  The character clock at which Horizontal Sync ends relative to the
+           start  of display. In pixels: (value+1)*8
+
+21xAh index 1Ch  (W): Horizontal Sync Position 1.
+bit   5-6  SYNC_PULSE_DLY1. Can delay the sync pulses half a character clock
+             0 = no change, 2 = delay sync 4 pixels.
+Note: This register should be programmed with the same value as index 1Eh.
+
+21xAh index 1Eh  (W): Horizontal Sync Position 2.
+bit   1-2  SYNC_PULSE_DLY2. Can delay the sync pulses half a character clock
+             0 = no change, 2 = delay sync 4 pixels.
+Note: This register should be programmed with the same value as index 1Ch.
+
+21xAh index 20h  W(R/W): Vertical Total.
+bit  0-10  Total number of scanlines (-1) in a frame.
+
+21xAh index 22h  W(R/W): Vertical Displayed End.
+bit  0-10  Number of displayed scanlines (-1).
+
+21xAh index 24h  W(R/W): Vertical Blanking Start.
+bit  0-10  The scanline relative to the start of display where the Vertical
+           Blanking Starts.
+
+21xAh index 26h  W(R/W): Vertical Blanking End.
+bit  0-10  The scanline relative to the start of display where the Vertical
+           Blanking Ends.
+
+21xAh index 28h  W(R/W): Vertical Sync Start.
+bit  0-10  The scanline relative to the start of display where the Vertical
+           Sync Starts.
+
+21xAh index 2Ah  (R/W): Vertical Sync End.
+bit   0-7  The scanline relative to the start of display where the Vertical
+           Sync Ends.
+
+21xAh index 2Ch  W(R/W): Vertical Line Compare.
+bit  0-10  The scanline relative to the start of display where the display
+           wraps to line 0.
+
+21xAh index 30h  W(R/W):  Sprite Position X
+bit  0-10  The X position of the Sprite Hotspot in pixels.
+
+21xAh index 32h  (R/W):  Sprite Hotspot X
+bit   0-5  The X hotspot position of the sprite from the left.
+
+21xAh index 33h  W(R/W):  Sprite Position Y
+bit  0-10  The Y position of the Sprite Hotspot in pixels.
+
+21xAh index 35h  (R/W):  Sprite Hotspot Y
+bit   0-5  The Y hotspot position of the sprite from the top. 
+
+21xAh index 36h  (R/W): Sprite Control.
+bit     0  If set the sprite is displayed on the screen.
+Note: Sprite display must be disabled when modifying the sprite data.
+
+21xAh index 38h  (R/W): Sprite Color 0 Red
+bit   0-7  The red level of sprite color 0.
+Note: In the original XGA bits 0-1 are ignored. 
+
+21xAh index 39h  (R/W): Sprite Color 0 Green
+bit   0-7  The green level of sprite color 0.
+Note: In the original XGA bits 0-1 are ignored. 
+
+21xAh index 3Ah  (R/W): Sprite Color 0 Blue
+bit   0-7  The blue level of sprite color 0.
+Note: In the original XGA bits 0-1 are ignored. 
+
+21xAh index 3Bh  (R/W): Sprite Color 1 Red
+bit   0-7  The red level of sprite color 0.
+Note: In the original XGA bits 0-1 are ignored. 
+
+21xAh index 3Ch  (R/W): Sprite Color 1 Green
+bit   0-7  The green level of sprite color 0.
+Note: In the original XGA bits 0-1 are ignored. 
+
+21xAh index 3Dh  (R/W): Sprite Color 1 Blue
+bit   0-7  The blue level of sprite color 0.
+Note: In the original XGA bits 0-1 are ignored. 
+
+21xAh index 40h  24(R/W): Start Address.
+bit  0-18  The start display address in units of 8 bytes.
+
+21xAh index 43h  W(R/W): Pixel Map Width.
+bit  0-10  Length of scanline in units of 8 bytes.
+
+21xAh index 50h  (R/W): Display Control 1.
+bit   0-1  BLANK_DISP. 0 = display blanked, CRTC reset.
+                       1 = display blanked, preparing CRTC reset
+                       3 = Normal operation.
+        3  INTERLACED. If set the display is interlaced.
+        4  FEATURE_ENAB. If set the feature connector is enabled.
+           usually enabled in VGA modes and disabled in 132 column text
+           modes and extended XGA modes.
+      6-7  SYNC_POLAR. Sync polarity (6=Vertical, 7=Horizontal).
+               0=768 lines, 1=400 lines, 2=350 lines, 3=480 lines 
+Note: on writes bit 2 must be set to 1 and bit 5 must be preserved.
+
+21xAh index 51h  (R/W): Display Control 2.
+bit   0-2  DSPPIX_SIZE. Bits per pixel (for the CRT controller):
+               0=1 bpp, 1=2 bpp, 2=4 bpp, 3=8 bpp, 4=16 bpp
+               5 might be used for 24 bit on some clones. 
+      4-5  HSCALE. Horizontal pixel replication:
+               0=Normal, 1=each pixel is doubled, 2=each pixel is quadrupled??  
+      6-7  VSCALE. Vertical pixel replication:
+               0=Normal, 1=each line is doubled, 2=each line is quadrupled??
+
+21xAh index 52h  (R): Monitor ID and Gun Output
+bit   0-3  MONITOR_ID. Monitor types sensed from the monitor outputs:
+               9   IBM 8507/IBM 8604   Mono 1024x768
+              0Ah  IBM 8514            Color 1024x768
+              0Bh  IBM 8515            Color 1024x768
+              0Dh  IBM 8503            Mono 640x480
+              0Eh  IBM 8512/IBM 8513   Color 640x480
+              0Fh  No monitor attached       
+        5  RED_OUT.   Current output of the red gun. 1=high, 0=low.
+        6  GREEN_OUT. Current output of the green gun. 1=high, 0=low. 
+        7  BLUE_OUT.  Current output of the blue gun. 1=high, 0=low.
+
+21xAh index 54h  (R/W): Clock Select 1.
+bit   0-1  CLK_SCALE. Divide factor for the clock:
+               0=no divide, 1=divide by 2
+      2-3  CLK_SEL1. Selects the video clock for the display:
+              0 = VGA 8-pixel text mode & 640x480 graphics
+                  If the CLK_SEL2 bit of the CLOCK_SEL2 register
+                  (21xAh index 70h) is set this is 132 column text mode.
+              1 = VGA 9-pixel text mode.
+              2 = Clock from the feature connector
+              3 = 1024x768 interlaced graphics
+        7  (XGA-NI only)  PROG_CLK_SEL. If set and CLK_SEL1 and CLK_SEL2 are
+           cleared, the PLL is selected as the clock source for the display.
+           This bit should be cleared if CLK_SEL1 or CLK_SEL2 are non-zero.
+              
+21xAh index 55h  (R/W): Border Color.
+bit   0-7  Palette index of the border or overscan color.
+
+21xAh index 58h  (R/W):  PLL Program Register                    (XGA-NI only)
+bit   0-5  The value for the PLL.
+           Value = (Desired frequency * Factor from FREQ_SCALE) - 65
+      6-7  FREQ_SCALE. Divisor for the frequency:
+              0 = Divide by 4. Allowing 16.25 - 32.00MHz in 0.25MHz steps
+              1 = Divide by 2. Allowing 32.50 - 64.00MHz in 0.50MHz steps
+              2 = No divide, allowing 65.00 - 128.00MHz in 1MHz steps   
+Note: The XGA-NI should not be programmed for more than 90MHz.
+
+21xAh index 59h  (R/W):  Direct Color Control                    (XGA-NI only)
+bit   0-2  DC_MODIF. This field controls how the missing red and blue bits
+           are handled in 64k color mode.
+              0 = Zero Intensity Black mode.  Set to 0.
+              1 = Non-Zero Color mode. Set to 1 unless color is 0.
+              2 = same as 0.
+              3 = Full Intensity White mode.  Set to 1.
+              4 = Linearized Color mode.
+                  Set to most significant bit of same color (bit 4).
+
+21xAh index 60h  W(R/W): Sprite/Palette Address Index.
+bit  0-13  Index for the Palette (8 bits) and Sprite (14 bits).
+           For sprite accesses the index will increment after each
+           byte access, for palette access the index will increment
+           after each 3 or 4 byte pixel. 
+
+21xAh index 62h  (R/W): Sprite/Palette Index with Prefetch.
+bit  0-13  Index for the Palette (8 bit) or Sprite (14 bit).
+           When this register is written the Palette & Sprite Prefetch
+           registers (index 67h-69h and 6Bh) are loaded with the appropriate
+           data from the Palette and Sprite and the index .
+
+21xAh index 64h  (R/W): Palette Mask
+bit   0-7  Each display byte is anded with this value before reaching the DAC.
+           Usually set to 0FFh.
+
+21xAh index 65h  (R/W): Palette Data Port.
+bit  0-7  Palette data is read and written to this port.
+          Each read or write of the register will increment the
+          palette address, first through the Red, Green Blue
+          cycle, and then increment the Palette Address Index.
+
+21xAh index 66h  (R/W): Palette Sequence
+bit   0-1  COLOR_COMPNT. Shows the next palette entry access:
+              0=Red, 1=Green, 2=Blue, 3="extra"
+        2  COLOR_FORMAT. If set the palette is organised as (Red, Blue, Green
+           and extra), if clear the format is (Red, Green and Blue).
+           The 4 byte format allows reading a full palette entry in one double
+           word access from index 67h-69h
+
+21xAh index 67h  (R/W):  Palette Red Prefetch
+bit   0-7  When the Palette Prefetch index (index 62h) is written this
+           register is loaded with the red component.
+
+21xAh index 68h  (R/W):  Palette Blue Prefetch
+bit   0-7  When the Palette Prefetch index (index 62h) is written this
+           register is loaded with the blue component.
+
+21xAh index 69h  (R/W):  Palette Green Prefetch
+bit   0-7  When the Palette Prefetch index (index 62h) is written this
+           register is loaded with the green component.
+
+21xAh index 6Ah  (R/W):  Sprite Data
+bit   0-7  Sprite data is read and written through this register, incrementing
+           the Sprite Index (index 60h). Each byte contains 4 2bit pixels
+           with the following values:
+              0=Sprite Color 0, 1=Sprite Color 1, 2=transparent, 3=Invert
+
+21xAh index 6Bh  (R/W):  Sprite Data Prefetch
+bit   0-7  This register is loaded with sprite data when the Sprite Prefetch
+           Index (index 62h) is written.
+
+21xAh index 6Ch  (R/W):  Miscellaneous Control                   (XGA-NI only)
+bit     0  BLNK_REDBLUE. If set the red and blue outputs of the DAC are set
+           to 0.
+
+21xAh index 6Dh  (R/W):  MFI Control                             (XGA-NI only)
+bit     0  MFI_ENABLE. If set the remaining bits in this register are valid
+           and textmode attributes are interpreted as MFI attributes:
+            bit 0-3  Foreground color (same as VGA text mode)
+                  4  If set the first and last pixel in the underline scanline
+                     is set (unless the character is underlined, in which case
+                     they are clear). 
+                  5  If set the character is underlined.
+                  6  If set the character is reversed
+                  7  If VGA character blink is enabled, this bit controls
+                     blinking, if not it sets the background color to 8.
+                     MFI blinking uses a 75% on/25% off-cycle as opposed
+                     to the VGA 50% blink cycle.
+        1  CURSOR_TYPE. If set the cursor reverses the ForeGround and
+           background, if clear it uses the ForeGround color.
+        2  CURS_BLINK_DISAB. If set the cursor will not blink, if clear the
+           cursor blinks at 1/32 the vertical refresh.
+        3  CONST_COLOR_CURS. If set the cursor is the color in CURS_COLOR,
+           if clear the cursor is the ForeGround color.
+      4-7  CURS_COLOR. Color of the cursor in IRGB format if CONST_COLOR_CURS
+           and NFI_ENABLE are set.
+
+21xAh index 70h  (R/W):  Clock Select 2
+bit     7  CLK_SEL2. Set in 132 column text mode, clear in other modes.
+
+21xAh index 72h-73h.  RESERVED for VESA extensions.
+
+21xAh index 74h  (R):  DMA Channel Readback.             (VESA - ISA bus only)
+bit     0  DMA Channel Enable.  Indicates whether the DMA channel is enabled
+           for bus-mastering.
+      1-3  DMA Channel Select. Selects the DMA channel for bus master
+           arbitration.
+             0 = Channel 0, 1 = Channel 1, 2 = Channel 2, 3 = Channel 3,
+             5 = Channel 5, 6 = Channel 6, 7 = Channel 7
+
+21xAh index 75h  (?):  Subsystem Vendor ID.                             (VESA)
+bit   0-7  After setting the index (port 21xAh) the first byte read from 21xBh
+           is one of three values:  
+                00h  The subsystem vendor ID mechanism is not implemented.
+            01h-FEh  Chip manufactor assigned subsystem vendor ID.
+                FFh  Read the register two times more to get the 16bit vendor
+                     ID. (low byte first).
+           Any subsequent reads may return vendor specific information.
+Note: This register may or may not be writable at the discretion of the
+      vendor.
+
+21xAh index 76h-77h.    RESERVED for manufactor expansion               (VESA)
+
+
+
+Memory 00h  D(W):  Page Directory Base Address
+bit  0-31  The Physical 32bit address of the current MMU Page Table for the
+           current task. As this start at a 4KB page the lower 12 bit are 0.
+           This register is active only if the ENAB_VIRT_LU bit in the Virtual
+           Memory Control register (21x6h bit 0) is set. This register can
+           only be written if the USER_SUPER bit (21xAh bit 2) is set.
+
+Memory 04h  D(R):  Current Virtual Address
+bit  0-31  If a VM Hardware Not Present or Protection interrupt occurs
+           This register will contain the physical address of the page
+           that caused the fault. Bits 0-11 will always be 0.
+           This register is only active if the ENAB_VIRT_LU bit in the Virtual
+           Memory Control register (21x6h bit 0) is set.
+
+Memory 09h  (R):  Auxiliary Status Register                      (XGA-NI only)
+bit     7  AUX_BUSY. If this bit is set the XGA drawing engine is busy.
+           This is the same bit as the BUSY bit of the Control Register
+           (Memory 11h bit 7), but reading this register does not block the
+           drawing engine.
+
+Memory 0Ch  (R):  State A Length
+bit   0-7  The number of double words to read from the State A register
+           (21xAh index 0Ch) to perform a task save.
+
+Memory 0Dh  (R):  State B Length
+bit   0-7  The number of double words to read from the State B register
+           (21xAh index 0Dh) to perform a task save.
+
+Memory 11h  (R/W):  Control Register
+bit     1  STATE_SAVRST. Signals XGA state save/restore. If set the state can
+           be restored, if clear the state can be saved. The SUSPND_OPER must
+           be set.
+        3  SUSPND_OPER. Set to 1 to suspend the XDA drawing operation. When
+           the drawing operation has been suspended the OPER_SUSPND bit is
+           set. To restart a suspended operation write 0 to this bit. 
+        4  (R) OPER_SUSPND. If set an XGA drawing operation is suspended.
+        5  TERM_OPER. Set to 1 to terminate the current XGA operation.
+           You must test for termination to complete, i.e.. until either the
+           BUSY bit goes to 0, or the CMD_DONE_STAT bit of the Interrupt
+           Status register (21x5h bit 7) is set. 
+        7  BUSY. If set the XGA drawing engine is busy. You should not write
+           to any memory registers while this bit is set. On the XGA-NI you
+           should check the AUX_BUSY bit of the Auxiliary Status Register
+           (Memory 9h bit 7), as reading this register will temporarily stop
+           the drawing engine.
+
+Memory 12h  (W):  Pixel Map Index
+bit   0-1  MAP_INDEX. Selects which Pixel map register set is accessed through
+           Memory register 14h-1Ch.
+             0 = Mask Map, 1 = Pixel Map A, 2 = Pixel Map B, 3 = Pixel Map C
+
+Memory 14h  (W):  Pixel Map n Base
+bit  0-31  The 32 bit address of the map. If the XGA is in VM mode (the
+           ENAB_VIRT_LU bit in the Virtual Memory Control register (21x6h bit
+           0) is set) the address must be a logical address, else a physical
+           one. If using BitBLT operations combined with mixes or color
+           compares, the map must start on a Double word address.
+
+Memory 18h  W(W):  Pixel Map n Width
+bit  0-15  The number of pixels (-1) in a scanline in the map.
+           If using BitBLT operations combined with mixes or color compares,
+           the width of the map must be a multiple of 4 bytes.
+           
+Memory 1Ah  W(W):  Pixel Map n height
+bit  0-15  The number of lines (-1) in the map.
+
+Memory 1Ch  (W):  Pixel Map n Format
+bit   0-2  PIXEL_SIZE. Bits per pixel in the map:
+              0 = 1 bit, 1 = 2 bits, 2 = 4 bits, 3 = 8 bits,
+              4 = 16 bits (XGA-NI and some clones), 5 = 24 bits on some
+           clones.
+        3  PIX_FORMAT. If set the map is in Motorola format (Most significant
+           byte stored first and lowest pixel in highest bit number), if clear
+           in Intel format (Least significant byte stored first and lowest
+           pixel in lowest bit number). In both cases each pixel has the least
+           significant stored in the lowest bit number.
+
+Memory 20h  W(R/W):  Bresenham Error Term
+bit  0-15  Bresenham Error Term = 2 * (Delta Y) - (Delta X) - Fixup
+           Fixup is either 0 or 1 depending on the direction of the line.
+           This is a 2's complement number between -8192 and 8191
+
+Memory 24h  W(W):  Bresenham Constant 1
+bit  0-15  The Bresenham Constant 1 = 2 * (Delta Y)
+           Known as "axial step constant"
+           This is a 2's complement number between -8192 and 8191
+
+Memory 28h  W(W):  Bresenham Constant 2 
+bit  0-15  The Bresenham Constant 2 = 2 * ((Delta Y) - (Delta X))
+           Known as "diagonal step constant".  
+           This is a 2's complement number between -8192 and 8191
+
+Memory 2Ch  D(W):  Short Stroke Register
+bit   0-7  Stroke Code 1.  First vector
+           bit 0-3  LENGTH. The length in pixels (0-15).
+                 4  ACTION. If set the vector is drawn and the current
+                    position is moved, if clear the current position is moved.
+               5-7  VECDIR. Direction of the short stroke vector in degrees
+                    counter-clockwise from the positive X-axis.
+                    0=0°, 1=45°, 2=90°, 3=135°, 4=180°, 5=225°, 6=270°, 7=315°
+     8-15  Stroke Code 2.  Second vector
+    16-23  Stroke Code 3.  Third vector
+    24-31  Stroke Code 4.  Fourth vector
+Note: Before using this register the Command register (Memory 7Ch) must be
+      loaded with a Short Stroke command, the source and destination maps
+      setup and the start position set in the Destination Map X (Memory 78h)
+      and Destination Map Y (Memory 7Ah) registers.
+      To execute one stroke vector, load it in Stroke Code 4, to execute 2,
+      load them in Stroke Code 3 & 4 and to execute 4 load them in all 4
+      Strokes. A Stroke Code of 0 is a No-op.
+
+Memory 48h  (W):  Foreground Mix
+bit   0-7  The Foreground Mix:
+              0  = 0 (All bits cleared).
+              1  = Src AND Dst
+              2  = Src AND (NOT Dst)
+              3  = Src
+              4  = (NOT Src) AND Dst
+              5  = Dst
+              6  = Src XOR Dst
+              7  = Src OR Dst
+              8  = (NOT Src) And (NOT Dst)
+              9  = Src XOR (NOT Dst)
+             0Ah = Not Dst
+             0Bh = Src OR (NOT Dst)
+             0Ch = NOT Src
+             0Dh = (NOT Src) OR Dst
+             0Eh = (NOT Src) or (NOT Dst)
+             0Fh = 1 (all bits set)
+             10h = MAX(Src,Dst)
+             11h = MIN(Src,Dst)
+             12h = Src + Dst  (with Saturate)
+             13h = Dst - Src  (with Saturate)
+             14h = Src - Dst  (with Saturate)
+             15h = (Src + Dst)/2
+           Src is the pixel from the color registers or the source map, Dst is
+           pixel from the destination map. Saturate means that the result is 
+           limited by 0 and the max pixel value.
+
+Memory 49h  (W):  Background Mix
+bit   0-7  The Background Mix. Same values as the Foreground Mix (Memory 48h)
+
+Memory 4Ah  (W):  Color Compare Function
+bit   0-2  CC_COND. Color Compare condition on all pixel drawing operations:
+              0  Always true
+              1  Dst > CC
+              2  Dst == CC 
+              3  Dst < CC
+              4  Always false
+              5  Dst >= CC
+              6  Dst != CC
+              7  Dst <= CC
+            Dst refers to the pixel, and CC to the color specified in the
+            Color Compare register (Memory 4Ch). The destination pixel is
+            updated if the condition is false. The default setting of this
+            register should be 4 (always false) in order to update all pixels.
+
+Memory 4Ch  D(W):  Color Compare Color
+bit  0-31  The color used in color compares. 
+
+Memory 50h  D(W):  Plane Mask
+bit  0-31  This register can protect individual bits in a pixel from change by
+           the drawing engine. A bit in a pixel can only be changed if the
+           corresponding bit in this register is set.
+
+Memory 54h  D(W):  Carry Chain Mask
+bit  0-31  This register determines whether carries from arithmetic
+           operations should be propagated to the next bit. If bit n is set
+           any carry from the operations on bit n is propagated to bit n+1.
+
+Memory 58h  D(W):  Foreground Color
+bit  0-31  This is the ForeGround color for draw operations.
+
+Memory 5Ch  D(W):  Background Color
+bit  0-31  This is the background color for draw operations.
+
+Memory 60h  W(W):  Operation Dimension 1
+bit  0-15  For BitBLT operations this is the pixel width of the BitBLT
+           operation. For line operations this is the pixel length of the line
+           (-1). This can be calculated as: MAX(abs(Delta X),abs(Delta Y))
+           The value must be between 0 and 4095.
+
+Memory 62h  W(W):  Operation Dimension 2
+bit  0-15  This is the line height of the BitBLT operation (-1).
+           The value must be between 0 and 4095.
+
+Memory 6Ch  W(W):  Mask Map Origin X Offset
+bit  0-15  The X offset in pixels of the Mask Map within the Destination Map.
+           The value must be between 0 and 4095.
+
+Memory 6Eh  W(W):  Mask Map Origin Y Offset
+bit  0-15  The Y offset in pixels of the Mask Map within the Destination Map.
+           The value must be between 0 and 4095.
+
+Memory 70h  W(R/W):  Source Map X
+bit  0-15  The X position of the first pixel used within the Source Map.
+           The value must be between 0 and 4095.
+
+Memory 72h  W(R/W):  Source Map Y
+bit  0-15  The Y position of the first pixel used within the Source Map.
+           The value must be between 0 and 4095.
+
+Memory 74h  W(R/W):  Pattern Map X
+bit  0-15  The X position of the first pixel used within the Pattern Map.
+           The value must be between 0 and 4095.
+
+Memory 76h  W(R/W):  Pattern Map Y
+bit  0-15  The Y position of the first pixel used within the Pattern Map.
+           The value must be between 0 and 4095.
+
+Memory 78h  W(R/W):  Destination Map X
+bit  0-15  The X position of the first pixel used within the Destination Map.
+           The value should be between -2048 and 6143 (2's complement).
+
+Memory 7Ah  W(R/W):  Destination Map Y
+bit  0-15  The Y position of the first pixel used within the Destination Map.
+           The value should be between -2048 and 6143 (2's complement).
+
+Memory 7Ch  D(W):  Command Register
+bit   0-2  OCTANT. Selects the direction of line draws and BitBLTs.
+             bit 0  YMAJOR. If set the line is longer in the Y dimension than
+                    the X dimension. Not used for BitBLTs.
+                 1  DEC_Y. If set the line is drawn in the negative Y
+                    direction.
+                 2  DEC_X. If set the line is drawn in the negative X
+                    direction.
+      4-5  DRAW_MODE. Selects the drawing mode for line and short stroke ops:
+             0 = Draw all pixels.
+             1 = Draw all but the first pixel
+             2 = Draw all but the last pixel.
+             3 = Draw area boundary.
+      6-7  MASK_MODE. Selects the mask.
+             0 = No mask.
+             1 = Use mask boundary. The Mask Map X/Y Origin and Pixel Map 0
+                 Width/Height registers define a rectangle. No pixel updates 
+                 will occur outside the rectangle.
+             2 = Map Mask enabled. Pixels can only be updated if they are
+                 inside the rectangle AND the corresponding bit in the map is
+                 1. 
+    12-15  PATT_SRC. Selects the pattern.
+             1 = Pixel Map A, 2 = Pixel Map B, 3 = pixel Map C,
+             8 = Always ForeGround, 9 = Pattern from source data.
+           The pattern selects whether the ForeGround or background data is
+           used for the drawing operation.
+    16-19  DST_MAP. Selects the destination map.
+             1 = Pixel Map A, 2 = Pixel Map B, 3 = Pixel Map C
+    20-23  SRC_MAP. Selects the source map.
+             1 = Pixel Map A, 2 = Pixel Map B, 3 = Pixel Map C
+    24-27  COMMAND. The draw command:
+             2  = Short Stroke Read.
+             3  = Line Draw Read.
+             4  = Short Stroke Write. Puts the XGA in Short stroke mode.
+                  All actual draws happen by writes to the Short Stroke
+                  register.
+             5  = Line Draw Write. Writes a line in the destination map.
+                  Line direction and length are set in the Bresenham and
+                  Direction 1 registers.
+             8  = BitBLT. 
+             9  = Inverting BitBLT.
+            0Ah = Area Fill.
+    28-29  FORE_SRC. The source of the ForeGround mix operation:
+               0 = Foreground color, 2 = Source Pixel Map.
+           The ForeGround source is effective when a pattern map is used, and
+           the corresponding bit in the pattern is 1, or when the pattern
+           source is given as Foreground.
+    30-31  BACK_SRC. The source of the background mix operation:
+               0 = Background color, 2 = Source Pixel Map.
+           The background source is effective when a pattern map is used, and
+           the corresponding bit in the pattern is 0.
+
+
+
+
+  Video Modes:
+   
+    640x480   256 colors
+    640x480 65536 colors
+    800x600    16 colors
+    800x600   256 colors
+    800x600 65536 colors  
+   1024x768    16 colors
+   1024x768   256 colors
+    
+   
+   All modes use a linear address mode, where bits 16-23 of the address 
+   are in the Video Aperture Index register (xga+8), and the lower 16 bits 
+   are the offset from 0A000:0.
+
+   In 16 color modes two pixels are stored in each byte. Even pixels are in
+   bits 0-3 and odd pixels in bits 4-7.
+   Address of pixel = (row *(pixels per row)+column) /2.
+
+   In 256 color modes each pixel occupies a byte. The pixels are addressed
+   in linear fashion. Address of pixel = row *(pixels per row) + column.
+
+   In 65536 color modes each pixel occupies two bytes.
+   Address of pixel = (row *(pixels per row)+column)*2.
+
+
+
+VESA XGA Real Mode BIOS Specification:
+
+----------104E00-------------------------
+INT 10 - VESA XGA - Return XGA Environment Information
+        AX = 4E00h
+        ES:DI -> 256 byte buffer
+Return: AL = 4Eh if function supported.
+        AH = 00h if function successful, errorcode if not.
+Buffer is filled with environment information:
+Offset Size    Description:
+ 00h  4 BYTEs  signature ('VESA')
+ 04h   WORD    VESA version. High byte is major version.
+ 06h   DWORD   Pointer to NULL terminated OEMstring.
+ 0Ah   DWORD   EnvironmentFlag:
+                 bit 0-1  System BUS: 0 = MCA, 1 = ISA, 3 = EISA.
+                       2  If set bus mastering is available.
+                    3-31  Reserved.
+ 0Eh   WORD    Number of XGA installed. Functions 1-6 require a handle from
+               0 to (XGAs -1) to identify the desired XGA board.
+ 10h - FFh     Reserved.
+----------104E01----------------------------
+INT 10 - VESA XGA - Return XGA Subsystem Information
+        AX = 4E01h
+        DX = XGA handle (0 to (XGAs -1))
+        ES:DI -> 256 byte buffer.
+Return: AL = 4Eh if function supported.
+        AH = 00h if function successful, errorcode if not.
+Buffer is filled with environment information:
+Offset Size    Description:
+  00h  DWORD   Pointer to null-terminated board OEM string.
+  04h  DWORD   Capabilities:
+               bit 0-1  Board Bus Architecture: 0=MCA, 1=ISA, 3=EISA
+                   2-3  Reserved
+                   4-6  DMA Channel assigned for acquiring bus mastership
+                        (only for ISA bus systems).
+                     7  DMA Channel Status (ISA only). Enabled if set.
+                  8-31  Reserved.
+  08h  DWORD   Pointer to 8KB XGA ROM (or NULL).
+  0Ch  DWORD   Pointer to the XGA memory mapped registers.
+  10h  WORD    Base address of XGA I/O registers (21x0h)
+  12h  DWORD   Pointer to start of physical video memory (0A000h:0 or
+               0B000h:0)
+  16h  DWORD   Physical address of 4MB aperture (or NULL if none).
+  1Ah  DWORD   Physical address of 1MB aperture (or NULL if none).
+  1Eh  DWORD   Physical address of 64KB aperture (or NULL if not enabled).
+  22h  DWORD   Physical address of OEM aperture (or NULL if none).
+  26h  WORD    Size of OEM aperture in 64KByte units.
+  28h  DWORD   Pointer to list of video modes. The list is a series of WORDs
+               terminated by 0FFFFh.
+  2Ch  WORD    Number of 64KB blocks on the board.
+  2Eh  DWORD   XGA manufactor ID. Byte 0 is POS data index 1, Byte 1 is index
+               2 and byte 2 is 21xAh index 75h.
+  32h - FFh    Reserved.
+----------104E02-----------------------------------
+INT 10 - VESA XGA - Return XGA Mode Information
+        AX = 4E02h
+        CX = Video mode
+        DX = XGA handle
+        ES:DI -> 256 byte buffer
+Return: AL = 4Eh if function supported.
+        AH = 00h if function successful, errorcode if not.
+Buffer is filled with mode information:
+Offset Size    Description:
+  00h  WORD    Attributes of the mode:
+                 bit 0  If set the mode is supported
+                     1  Reserved
+                     2  If set output is supported by the BIOS
+                     3  Reserved
+                     4  If set this is a graphics mode (VGA registers
+                        inactive, XGA active), if clear this is a text mode
+                        (VGA registers active, XGA inactive)
+  02h  WORD    Bytes per logical scanline
+  04h  WORD    Horizontal Resolution in pixels
+  06h  WORD    Vertical Resolution in scanlines
+  08h  BYTE    Character Width in pixels
+  09h  BYTE    Character Height in pixels
+  0Ah  BYTE    Number of planes
+  0Bh  BYTE    Bits per pixels
+  0Ch  BYTE    Memory Model
+                 0 = Text Mode
+                 1 = CGA graphics
+                 2 = Hercules graphics
+                 3 = 4-planar graphics
+                 4 = Packed Pixel
+                 5 = Non-chain 4, 256 color
+                 6 = Direct Color
+                 7 = YUV-24
+  0Dh  BYTE    Number of Image Pages
+  0Eh  BYTE    Number of Red bits
+  0Fh  BYTE    Bit Position of Red bit field
+  10h  BYTE    Number of Green bits
+  11h  BYTE    Bit Position of Green bit field
+  12h  BYTE    Number of Blue bits
+  13h  BYTE    Bit Position of Blue bit field
+  14h  BYTE    Number of Reserved bits
+  15h  BYTE    Bit Position of Reserved bit field
+  16h - FFh    Reserved
+----------104E03-----------------------------------
+INT 10 - VESA XGA - Set XGA Video Mode
+        AX = 4E03h
+        BX = Video Mode
+        CX = Other Command Flags
+             bit 0  If clear the feature connector is set to the default state
+        DX = XGA handle
+        ES:DI -> 256 byte buffer
+Return: AL = 4Eh if function supported.
+        AH = 00h if function successful, errorcode if not.
+----------104E04-----------------------------------
+INT 10 - VESA XGA - Return Current Video Mode
+        AX = 4E04h
+        DX = XGA handle
+Return: AL = 4Eh if function supported.
+        AH = 00h if function successful, errorcode if not.
+----------104E05-----------------------------------
+INT 10 - VESA XGA - Set Feature Connector State
+        AX = 4E05h
+        BX = Feature Connector State
+             bit 0  If set the Feature Connector is enabled.
+                 1  If set Feature Connector is in Output Mode,
+                    if clear in Input Mode
+        DX = XGA handle
+Return: AL = 4Eh if function supported.
+        AH = 00h if function successful, errorcode if not.
+----------104E06-----------------------------------
+INT 10 - VESA XGA - Return Feature Connector State
+        AX = 4E06h
+        DX = XGA handle
+Return: AL = 4Eh if function supported.
+        AH = 00h if function successful, errorcode if not.
+        BX = Feature Connector State
+             bit 0  If set the Feature Connector is enabled.
+                 1  If set the Feature Connector is in Output Mode,
+                    if clear in Input Mode.
+              2-15  Reserved(0)

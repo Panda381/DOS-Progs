@@ -1,0 +1,238 @@
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+                          P ž ‹ R U € K A  U ’ I V A T E L E
+                                  S ‹ T ‰  F E L A N
+
+                                     €  S T  I V.
+
+                                 52
+
+
+
+6. !Programov‚ rozhran¡ s¡tˆ FELAN! 
+
+     Popisovan‚ rozhran¡ poskytovan‚ komunika‡n¡m modulem  s¡tˆ  FELAN
+dovoluje aplika‡n¡m program–m p©¡stup ke slu‘b m s¡tˆ a t¡m k  p©enosu
+zpr v mezi jednotliv˜mi po‡¡ta‡i zapojen˜mi v s¡ti.
+
+6.1 !Typy zpr v! 
+
+     U‘ivatel–m dostupn‚ operace umo‘¤uj¡ vyslat  a  p©ijmout  zpr vu.
+Existuje 256 druh– (typ–) zpr v. Vˆt¨ina zpr v je vyhrazena pro  vy¨¨¡
+vrstvy programov‚ho vybaven¡ FELAN. Zpr vy 160 (0A0H)  a‘  239  (0EFH)
+mohou vyu‘¡vat ostatn¡ tv–rci s¡Ÿov˜ch program–.
+     Bylo  by  vhodn‚,  aby  tito  tv–rci  oznamovali  a  konzultovali
+s autory FELANu, kter‚  z  typ–  zpr v  pou‘¡vaj¡.  Lze  tak  zabr nit
+konfliktn¡m situac¡m p©i provozov n¡ s¡Ÿov˜ch  program–  vznikl˜ch  na
+r–zn˜ch pracovi¨t¡ch a vyu‘¡vaj¡c¡ch stejn‚ typy zpr v.
+
+6.2 !Vol n¡ slu‘eb p©enosu zpr v! 
+
+     Slu‘by  vys¡l n¡  a  p©¡jmu  zpr v  poskytuje  komunika‡n¡  modul
+prost©ednictv¡m programov‚ho p©eru¨en¡  48H.  Pro  vysl n¡  zpr vy  je
+ur‡ena funkce 0 tohoto p©eru¨en¡. Pro p©¡jem se vyu‘¡vaj¡  funkce  10H
+a‘ 12H. Tyto funkce vyu‘¡vaj¡ registry AX,BX,EX,CY. Zb˜vaj¡c¡ registry
+jsou nezmˆnˆny. Jin‚ funkce tohoto  p©eru¨en¡  a  p©eru¨en¡  49H  jsou
+rezervov na pro jin‚ £‡ely.
+
+6.3 !Vys¡l n¡ zpr v!
+
+     Po‘adavek  na  vys¡l n¡  je  p©ed n  komunika‡n¡mu   modulu.   Po
+zkontrolov n¡ form ln¡ spr vnosti po‘adavku  je  za©azen  do  vys¡lac¡
+fronty a ©¡zen¡ je p©ed no zpˆt u‘ivatelsk‚mu programu.
+
+Vstup:     AH      0
+           ES:BX   Adresa SCB - Send Control Block
+                   SCB obsahuje informace nutn‚ k vysl n¡ zpr vy
+
+V˜stup:    AL      Odpovˆƒ
+           CY      Nastaven p©i chybˆ
+          
+
+Send Control Block obsahuje tyto informace:
+
++0  S_REPLY    Byte odpovˆdi. Prvn¡ odpovˆƒ je nastavena  po vznesen¡
+               po‘adavku na vys¡l n¡ (chyba nebo "dosud  se vys¡l ").
+               Tato  hodnota  je  k dispozici  i  v  registru  AL. Po
+               ukon‡en¡ vys¡l n¡  je  zde druh   odpovˆƒ  informuj¡c¡
+               o £spˆ¨nosti vys¡l n¡.
+               V tomto bytu tedy u‘ivatelsk˜  program  sleduje pr–bˆh
+               vys¡l n¡.
+
++1  S_RESERVE  Rezervov no pro vnit©n¡ pot©ebu.
+
++2  S_RQACK    M -li tento byte nenulovou hodnotu,  adres t potvrzuje
+               p©ijet¡ zpr vy. V takov‚m p©¡padˆ p©¡kaz  vy¨li zpr vu
+               kon‡¡  p©ijet¡m  potvrzen¡  nebo  vy‡erp n¡m  ‡asov‚ho
+               limitu, ve kter‚m  mˆl potvrzen¡ obdr‘et.
+               €asov˜  limit  za‡¡n   okam‘ikem  fyzick‚ho  odesl n¡
+               zpr vy, u‘ivatel jeho velikost nem–‘e ovlivnit.
+
+                                 53
+
+
++3  S_TMOUT    Time-out pro  vys¡l n¡.  Po‘adavky  na  vys¡l n¡  jsou
+               odeb¡r ny  z   vys¡lac¡  fronty  a  zpr vy  vys¡l ny.
+               Je-li  s¡Ÿ  p©et¡‘ena  a  zpr vu se neda©¡  vyslat, je
+               po zvolen‚ dobˆ (time-out) hl ¨ena chyba.
+               Velikost time-outu se ud v  v n sobc¡ch 55 ms.
+                0 - j dro pou‘ije standardn¡ hodnotu 3
+               >0 - toto je time-out
+               <0 - vys¡l n¡ bez ‡asov‚ho omezen¡
+
++4  S_LANTO    Pl nov no pro adresaci jin˜ch  s¡t¡.  Je  zde  uvedeno
+               ‡¡slo s¡tˆ, nula znamen , ‘e adres t pracuje ve stejn‚
+               s¡ti jako  odesilatel zpr vy.
+               Doporu‡ujeme nastavit nulu.
+
++5  S_ADRTO    Adres t
+
++6  S_LEN      D‚lka vys¡lan‚ zpr vy je ulo‘ena ve slovˆ.
+               Vys¡lan  zpr va je dlouh  max. 591 byt–.
+
++8  S_BUF      Dvouslovo obsahuj¡c¡ adresu bufferu s textem zpr vy.
+               Text zpr vy za‡¡n  bytem s typem (druhem) zpr vy.
+
+6.4 !P©¡jem zpr v! 
+
+ 
+Pro p©ij¡m n¡ zpr v jsou ur‡eny funkce:
+
+    10H  po‘adavek na trval˜ p©¡jem zvolen˜ch typ– zpr v
+    11H  vlastn¡ p©¡jem zpr vy
+    12H  zru¨en¡ trval‚ho p©¡jmu zpr v
+
+     Komunikace mezi u‘ivatelsk˜m  programem  a  komunika‡n¡m  modulem
+prob¡h  prost©ednictv¡m datov‚ struktury Receive Control Block -  RCB.
+Ve funkc¡ch 11 a 12 je nutno uv dˆt tu adresu RCB, kter  byla  pou‘ita
+pro funkci 10. V RCB jsou obsa‘eny polo‘ky:
+
++0  R_REPLY     Byte odpovˆdi na prov dˆn‚ p©¡kazy.
+
++1  R_RESERVE   Vyhrazeno pro vnit©n¡ pot©ebu.
+
++2  R_MIN     
+
++3  R_MAX       Byty  R_MIN  a  R_MAX  ud vaj¡  rozsah  typ–  (‡¡sel)
+                p©ij¡man˜ch zpr v.
+
++4  R_RCVD      Hodnota polo‘ky ud v  po‡et zpr v, kter‚ byly p©ijaty
+                a ‡ekaj¡ v p©ij¡mac¡ frontˆ na p©ed n¡ u‘ivateli. 
++5  R_TMOUT     Time-out pro p©¡jem. Pokud po vyd n¡ p©¡kazu  "p©ijmi
+                zpr vu"  nen¡ zpr va  v p©ij¡mac¡  frontˆ a ani  nen¡
+                p©ijata v zadan‚m ‡asov‚m limitu, je to pova‘ov no za
+                chybu.  R_TMOUT se ud v  v n sobc¡ch 55 ms:
+
+                 0 - j dro pou‘ije standardn¡ hodnotu 3
+                >0 - toto je time-out
+                <0 - p©¡jem zpr vy bez ‡asov‚ho omezen¡
+
+
+                                 54
+
+
++6  R_LANFROM   Pl nov no pro adresaci jin˜ch s¡t¡.  Je  zde  uvedeno
+                ‡¡slo  s¡tˆ  odesilatele  zpr vy.  Nula  znamen ,  ‘e
+                odesilatel  pracuje  ve stejn‚ s¡ti jako p©¡jemce.
+                Doporu‡ujeme nastavit nulu.
+
++7  R_ADRFROM   Adresa odesilatele zpr vy.
+
++8  R_LEN       Slovo obsahuj¡c¡ d‚lku bufferu pro ulo‘en¡ zpr vy.
+                Lze p©ijmout zpr vu dlouhou nejv˜¨e 591 byt–.
+
++10 R_BUF       Dvouslovo ud v   adresu  bufferu  s p©ijatou zpr vou.
+                Prvn¡m bytem ve zpr vˆ je jej¡ typ.
+
+
+!Funkce 10H - po‘adavek na p©¡jem zpr v!
+
+Vstup:    AH       10H
+          ES:BX    Adresa RCB
+                   V RCB jsou nastaveny polo‘ky R_MIN a R_MAX
+
+V˜stup    AL       Byte odpovˆdi
+          CY       Nastaven p©i chybˆ
+
+     Touto funkc¡ u‘ivatelsk˜ program sdˆluje komunika‡n¡mu modulu, ‘e
+chce trvale p©ij¡mat zpr vy, jejich‘  typ  je  z  intervalu  R_MIN  a‘
+R_MAX.
+
+!Funkce 11H - p©ijmi zpr vu!
+
+Vstup     AH       11H
+          ES:BX    Adresa RCB
+                   V RCB mus¡ b˜t nastaveny polo‘ky
+                   R_TMOUT, R_LEN a R_BUF
+
+V˜stup    AL       Byte odpovˆdi
+          CY       Nastaven p©i chybˆ
+          R_LEN    Ud v  skute‡nou d‚lku p©ijat‚ zpr vy
+
+
+     U‘ivatelsk‚mu programu je  z  p©ij¡mac¡  fronty  p©ed na  p©ijat 
+zpr va. Nen¡-li ve frontˆ vhodn  zpr va, ‡ek  se po  dobu  R_TMOUT  na
+jej¡ p©ijet¡ ze s¡tˆ. Po tuto dobu je  u‘ivatelsk˜  program  zastaven.
+P©ed proveden¡m slu‘by u‘ivatel v R_LEN nastaven¡  max.  d‚lka  zpr vy
+(velikost bufferu), p©i p©ed n¡ zpr vy u‘ivatelsk‚mu  programu  je  do
+R_LEN zaps na skute‡n  d‚lka p©ijat‚ zpr vy.
+
+!Funkce 12H - zru¨ p©¡jem zpr v!
+
+
+Vstup   AH      12H
+        ES:BX   Adresa RCB
+
+V˜stup  AL      Byte odpovˆdi
+        CY      Nastaven p©i chybˆ
+
+     Tuto  funkci  mus¡  program  pou‘¡t,  jestli‘e  ji‘  nechce  d le
+p©ij¡mat ‘ dn‚ zpr vy nebo se chyst  ukon‡it  svoji  ‡innost.  Nen¡-li
+funkce pou‘ita, komunika‡n¡ modul i nad le p©ij¡m   po‘adovan‚  zpr vy
+a aktualizuje polo‘ku R_RCVD v RCB bloku.
+
+                                 55
+
+
+6.5 !Chyby p©i p©¡jmu a vys¡l n¡! 
+
+K chyb m doch z¡ vlivem vznesen¡ chybn˜ch po‘adavk– na  p©enos  zpr v,
+vlastnostmi pou‘it‚ho protokolu CSMA/CD nebo dosa‘en¡m maxima mo‘nost¡
+FELANu.
+
+-1   P©¡kaz se prov d¡
+ 0   P©¡kaz se £spˆ¨nˆ provedl
+ 1   Form ln¡ chyba po‘adavku
+ 2   Po‘adovan˜ typ zpr v ji‘ nˆkdo p©ij¡m 
+ 3   P©¡li¨ mnoho po‘adavk– na trval˜ p©¡jem
+ 4   Adresa RCB nebyla pou‘ita ve funkci 11
+ 5   V SCB je uvedena chybn  d‚lka zpr vy
+ 6   P©¡li¨ mnoho po‘adavk– na p©¡jem
+ 7   Vy‘ dan‚ potvrzen¡ nep©i¨lo v ‡asov‚m limitu
+ 8   P©ijat  zpr va je del¨¡ ne‘ je uvedeno v R_LEN,
+     zpr va je o©¡znuta
+ 9   Time-out
+
+     Pou‘¡v n¡   uveden˜ch   funkc¡   vy‘aduje   velkou   zodpovˆdnost
+program tora.  Auto©i  FELANu  proto  d vaj¡  k  dispozici  dvˆ  r–zn‚
+jednotky pascalsk˜ch  knihovn¡ch  modul–,  LANLIB.PAS  a  USERLAN.PAS.
+Druh  z uveden˜ch knihoven sice  ponˆkud  omezuje  autora  aplika‡n¡ch
+program–, ale naproti tomu mu zaru‡uje, ‘e jeho programy nebudou ru¨it
+provoz na s¡ti. Jednotky jsou dod v ny i ve zdrojov‚m jazyce,  proto‘e
+jednotky   TPU   nejsou   p©enositeln‚   mezi   jednotliv˜mi   verzemi
+Turbopascalu. Auto©i FELANu se domn¡vaj¡, ‘e knihovny  budou  pou‘¡vat
+pouze zku¨en¡ program to©i, pro nˆ‘ bude dostate‡n˜m n vodem  p©e‡ten¡
+zdrojov‚ho textu jednotky. K tomu  m–‘e  napomoci  p©ilo‘en˜  uk zkov˜
+program BRO.PAS.
+ 
+ 
+˜
+program BRO.PAS.
+ 
+ 

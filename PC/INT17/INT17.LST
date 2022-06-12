@@ -1,0 +1,89 @@
+; *****************************************************************************
+;                            Ovl d n¡ tisk rny LPT
+; *****************************************************************************
+F000:F85C FB             STI
+F000:F85D 53             PUSH   BX 
+F000:F85E 52             PUSH   DX 
+F000:F85F 1E             PUSH   DS 
+F000:F860 6A40           PUSH   40                            ;'@' 
+F000:F862 1F             POP    DS               ; DS <- 40h dat. segment BIOS
+F000:F863 8BDA           MOV    BX,DX            ; ‡¡slo portu
+F000:F865 D1E3           SHL    BX,1             ; ‡¡slo portu * 2
+F000:F867 8B970800       MOV    DX,[BX+0008]     ; adresa portu LPT
+F000:F86B 23D2           AND    DX,DX            ; je port definov n ?
+F000:F86D 746F           JZ     F8DE             ; port nen¡ definov n
+F000:F86F D0EC           SHR    AH,1             ; funkce/2
+F000:F871 8AE0           MOV    AH,AL            ; znak k v˜stupu
+F000:F873 7558           JNZ    F8CD             ; slu‘ba 2 - dotaz na stav
+F000:F875 7235           JB     F8AC             ; slu‘ba 1 - inicializace
+                                               ;* v˜stup znaku
+F000:F877 EE             OUT    DX,AL            ; v˜stup znaku na port
+F000:F878 42             INC    DX               ; stavov˜ registr
+F000:F879 EB00           JMP    F87B             ; prodleva
+F000:F87B EB00           JMP    F87D             ; prodleva
+F000:F87D EC             IN     AL,DX            ; ‡ten¡ stavov‚ho registru
+F000:F87E A880           TEST   AL,80            ; je tisk rna p©ipravena ?
+F000:F880 7538           JNZ    F8BA             ; tisk rna je p©ipravena
+F000:F882 50             PUSH   AX
+F000:F883 B8FE90         MOV    AX,90FE
+F000:F886 CD15           INT    15               ; ‡ek n¡ na p©ipravenost LPT
+F000:F888 58             POP    AX 
+F000:F889 D1EB           SHR    BX,1             ; ‡¡slo portu LPT
+F000:F88B 8A9F7800       MOV    BL,[BX+0078]     ; TIME-OUT tisk rny
+F000:F88F 32FF           XOR    BH,BH
+F000:F891 C1E302         SHL    BX,02            ; ‡¡slo portu LPT * 2
+                                               ;* ‡ek n¡ na p©ipravenost
+F000:F894 51             PUSH   CX 
+F000:F895 33C9         * XOR    CX,CX            ; CX <- 0
+F000:F897 EB00         * JMP    F899             ; prodleva
+F000:F899 EB00           JMP    F89B             ; prodleva
+F000:F89B EC             IN     AL,DX            ; ‡ten¡ stavov‚ho registru LPT
+F000:F89C A880           TEST   AL,80            ; je tisk rna p©ipravena ?
+F000:F89E 7519           JNZ    F8B9             ; tisk rna je p©ipravena
+F000:F8A0 E2F5           LOOP   F897             ; ‡ek n¡ na p©ipravenost
+F000:F8A2 4B             DEC    BX               ; ‡¡ta‡ prodlevy
+F000:F8A3 75F0           JNZ    F895             ; dal¨¡ ‡ek n¡
+F000:F8A5 59             POP    CX
+                                               ;* je TIME-OUT
+F000:F8A6 24F8           AND    AL,F8            ; ponech n¡ atribut–
+F000:F8A8 0C01           OR     AL,01            ; p©¡znak TIME-OUT
+F000:F8AA EB2E           JMP    F8DA             ; n vrat z obsluhy
+                                               ;* inicializace tisk rny
+F000:F8AC B008           MOV    AL,08            ; bajt pro inicializaci
+F000:F8AE 42             INC    DX 
+F000:F8AF 42             INC    DX               ; port ©¡zen¡ tisk rny
+F000:F8B0 EE             OUT    DX,AL            ; inicializace tisk rny
+F000:F8B1 BB0040         MOV    BX,4000 
+F000:F8B4 4B             DEC    BX 
+F000:F8B5 75FD           JNZ    F8B4             ; velk  prodleva pro inicial.
+F000:F8B7 EB0E           JMP    F8C7             ; nastaven¡ portu tisk rnu
+                                               ;* vysl n¡ znaku na tisk rnu
+F000:F8B9 59           * POP    CX
+F000:F8BA B00D         * MOV    AL,0D            ; p©¡znak STROBE
+F000:F8BC 42             INC    DX               ; ©¡dic¡ port LPT
+F000:F8BD EB00           JMP    F8BF             ; prodleva
+F000:F8BF EB00           JMP    F8C1             ; prodleva
+F000:F8C1 FA             CLI     
+F000:F8C2 EE             OUT    DX,AL            ; vysl n¡ sign lu STROBE
+F000:F8C3 EB00           JMP    F8C5             ; prodleva
+F000:F8C5 EB00           JMP    F8C7             ; prodleva
+F000:F8C7 B00C         * MOV    AL,0C
+F000:F8C9 EE             OUT    DX,AL            ; konec sign lu STROBE
+F000:F8CA FB             STI     
+F000:F8CB 4A             DEC    DX 
+F000:F8CC 4A             DEC    DX 
+F000:F8CD 42           * INC    DX
+F000:F8CE EB00           JMP    F8D0             ; prodleva
+F000:F8D0 EB00           JMP    F8D2             ; prodleva
+F000:F8D2 EC             IN     AL,DX            ; ‡ten¡ stavov‚ho registru
+F000:F8D3 EB00           JMP    F8D5             ; prodleva
+F000:F8D5 EB00           JMP    F8D7             ; prodleva
+F000:F8D7 EC             IN     AL,DX            ; opakovan‚ ‡ten¡ stav. reg.
+F000:F8D8 24F8           AND    AL,F8            ; p©¡znaky stavu
+F000:F8DA 3448         * XOR    AL,48            ; oprava polarity sign l–
+F000:F8DC 86C4           XCHG   AL,AH            ; AH <- stav portu
+F000:F8DE 1F           * POP    DS
+F000:F8DF 5A             POP    DX 
+F000:F8E0 5B             POP    BX 
+F000:F8E1 CF             IRET
+

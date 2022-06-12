@@ -1,0 +1,230 @@
+CONTEXT   0 241   2   3  72
+
+
+
+
+
+
+
+; *****************************************************************************
+;
+;                  Zav dˆc¡ sektor opera‡n¡ho syst‚mu TDOS V2.11
+;    (zavede modul TBIOS.SYS od adresy 0070:0000h, BP=po‡ t. rel. sektor ROOT)
+;
+; *****************************************************************************
+
+0000:7C00 EB22           JMP    7C24             ; start zavadˆ‡e
+0000:7C02 90             NOP
+
+0000:7c03                db     'T V2.11 '       ; identifikace firmy a verze
+
+0000:7c0b                dw     200h             ; d‚lka sektoru (v bajtech)
+0000:7c0d                db     2                ; velikost bloku (v sektorech)
+0000:7c0e                dw     1                ; po‡et rezervovan˜ch sektor–
+0000:7c10                db     2                ; po‡et aloka‡n¡ch tabulek FAT
+0000:7c11                dw     70h              ; max. po‡et polo‘ek z kl. adr.
+0000:7c13                dw     2d0h             ; celkov˜ po‡et sektor– m‚dia
+0000:7c15                db     0fdh             ; popisova‡ m‚dia
+0000:7c16                dw     2                ; po‡et sektor– v jedn‚ FAT
+0000:7c18                dw     9                ; po‡et sektor– na stopu
+0000:7c1a                dw     2                ; po‡et hlav disku
+0000:7c1c                dd     0                ; po‡et skryt˜ch sektor– disku
+
+0000:7c20                db     0                ; ‡¡ta‡ pokus– o ‡ten¡ syst‚mu
+0000:7c21                db     0                ; po‡et sektor– ke ‡ten¡
+0000:7c22                dw     0                ; abs. ‡¡slo ‡ten‚ho sektoru
+
+
+
+                                               ;* inicializace segment–
+0000:7C24 FC             CLD                     ; p©¡znak smˆru nahoru
+0000:7C25 FA             CLI                     ; z kaz p©eru¨en¡
+0000:7C26 BAC007         MOV    DX,07C0          ; segment k ulo‘en¡ disk. par.
+0000:7C29 BC007C         MOV    SP,7C00          ; offset z sobn¡ku
+0000:7C2C 33C0           XOR    AX,AX            ; AX <- 0 segment programu
+0000:7C2E 8ED0           MOV    SS,AX            ; SS <- tento segment 0
+0000:7C30 8EC0           MOV    ES,AX            ; ES <- tento segment 0
+0000:7C32 FB             STI                     ; povolen¡ p©eru¨en¡
+
+                                               ;* na‡ten¡ tabulky disk. param.
+0000:7C33 26C5367800     LDS    SI,ES:[0078]     ; ukazatek disk. param. INT 1eh
+0000:7C38 06             PUSH   ES               ; £schova segmentu INT 1eh
+0000:7C39 8EC2           MOV    ES,DX            ; segment k ulo‘en¡ disk. par.
+0000:7C3B BF0003         MOV    DI,0300          ; offset k ulo‘en¡ (=0000:7f00)
+0000:7C3E B90B00         MOV    CX,000B          ; d‚lka tabulky disk. par.
+0000:7C41 F3A4           REPZ   MOVSB            ; p©enos tabulky disk. param.
+0000:7C43 07             POP    ES               ; n vrat segmentu INT 1eh
+
+                                               ;* nastaven¡ vlastn¡ tabulky par.
+0000:7C44 8EDA           MOV    DS,DX            ; datov˜ segment 07C0h
+0000:7C46 BB0003         MOV    BX,0300          ; offset tabulky disk. param.
+0000:7C49 C647040F       MOV    Byte Ptr [BX+04],0F ; posledn¡ sektor stopy = 15
+0000:7C4D 26891E7800     MOV    ES:[0078],BX     ; offset vlastn¡ tabulky
+0000:7C52 268C1E7A00     MOV    ES:[007A],DS     ; segment vlastn¡ tabulky
+
+                                               ;* nastaven¡ ‡¡sla disku
+0000:7C57 8A16FD01       MOV    DL,[01FD]        ; ‡¡slo disku
+0000:7C5B F6C280         TEST   DL,80            ; je to pevn˜ disk ?
+0000:7C5E 750E           JNZ    7C6E             ; je to pevn˜ disk
+0000:7C60 26A03F04       MOV    AL,ES:[043F]     ; stav motor– disket. mechanik
+0000:7C64 240F           AND    AL,0F            ; stav motor– disket. mechanik
+0000:7C66 33D2           XOR    DX,DX            ; ukazatel ‡¡sla disku
+0000:7C68 42           * INC    DX               ; zv˜¨en¡ ukazatele ‡¡sla disku
+0000:7C69 D0E8           SHR    AL,1             ; je motor mechaniky zapnut ?
+0000:7C6B 73FB           JNB    7C68             ; motor nen¡ zapnut
+0000:7C6D 4A             DEC    DX               ; n vrat ‡¡sla mechaniky
+0000:7C6E 8816FD01     * MOV    [01FD],DL        ; ‡¡slo disku/disket. mechaniky
+
+                                               ;* jeden pokus o na‡ten¡ syst‚mu
+0000:7C72 33C0         * XOR    AX,AX
+0000:7C74 CD13           INT    13               ; resetov n¡ diskov‚ho syst‚mu
+0000:7C76 723B           JB     7CB3             ; chyba - dal¨¡ pokus
+0000:7C78 E85A00         CALL   7CD5             ; na‡ten¡ adres ©e, p©¡prava
+0000:7C7B 7236           JB     7CB3             ; chyba - dal¨¡ pokus
+0000:7C7D BB0007         MOV    BX,0700          ; adresa k ulo‘en¡ TBIOS.SYS
+                                               ;* na‡ten¡ ‡asti TBIOS.SYS
+0000:7C80 E8BF00       * CALL   7D42             ; p©epo‡et abs. sektoru na BIOS
+0000:7C83 A11800         MOV    AX,[0018]        ; po‡et sektor– na stopu
+0000:7C86 2AC1           SUB    AL,CL            ; po‡et zbyl˜ch sekt. na stopˆ
+0000:7C88 40             INC    AX               ; po‡et zbyl˜ch sektor–
+0000:7C89 3A062100       CMP    AL,[0021]        ; je po‡et vˆt¨¡ ne‘ po‘ad. ?
+0000:7C8D 7603           JBE    7C92             ; nen¡ vˆt¨¡ ne‘ po‘adovan˜
+0000:7C8F A02100         MOV    AL,[0021]        ; po‘adovan˜ po‡et sektor–
+0000:7C92 50           * PUSH   AX               ; £schova po‡tu sektor–
+0000:7C93 B402           MOV    AH,02
+0000:7C95 CD13           INT    13               ; na‡ten¡ sektor– z jedn‚ stopy
+0000:7C97 721A           JB     7CB3             ; chyba - dal¨¡ pokus
+0000:7C99 58             POP    AX               ; n vrat po‡tu sektor–
+                                               ;* zv˜¨en¡ ukazatel– souboru
+0000:7C9A 28062100       SUB    [0021],AL        ; sn¡‘en¡ po‘ad. po‡tu sektor–
+0000:7C9E 740C           JZ     7CAC             ; jsou ji‘ v¨echny sektory
+0000:7CA0 32E4           XOR    AH,AH            ; AX <- po‡et sektor–
+0000:7CA2 01062200       ADD    [0022],AX        ; zv˜¨en¡ ‡¡sla sektoru
+0000:7CA6 D0E0           SHL    AL,1             ; po‡et sektor– * 2
+0000:7CA8 02F8           ADD    BH,AL            ; zv˜¨en¡ ukl dac¡ adresy
+0000:7CAA EBD4           JMP    7C80             ; ‡ten¡ dal¨¡ stopy TBIOS.SYS
+                                               ;* ‡ten¡ OK - skok na TBIOS.SYS
+0000:7CAC 8BDD         * MOV    BX,BP            ; po‡ te‡n¡ rel. sektor ROOT
+0000:7CAE EA00007000     JMP    0070:0000        ; start modulu TBIOS.SYS
+
+                                               ;* dal¨¡ pokus o ‡ten¡ syst‚mu
+0000:7CB3 FE0E2000     * DEC    Byte Ptr [0020]  ; ‡¡ta‡ pokus– o ‡ten¡ syst‚mu
+0000:7CB7 7402           JZ     7CBB             ; byly ji‘ v¨echny pokusy
+0000:7CB9 EBB7           JMP    7C72             ; dal¨¡ pokus o ‡ten¡ syst‚mu
+
+                                               ;* chyba zaveden¡ syst‚mu
+0000:7CBB B91500       * MOV    CX,0015          ; d‚lka textu
+0000:7CBE BE8401         MOV    SI,0184          ; adresa textu
+0000:7CC1 E89F00         CALL   7D63             ; zobrazen¡ textu "chyba BOOT"
+0000:7CC4 EBFE           JMP    7CC4             ; zablokov n¡ syst‚mu
+; -----------------------------------------------------------------------------
+                                               ;* chyba - nen¡ opera‡n¡ syst‚m
+0000:7CC6 B94700         MOV    CX,0047          ; d‚lka textu
+0000:7CC9 BE9701         MOV    SI,0197          ; adresa textu
+0000:7CCC E89400         CALL   7D63             ; zobrazen¡ textu "nen¡ system"
+0000:7CCF 32E4           XOR    AH,AH
+0000:7CD1 CD16           INT    16               ; ‡ek n¡ na stisk kl vesy
+0000:7CD3 CD19           INT    19               ; pokra‡ov n¡ v zav dˆn¡ syst.
+
+; -----------------------------------------------------------------------------
+;         Na‡ten¡ adres ©e, nastaven¡ po‡ te‡n¡ho datov‚ho sektoru
+; -----------------------------------------------------------------------------
+                                               ;* v˜po‡et po‡ t. sektoru ROOT
+0000:7CD5 A01600         MOV    AL,[0016]        ; po‡et sektor– v jedn‚ FAT
+0000:7CD8 F6261000       MUL    Byte Ptr [0010]  ; celkov˜ po‡et sektor– FAT
+0000:7CDC 03060E00       ADD    AX,[000E]        ; p©i‡ten¡ rezerv. sektor–
+0000:7CE0 8BE8           MOV    BP,AX            ; po‡ te‡n¡ sektor ROOT
+0000:7CE2 03061C00       ADD    AX,[001C]        ; p©i‡ten¡ skryt˜ch sektor–
+0000:7CE6 A32200         MOV    [0022],AX        ; absolutn¡ sektor ROOT
+
+                                               ;* na‡ten¡ sektoru adres ©e
+0000:7CE9 BB0005         MOV    BX,0500          ; ukl dac¡ adresa pro ‡ten¡
+0000:7CEC E85300         CALL   7D42             ; p©epo‡et abs. sektoru na BIOS
+0000:7CEF B80102         MOV    AX,0201          ; 1 sektor
+0000:7CF2 CD13           INT    13               ; ‡ten¡ 1 sektoru
+0000:7CF4 724B           JB     7D41             ; chyba ‡ten¡
+
+                                               ;* je prvn¡ soubor TBIOS.SYS ?
+0000:7CF6 B90B00         MOV    CX,000B          ; d‚lka jm‚na souboru TBIOS.SYS
+0000:7CF9 BE6E01         MOV    SI,016E          ; jm‚no souboru TBIOS.SYS
+0000:7CFC BF0005         MOV    DI,0500          ; na‡ten˜ adres ©
+0000:7CFF F3A6           REPZ   CMPSB            ; je to soubor TBIOS.SYS ?
+0000:7D01 75C3           JNZ    7CC6             ; nen¡ TBIOS.SYS-chyba syst‚mu
+
+                                               ;* je druh˜ soubor TDOS.SYS ?
+0000:7D03 B90B00         MOV    CX,000B          ; d‚lka jm‚na souboru TDOS.SYS
+0000:7D06 BF2005         MOV    DI,0520          ; jm‚no souboru TDOS.SYS
+0000:7D09 F3A6           REPZ   CMPSB            ; je to soubor TDOS.SYS ?
+0000:7D0B 75B9           JNZ    7CC6             ; nen¡ TDOS.SYS-chyba syst‚mu
+
+                                               ;* po‡et sektor– ke ‡ten¡
+0000:7D0D A10B00         MOV    AX,[000B]        ; d‚lka sektoru (v bajtech)
+0000:7D10 86E0           XCHG   AH,AL            ; AX = d‚lka sektoru v 256 B
+0000:7D12 F6260D00       MUL    Byte Ptr [000D]  ; velikost bloku v 256 B
+0000:7D16 86E0           XCHG   AH,AL            ; AX = velikost bloku v bajtech
+0000:7D18 48             DEC    AX               ; posledn¡ bajt bloku
+0000:7D19 8BD8           MOV    BX,AX            ; alok. blok - 1
+0000:7D1B 26A11C05       MOV    AX,ES:[051C]     ; velikost souboru TBIOS.SYS
+0000:7D1F 03C3           ADD    AX,BX            ; p©i‡ten¡ bloku pro zaokrouhl.
+0000:7D21 D0EC           SHR    AH,1             ; p©epo‡et velikosti na sektory
+0000:7D23 32C0           XOR    AL,AL            ; AL <- 0
+0000:7D25 86E0           XCHG   AH,AL            ; AX = po‡et sektor– TBIOS.SYS
+0000:7D27 A22100         MOV    [0021],AL        ; po‡et sektor– ke ‡ten¡
+
+                                               ;* v˜po‡et prvn¡ho dat. sektoru
+0000:7D2A B82000         MOV    AX,0020          ; velikost polo‘ky adres ©e
+0000:7D2D F7261100       MUL    Word Ptr [0011]  ; velikost ROOT v bajtech
+0000:7D31 05FF01         ADD    AX,01FF          ; zaokrouhlen¡ na sektor
+0000:7D34 D0EC           SHR    AH,1             ; po‡et sektor– ROOT
+0000:7D36 32C0           XOR    AL,AL            ; AL <- 0
+0000:7D38 86E0           XCHG   AH,AL            ; AL <- ‡¡slo sektoru
+0000:7D3A 01062200       ADD    [0022],AX        ; ‡¡slo prvn¡ho dat. sektoru
+0000:7D3E 03E8           ADD    BP,AX            ; zv˜¨en¡ ukazatele sektor–
+0000:7D40 F8             CLC                     ; p©¡znak - operace OK
+0000:7D41 C3           * RET
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+                                               ;* p©epo‡et abs. sektoru na BIOS
+0000:7D42 A12200         MOV    AX,[0022]        ; abs. ‡¡slo ‡ten‚ho sektoru
+0000:7D45 33D2           XOR    DX,DX            ; DX:AX = ‡¡slo sektoru
+0000:7D47 F7361800       DIV    Word Ptr [0018]  ; v˜po‡et sektoru na stopˆ
+0000:7D4B 42             INC    DX               ; ‡¡slo sektoru
+0000:7D4C 52             PUSH   DX               ; £schova ‡¡sla sektoru
+0000:7D4D 33D2           XOR    DX,DX            ; DX:AX = ‡¡slo stopy
+0000:7D4F F7361A00       DIV    Word Ptr [001A]  ; v˜po‡et ‡¡sla v lce a hlavy
+0000:7D53 86F2           XCHG   DH,DL            ; DH <- ‡¡slo hlavy
+0000:7D55 8A16FD01       MOV    DL,[01FD]        ; ‡¡slo disku
+0000:7D59 B106           MOV    CL,06            ; po‡et rotac¡
+0000:7D5B D2E4           SHL    AH,CL            ; nejvy¨¨¡ 2 bity ‡¡sla v lce
+0000:7D5D 59             POP    CX               ; CL=‡¡slo sektoru
+0000:7D5E 0ACC           OR     CL,AH            ; p©id n¡ 2 bit– ‡¡sla v lce
+0000:7D60 8AE8           MOV    CH,AL            ; ni‘¨¡ch 8 bit– ‡¡sla v lce
+0000:7D62 C3             RET
+; -----------------------------------------------------------------------------
+;         Zobrazen¡ chybov‚ho textu
+; -----------------------------------------------------------------------------
+                                               ;* zobrazen¡ chybov‚ho textu
+0000:7D63 AC           * LODSB                   ; znak k zobrazen¡
+0000:7D64 B40E           MOV    AH,0E
+0000:7D66 BB0700         MOV    BX,0007          ; barva textu
+0000:7D69 CD10           INT    10               ; zobrazen¡ znaku
+0000:7D6B E2F6           LOOP   7D63             ; dal¨¡ znak
+0000:7D6D C3             RET
+
+0000:7d6e                db     'TBIOS   SYS'    ; jm‚no souboru TBIOS.SYS
+0000:7d7a                db     'TDOS    SYS'    ; jm‚no souboru TDOS.SYS
+
+0000:7d84                db     13,10,'Disk Boot Failure' ; chybov‚ hl ¨en¡
+
+0000:7d97                db     13,10,'Non-System disk '
+                         db     'or disk error',13,10
+                         db     'Replace and press any '
+                         db     'key when ready',13,10
+
+0000:7dde                db     'TOSHIBA V2.21'
+
+0000:7deb                db     0....
+
+0000:7dfe                dw     0aa55h
+

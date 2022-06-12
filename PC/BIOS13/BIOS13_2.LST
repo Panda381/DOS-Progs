@@ -1,0 +1,2590 @@
+
+; *****************************************************************************
+;
+;                    Obsluha disketovòch mechanik
+;
+; *****************************************************************************
+
+Tabulka disketovòch parametrñ:
+ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
+ukazatel parametrñ diskety INT 1FH; 0000:0078h (standardnà F000:EFC7h)
+
+00H  Byte  bity 0 aë 3: rychlost krokov†n°
+           bity 4 aë 7: áas pro zvednut° p©°tlaku hlavy
+01H  Byte  bit 0: 1=je provoz DMA
+           bity 1 aë 7: áas pro spu®tàn° p©°tlaku hlavy
+02H  Byte  áas pro vypnut° motoru v 1/18 sek. (typicky 36 nebo 38)
+03H  Byte  velikost sektoru (0->128, 1->256, 2->512, 3->1024)
+04H  Byte  á°slo posledn°ho sektoru na stopà (typicky 8 nebo 9)
+05H  Byte  mezisektorov† mezera p©i áten°/z†pisu (typicky 42)
+06H  Byte  dÇlka p©en†®enòch dat (typicky 255)
+07H  Byte  mezisektorov† mezera p©i form†tov†n° (typicky 80)
+08H  Byte  pln°c° znak pro form†tov†n° (typicky F6H)
+09H  Byte  áas pro ust†len° hlavy v ms (typicky 25, 1.10->0, 2.10->15, 3.10->1)
+0AH  Byte  áas pro spu®tàn° motoru v 1/8 sek. (typicky 4, 2.10->2)
+
+Obsazen° pamàti dat BIOS:
+ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
+0040:003eh  stav rekalibrace disketovÇ mechaniky (1 bajt)
+              bit 0: 1=rekalibrace disku 0 provedena
+              bit 1: 1=rekalibrace disku 1 provedena
+              bit 2: 1=rekalibrace disku 2 provedena
+              bit 3: 1=rekalibrace disku 3 provedena
+              bity 4-6: rezervov†no
+              bit 7: 1=p©°znak p©eru®en°
+
+0040:003fh  stav motoru disketovÇ mechaniky (1 bajt)
+              bit 0: 1=zapnut motor disketovÇ mechaniky 0
+              bit 1: 1=zapnut motor disketovÇ mechaniky 1
+              bit 2: 1=zapnut motor disketovÇ mechaniky 2
+              bit 3: 1=zapnut motor disketovÇ mechaniky 3
+              bity 4,5: vybran† disketov† jednotka (0 - 3)
+              bit 6: rezervov†no
+              bit 7: operace áten°/z†pis
+
+0040:0040h  á°taá pro vypnut° motoru
+
+0040:0041h  status posledn° operace s disket. mechanikou (1 bajt)
+              00H - ë†dn† chyba
+              01H - neplatnò povel
+              02H - adresov† znaáka nenalezena
+              03H - pokus o z†pis na disk chr†nànò proti z†pisu
+              04H - sektor nenalezen
+              06H - veden° vòmàny diskety je aktivn° (disk. vymànàna)
+              08H - p©eteáen° DMA
+              09H - pokus o DMA p©es okraj 64K
+              0CH - typ mÇdia nenalezen
+              10H - chyba dat CRC
+              20H - chyba ©adiáe
+              40H - chyba vystaven°
+              80H - disketov† jednotka nep©ipravena
+
+0040:0042h  statut ©adiáe disketovÇ jednotky (7 bajtñ)
+
+0040:008Bh  ©°zen° disketovÇho mÇdia (1 bajt)
+              bity 0 aë 3: rezervov†no
+              bity 4 a 5: posledn° rychlost krokov†n° disket. jednotky
+              bity 6 a 7: posledn° rychlost p©enosu dat k disketà
+                            00 = 500K/sek (= HD 15 sektorñ)
+                            01 = 300K/sek (= DD 9 sektorñ)
+                            10 = 250K/sek (= DD 8 sektorñ)
+                            11 = rezervov†no
+
+0040:0090h  stav mÇdia disketovòch jednotek (2 bajty - jednotka 0 a 1)
+              bity 0 aë 2: typ mÇdia/disketovÇ mechaniky
+                            000 = 360K/360K nezaveden†
+                            001 = 360K/1.2M nezaveden†
+                            010 = 1.2M/1.2M nezaveden†
+                            011 = 360K/360K zaveden†
+                            100 = 360K/1.2M zaveden†
+                            101 = 1.2M/1.2M zaveden†
+                            110 rezervov†no
+                            111 = ë†dnò z tàchto typñ (disketa 3 1/2")
+              bit 3: rezervov†no
+              bit 4: 1=mÇdium je zn†mÇ (zavedenÇ)
+              bit 5: 1=poëadavek dvojitÇho krokov†n° (disketa 40 stop)
+              bity 6 a 7: p©enosov† rychlost dat k disketovÇ jednotce
+                            00 = 500K/sek (= HD 15 sektorñ)
+                            01 = 300K/sek (= DD 9 sektorñ)
+                            10 = 250K/sek (= DD 8 sektorñ)
+                            11 = rezervov†no
+
+0040:0092h  poá†teán° stav operace (2 bajty - jednotka 0 a 1)
+
+0040:0094h  aktu†ln° stopa disket. jednotky (2 bajty - jednotka 0 a 1)
+
+
+Porty ©adiáe disket (NEC uPD765):
+ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
+03F2:     z†pis: registr digit†ln°ho vòstupu
+                    bity 0 a 1: volba mechaniky 0 aë 3 (AT nepouë°v† bit 1)
+                    bit 2: 0=reset ©adiáe disket; 1=uvolnàn° ©adiáe
+                    bit 3: 1=moënò p©enos DMA disket a p©eru®en°
+                    bity 4 aë 7: zapnut° motorñ disketovòch mechanik 0 aë 3
+                                 (AT nepouë°v† bity 6 a 7)
+
+03F4:     áten°: hlavn° stavovò registr
+                    bity 0 aë 3: 1=disketovÇ mechaniky zanepr†zdnàny
+                                 (AT nepouë°v† bity 2 a 3)
+                    bit 4: 1=©adiá disket zanepr†zdnàn (je áten°/z†pis)
+                    bit 5: 1=nen° m¢d DMA, 0=m¢d DMA je aktivn°
+                    bit 6: smàr toku dat: 1=z FDC do CPU, 0=z CPU do FDC
+                    bit 7: poëadavek k nad©°zenÇmu: 1=p©enos povelu OK
+
+03F5:     áten°/z†pis: registr povelñ/dat ©adiáe FDC
+             povely: E6H - áten° dat
+                     C5H - z†pis dat
+                     4DH - form†tov†n° stopy
+                     07H - rekalibrace
+                     0FH - vystaven° na stopu
+
+03F6:     z†pis (AT): ©°dic° registr pevnÇho disku
+
+03F7:     z†pis (AT): disketovò ©°dic° registr
+                     bity 0 a 1: rychlost p©enosu dat
+                            00 = 500K/sek (= HD 15 sektorñ)
+                            01 = 300K/sek (= DD 9 sektorñ)
+                            10 = 250K/sek (= DD 8 sektorñ)
+                            11 = rezervov†no
+          áten°: registr digit†ln°ho vstupu (pro diagnostiku)
+                     bit 0: 1=vòbàr mechaniky 0
+                     bit 1: 1=vòbàr mechaniky 1
+                     bity 2 aë 5: vòbàr hlav 0 aë 3
+                     bit 6: 1=z†pisovÇ hradlo
+                     bit 7: 1=sign†l vòmàny diskety je ve stavu ON (=vymànàna)
+
+                                               ;* tabulka adres obsluh
+F000:AF80                DW     AFF1             ; FUNKCE 0 reset diskety
+F000:AF82                DW     B025             ; FUNKCE 1 poskytnut° stavu
+F000:AF84                DW     B144             ; FUNKCE 2 áten° sektorñ
+F000:AF86                DW     B144             ; FUNKCE 3 z†pis sektorñ
+F000:AF88                DW     B144             ; FUNKCE 4 verifikace sektorñ
+F000:AF8A                DW     B23D             ; FUNKCE 5 form†tov†n° stopy
+F000:AF8C                DW     B2FC             ; FUNKCE 8 poskytnut° disk.par.
+F000:AF8E                DW     B030             ; FUNKCE 15h áten° typu DASD
+F000:AF90                DW     B0E8             ; FUNKCE 16h status vòmàny
+F000:AF92                DW     B073             ; FUNKCE 17h nastaven° DASD
+F000:AF94                DW     B453             ; FUNKCE 18h nastaven° mÇdia
+
+; *****************************************************************************
+;                       OBSLUHA DISKETOVùCH MECHANIK INT 40h
+; *****************************************************************************
+                                               ;* obsluha disketovòch mechanik
+F000:AF96 FB             STI                     ; povolen° p©eru®en°
+F000:AF97 FC             CLD                     ; smàr nahoru
+F000:AF98 50             PUSH   AX               ; £schova AX (BP+12h)
+F000:AF99 51             PUSH   CX               ; £schova CX (BP+10h)
+F000:AF9A 52             PUSH   DX               ; £schova DX (BP+0eh)
+F000:AF9B 53             PUSH   BX               ; £schova BX (BP+0ch)
+F000:AF9C 55             PUSH   BP               ; £schova BP (BP+0ah)
+F000:AF9D 56             PUSH   SI               ; £schova SI (BP+8)
+F000:AF9E 57             PUSH   DI               ; £schova DI (BP+6)
+F000:AF9F 1E             PUSH   DS               ; £schova DS (BP+4)
+F000:AFA0 06             PUSH   ES               ; £schova ES (BP+2)
+F000:AFA1 55             PUSH   BP               ; £schova BP (BP+0)
+F000:AFA2 8BEC           MOV    BP,SP            ; £schova SP
+F000:AFA4 6A40           PUSH   40               ; 40h -> stack
+F000:AFA6 1F             POP    DS               ; DS <- 40h datovò segment BIOS
+F000:AFA7 50             PUSH   AX               ; £schova á°sla operace AH
+F000:AFA8 8AC4           MOV    AL,AH            ; á°slo poëadovanÇ operace
+F000:AFAA 3C18           CMP    AL,18            ; je á°slo > 24 ?
+F000:AFAC 7739           JA     AFE7             ; chyba-je á°slo operace > 24
+F000:AFAE 3C05           CMP    AL,05            ; je form†tov†n° stopy ?
+F000:AFB0 760E           JBE    AFC0             ; je funkce <= 5 - OK
+F000:AFB2 3C08           CMP    AL,08            ; poskytnut° disk. param. - OK
+F000:AFB4 7504           JNZ    AFBA             ; nen° poskytnut° disk. param.
+F000:AFB6 B006           MOV    AL,06            ; n†hradn° funkce 6
+F000:AFB8 EB06           JMP    AFC0 
+F000:AFBA 3C15         * CMP    AL,15            ; je áten° DASD ?
+F000:AFBC 7229           JB     AFE7             ; nepovolenÇ á°slo funkce
+F000:AFBE 2C0E           SUB    AL,0E            ; korekce na platnÇ á°slo
+F000:AFC0 98           * CBW                     ; AX <- AL
+F000:AFC1 8BF8           MOV    DI,AX            ; á°slo operace
+F000:AFC3 58             POP    AX               ; n†vrat á°sla operace
+F000:AFC4 D1E7           SHL    DI,1             ; á°slo operace * 2
+F000:AFC6 2EFFA580AF     JMP    CS:[DI+AF80]     ; proveden° funkce
+                                               ;* n†vrat z operace
+F000:AFCB 886613       * MOV    [BP+13],AH       ; n†vrat registru AH
+F000:AFCE B80102         MOV    AX,0201          ; nastaven° p©°znakovÇho reg.
+F000:AFD1 7206           JB     AFD9             ; byla chyba operace
+F000:AFD3 816618FEFF     AND    Word Ptr [BP+18],FFFE ; zru®en° p©°znaku CF
+F000:AFD8 48             DEC    AX               ; zru®en° p©°znaku CF
+F000:AFD9 094618       * OR     [BP+18],AX       ; nastaven° registru p©°znakñ
+F000:AFDC 5D             POP    BP               ; n†vrat BP
+F000:AFDD 07             POP    ES               ; n†vrat ES
+F000:AFDE 1F             POP    DS               ; n†vrat DS
+F000:AFDF 5F             POP    DI               ; n†vrat DI
+F000:AFE0 5E             POP    SI               ; n†vrat SI
+F000:AFE1 5D             POP    BP               ; n†vrat BP
+F000:AFE2 5B             POP    BX               ; n†vrat BX
+F000:AFE3 5A             POP    DX               ; n†vrat DX
+F000:AFE4 59             POP    CX               ; n†vrat CX
+F000:AFE5 58             POP    AX               ; n†vrat AX
+F000:AFE6 CF             IRET
+                                               ;* chybovò n†vrat z operace
+F000:AFE7 58           * POP    AX               ; n†vrat registru AX
+F000:AFE8 B401           MOV    AH,01            ; k¢d chyby - neplatnò povel
+F000:AFEA 88264100       MOV    [0041],AH        ; statut operace s disketou
+F000:AFEE F9             STC                     ; p©°znak chyby
+F000:AFEF EBDA           JMP    AFCB             ; n†vrat z operace
+
+; -----------------------------------------------------------------------------
+;         FUNKCE 00h - resetov†n° disketovÇ mechaniky
+; -----------------------------------------------------------------------------
+F000:AFF1 E81F00       * CALL   B013             ; rekalibrace disket. mechanik
+F000:AFF4 88264100       MOV    [0041],AH        ; statut operace s disketou
+F000:AFF8 8AC4           MOV    AL,AH            ; n†vratovò k¢d operace
+F000:AFFA 9F             LAHF                    ; AH <- registr p©°znakñ
+F000:AFFB 50             PUSH   AX               ; £schova AX
+F000:AFFC 1E             PUSH   DS               ; £schova DS
+F000:AFFD 33F6           XOR    SI,SI            ; SI <- 0
+F000:AFFF 8EDE           MOV    DS,SI            ; DS <- 0
+F000:B001 C5367800       LDS    SI,[0078]        ; adresa INT 1EH
+F000:B005 8A4C02         MOV    CL,[SI+02]       ; áas pro vyp. motoru v 1/18 s
+F000:B008 1F             POP    DS               ; n†vrat DS
+F000:B009 880E4000       MOV    [0040],CL        ; nastaven° á°taáe vyp. motoru
+F000:B00D 58             POP    AX               ; n†vrat AX
+F000:B00E 9E             SAHF                    ; registr p©°znakñ <- AH
+F000:B00F 8AE0           MOV    AH,AL            ; n†vratovò k¢d chyby
+F000:B011 EBB8           JMP    AFCB             ; n†vrat z operace
+                                               ;* resetov†n° diskñ a rekalibrace
+F000:B013 80263E00F0     AND    Byte Ptr [003E],F0 ; nastav.p©°znakñ rekalibrace
+F000:B018 E9040D         JMP    BD1F             ; rekalibrace disketovòch mech.
+
+                                               ;* nast. áasovaáñ ©adiáe SPECIFY
+F000:B01B 7207           JB     B024             ; byla chyba operace
+F000:B01D E9830D         JMP    BDA3             ; nast. áasovaáñ ©adiáe SPECIFY
+                                               ;* n†vrat z obsluhy
+F000:B020 7202           JB     B024
+F000:B022 32E4           XOR    AH,AH 
+F000:B024 C3           * RET
+; -----------------------------------------------------------------------------
+;         FUNKCE 01h - poskytnut° systÇmovÇho stavu disketovÇ mechaniky
+; -----------------------------------------------------------------------------
+F000:B025 8A264100     * MOV    AH,[0041]        ; statut disketovÇ operace
+F000:B029 0AE4           OR     AH,AH            ; je chyba ?
+F000:B02B 7401           JZ     B02E             ; nen° chyba
+F000:B02D F9             STC                     ; nastaven° p©°znaku chyby
+F000:B02E EB9B         * JMP    AFCB             ; n†vrat z operace
+; -----------------------------------------------------------------------------
+;         FUNKCE 15H - poskytnut° typu DASD (zda m† disk indikaci vòmàny)
+; -----------------------------------------------------------------------------
+F000:B030 80FA01         CMP    DL,01            ; kontrola á°sla disku
+F000:B033 7609           JBE    B03E             ; á°slo disku OK (0 nebo 1)
+F000:B035 B401           MOV    AH,01            ; chyba - nepovolenò povel
+F000:B037 F9             STC                     ; p©°znak chyby
+F000:B038 88264100       MOV    [0041],AH        ; nastaven° chybovÇho k¢du
+F000:B03C EB32           JMP    B070             ; n†vrat z operace
+
+F000:B03E EB03         * JMP    B043
+F000:B040 90             NOP     
+
+F000:B041 7F25           JG     B068
+
+F000:B043 BB9000       * MOV    BX,0090          ; BX <- 90h tabulka stavñ mech.
+F000:B046 32F6           XOR    DH,DH            ; DX = á°slo disket. mechaniky
+F000:B048 03DA           ADD    BX,DX            ; adresa bajtu popisovaáe mech.
+F000:B04A 8A1F           MOV    BL,[BX]          ; p©eáten° stavu disk. jednotky
+F000:B04C 80FB00         CMP    BL,00            ; je nàjak† mechanika ?
+F000:B04F 7504           JNZ    B055             ; je nàjak† mechanika
+F000:B051 32E4           XOR    AH,AH            ; p©°znak - mechanika nen°
+F000:B053 EB15           JMP    B06A             ; n†vrat z operace
+
+F000:B055 80E307       * AND    BL,07            ; ponech† se typ jednotky
+F000:B058 740E           JZ     B068             ; je mech. 360 KB nezaveden†
+F000:B05A 80FB03         CMP    BL,03            ; je mech. 360 KB zaveden† ?
+F000:B05D 7409           JZ     B068             ; je 360 KB zaveden†
+F000:B05F E8630D         CALL   BDC5             ; (?test stavu veden° vòmàny)
+F000:B062 7304           JNB    B068             ; (?stav vòmàny lze zjistit)
+F000:B064 B402           MOV    AH,02            ; disketa s indikac° vòmàny
+F000:B066 EB02           JMP    B06A             ; n†vrat z operace
+F000:B068 B401         * MOV    AH,01            ; disketa bez indikace vòmàny
+F000:B06A F8           * CLC                     ; p©°znak - operace OK
+F000:B06B C606410000     MOV    Byte Ptr [0041],00 ; p©°znak chyby - operace OK
+F000:B070 E958FF       * JMP    AFCB             ; n†vrat z operace
+
+; -----------------------------------------------------------------------------
+;         FUNKCE 17H - nastaven° typu DASD pro form†tov†n°
+; -----------------------------------------------------------------------------
+F000:B073 32E4           XOR    AH,AH
+F000:B075 80FA01         CMP    DL,01            ; je disk 1 nebo nië®° ?
+F000:B078 7609           JBE    B083             ; á°slo disku OK
+F000:B07A B401         * MOV    AH,01            ; k¢d chyby - chybnò povel
+F000:B07C 88264100       MOV    [0041],AH        ; nastaven° k¢du chyby
+F000:B080 F9             STC                     ; p©°znak chyby
+F000:B081 EB62           JMP    B0E5             ; n†vrat z operace
+
+F000:B083 3C00         * CMP    AL,00            ; je kombinace 0 ?
+F000:B085 74F3           JZ     B07A             ; je kombinace 0 - chybnò povel
+F000:B087 3C04           CMP    AL,04            ; je kombinace nië®° neë 4 ?
+F000:B089 77EF           JA     B07A             ; chybnÇ zad†n° form†tu
+
+F000:B08B BB9000         MOV    BX,0090          ; tabulka popisovaáñ mÇdia
+F000:B08E 32F6           XOR    DH,DH            ; DH <- 0
+F000:B090 03DA           ADD    BX,DX            ; adresa bajtu stavu mÇdia
+F000:B092 3C01           CMP    AL,01            ; je disketa 360K v 360K ?
+F000:B094 750A           JNZ    B0A0             ; nen° disketa 360K v 360K
+F000:B096 C60793         MOV    Byte Ptr [BX],93 ; zaveden† disketa 360K v 360K
+F000:B099 C606410000     MOV    Byte Ptr [0041],00 ; statut operace = OK
+F000:B09E EB3C           JMP    B0DC             ; n†vrat z operace
+
+F000:B0A0 8BC8         * MOV    CX,AX            ; poëadovan† kombinace
+F000:B0A2 E8200D         CALL   BDC5             ; ??? (STC)
+F000:B0A5 731E           JNB    B0C5             ; (?)
+F000:B0A7 53             PUSH   BX 
+F000:B0A8 E89509         CALL   BA40             ; zapnut° motoru
+F000:B0AB 5E             POP    SI 
+F000:B0AC 56             PUSH   SI 
+F000:B0AD E8670A         CALL   BB17             ; test vòmàny disket. mÇdia
+F000:B0B0 5B             POP    BX 
+F000:B0B1 80FC06         CMP    AH,06 
+F000:B0B4 760F           JBE    B0C5 
+F000:B0B6 80FC80         CMP    AH,80 
+F000:B0B9 750A           JNZ    B0C5 
+F000:B0BB 803F97         CMP    Byte Ptr [BX],97 
+F000:B0BE 74BC           JZ     B07C 
+F000:B0C0 C60761         MOV    Byte Ptr [BX],61              ;'a' 
+F000:B0C3 EBB7           JMP    B07C
+
+F000:B0C5 80F904       * CMP    CL,04
+F000:B0C8 7505           JNZ    B0CF 
+F000:B0CA C60797         MOV    Byte Ptr [BX],97 
+F000:B0CD EB0D           JMP    B0DC 
+F000:B0CF 80F902         CMP    CL,02 
+F000:B0D2 7505           JNZ    B0D9 
+F000:B0D4 C60774         MOV    Byte Ptr [BX],74              ;'t' 
+F000:B0D7 EB03           JMP    B0DC 
+F000:B0D9 C60715         MOV    Byte Ptr [BX],15 
+F000:B0DC 0AE4         * OR     AH,AH            ; je chyba operace ?
+F000:B0DE 759C           JNZ    B07C             ; je chyba operace
+F000:B0E0 C606410000     MOV    Byte Ptr [0041],00 ; p©°znak - operace OK
+F000:B0E5 E9E3FE       * JMP    AFCB             ; n†vrat z operace
+
+; -----------------------------------------------------------------------------
+;         FUNKCE 16H - stav indikace vòmàny diskety
+; -----------------------------------------------------------------------------
+F000:B0E8 80FA01         CMP    DL,01            ; kontrola á°sla disku
+F000:B0EB 7605           JBE    B0F2             ; á°slo disku OK
+F000:B0ED B401           MOV    AH,01            ; chyba - neplatnò povel
+F000:B0EF F9           * STC                     ; p©°znak chyby
+F000:B0F0 EB36           JMP    B128             ; chybovò n†vrat z operace
+
+F000:B0F2 32F6         * XOR    DH,DH            ; DX = á°slo disku
+F000:B0F4 BB9000         MOV    BX,0090          ; tabulka typñ diskñ
+F000:B0F7 03DA           ADD    BX,DX            ; adresa disku v tabulce
+F000:B0F9 803F00         CMP    Byte Ptr [BX],00 ; je disk definov†n ?
+F000:B0FC 7504           JNZ    B102             ; je nàjakò disk definov†n
+F000:B0FE B480           MOV    AH,80            ; chyba-mechanika nep©ipravena
+F000:B100 EBED           JMP    B0EF             ; chybovò n†vrat
+                                               ;* test disku 360 KB
+F000:B102 8A27         * MOV    AH,[BX]          ; typ disku
+F000:B104 80E407         AND    AH,07            ; ponech† typ mÇdia a disku
+F000:B107 80FC00         CMP    AH,00            ; je 360 KB v 360 KB nezaved. ?
+F000:B10A 7405           JZ     B111             ; je 360 KB v 360 KB nezaved.
+F000:B10C 80FC03         CMP    AH,03            ; je 360 KB v 360 KB zaveden† ?
+F000:B10F 7505           JNZ    B116             ; nen° 360 KB v 360 KB zaved.
+F000:B111 B406         * MOV    AH,06            ; n†vrat.k¢d - disketa vymànàna
+F000:B113 F9             STC                     ; p©°znak chyby - vymànàna
+F000:B114 EB12           JMP    B128             ; n†vrat z operace
+
+F000:B116 E8AC0C       * CALL   BDC5             ; ??? (STC)
+F000:B119 73F6           JNB    B111             ; (?)
+F000:B11B E82209         CALL   BA40             ; zapnut° motoru
+F000:B11E BAF703         MOV    DX,03F7          ; stavovò registr
+F000:B121 EC             IN     AL,DX            ; áten° stavovÇho registru
+F000:B122 D0E0           SHL    AL,1             ; bylo mÇdium vymànàno ?
+F000:B124 72EB           JB     B111             ; mÇdium bylo vymànàno
+F000:B126 32E4           XOR    AH,AH            ; mÇdium nebylo vymànàno
+
+F000:B128 88264100     * MOV    [0041],AH        ; statut operace
+                                               ;* nastaven° áasu pro vyp. motoru
+F000:B12C 50             PUSH   AX               ; £schova AX
+F000:B12D 56             PUSH   SI               ; £schova SI
+F000:B12E 1E             PUSH   DS               ; £schova DS
+F000:B12F BE0000         MOV    SI,0000          ; SI <- 0
+F000:B132 8EDE           MOV    DS,SI            ; DS <- 0
+F000:B134 C5367800       LDS    SI,[0078]        ; adresa INT 1Fh - tab. param.
+F000:B138 8A4402         MOV    AL,[SI+02]       ; áas pro vypnut° motoru
+F000:B13B 1F             POP    DS               ; n†vrat DS
+F000:B13C A24000         MOV    [0040],AL        ; nastav. á°taáe pro vyp. mot.
+F000:B13F 5E             POP    SI               ; n†vrat SI
+F000:B140 58             POP    AX               ; n†vrat AX
+F000:B141 E987FE         JMP    AFCB             ; n†vrat z operace
+
+; -----------------------------------------------------------------------------
+;         FUNKCE 02H, 03H, 04H - áten°, z†pis, verifikace sektorñ
+; -----------------------------------------------------------------------------
+
+                                               ;* kontrola á°sla mechaniky
+F000:B144 80FA01         CMP    DL,01
+F000:B147 760C           JBE    B155 
+F000:B149 B401           MOV    AH,01 
+F000:B14B 88264100       MOV    [0041],AH 
+F000:B14F 32C0           XOR    AL,AL 
+F000:B151 F9             STC     
+F000:B152 E9E200         JMP    B237 
+
+                                               ;* zji®tàn° typu mechaniky
+F000:B155 BE9000       * MOV    SI,0090
+F000:B158 52             PUSH   DX 
+F000:B159 32F6           XOR    DH,DH 
+F000:B15B 03F2           ADD    SI,DX 
+F000:B15D 803C00         CMP    Byte Ptr [SI],00 ; je mechanika uráena ?
+F000:B160 5A             POP    DX 
+F000:B161 7513           JNZ    B176        ; je jië uráena
+F000:B163 50             PUSH   AX 
+F000:B164 E81D3F         CALL   F084        ; áten° typu diskety z CMOS
+F000:B167 7405           JZ     B16E        ; typ p©eáten OK
+F000:B169 58             POP    AX 
+F000:B16A B480           MOV    AH,80 
+F000:B16C EBDD           JMP    B14B        ; chyba - nepovolen† mechanika
+
+F000:B16E 0AC0           OR     AL,AL
+F000:B170 58             POP    AX 
+F000:B171 74F7           JZ     B16A        ; nen° ë†dnò disk
+F000:B173 C60402         MOV    Byte Ptr [SI],02 ; mechanika 1.2M v 1.2M
+
+                                          ;* nastaven° atributu áten°/z†pis
+F000:B176 BF3F00         MOV    DI,003F
+F000:B179 80257F         AND    Byte Ptr [DI],7F ; p©°znak operace áten°
+F000:B17C 80FC03         CMP    AH,03       ; je z†pis ?
+F000:B17F 7503           JNZ    B184        ; nen° z†pis
+F000:B181 800D80         OR     Byte Ptr [DI],80 ; p©°znak operace z†pis
+
+F000:B184 56             PUSH   SI
+F000:B185 E8FC3E         CALL   F084        ; áten° typu diskety z CMOS
+F000:B188 7507           JNZ    B191        ; chyba áten° typu mechaniky
+F000:B18A 3C01           CMP    AL,01       ; je mechanika 360 KB ?
+F000:B18C 7503           JNZ    B191        ; nen° mechanika 360 KB
+F000:B18E C60493         MOV    Byte Ptr [SI],93 ; mechanika 360 KB uráen†
+
+                                               ;* kontrola vòmàny mÇdia
+F000:B191 E8AC08         CALL   BA40             ; zapnut° motoru
+F000:B194 E88009         CALL   BB17             ; test vòmàny disket. mÇdia
+F000:B197 5E             POP    SI 
+F000:B198 730E           JNB    B1A8 
+F000:B19A E82409         CALL   BAC1             ; nastaven° n†sled. sektoru
+F000:B19D EBAC           JMP    B14B 
+
+                                               ;* nastaven° pro mechaniku 3 1/2"
+F000:B19F 3C03           CMP    AL,03
+F000:B1A1 75EE           JNZ    B191 
+F000:B1A3 C60497         MOV    Byte Ptr [SI],97 
+F000:B1A6 EBE9           JMP    B191 
+
+                                               ;* uráen° typu mÇdia pro operaci
+F000:B1A8 F60410         TEST   Byte Ptr [SI],10 ; je mÇdium uráeno ?
+F000:B1AB 7507           JNZ    B1B4             ; mÇdium je uráeno
+F000:B1AD E85407         CALL   B904             ; uráen° typu mÇdia
+F000:B1B0 72E8           JB     B19A 
+F000:B1B2 EB03           JMP    B1B7 
+
+                                               ;* nastaven° parametrñ ©adiáe
+F000:B1B4 E83509         CALL   BAEC             ; nastaven° rychlosti p©enosu
+F000:B1B7 BE9000         MOV    SI,0090          ; tabulka stavñ disk. jednotek
+F000:B1BA 52             PUSH   DX               ; £schova á°sla disku
+F000:B1BB 32F6           XOR    DH,DH            ; DH <- 0
+F000:B1BD 03F2           ADD    SI,DX            ; adresa bajtu stavu disku
+F000:B1BF 5A             POP    DX               ; n†vrat á°sla disku
+F000:B1C0 B803DF         MOV    AX,DF03          ; áas krokov†n° a drëen° hlav
+F000:B1C3 803C17         CMP    Byte Ptr [SI],17 ; je disketa 3 1/2" (1.44 MB) ?
+F000:B1C6 7502           JNZ    B1CA             ; nen° 3 1/2" (1.44 M)
+F000:B1C8 B4AF           MOV    AH,AF            ; pro 3 1/2" rychlej®° krok.
+F000:B1CA 8BF0         * MOV    SI,AX            ; prvn° 2 bajty povelu
+F000:B1CC BF0200         MOV    DI,0002          ; zah†jen° áten° 2 ms, je DMA
+F000:B1CF B503           MOV    CH,03            ; 3 bajty k vysl†n°
+F000:B1D1 800E3E0080     OR     Byte Ptr [003E],80 ; nebude se áekat na p©eru®.
+F000:B1D6 E8500A         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B1D9 72BF           JB     B19A             ; chyba vysl†n° povelu
+
+                                               ;* vòpoáet adresy DMA
+F000:B1DB 8B4612         MOV    AX,[BP+12]       ; poáet sektorñ
+F000:B1DE 32E4           XOR    AH,AH            ; AH <- 0
+F000:B1E0 1E             PUSH   DS               ; £schova DS
+F000:B1E1 33F6           XOR    SI,SI            ; SI <- 0
+F000:B1E3 8EDE           MOV    DS,SI            ; DS <- 0
+F000:B1E5 C5367800       LDS    SI,[0078]        ; tabulka disketovòch parametrñ
+F000:B1E9 8A4C03         MOV    CL,[SI+03]       ; ©†d velikosti sektoru
+F000:B1EC D2E0           SHL    AL,CL            ; vòpoáet velikosti sektoru
+F000:B1EE B180           MOV    CL,80            ; velikost sektoru 0
+F000:B1F0 F6E1           MUL    CL               ; vòpoáet velikosti sektoru
+F000:B1F2 1F             POP    DS               ; n†vrat DS
+F000:B1F3 48             DEC    AX               ; max. bajt v sektoru
+F000:B1F4 8BC8           MOV    CX,AX            ; velikost sektoru v bajtech-1
+F000:B1F6 E8B109         CALL   BBAA             ; kontrola adresy DMA
+F000:B1F9 7305           JNB    B200             ; adresa DMA OK
+F000:B1FB 8B4E10         MOV    CX,[BP+10]
+F000:B1FE EB9A           JMP    B19A             ; chybovò n†vrat
+
+                                               ;* nastaven° ©adiáe DMA
+F000:B200 8B4612         MOV    AX,[BP+12]       ; poëadovan† operace
+F000:B203 80FC02         CMP    AH,02            ; je operace áten° z disku ?
+F000:B206 7504           JNZ    B20C             ; nen° áten° z disku
+F000:B208 B446           MOV    AH,46            ; m¢d pro áten° z disku
+F000:B20A EB0B           JMP    B217
+F000:B20C 80FC03       * CMP    AH,03            ; je z†pis na disk ?
+F000:B20F 7504           JNZ    B215             ; nen° z†pis na disk
+F000:B211 B44A           MOV    AH,4A            ; m¢d pro z†pis na disk
+F000:B213 EB02           JMP    B217
+F000:B215 B442         * MOV    AH,42            ; jinak m¢d pro verfikaci
+F000:B217 E84F09       * CALL   BB69             ; nastaven° ©adiáe DMA
+
+F000:B21A 8B4612         MOV    AX,[BP+12]       ; poëadovan† operace
+F000:B21D 8B4E10         MOV    CX,[BP+10] 
+F000:B220 E90A06         JMP    B82D 
+
+F000:B223 E89B08         CALL   BAC1             ; nastaven° n†sled. sektoru
+F000:B226 0AC0           OR     AL,AL 
+F000:B228 7404           JZ     B22E 
+F000:B22A 2AD9           SUB    BL,CL 
+F000:B22C 8AC3           MOV    AL,BL 
+F000:B22E 8A264100       MOV    AH,[0041] 
+F000:B232 0AE4           OR     AH,AH 
+F000:B234 7401           JZ     B237 
+F000:B236 F9             STC     
+F000:B237 884612         MOV    [BP+12],AL 
+F000:B23A E98EFD         JMP    AFCB             ; n†vrat z operace
+
+; -----------------------------------------------------------------------------
+;         FUNKCE 05H - form†tov†n° stopy diskety
+; -----------------------------------------------------------------------------
+F000:B23D 80FA01         CMP    DL,01
+F000:B240 760A           JBE    B24C 
+F000:B242 B401           MOV    AH,01 
+F000:B244 88264100       MOV    [0041],AH 
+F000:B248 F9             STC     
+F000:B249 E97FFD         JMP    AFCB             ; n†vrat z operace
+F000:B24C BE9000         MOV    SI,0090 
+F000:B24F 52             PUSH   DX 
+F000:B250 32F6           XOR    DH,DH 
+F000:B252 03F2           ADD    SI,DX 
+F000:B254 5A             POP    DX 
+F000:B255 803C00         CMP    Byte Ptr [SI],00 
+F000:B258 7504           JNZ    B25E 
+F000:B25A B480           MOV    AH,80 
+F000:B25C EBE6           JMP    B244 
+F000:B25E BF3F00         MOV    DI,003F 
+F000:B261 800D80         OR     Byte Ptr [DI],80 
+F000:B264 E8D907         CALL   BA40             ; zapnut° motoru
+F000:B267 E8AD08         CALL   BB17             ; test vòmàny disket. mÇdia
+F000:B26A 7305           JNB    B271 
+F000:B26C E85208         CALL   BAC1             ; nastaven° n†sled. sektoru
+F000:B26F EBD3           JMP    B244 
+F000:B271 E87808         CALL   BAEC             ; nastaven° rychlosti p©enosu
+F000:B274 E82C0B         CALL   BDA3             ; nast. áasovaáñ ©adiáe SPECIFY
+F000:B277 1E             PUSH   DS 
+F000:B278 33F6           XOR    SI,SI 
+F000:B27A 8EDE           MOV    DS,SI 
+F000:B27C C5367800       LDS    SI,[0078] 
+F000:B280 8A4404         MOV    AL,[SI+04] 
+F000:B283 1F             POP    DS 
+F000:B284 32E4           XOR    AH,AH 
+F000:B286 B104           MOV    CL,04 
+F000:B288 F6E1           MUL    CL 
+F000:B28A 8BC8           MOV    CX,AX 
+F000:B28C 49             DEC    CX 
+F000:B28D E81A09         CALL   BBAA             ; kontrola adresy DMA
+F000:B290 7302           JNB    B294 
+F000:B292 EBD8           JMP    B26C 
+F000:B294 B44A           MOV    AH,4A                         ;'J' 
+F000:B296 E8D008         CALL   BB69             ; nastaven° ©adiáe DMA
+F000:B299 8B4E10         MOV    CX,[BP+10]       ; poëadovan† stopa
+F000:B29C E88E04         CALL   B72D             ; vystaven° na zadanou stopu
+F000:B29F 730D           JNB    B2AE 
+F000:B2A1 BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B2A4 B90700         MOV    CX,0007 
+F000:B2A7 50             PUSH   AX 
+F000:B2A8 E8DC09         CALL   BC87             ; naáten° stavu operace
+F000:B2AB 58             POP    AX 
+F000:B2AC EB3B           JMP    B2E9 
+F000:B2AE C0E602         SHL    DH,02 
+F000:B2B1 0AF2           OR     DH,DL 
+F000:B2B3 B2CD           MOV    DL,CD 
+F000:B2B5 1E             PUSH   DS 
+F000:B2B6 33F6           XOR    SI,SI 
+F000:B2B8 8EDE           MOV    DS,SI 
+F000:B2BA C5367800       LDS    SI,[0078] 
+F000:B2BE 50             PUSH   AX 
+F000:B2BF 8B4407         MOV    AX,[SI+07] 
+F000:B2C2 894600         MOV    [BP+00],AX 
+F000:B2C5 58             POP    AX 
+F000:B2C6 8B7C03         MOV    DI,[SI+03] 
+F000:B2C9 1F             POP    DS 
+F000:B2CA 8BF2           MOV    SI,DX 
+F000:B2CC B506           MOV    CH,06 
+F000:B2CE 80263E007F     AND    Byte Ptr [003E],7F ; bude se áekat na p©eru®.
+F000:B2D3 E85309         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B2D6 72C9           JB     B2A1 
+F000:B2D8 BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B2DB B90700         MOV    CX,0007 
+F000:B2DE E8A609         CALL   BC87             ; naáten° stavu operace
+F000:B2E1 7206           JB     B2E9 
+F000:B2E3 BB4200         MOV    BX,0042 
+F000:B2E6 E8E909         CALL   BCD2             ; rozbor navr†c. stavu operace
+F000:B2E9 88264100       MOV    [0041],AH 
+F000:B2ED E8D107         CALL   BAC1             ; nastaven° n†sled. sektoru
+F000:B2F0 8A264100       MOV    AH,[0041] 
+F000:B2F4 0AE4           OR     AH,AH 
+F000:B2F6 7401           JZ     B2F9 
+F000:B2F8 F9             STC     
+F000:B2F9 E9CFFC         JMP    AFCB             ; n†vrat z operace
+
+; -----------------------------------------------------------------------------
+;         FUNKCE 08H - poskytnut° aktu†ln°ch diskovòch parametrñ diskety
+; -----------------------------------------------------------------------------
+F000:B2FC 80FA80         CMP    DL,80
+F000:B2FF 720A           JB     B30B 
+F000:B301 B401           MOV    AH,01 
+F000:B303 88264100       MOV    [0041],AH        ; chyba - neplatnò povel
+F000:B307 F9             STC     
+F000:B308 E9C0FC         JMP    AFCB             ; n†vrat z operace
+                                               ;* zji®tàn° poátu diskñ
+F000:B30B 33FF         * XOR    DI,DI
+F000:B30D 33F6           XOR    SI,SI
+F000:B30F 32F6           XOR    DH,DH
+F000:B311 A01000         MOV    AL,[0010]        ; bajt vybaven°
+F000:B314 24C1           AND    AL,C1            ; poáet disket. mechanik
+F000:B316 BF0200         MOV    DI,0002          ; poáet diskñ = 2
+F000:B319 3C41           CMP    AL,41            ; jsou 2 disky ?
+F000:B31B 7408           JZ     B325             ; jsou 2 disky
+F000:B31D 4F             DEC    DI               ; poáet diskñ = 1
+F000:B31E 3C01           CMP    AL,01            ; je 1 disk ?
+F000:B320 7403           JZ     B325             ; je 1 disk
+F000:B322 E9B500         JMP    B3DA             ; nen° ë†dnò disk
+
+F000:B325 80FA01       * CMP    DL,01            ; je disk
+F000:B328 7603           JBE    B32D             ; kontrola max. á°sla disku
+F000:B32A E9AF00         JMP    B3DC             ; nepovolenÇ á°slo disku
+F000:B32D B00E         * MOV    AL,0E
+F000:B32F E8703B         CALL   EEA2             ; áten° stavovÇho bajtu CMOS
+F000:B332 A8C0           TEST   AL,C0 
+F000:B334 7542           JNZ    B378             ; chyba CMOS
+F000:B336 B010           MOV    AL,10 
+F000:B338 E8673B         CALL   EEA2             ; áten° typu disket. mechaniky
+F000:B33B 0AD2           OR     DL,DL            ; je mechanika 0 ?
+F000:B33D 7504           JNZ    B343             ; je mechanika 1
+F000:B33F B104           MOV    CL,04 
+F000:B341 D2E8           SHR    AL,CL            ; rotace mechaniky 0
+F000:B343 240F         * AND    AL,0F            ; typ mechaniky
+F000:B345 7431           JZ     B378             ; nen° disketov† mechanika
+F000:B347 3C04           CMP    AL,04 
+F000:B349 772D           JA     B378             ; nezn†mò typ mechaniky
+F000:B34B 32E4           XOR    AH,AH 
+F000:B34D 8BF0           MOV    SI,AX            ; typ disketovÇ mechaniky
+F000:B34F 8AF0           MOV    DH,AL 
+F000:B351 BB9000         MOV    BX,0090          ; tabulka stavu disket. jedn.
+F000:B354 02DA           ADD    BL,DL            ; adresa stavovÇho bajtu
+F000:B356 8A07           MOV    AL,[BX]          ; stavovò bajt jednotky DL
+F000:B358 A810           TEST   AL,10            ; je mÇdium zn†mÇ ?
+F000:B35A 7545           JNZ    B3A1             ; mÇdium je nezn†mÇ
+F000:B35C 83FE01         CMP    SI,+01           ; je mechanika 360 KB ?
+F000:B35F B093           MOV    AL,93            ; mechanika 360 KB
+F000:B361 7410           JZ     B373             ; je mechanika 360 KB
+F000:B363 83FE02         CMP    SI,+02           ; je mechanika 1.2 MB ?
+F000:B366 B002           MOV    AL,02            ; mechanika 1.2 MB
+F000:B368 7409           JZ     B373             ; je mechanika 1.2 MB
+F000:B36A 83FE03         CMP    SI,+03           ; je mechanika 720 KB ?
+F000:B36D B097           MOV    AL,97            ; mechanika 720 KB
+F000:B36F 7402           JZ     B373             ; je mechanika 720 KB
+F000:B371 B007           MOV    AL,07            ; je mechanika 1.44 MB
+F000:B373 8807         * MOV    [BX],AL          ; nastaven° stavu mechaniky
+F000:B375 EB2A           JMP    B3A1             ; navr†cen° stavu mechaniky
+F000:B377 90             NOP
+                                               ;* zji®tàn° parametrñ z pamàti
+F000:B378 BB9000         MOV    BX,0090
+F000:B37B 02DA           ADD    BL,DL 
+F000:B37D 8A07           MOV    AL,[BX]          ; mechanika
+F000:B37F A810           TEST   AL,10            ; je mechanika zaveden† ?
+F000:B381 7467           JZ     B3EA             ; nen° zaveden†
+F000:B383 8AE0           MOV    AH,AL 
+F000:B385 24C0           AND    AL,C0 
+F000:B387 3C80           CMP    AL,80            ;
+F000:B389 BE0200         MOV    SI,0002          ; mechanika 1.2 MB
+F000:B38C 750B           JNZ    B399 
+F000:B38E F6C404         TEST   AH,04            ;
+F000:B391 BE0100         MOV    SI,0001 
+F000:B394 740B           JZ     B3A1 
+F000:B396 BE0400         MOV    SI,0004 
+F000:B399 F6C407       * TEST   AH,07
+F000:B39C 7403           JZ     B3A1 
+F000:B39E BE0400         MOV    SI,0004 
+
+F000:B3A1 8BDF         * MOV    BX,DI
+F000:B3A3 8BFE           MOV    DI,SI 
+F000:B3A5 4F             DEC    DI 
+F000:B3A6 03FF           ADD    DI,DI 
+F000:B3A8 2E8B8502B4     MOV    AX,CS:[DI+B402]  ; poáet sektorñ a stop z tabul.
+F000:B3AD C6460F01       MOV    Byte Ptr [BP+0F],01 
+F000:B3B1 2E8BBD0AB4     MOV    DI,CS:[DI+B40A] 
+F000:B3B6 0E             PUSH   CS 
+F000:B3B7 07             POP    ES 
+F000:B3B8 885E0E         MOV    [BP+0E],BL 
+F000:B3BB 886611         MOV    [BP+11],AH 
+F000:B3BE 884610         MOV    [BP+10],AL 
+F000:B3C1 88760C         MOV    [BP+0C],DH 
+F000:B3C4 C6460D00       MOV    Byte Ptr [BP+0D],00 
+F000:B3C8 8C4602         MOV    [BP+02],ES 
+F000:B3CB 897E06         MOV    [BP+06],DI 
+F000:B3CE 88264100       MOV    [0041],AH 
+F000:B3D2 33C0           XOR    AX,AX 
+F000:B3D4 884612         MOV    [BP+12],AL 
+F000:B3D7 E9F1FB         JMP    AFCB             ; n†vrat z operace
+F000:B3DA 33FF           XOR    DI,DI 
+F000:B3DC 32F6           XOR    DH,DH 
+F000:B3DE 33C0           XOR    AX,AX 
+F000:B3E0 8EC0           MOV    ES,AX 
+F000:B3E2 C6460F00       MOV    Byte Ptr [BP+0F],00 
+F000:B3E6 8BDF           MOV    BX,DI 
+F000:B3E8 EBCE           JMP    B3B8 
+
+F000:B3EA 8BDF           MOV    BX,DI
+F000:B3EC B00E           MOV    AL,0E 
+F000:B3EE E8B13A         CALL   EEA2        ; áten° bajtu z pamàti CMOS
+F000:B3F1 A8C0           TEST   AL,C0 
+F000:B3F3 75E5           JNZ    B3DA 
+F000:B3F5 0BF6           OR     SI,SI 
+F000:B3F7 74E1           JZ     B3DA 
+F000:B3F9 83FE03         CMP    SI,+03 
+F000:B3FC 76A3           JBE    B3A1 
+F000:B3FE 33F6           XOR    SI,SI 
+F000:B400 EBD8           JMP    B3DA 
+; -----------------------------------------------------------------------------
+;                 Tabulka form†tñ disket
+; -----------------------------------------------------------------------------
+F000:B402                db     9,39             ; DD 5 1/4" - 360 KB
+F000:B404                db     15,79            ; HD 5 1/4" - 1.2 MB
+F000:B406                db     9,79             ; DD 3 1/2" - 720 KB
+F000:B408                db     18,79            ; HD 3 1/2" - 1.44 MB
+
+F000:B40A 12B41FB4       ADC    DH,[SI+B41F] 
+F000:B40E 2CB4           SUB    AL,B4 
+F000:B410 39B4DF02       CMP    [SI+02DF],SI 
+F000:B414 250209         AND    AX,0902 
+F000:B417 2AFF           SUB    BH,BH 
+F000:B419 50             PUSH   AX 
+F000:B41A F60F           ???    Byte Ptr [BX] 
+F000:B41C 0827           OR     [BX],AH 
+F000:B41E 80DF02         SBB    BH,02 
+F000:B421 25020F         AND    AX,0F02 
+F000:B424 1BFF           SBB    DI,DI 
+F000:B426 54             PUSH   SP 
+F000:B427 F60F           ???    Byte Ptr [BX] 
+F000:B429 084F00         OR     [BX+00],CL 
+F000:B42C DF02           FILD   Word Ptr [BP+SI] 
+F000:B42E 250209         AND    AX,0902 
+F000:B431 2AFF           SUB    BH,BH 
+F000:B433 50             PUSH   AX 
+F000:B434 F60F           ???    Byte Ptr [BX] 
+F000:B436 084F80         OR     [BX-80],CL 
+F000:B439 AF             SCASW   
+F000:B43A 0225           ADD    AH,[DI] 
+F000:B43C 0212           ADD    DL,[BP+SI] 
+F000:B43E 1BFF           SBB    DI,DI 
+F000:B440 6C             INSB    
+F000:B441 F60F           ???    Byte Ptr [BX] 
+F000:B443 084F00         OR     [BX+00],CL 
+F000:B446 DF02           FILD   Word Ptr [BP+SI] 
+F000:B448 250209         AND    AX,0902 
+F000:B44B 2AFF           SUB    BH,BH 
+F000:B44D 50             PUSH   AX 
+F000:B44E F60F           ???    Byte Ptr [BX] 
+F000:B450 0827           OR     [BX],AH 
+F000:B452 40             INC    AX 
+
+; -----------------------------------------------------------------------------
+;         FUNKCE 18H - nastaven° typu mÇdia pro form†tov†n°
+; -----------------------------------------------------------------------------
+
+F000:B453 80FA01         CMP    DL,01
+F000:B456 7606           JBE    B45E 
+F000:B458 B401           MOV    AH,01 
+F000:B45A F9             STC     
+F000:B45B E96DFB         JMP    AFCB             ; n†vrat z operace
+F000:B45E E8233C         CALL   F084        ; áten° typu diskety z CMOS
+F000:B461 7404           JZ     B467 
+F000:B463 B40C           MOV    AH,0C 
+F000:B465 EBF3           JMP    B45A 
+F000:B467 32E4           XOR    AH,AH 
+F000:B469 8BF8           MOV    DI,AX 
+F000:B46B 8A560E         MOV    DL,[BP+0E] 
+F000:B46E BB9000         MOV    BX,0090 
+F000:B471 32F6           XOR    DH,DH 
+F000:B473 03DA           ADD    BX,DX 
+F000:B475 3C01           CMP    AL,01 
+F000:B477 750F           JNZ    B488 
+F000:B479 8B4E10         MOV    CX,[BP+10] 
+F000:B47C 81F90927       CMP    CX,2709 
+F000:B480 BE12B4         MOV    SI,B412 
+F000:B483 75DE           JNZ    B463 
+F000:B485 E98400         JMP    B50C 
+F000:B488 3C03           CMP    AL,03 
+F000:B48A 750B           JNZ    B497 
+F000:B48C 8B4E10         MOV    CX,[BP+10] 
+F000:B48F 81F9094F       CMP    CX,4F09 
+F000:B493 75CE           JNZ    B463 
+F000:B495 EB28           JMP    B4BF 
+F000:B497 3C04           CMP    AL,04 
+F000:B499 7415           JZ     B4B0 
+F000:B49B 3C02           CMP    AL,02 
+F000:B49D 75C4           JNZ    B463 
+F000:B49F 8B4E10         MOV    CX,[BP+10] 
+F000:B4A2 81F90F4F       CMP    CX,4F0F 
+F000:B4A6 7417           JZ     B4BF 
+F000:B4A8 81F90927       CMP    CX,2709 
+F000:B4AC 75B5           JNZ    B463 
+F000:B4AE EB0F           JMP    B4BF 
+F000:B4B0 8B4E10         MOV    CX,[BP+10] 
+F000:B4B3 81F9124F       CMP    CX,4F12 
+F000:B4B7 7406           JZ     B4BF 
+F000:B4B9 81F9094F       CMP    CX,4F09 
+F000:B4BD 75A4           JNZ    B463 
+F000:B4BF 8B4E10         MOV    CX,[BP+10] 
+F000:B4C2 81F9124F       CMP    CX,4F12 
+F000:B4C6 B017           MOV    AL,17 
+F000:B4C8 BE39B4         MOV    SI,B439 
+F000:B4CB B600           MOV    DH,00 
+F000:B4CD 7421           JZ     B4F0 
+F000:B4CF 81F9094F       CMP    CX,4F09 
+F000:B4D3 B097           MOV    AL,97 
+F000:B4D5 BE2CB4         MOV    SI,B42C 
+F000:B4D8 B602           MOV    DH,02            ; 250 Kb/s
+F000:B4DA 7414           JZ     B4F0 
+F000:B4DC 81F90F4F       CMP    CX,4F0F 
+F000:B4E0 B015           MOV    AL,15 
+F000:B4E2 BE1FB4         MOV    SI,B41F 
+F000:B4E5 B600           MOV    DH,00            ; 500 Kb/s
+F000:B4E7 7407           JZ     B4F0 
+F000:B4E9 B074           MOV    AL,74                         ;'t' 
+F000:B4EB BE46B4         MOV    SI,B446 
+F000:B4EE B601           MOV    DH,01            ; 300 Kb/s
+F000:B4F0 8807         * MOV    [BX],AL
+F000:B4F2 52             PUSH   DX 
+F000:B4F3 E81806         CALL   BB0E             ; nastaven° rychlosti p©enosu
+F000:B4F6 5A             POP    DX 
+F000:B4F7 8A07           MOV    AL,[BX] 
+F000:B4F9 A28B00         MOV    [008B],AL 
+F000:B4FC 897606         MOV    [BP+06],SI 
+F000:B4FF 8C4E02         MOV    [BP+02],CS 
+F000:B502 C606410000     MOV    Byte Ptr [0041],00 
+F000:B507 32E4           XOR    AH,AH 
+F000:B509 E9BFFA         JMP    AFCB             ; n†vrat z operace
+F000:B50C B602           MOV    DH,02 
+F000:B50E B093           MOV    AL,93 
+F000:B510 EBDE           JMP    B4F0
+
+F000:B512 802610003E     AND    Byte Ptr [0010],3E ; zru®en° p©°znakñ disket
+F000:B517 800E100001     OR     Byte Ptr [0010],01 ; je alespo§ 1 mechanika
+F000:B51C E84F01         CALL   B66E             ; test p©ipojen° pevnÇho disku
+F000:B51F BB3E00         MOV    BX,003E          ; tabulka dat BIOS disku
+F000:B522 33C0           XOR    AX,AX            ; AX <- 0
+F000:B524 B90B00         MOV    CX,000B          ; poáet nulovanòch bajtñ dat
+F000:B527 8807         * MOV    [BX],AL          ; vynulov†n° bajtu
+F000:B529 43             INC    BX               ; zvò®en° adresy
+F000:B52A E2FB           LOOP   B527             ; dal®° bajt (003Eh aë 0048h)
+F000:B52C A28B00         MOV    [008B],AL        ; bajt ©°zen° disket. mÇdia
+F000:B52F A39000         MOV    [0090],AX        ; stav mÇdia disket 0 a 1
+F000:B532 A39200         MOV    [0092],AX        ; stav mÇdia disket 2 a 3
+F000:B535 A39400         MOV    [0094],AX        ; aktu†ln° stopa disket 0 a 1
+F000:B538 A29600         MOV    [0096],AL        ; stavovÇ informace kl†vesnice
+F000:B53B B200           MOV    DL,00            ; disketov† jednotka 0
+F000:B53D CD13           INT    13               ; resetov†n° diskovÇho systÇmu
+F000:B53F 7304           JNB    B545             ; operace OK
+F000:B541 81CD0100       OR     BP,0001          ; p©°znak chyby operace
+F000:B545 EB00         * JMP    B547             ; prodleva
+F000:B547 EB00           JMP    B549             ; prodleva
+F000:B549 90             NOP     
+F000:B54A B602           MOV    DH,02            ; 250 Kb/s
+F000:B54C E8BF05         CALL   BB0E             ; nastaven° rychlosti p©enosu
+F000:B54F 32F6           XOR    DH,DH 
+F000:B551 E81B00         CALL   B56F 
+F000:B554 FEC6           INC    DH 
+F000:B556 E81600         CALL   B56F 
+F000:B559 8A269100       MOV    AH,[0091]        ; stav disketovÇ jednotky 1
+F000:B55D 0AE4           OR     AH,AH            ; je disket. jedn. definovan† ?
+F000:B55F 7405           JZ     B566             ; je pouze 1 disketov† jednotka
+F000:B561 800E100040     OR     Byte Ptr [0010],40 ; jsou 2 disketovÇ jednotky
+F000:B566 E8BF00       * CALL   B628             ; nastaven° typñ disk. mechanik
+F000:B569 C6063E0000     MOV    Byte Ptr [003E],00 ; p©°znaky rekalibrace diskñ
+F000:B56E C3             RET
+
+F000:B56F B90200         MOV    CX,0002          ; 2 pokusy o aktivaci
+F000:B572 8AD6         * MOV    DL,DH
+F000:B574 E8C904         CALL   BA40             ; zapnut° motoru
+F000:B577 E85601         CALL   B6D0             ; rekalibrace disku
+F000:B57A 7304           JNB    B580 
+F000:B57C E2F4           LOOP   B572             ; dal®° pokus
+F000:B57E EB41           JMP    B5C1             ; chyba
+
+F000:B580 B20F           MOV    DL,0F
+F000:B582 8BF2           MOV    SI,DX 
+F000:B584 BF3000         MOV    DI,0030 
+F000:B587 E83800         CALL   B5C2 
+F000:B58A 7235           JB     B5C1 
+F000:B58C BF0A00         MOV    DI,000A 
+F000:B58F B20F           MOV    DL,0F 
+F000:B591 8BF2           MOV    SI,DX 
+F000:B593 E82C00         CALL   B5C2 
+F000:B596 7229           JB     B5C1 
+F000:B598 B204           MOV    DL,04 
+F000:B59A 8BF2           MOV    SI,DX 
+F000:B59C E86B00         CALL   B60A 
+F000:B59F 7220           JB     B5C1 
+F000:B5A1 0AED           OR     CH,CH 
+F000:B5A3 7405           JZ     B5AA 
+F000:B5A5 4F             DEC    DI 
+F000:B5A6 79E7           JNS    B58F 
+F000:B5A8 EB17           JMP    B5C1 
+F000:B5AA 8ADE           MOV    BL,DH 
+F000:B5AC 32FF           XOR    BH,BH 
+F000:B5AE C687900093     MOV    Byte Ptr [BX+0090],93 
+F000:B5B3 0BFF           OR     DI,DI 
+F000:B5B5 750A           JNZ    B5C1 
+F000:B5B7 C687900002     MOV    Byte Ptr [BX+0090],02 
+F000:B5BC EB00           JMP    B5BE 
+F000:B5BE EB00           JMP    B5C0 
+F000:B5C0 90             NOP     
+F000:B5C1 C3             RET
+
+F000:B5C2 80263E007F     AND    Byte Ptr [003E],7F 
+F000:B5C7 8BC6           MOV    AX,SI 
+F000:B5C9 8AE0           MOV    AH,AL 
+F000:B5CB E88806         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:B5CE 7239           JB     B609 
+F000:B5D0 8BC6           MOV    AX,SI 
+F000:B5D2 E88106         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:B5D5 7232           JB     B609 
+F000:B5D7 8BC7           MOV    AX,DI 
+F000:B5D9 8AE0           MOV    AH,AL 
+F000:B5DB E87806         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:B5DE 7229           JB     B609 
+F000:B5E0 B80190         MOV    AX,9001 
+F000:B5E3 CD15           INT    15 
+F000:B5E5 7222           JB     B609 
+F000:B5E7 E8E807         CALL   BDD2             ; áek†n° na p©eru®en° od ©adiáe
+F000:B5EA 721D           JB     B609 
+F000:B5EC B408           MOV    AH,08 
+F000:B5EE E86506         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:B5F1 7216           JB     B609 
+F000:B5F3 E8B506         CALL   BCAB             ; naáten° stav. bajtu od ©adiáe
+F000:B5F6 7211           JB     B609 
+F000:B5F8 8AD8           MOV    BL,AL 
+F000:B5FA E8AE06         CALL   BCAB             ; naáten° stav. bajtu od ©adiáe
+F000:B5FD 720A           JB     B609 
+F000:B5FF 80E360         AND    BL,60                         ;'`' 
+F000:B602 80FB60         CMP    BL,60                         ;'`' 
+F000:B605 F8             CLC     
+F000:B606 7501           JNZ    B609 
+F000:B608 F9             STC     
+F000:B609 C3             RET
+
+F000:B60A 8BC6           MOV    AX,SI 
+F000:B60C 8AE0           MOV    AH,AL 
+F000:B60E E84506         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:B611 7214           JB     B627 
+F000:B613 8BC6           MOV    AX,SI 
+F000:B615 E83E06         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:B618 720D           JB     B627 
+F000:B61A E88E06         CALL   BCAB             ; naáten° stav. bajtu od ©adiáe
+F000:B61D 7208           JB     B627 
+F000:B61F B5FF           MOV    CH,FF 
+F000:B621 A810           TEST   AL,10 
+F000:B623 7402           JZ     B627 
+F000:B625 32ED           XOR    CH,CH 
+F000:B627 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Nastaven° typñ disketovòch mechanik podle pamàti CMOS
+; -----------------------------------------------------------------------------
+F000:B628 56             PUSH   SI
+F000:B629 50             PUSH   AX 
+F000:B62A BE9000         MOV    SI,0090          ; ukl†dac° adresa
+F000:B62D B00E           MOV    AL,0E            ; stavovò bajt diagnostiky
+F000:B62F E87038         CALL   EEA2             ; áten° stavovÇho bajtu z CMOS
+F000:B632 A8C0           TEST   AL,C0            ; je pamàü CMOS OK ?
+F000:B634 751A           JNZ    B650             ; chyba pamàti CMOS
+F000:B636 B010           MOV    AL,10            ; typy disket. mechanik
+F000:B638 E86738         CALL   EEA2             ; áten° typñ mechanik z CMOS
+F000:B63B 8AE0           MOV    AH,AL            ; typy disketovòch mechanik
+F000:B63D 51             PUSH   CX               ; £schova CX
+F000:B63E B104           MOV    CL,04            ; poáet rotac°
+F000:B640 D2E8           SHR    AL,CL            ; typ disket. mechaniky 0
+F000:B642 59             POP    CX               ; n†vrat CX
+F000:B643 240F           AND    AL,0F            ; typ disket. mechaniky 0
+F000:B645 E80B00         CALL   B653             ; nastaven° typu disket. mech.
+F000:B648 8AC4           MOV    AL,AH            ; typy disket. mechanik
+F000:B64A 240F           AND    AL,0F            ; typ disket. mechaniky 1
+F000:B64C 46             INC    SI               ; zvò®en° adresy v tabulce
+F000:B64D E80300         CALL   B653             ; nastaven° typu disket. mech.
+F000:B650 58           * POP    AX
+F000:B651 5E             POP    SI 
+F000:B652 C3             RET
+
+F000:B653 803C00         CMP    Byte Ptr [SI],00 ; je mechanika definovanÑ ?
+F000:B656 7415           JZ     B66D             ; mechanika nen° definovan†
+F000:B658 803C93         CMP    Byte Ptr [SI],93 ; je to disketa 360K v 360K ?
+F000:B65B 7410           JZ     B66D             ; je 360K v 360K - OK
+F000:B65D 3C03           CMP    AL,03            ; je mechanika 3 1/2" (720K) ?
+F000:B65F 7505           JNZ    B666             ; nen° mechanika 3 1/2" (720K)
+F000:B661 C60497         MOV    Byte Ptr [SI],97 ; p©°znak 3 1/2" (720K)
+F000:B664 EB07           JMP    B66D
+F000:B666 3C04         * CMP    AL,04            ; je mechanika 3 1/2" (1.44M) ?
+F000:B668 7503           JNZ    B66D             ; nen° mechanika 3 1/2" (1.44M)
+F000:B66A C60407         MOV    Byte Ptr [SI],07 ; p©°znak 3 1/2" (1.44M)
+F000:B66D C3           * RET
+
+; -----------------------------------------------------------------------------
+;         Test p©ipojen° pevnÇho disku a ©adiáe
+; -----------------------------------------------------------------------------
+F000:B66E 50             PUSH   AX
+F000:B66F 51             PUSH   CX 
+F000:B670 52             PUSH   DX 
+F000:B671 BAF103         MOV    DX,03F1 
+F000:B674 EC             IN     AL,DX 
+F000:B675 24F8           AND    AL,F8 
+F000:B677 3C50           CMP    AL,50
+F000:B679 744B           JZ     B6C6             ; ©adiá disku OK
+F000:B67B BAF705         MOV    DX,05F7 
+F000:B67E EB00           JMP    B680             ; mal† prodleva
+F000:B680 EC             IN     AL,DX 
+F000:B681 24F0           AND    AL,F0 
+F000:B683 3CA0           CMP    AL,A0 
+F000:B685 7437           JZ     B6BE             ; ©adiá nep©ipraven
+                                               ;* áek†n° na p©ipravenost winch.
+F000:B687 BAF701         MOV    DX,01F7          ; stavovò registr pevnÇho disku
+F000:B68A B480           MOV    AH,80            ; maska pro p©°znak uvolnàn°
+F000:B68C B90600         MOV    CX,0006          ; velk† prodleva
+F000:B68F 51           * PUSH   CX               ; £schova á°taáe prodlevy
+F000:B690 33C9           XOR    CX,CX            ; max. prodleva pro TIME-OUT
+F000:B692 E8C538         CALL   EF5A             ; áek†n° na uvolnàn° disku
+F000:B695 59             POP    CX               ; n†vrat á°taáe prodlevy
+F000:B696 7309           JNB    B6A1             ; pevnò disk je uvolnàn OK
+F000:B698 E2F5           LOOP   B68F             ; áek†n° na uvolnàn°
+F000:B69A EC             IN     AL,DX            ; stavovò registr pevnÇho disku
+F000:B69B 240C           AND    AL,0C            ; je pevnò disk p©ipraven ?
+F000:B69D 7427           JZ     B6C6             ; pevnò disk p©ipraven OK
+F000:B69F EB1D           JMP    B6BE
+                                               ;* test registru v†lce
+F000:B6A1 BAF401       * MOV    DX,01F4          ; vy®®° bajt á°sla v†lce
+F000:B6A4 B0AA           MOV    AL,AA            ; testovac° slovo 0AAh
+F000:B6A6 EE             OUT    DX,AL            ; vòstup testovac°ho slova
+F000:B6A7 EB00           JMP    B6A9             ; prodleva
+F000:B6A9 EB00           JMP    B6AB             ; prodleva
+F000:B6AB EC             IN     AL,DX            ; zpàtnÇ áten° test. slova
+F000:B6AC 3CAA           CMP    AL,AA            ; je testovac° slovo ?
+F000:B6AE 750E           JNZ    B6BE             ; nen° test. slovo - chyba
+F000:B6B0 B055           MOV    AL,55            ; testovac° slovo 0AAh
+F000:B6B2 EB00           JMP    B6B4             ; prodleva
+F000:B6B4 EE             OUT    DX,AL            ; vòstup testovac°ho slova
+F000:B6B5 EB00           JMP    B6B7             ; prodleva
+F000:B6B7 EB00           JMP    B6B9             ; prodleva
+F000:B6B9 EC             IN     AL,DX            ; zpàtnÇ áten° test. slova
+F000:B6BA 3C55           CMP    AL,55            ; je testovac° slovo ?
+F000:B6BC 7408           JZ     B6C6             ; nen° test. slovo - chyba
+F000:B6BE C6068F0000   * MOV    Byte Ptr [008F],00 ; p©°znak - ©adiá nep©ipraven
+F000:B6C3 F9             STC     
+F000:B6C4 EB06           JMP    B6CC
+
+F000:B6C6 C6068F0001   * MOV    Byte Ptr [008F],01 ; p©°znak - ©adiá disku OK
+F000:B6CB F8             CLC     
+F000:B6CC 5A           * POP    DX
+F000:B6CD 59             POP    CX 
+F000:B6CE 58             POP    AX 
+F000:B6CF C3             RET
+
+; -----------------------------------------------------------------------------
+;         Rekalibrace disku
+; -----------------------------------------------------------------------------
+F000:B6D0 51             PUSH   CX               ; £schova CX
+F000:B6D1 52             PUSH   DX               ; £schova DX (poëadovanò disk)
+                                               ;* vysl†n° povelu pro rekalibraci
+F000:B6D2 8AF2           MOV    DH,DL            ; poëadovanò disk
+F000:B6D4 B207           MOV    DL,07            ; povel REKALIBRACE
+F000:B6D6 8BF2           MOV    SI,DX            ; prvn° 2 bajty
+F000:B6D8 B502           MOV    CH,02            ; vy®lou se 2 bajty
+F000:B6DA 80263E007F     AND    Byte Ptr [003E],7F ; bude se áekat na p©eru®.
+F000:B6DF E84705         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B6E2 7242           JB     B726             ; chyba
+                                               ;* test proveden° operace
+F000:B6E4 BE0800         MOV    SI,0008          ; povel SENSE INTERRUPT STATUS
+F000:B6E7 B501           MOV    CH,01            ; 1 bajt k vysl†n°
+F000:B6E9 800E3E0080     OR     Byte Ptr [003E],80 ; nebude se áekat na p©eru®.
+F000:B6EE E83805         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B6F1 7233           JB     B726             ; chyba
+F000:B6F3 BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B6F6 B90200         MOV    CX,0002          ; poáet bajtñ k p©°jmu
+F000:B6F9 E88B05         CALL   BC87             ; naáten° stavu operace
+F000:B6FC 7228           JB     B726             ; chyba áten°
+F000:B6FE BB4200         MOV    BX,0042          ; buffer stavovòch informac°
+F000:B701 B440           MOV    AH,40            ; k¢d chyby - chyba vystaven°
+F000:B703 8A17           MOV    DL,[BX]          ; stavovò registr ST0
+F000:B705 80E260         AND    DL,60            ; p©°znak vystaven°
+F000:B708 80FA60         CMP    DL,60            ; je chyba vystaven° ?
+F000:B70B F9             STC                     ; p©°znak chyby vystaven°
+F000:B70C 7418           JZ     B726             ; je chyba vystaven°
+F000:B70E 5A             POP    DX               ; n†vrat á°sla disku
+                                               ;* nastaven° tabulek
+F000:B70F 52             PUSH   DX               ; £schova á°sla disku
+F000:B710 32F6           XOR    DH,DH            ; DX = á°slo disku
+F000:B712 BB9400         MOV    BX,0094          ; tabulka aktu†ln°ch stop
+F000:B715 03DA           ADD    BX,DX            ; adresa aktu†ln° stopy
+F000:B717 C60700         MOV    Byte Ptr [BX],00 ; nov† aktu†ln° stopa = 0
+F000:B71A 8ACA           MOV    CL,DL            ; á°slo disku
+F000:B71C B201           MOV    DL,01            ; bit pro nastaven° p©°znaku
+F000:B71E D2E2           SHL    DL,CL            ; rotace na danou pozici
+F000:B720 08163E00       OR     [003E],DL        ; p©°znak - disk rekalibrov†n
+F000:B724 32E4           XOR    AH,AH            ; k¢d - operace OK
+F000:B726 88264100     * MOV    [0041],AH        ; n†vratovò chybovò k¢d
+F000:B72A 5A             POP    DX               ; n†vrat DX
+F000:B72B 59             POP    CX               ; n†vrat CX
+F000:B72C C3             RET
+
+; -----------------------------------------------------------------------------
+;        Vystaven° na zadanou stopu
+; -----------------------------------------------------------------------------
+                                                 ; VSTUP: DL=disk
+                                                 ;        CL=á°slo stopy
+F000:B72D 53             PUSH   BX
+F000:B72E 51             PUSH   CX               ;
+F000:B72F 8A263E00       MOV    AH,[003E]        ; stav rekalibrace mechanik
+F000:B733 8ACA           MOV    CL,DL            ; poëadovanò disk
+F000:B735 FEC1           INC    CL               ; disk + 1
+F000:B737 D2EC           SHR    AH,CL            ; vyëaduje se rekalibrace ?
+F000:B739 720D           JB     B748             ; nevyëaduje se rekalibrace
+                                               ;* rekalibrace disku
+F000:B73B E892FF         CALL   B6D0             ; rekalibrace disku
+F000:B73E 7308           JNB    B748             ; rekalibrace OK
+F000:B740 E88DFF         CALL   B6D0             ; rekalibrace - druhò pokus
+F000:B743 7303           JNB    B748             ; rekalibrace OK
+F000:B745 E9DF00         JMP    B827             ; chyba operace
+
+F000:B748 BB9400       * MOV    BX,0094          ; tabulka aktu†ln°ch stop
+F000:B74B 32F6           XOR    DH,DH            ; DX=á°slo disku
+F000:B74D 03DA           ADD    BX,DX            ; adresa aktu†ln° stopy
+F000:B74F BE9000         MOV    SI,0090          ; tabulka stavñ disk. jednotek
+F000:B752 03F2           ADD    SI,DX            ; adresa stavu disk. jednotky
+F000:B754 8AD5           MOV    DL,CH            ; á°slo stopy
+F000:B756 F60420         TEST   Byte Ptr [SI],20 ; je nutnÇ dvojitÇ krokov†n° ?
+F000:B759 7402           JZ     B75D             ; nen° nutnÇ dvojitÇ krokov†n°
+F000:B75B 02D2           ADD    DL,DL            ; zdvojn†soben° stopy
+F000:B75D 3817         * CMP    [BX],DL          ; poëadovan† stopa = aktu†ln° ?
+F000:B75F 8B560E         MOV    DX,[BP+0E]       ; pñvodn° registr DX
+F000:B762 750C           JNZ    B770             ; stopa nesouhlas° - vystaven°
+F000:B764 803E410040     CMP    Byte Ptr [0041],40 ; byla chyba vystaven° ?
+F000:B769 7405           JZ     B770             ; byla chyba vystaven° - znovu
+F000:B76B 32E4           XOR    AH,AH            ; stopa souhlas° - OK
+F000:B76D E9B700         JMP    B827             ; n†vrat
+                                               ;* je nutnÇ vystaven°-nesouhlas°
+F000:B770 C0E602         SHL    DH,02            ; á°slo hlavy * 2
+F000:B773 0AF2           OR     DH,DL            ; poëadovanò disk
+F000:B775 B20F           MOV    DL,0F
+F000:B777 8BF2           MOV    SI,DX 
+F000:B779 8ACD           MOV    CL,CH 
+F000:B77B 8B560E         MOV    DX,[BP+0E]       ; poëadovanò disk DL
+F000:B77E BB9000         MOV    BX,0090          ; tabulka stavñ disk. jednotek
+F000:B781 32F6           XOR    DH,DH            ; DX = poëadovanò disk
+F000:B783 03DA           ADD    BX,DX            ; adresa stavu disk. jednotky
+F000:B785 F60720         TEST   Byte Ptr [BX],20 ; nutnÇ dvojitÇ krokov†n° ?
+F000:B788 7402           JZ     B78C             ; nen° nutnÇ dvojitÇ krokov†n°
+F000:B78A 02C9           ADD    CL,CL            ; zdvojn†soben° krokov†n°
+F000:B78C 8BF9         * MOV    DI,CX            ; poëadovan† stopa
+F000:B78E B503           MOV    CH,03            ; 3 bajty k vysl†n°
+F000:B790 80263E007F     AND    Byte Ptr [003E],7F ; bude se áekat na p©eru®.
+F000:B795 E89104         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B798 7303           JNB    B79D             ; vysl†n° OK
+F000:B79A E98600         JMP    B823             ; chyba
+F000:B79D BE0800       * MOV    SI,0008          ; povel - stavovÇ informace
+F000:B7A0 B501           MOV    CH,01            ; 1 bajt
+F000:B7A2 800E3E0080     OR     Byte Ptr [003E],80 ; nebude se áekat na p©eru®.
+F000:B7A7 E87F04         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B7AA 7277           JB     B823             ; chyba vysl†n° povelu
+F000:B7AC BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B7AF B90200         MOV    CX,0002          ; poáet navr†cenòch bajtñ
+F000:B7B2 E8D204         CALL   BC87             ; naáten° stavu operace
+F000:B7B5 726C           JB     B823             ; chyba naáten° dat
+F000:B7B7 BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B7BA B440           MOV    AH,40            ; k¢d chyby - chyba vystaven°
+F000:B7BC 8A17           MOV    DL,[BX]          ; stavovò registr ST0
+F000:B7BE 80E260         AND    DL,60            ; p©°znaky operace
+F000:B7C1 80FA60         CMP    DL,60            ; chyba vystaven° ?
+F000:B7C4 F9             STC                     ; p©°znak chyby
+F000:B7C5 745C           JZ     B823             ; je chyba vystaven°
+F000:B7C7 8B560E         MOV    DX,[BP+0E]       ; pñvodn° registr DX
+F000:B7CA 59             POP    CX
+F000:B7CB 51             PUSH   CX 
+F000:B7CC BE9400         MOV    SI,0094          ; tabulka aktu†ln°ch stop
+F000:B7CF 32F6           XOR    DH,DH            ; DH <- 0
+F000:B7D1 03F2           ADD    SI,DX            ; adresa aktu†ln° stopy
+F000:B7D3 882C           MOV    [SI],CH          ; nastaven° aktu†ln° stopy
+F000:B7D5 BB9000         MOV    BX,0090 
+F000:B7D8 03DA           ADD    BX,DX 
+F000:B7DA 8A1F           MOV    BL,[BX] 
+F000:B7DC F6C320         TEST   BL,20                         ;' ' 
+F000:B7DF 7402           JZ     B7E3 
+F000:B7E1 002C           ADD    [SI],CH
+
+F000:B7E3 1E             PUSH   DS               ; £schova DS
+F000:B7E4 33F6           XOR    SI,SI            ; SI <- 0
+F000:B7E6 8EDE           MOV    DS,SI            ; DS <- 0
+F000:B7E8 C5367800       LDS    SI,[0078]        ; tabulka disketovòch parametrñ
+F000:B7EC 8A4409         MOV    AL,[SI+09]       ; áas pro ust†len° hlavy v [ms]
+F000:B7EF 1F             POP    DS               ; n†vrat DS
+
+F000:B7F0 F6063F0080     TEST   Byte Ptr [003F],80 ; je operace áten°/z†pis ?
+F000:B7F5 741C           JZ     B813             ; nen° operace áten° ani z†pis
+F000:B7F7 0AC0           OR     AL,AL 
+F000:B7F9 7518           JNZ    B813 
+F000:B7FB 80FB17         CMP    BL,17 
+F000:B7FE B00F           MOV    AL,0F 
+F000:B800 7411           JZ     B813 
+F000:B802 80E307         AND    BL,07 
+F000:B805 B014           MOV    AL,14 
+F000:B807 80FB00         CMP    BL,00 
+F000:B80A 7407           JZ     B813 
+F000:B80C 80FB03         CMP    BL,03 
+F000:B80F 7402           JZ     B813 
+F000:B811 B00F           MOV    AL,0F 
+                                               ;* áek†n° na ust†len° hlavy
+F000:B813 0AC0         * OR     AL,AL
+F000:B815 740A           JZ     B821 
+F000:B817 B94300         MOV    CX,0043          ; doba pro 1 ms
+F000:B81A E84B38         CALL   F068             ; áek†n° na impuls 15.085737 Ês
+F000:B81D FEC8           DEC    AL 
+F000:B81F EBF2           JMP    B813 
+F000:B821 32E4           XOR    AH,AH            ; k¢d operace OK
+F000:B823 88264100       MOV    [0041],AH 
+F000:B827 8B560E       * MOV    DX,[BP+0E]
+F000:B82A 59             POP    CX 
+F000:B82B 5B             POP    BX 
+F000:B82C C3             RET
+
+
+
+
+F000:B82D E8FDFE         CALL   B72D             ; vystaven° na zadanou stopu
+F000:B830 7310           JNB    B842             ; operace OK
+F000:B832 B000           MOV    AL,00
+F000:B834 50             PUSH   AX 
+F000:B835 BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B838 B90700         MOV    CX,0007          ; poáet bajtñ ke áten°
+F000:B83B E84904         CALL   BC87             ; naáten° stavu operace
+F000:B83E 58             POP    AX 
+F000:B83F E9B200         JMP    B8F4 
+
+F000:B842 1E           * PUSH   DS               ; £schova DS
+F000:B843 33F6           XOR    SI,SI            ; SI <- 0
+F000:B845 8EDE           MOV    DS,SI            ; DS <- 0
+F000:B847 C5367800       LDS    SI,[0078]        ; adresa tabulky disk. param.
+F000:B84B 8B4402         MOV    AX,[SI+02]       ; AH <- ©†d velikosti sektoru
+F000:B84E 2500FF         AND    AX,FF00          ; AH=©†d velikosti sektoru
+F000:B851 8AC1           MOV    AL,CL            ; poáet sektorñ
+F000:B853 894600         MOV    [BP+00],AX       ;
+F000:B856 8B5C04         MOV    BX,[SI+04]       ;
+F000:B859 8A4C06         MOV    CL,[SI+06] 
+F000:B85C 1F             POP    DS 
+F000:B85D BE9000         MOV    SI,0090 
+F000:B860 32F6           XOR    DH,DH 
+F000:B862 03F2           ADD    SI,DX 
+F000:B864 8A14           MOV    DL,[SI] 
+F000:B866 80E207         AND    DL,07 
+F000:B869 B61B           MOV    DH,1B 
+F000:B86B 80FA05         CMP    DL,05 
+F000:B86E 740E           JZ     B87E 
+F000:B870 803C17         CMP    Byte Ptr [SI],17 
+F000:B873 7409           JZ     B87E 
+F000:B875 B623           MOV    DH,23                         ;'#' 
+F000:B877 80FA04         CMP    DL,04 
+F000:B87A 7402           JZ     B87E 
+F000:B87C B62A           MOV    DH,2A                         ;'*' 
+F000:B87E 8AFE           MOV    BH,DH 
+F000:B880 8B560E         MOV    DX,[BP+0E] 
+F000:B883 51             PUSH   CX 
+F000:B884 8ACD           MOV    CL,CH 
+F000:B886 8AEE           MOV    CH,DH 
+F000:B888 8BF9           MOV    DI,CX 
+F000:B88A C0E602         SHL    DH,02 
+F000:B88D 0AF2           OR     DH,DL 
+F000:B88F B2E6           MOV    DL,E6 
+F000:B891 8B4612         MOV    AX,[BP+12] 
+F000:B894 80FC03         CMP    AH,03 
+F000:B897 7502           JNZ    B89B 
+F000:B899 B2C5           MOV    DL,C5 
+F000:B89B 8BF2           MOV    SI,DX 
+F000:B89D 59             POP    CX 
+F000:B89E B509           MOV    CH,09 
+F000:B8A0 80263E007F     AND    Byte Ptr [003E],7F ; bude se áekat na p©eru®.
+F000:B8A5 80FC04         CMP    AH,04 
+F000:B8A8 EB30           JMP    B8DA 
+F000:B8AA 52             PUSH   DX 
+F000:B8AB 50             PUSH   AX 
+F000:B8AC BA6104         MOV    DX,0461 
+F000:B8AF E421           IN     AL,21                         ;'!' 
+F000:B8B1 8AE0           MOV    AH,AL 
+F000:B8B3 0C02           OR     AL,02 
+F000:B8B5 EB00           JMP    B8B7 
+F000:B8B7 EB00           JMP    B8B9 
+F000:B8B9 E621           OUT    21,AL                         ;'!' 
+F000:B8BB EC             IN     AL,DX 
+F000:B8BC 8EC0           MOV    ES,AX 
+F000:B8BE 24FE           AND    AL,FE 
+F000:B8C0 EB00           JMP    B8C2 
+F000:B8C2 EB00           JMP    B8C4 
+F000:B8C4 EE             OUT    DX,AL 
+F000:B8C5 58             POP    AX 
+F000:B8C6 5A             POP    DX 
+F000:B8C7 E85F03         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B8CA 52             PUSH   DX 
+F000:B8CB 50             PUSH   AX 
+F000:B8CC BA6104         MOV    DX,0461 
+F000:B8CF 8CC0           MOV    AX,ES 
+F000:B8D1 EE             OUT    DX,AL 
+F000:B8D2 8AC4           MOV    AL,AH 
+F000:B8D4 E621           OUT    21,AL                         ;'!' 
+F000:B8D6 58             POP    AX 
+F000:B8D7 5A             POP    DX 
+F000:B8D8 EB03           JMP    B8DD 
+
+F000:B8DA E84C03         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B8DD 7303           JNB    B8E2 
+F000:B8DF E950FF         JMP    B832 
+F000:B8E2 BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B8E5 B90700         MOV    CX,0007 
+F000:B8E8 E89C03         CALL   BC87             ; naáten° stavu operace
+F000:B8EB 7304           JNB    B8F1 
+F000:B8ED B000           MOV    AL,00 
+F000:B8EF EB03           JMP    B8F4 
+F000:B8F1 E8DE03         CALL   BCD2             ; rozbor navr†c. stavu operace
+F000:B8F4 88264100     * MOV    [0041],AH
+F000:B8F8 8B560E         MOV    DX,[BP+0E] 
+F000:B8FB 8B5E0C         MOV    BX,[BP+0C] 
+F000:B8FE 8B4E10         MOV    CX,[BP+10] 
+F000:B901 E91FF9         JMP    B223 
+
+; -----------------------------------------------------------------------------
+;        Nastaven° p©enosovÇ rychlosti
+; -----------------------------------------------------------------------------
+
+F000:B904 53             PUSH   BX
+F000:B905 51             PUSH   CX
+F000:B906 8B560E         MOV    DX,[BP+0E]       ; pñvodn° obsah DX
+F000:B909 BE9000         MOV    SI,0090          ; tabulka stavñ mÇdia
+F000:B90C 32F6           XOR    DH,DH            ; DX=á°slo jednotky
+F000:B90E 03F2           ADD    SI,DX            ; adresa stavovÇho bajtu mÇdia
+F000:B910 8A34           MOV    DH,[SI]          ; stavovò bajt mÇdia
+F000:B912 80E607         AND    DH,07            ; typ mÇdia
+F000:B915 750D           JNZ    B924             ; je jinò typ neë 360 KB
+F000:B917 C60402         MOV    Byte Ptr [SI],02 ;
+F000:B91A EB08           JMP    B924 
+F000:B91C E8CD01       * CALL   BAEC             ; nastaven° rychlosti p©enosu
+F000:B91F 32E4           XOR    AH,AH 
+F000:B921 E91201         JMP    BA36 
+
+
+
+F000:B924 E85D37         CALL   F084             ; áten° typu diskety z CMOS
+F000:B927 7512           JNZ    B93B
+F000:B929 3C01           CMP    AL,01 
+F000:B92B 7505           JNZ    B932 
+F000:B92D C60493         MOV    Byte Ptr [SI],93 ; 360 KB uráen†
+F000:B930 EBEA           JMP    B91C
+F000:B932 3C03           CMP    AL,03 
+F000:B934 7505           JNZ    B93B 
+F000:B936 C60497         MOV    Byte Ptr [SI],97 
+F000:B939 EBE1           JMP    B91C 
+
+F000:B93B 32F6         * XOR    DH,DH            ; 500 Kb/s
+F000:B93D E8CE01         CALL   BB0E             ; nastaven° rychlosti p©enosu
+F000:B940 C6068B0002     MOV    Byte Ptr [008B],02 
+F000:B945 8B560E         MOV    DX,[BP+0E] 
+F000:B948 E885FD         CALL   B6D0             ; rekalibrace disku
+F000:B94B 7308           JNB    B955 
+F000:B94D E880FD         CALL   B6D0             ; rekalibrace disku
+F000:B950 7303           JNB    B955 
+F000:B952 E9E500         JMP    BA3A 
+F000:B955 B90500         MOV    CX,0005 
+F000:B958 51             PUSH   CX 
+F000:B959 8AF2           MOV    DH,DL 
+F000:B95B B24A           MOV    DL,4A                         ;'J' 
+F000:B95D 8BF2           MOV    SI,DX 
+F000:B95F 8AD6           MOV    DL,DH 
+F000:B961 B502           MOV    CH,02 
+F000:B963 80263E007F     AND    Byte Ptr [003E],7F ; bude se áekat na p©eru®.
+F000:B968 E8BE02         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B96B 723C           JB     B9A9 
+F000:B96D BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B970 B90700         MOV    CX,0007 
+F000:B973 E81103         CALL   BC87             ; naáten° stavu operace
+F000:B976 7231           JB     B9A9 
+F000:B978 BB4200         MOV    BX,0042 
+F000:B97B F607C0         TEST   Byte Ptr [BX],C0 
+F000:B97E 751B           JNZ    B99B 
+F000:B980 50             PUSH   AX 
+F000:B981 E80037         CALL   F084        ; áten° typu diskety z CMOS
+F000:B984 750F           JNZ    B995 
+F000:B986 3C04           CMP    AL,04 
+F000:B988 58             POP    AX 
+F000:B989 750B           JNZ    B996 
+F000:B98B B417           MOV    AH,17 
+F000:B98D C6068B0007     MOV    Byte Ptr [008B],07 
+F000:B992 E99200         JMP    BA27 
+F000:B995 58             POP    AX 
+F000:B996 B415           MOV    AH,15 
+F000:B998 E98C00         JMP    BA27 
+F000:B99B 59             POP    CX 
+F000:B99C E2BA           LOOP   B958 
+F000:B99E B480           MOV    AH,80 
+F000:B9A0 F60708         TEST   Byte Ptr [BX],08 
+F000:B9A3 7408           JZ     B9AD 
+F000:B9A5 F9             STC     
+F000:B9A6 E98D00         JMP    BA36 
+F000:B9A9 59             POP    CX 
+F000:B9AA E98900         JMP    BA36 
+F000:B9AD 8B560E         MOV    DX,[BP+0E] 
+F000:B9B0 50             PUSH   AX 
+F000:B9B1 E8D036         CALL   F084        ; áten° typu diskety z CMOS
+F000:B9B4 7511           JNZ    B9C7 
+F000:B9B6 3C04           CMP    AL,04 
+F000:B9B8 58             POP    AX 
+F000:B9B9 750D           JNZ    B9C8 
+F000:B9BB B602           MOV    DH,02            ; 250 Kb/s
+F000:B9BD E84E01         CALL   BB0E             ; nastaven° rychlosti p©enosu
+F000:B9C0 C6068B0087     MOV    Byte Ptr [008B],87 
+F000:B9C5 EB0B           JMP    B9D2 
+F000:B9C7 58             POP    AX 
+F000:B9C8 B601           MOV    DH,01            ; 300 Kb/s
+F000:B9CA E84101         CALL   BB0E             ; nastaven° rychlosti p©enosu
+F000:B9CD C6068B0061     MOV    Byte Ptr [008B],61            ;'a' 
+F000:B9D2 8B560E         MOV    DX,[BP+0E] 
+F000:B9D5 B90500         MOV    CX,0005 
+F000:B9D8 51             PUSH   CX 
+F000:B9D9 8AF2           MOV    DH,DL 
+F000:B9DB B24A           MOV    DL,4A                         ;'J' 
+F000:B9DD 8BF2           MOV    SI,DX 
+F000:B9DF B502           MOV    CH,02 
+F000:B9E1 80263E007F     AND    Byte Ptr [003E],7F ; bude se áekat na p©eru®.
+F000:B9E6 E84002         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:B9E9 72BE           JB     B9A9 
+F000:B9EB BB4200         MOV    BX,0042          ; buffer statutu ©adiáe
+F000:B9EE B90700         MOV    CX,0007 
+F000:B9F1 E89302         CALL   BC87             ; naáten° stavu operace
+F000:B9F4 72B3           JB     B9A9 
+F000:B9F6 BB4200         MOV    BX,0042 
+F000:B9F9 F607C0         TEST   Byte Ptr [BX],C0 
+F000:B9FC 740F           JZ     BA0D 
+F000:B9FE 59             POP    CX 
+F000:B9FF E2D7           LOOP   B9D8 
+F000:BA01 B480           MOV    AH,80 
+F000:BA03 F60708         TEST   Byte Ptr [BX],08 
+F000:BA06 7502           JNZ    BA0A 
+F000:BA08 B402           MOV    AH,02 
+F000:BA0A F9             STC     
+F000:BA0B EB29           JMP    BA36 
+F000:BA0D 8B560E         MOV    DX,[BP+0E] 
+F000:BA10 50             PUSH   AX 
+F000:BA11 E87036         CALL   F084        ; áten° typu diskety z CMOS
+F000:BA14 750E           JNZ    BA24 
+F000:BA16 3C04           CMP    AL,04 
+F000:BA18 58             POP    AX 
+F000:BA19 750A           JNZ    BA25 
+F000:BA1B B497           MOV    AH,97 
+F000:BA1D C6068B0097     MOV    Byte Ptr [008B],97 
+F000:BA22 EB03           JMP    BA27 
+F000:BA24 58             POP    AX 
+F000:BA25 B474           MOV    AH,74                         ;'t' 
+F000:BA27 59             POP    CX 
+F000:BA28 8B560E         MOV    DX,[BP+0E] 
+F000:BA2B 32F6           XOR    DH,DH 
+F000:BA2D BB9000         MOV    BX,0090 
+F000:BA30 03DA           ADD    BX,DX 
+F000:BA32 8827           MOV    [BX],AH 
+F000:BA34 32E4           XOR    AH,AH 
+F000:BA36 88264100       MOV    [0041],AH 
+F000:BA3A 8B560E         MOV    DX,[BP+0E] 
+F000:BA3D 59             POP    CX 
+F000:BA3E 5B             POP    BX 
+F000:BA3F C3             RET
+
+; -----------------------------------------------------------------------------
+;        Zapnut° motoru
+; -----------------------------------------------------------------------------
+
+F000:BA40 52             PUSH   DX 
+F000:BA41 51             PUSH   CX 
+F000:BA42 FA             CLI     
+F000:BA43 C6064000FF     MOV    Byte Ptr [0040],FF ; á°taá motoru zapnut
+F000:BA48 80263F00CF     AND    Byte Ptr [003F],CF ; zru®en° á°sla jednotky
+F000:BA4D 8AEA           MOV    CH,DL            ; á°slo disket. jednotky
+F000:BA4F C0E204         SHL    DL,04            ; á°slo disket. jednotky
+F000:BA52 08163F00       OR     [003F],DL        ; nastaven° á°sla disket. jedn.
+F000:BA56 8ACD           MOV    CL,CH            ; á°slo disket. jednotky
+F000:BA58 8A163F00       MOV    DL,[003F]        ; stav motoru disket. jednotky
+F000:BA5C FEC1           INC    CL               ; á°slo jednotky + 1
+F000:BA5E D2EA           SHR    DL,CL            ; p©°znak zapnut° -> CF
+F000:BA60 724F           JB     BAB1             ; motor je jië zapnut
+F000:BA62 B201           MOV    DL,01            ; p©°znak. bit
+F000:BA64 FEC9           DEC    CL               ; á°slo mechaniky
+F000:BA66 D2E2           SHL    DL,CL            ; bit zapnut° motoru
+F000:BA68 08163F00       OR     [003F],DL        ; nastaven° p©°znaku zapnut°
+                                               ;* zapnut° motoru
+F000:BA6C FB             STI                     ; povolen° p©eru®en°
+F000:BA6D A03F00         MOV    AL,[003F]        ; stav motorñ mechanik
+F000:BA70 C0C804         ROR    AL,04            ; nastaven° á°sla mechaniky
+F000:BA73 0C0C           OR     AL,0C            ; uvolnàn° ©adiáe i p©eru®en°
+F000:BA75 BAF203         MOV    DX,03F2          ; registr digit†ln°ho vòstupu
+F000:BA78 EE             OUT    DX,AL            ; zapnut° motoru mechaniky
+F000:BA79 B8FD90         MOV    AX,90FD
+F000:BA7C CD15           INT    15               ; hl†®en° o áek†n° na operaci
+F000:BA7E 723E           JB     BABE             ; je chyba TIME-OUT
+
+F000:BA80 8A263F00       MOV    AH,[003F]        ; stav motorñ mechanik
+F000:BA84 1E             PUSH   DS               ; £schova DS
+F000:BA85 56             PUSH   SI               ; £schova SI
+F000:BA86 33F6           XOR    SI,SI            ; SI <- 0
+F000:BA88 8EDE           MOV    DS,SI            ; DS <- 0
+F000:BA8A C5367800       LDS    SI,[0078]        ; ukazatel disket. parametrñ
+F000:BA8E 8A440A         MOV    AL,[SI+0A]       ; áas pro spu®tàn° motoru
+F000:BA91 5E             POP    SI               ; n†vrat SI
+F000:BA92 1F             POP    DS               ; n†vrat DS
+F000:BA93 D0E4           SHL    AH,1             ; je operace áten°/z†pis ?
+F000:BA95 7308           JNB    BA9F             ; nen° operace áten°/z†pis
+F000:BA97 3C08           CMP    AL,08            ; min. doba pro ostatn° oper.
+F000:BA99 730A           JNB    BAA5             ; je dostateánà dlouh† doba
+F000:BA9B B008           MOV    AL,08            ; minim†ln° doba jinòch oper.
+F000:BA9D EB06           JMP    BAA5             ; áek†n°
+F000:BA9F 3C05         * CMP    AL,05            ; min. doba pro áten°/z†pis
+F000:BAA1 7302           JNB    BAA5             ; dostateán† doba áten°/z†pis
+F000:BAA3 B005           MOV    AL,05            ; minim†ln° doba áten°/z†pis
+F000:BAA5 B98E20       * MOV    CX,208E          ; doba prodlevy pro 1/8 sekundy
+F000:BAA8 E8BD35         CALL   F068             ; áek†n° na impuls 15.085737 Ês
+                                                 ; áek†n° na .. 10h (port 61h)
+F000:BAAB FEC8           DEC    AL               ; á°taá 1/8 sekund
+F000:BAAD 75F6           JNZ    BAA5             ; dal®° 1/8 sekundy
+F000:BAAF EB0D           JMP    BABE             ; konec
+                                               ;* motor je zapnut
+F000:BAB1 FB           * STI
+F000:BAB2 A03F00         MOV    AL,[003F]        ; stav motorñ mechanik
+F000:BAB5 C0C804         ROR    AL,04            ; á°slo diskovÇ jednotky
+F000:BAB8 0C0C           OR     AL,0C            ; uvolnàn° ©adiáe a p©eru®en°
+F000:BABA BAF203         MOV    DX,03F2          ; ©°dic° registr ©adiáe disket
+F000:BABD EE             OUT    DX,AL            ; nastaven° vòstupu
+F000:BABE 59           * POP    CX
+F000:BABF 5A             POP    DX 
+F000:BAC0 C3             RET
+; -----------------------------------------------------------------------------
+;         Nastaven° n†sleduj°c°ho sektoru
+; -----------------------------------------------------------------------------
+F000:BAC1 50             PUSH   AX               ; £schova AX
+F000:BAC2 1E             PUSH   DS               ; £schova DS
+F000:BAC3 33DB           XOR    BX,BX            ; BX <- 0
+F000:BAC5 8EDB           MOV    DS,BX            ; DS <- 0
+F000:BAC7 C51E7800       LDS    BX,[0078]        ; adresa tabulky disket. param.
+F000:BACB 8A6702         MOV    AH,[BX+02]       ; áas pro vypnut° motoru
+F000:BACE 8A4704         MOV    AL,[BX+04]       ; á°slo posledn°ho sektoru
+F000:BAD1 FEC0           INC    AL               ; poáet sektorñ na stopà
+F000:BAD3 1F             POP    DS               ; n†vrat DS
+F000:BAD4 BB4200         MOV    BX,0042          ; buffer s naátenòm stavem
+F000:BAD7 3A6F03         CMP    CH,[BX+03]       ; souhlas° stopa ?
+F000:BADA 7508           JNZ    BAE4             ; stopa nesouhlas°
+F000:BADC 3A7704         CMP    DH,[BX+04]       ; souhlas° hlava (strana) ?
+F000:BADF 7503           JNZ    BAE4             ; hlava nesouhlas°
+F000:BAE1 8A4705         MOV    AL,[BX+05]       ; á°slo sektoru
+F000:BAE4 88264000     * MOV    [0040],AH        ; nastaven° áasu pro vypnut°
+F000:BAE8 8AD8           MOV    BL,AL            ; á°slo posledn°ho sektoru
+F000:BAEA 58             POP    AX               ; n†vrat AX
+F000:BAEB C3             RET
+; -----------------------------------------------------------------------------
+;         Nastaven° rychlosti p©enosu
+; -----------------------------------------------------------------------------
+F000:BAEC 56             PUSH   SI               ; £schova SI
+F000:BAED BE9000         MOV    SI,0090          ; tabulka parametrñ disk. jedn.
+F000:BAF0 32F6           XOR    DH,DH            ; DX=á°slo disketovÇ jednotky
+F000:BAF2 03F2           ADD    SI,DX            ; adresa bajtu v tabulce
+F000:BAF4 8A34           MOV    DH,[SI]          ; stav mÇdia disket. jednotky
+F000:BAF6 3A368B00       CMP    DH,[008B]        ; je rychlost jië nastavena ?
+F000:BAFA 740D           JZ     BB09             ; je jië nastavena
+F000:BAFC 88368B00       MOV    [008B],DH        ; nov† rychlost
+F000:BB00 80E6C0         AND    DH,C0            ; ponech† rychlost p©enosu
+F000:BB03 C0C602         ROL    DH,02            ; rotace rychlosti na pozici
+F000:BB06 E80500         CALL   BB0E             ; nastaven° rychlosti p©enosu
+F000:BB09 5E           * POP    SI               ; n†vrat SI
+F000:BB0A 8B560E         MOV    DX,[BP+0E]       ; n†vrat registru DX
+F000:BB0D C3             RET
+
+; -----------------------------------------------------------------------------
+;         Nastaven° rychlosti p©enosu ©adiáe DH
+; -----------------------------------------------------------------------------
+F000:BB0E 50             PUSH   AX
+F000:BB0F 8AC6           MOV    AL,DH            ; rychlost p©enosu
+F000:BB11 BAF703         MOV    DX,03F7          ; registr rychlosti p©enosu AT
+F000:BB14 EE             OUT    DX,AL 
+F000:BB15 58             POP    AX 
+F000:BB16 C3             RET
+; -----------------------------------------------------------------------------
+;         Test vòmàny disket. mÇdia
+; -----------------------------------------------------------------------------
+F000:BB17 51             PUSH   CX               ; £schova registru CX
+
+                                               ;* kontrola, zda je mech. 360 KB
+F000:BB18 E86935         CALL   F084             ; áten° typu diskety z CMOS
+F000:BB1B B400           MOV    AH,00            ; p©ednastaven°-operace OK
+F000:BB1D 7504           JNZ    BB23             ; nespr†vnò typ disku
+F000:BB1F FEC8           DEC    AL               ; je mechanika 360 KB ?
+F000:BB21 743C           JZ     BB5F             ; je mechanika 360 KB
+F000:BB23 8A04         * MOV    AL,[SI]          ;
+F000:BB25 2407           AND    AL,07 
+F000:BB27 7436           JZ     BB5F 
+F000:BB29 3C03           CMP    AL,03 
+F000:BB2B 7432           JZ     BB5F 
+
+                                               ;* test, zda bylo mÇdium vymànàno
+F000:BB2D E89502         CALL   BDC5             ; ??? (STC)
+F000:BB30 7332           JNB    BB64             ; ???
+F000:BB32 BAF703         MOV    DX,03F7          ; á°slicovò vstup
+F000:BB35 EC             IN     AL,DX            ; áten° stavu vòmàny
+F000:BB36 D0E0           SHL    AL,1             ; byla disketa vymànàna ?
+F000:BB38 732A           JNB    BB64             ; disketa nebyla vymànàna
+
+                                               ;* mÇdium je nezn†mÇ
+F000:BB3A 8024EF         AND    Byte Ptr [SI],EF ; p©°znak, ëe mÇdium nen° zn†mÇ
+F000:BB3D E8D3F4         CALL   B013             ; resetov†n° diskñ a rekalibrace
+F000:BB40 7222           JB     BB64             ; chyba operace
+F000:BB42 8B560E         MOV    DX,[BP+0E]       ; poëadovanò disk
+F000:BB45 B501           MOV    CH,01            ; poëadovan† stopa 1
+F000:BB47 E8E3FB         CALL   B72D             ; vystaven° na stopu 1
+F000:BB4A 7218           JB     BB64             ; chyba operace
+F000:BB4C B500           MOV    CH,00            ; poëadovan† stopa 0
+F000:BB4E E8DCFB         CALL   B72D             ; vystaven° na stopu 0
+F000:BB51 7211           JB     BB64             ; chyba vystaven°
+F000:BB53 B406           MOV    AH,06            ; k¢d chyby - disketa vymànàna
+F000:BB55 BAF703         MOV    DX,03F7 
+F000:BB58 EC             IN     AL,DX            ; áten° digit. vstupu
+F000:BB59 D0E0           SHL    AL,1             ; byla disketa vymànàna ?
+F000:BB5B 7302           JNB    BB5F             ; disketa nebyla vymànàna
+F000:BB5D B480           MOV    AH,80            ; chyba-disk.jedn.nep©ipravena
+F000:BB5F 0AE4         * OR     AH,AH            ; navr†cena chyba ?
+F000:BB61 7401           JZ     BB64             ; nen° chyba
+F000:BB63 F9             STC                     ; p©°znak chyby
+F000:BB64 8B560E       * MOV    DX,[BP+0E]       ; navr†cen° registru DX
+F000:BB67 59             POP    CX               ; navr†cen° registru CX
+F000:BB68 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Nastaven° ©adiáe DMA
+; -----------------------------------------------------------------------------
+                                                 ; VSTUP: AH=registr m¢du
+                                                 ;        CX=poáet bajtñ
+                                                 ;        BX=b†zov† adresa
+                                                 ;        ES=str†nkovò registr
+
+F000:BB69 50             PUSH   AX
+F000:BB6A 52             PUSH   DX 
+F000:BB6B FA             CLI                     ; z†kaz p©eru®en°
+F000:BB6C 8AC4           MOV    AL,AH            ; poëadovanò m¢d DMA
+F000:BB6E E60C           OUT    0C,AL            ; nulov†n° ukazatele povelñ
+F000:BB70 EB00           JMP    BB72             ; prodleva
+F000:BB72 EB00           JMP    BB74             ; prodleva
+F000:BB74 E60B           OUT    0B,AL            ; z†pis m¢du DMA
+F000:BB76 EB00           JMP    BB78             ; prodleva
+F000:BB78 EB00           JMP    BB7A             ; prodleva
+F000:BB7A 8AC1           MOV    AL,CL            ; poáet bajtñ - LOW
+F000:BB7C E605           OUT    05,AL            ; z†pis poátu bajtñ - LOW
+F000:BB7E EB00           JMP    BB80             ; prodleva
+F000:BB80 EB00           JMP    BB82             ; prodleva
+F000:BB82 8AC5           MOV    AL,CH            ; poáet bajtñ - HIGH
+F000:BB84 E605           OUT    05,AL            ; z†pis poátu bajtñ - HIGH
+F000:BB86 EB00           JMP    BB88             ; prodleva
+F000:BB88 EB00           JMP    BB8A             ; prodleva
+F000:BB8A 8AC3           MOV    AL,BL            ; b†zov† adresa - LOW
+F000:BB8C E604           OUT    04,AL            ; nastaven° b†zovÇ adresy - LOW
+F000:BB8E EB00           JMP    BB90             ; prodleva
+F000:BB90 EB00           JMP    BB92             ; prodleva
+F000:BB92 8AC7           MOV    AL,BH            ; b†zov† adresa - HIGH
+F000:BB94 E604           OUT    04,AL            ; nastav. b†zovÇ adresy - HIGH
+F000:BB96 EB00           JMP    BB98             ; prodleva
+F000:BB98 EB00           JMP    BB9A             ; prodleva
+F000:BB9A 8CC0           MOV    AX,ES            ; str†nkovò registr
+F000:BB9C E681           OUT    81,AL            ; nastav. str†nkovÇho registru
+F000:BB9E EB00           JMP    BBA0             ; prodleva
+F000:BBA0 EB00           JMP    BBA2             ; prodleva
+F000:BBA2 B002           MOV    AL,02            ; maska vòbàru kan†lu 2
+F000:BBA4 E60A           OUT    0A,AL            ; resetov†n° a maskov. kan†lu 2
+F000:BBA6 FB             STI                     ; povolen° p©eru®en°
+F000:BBA7 5A             POP    DX 
+F000:BBA8 58             POP    AX 
+F000:BBA9 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Normalizace a kontrola adresy DMA
+; -----------------------------------------------------------------------------
+F000:BBAA 51             PUSH   CX               ; £schova CX (poáet bajtñ)
+F000:BBAB 33C0           XOR    AX,AX            ; AX <- 0
+F000:BBAD 8CC1           MOV    CX,ES            ; segment adresy DMA
+                                               ;* p©evod segmentu na abs. adr.
+F000:BBAF D1E1           SHL    CX,1
+F000:BBB1 D0D0           RCL    AL,1 
+F000:BBB3 D1E1           SHL    CX,1 
+F000:BBB5 D0D0           RCL    AL,1 
+F000:BBB7 D1E1           SHL    CX,1 
+F000:BBB9 D0D0           RCL    AL,1 
+F000:BBBB D1E1           SHL    CX,1 
+F000:BBBD D0D0           RCL    AL,1 
+
+F000:BBBF 8B5E0C         MOV    BX,[BP+0C]       ; offset adresy DMA
+F000:BBC2 03D9           ADD    BX,CX            ; p©iáten° segment.á†sti adresy
+F000:BBC4 150000         ADC    AX,0000          ; p©enos do vy®®° á†sti adresy
+F000:BBC7 8EC0           MOV    ES,AX            ; nejvy®®° tetr†da adresy DMA
+F000:BBC9 59             POP    CX               ; n†vrat CX = dÇlka dat
+F000:BBCA 8BC1           MOV    AX,CX            ; dÇlka dat
+F000:BBCC 03C3           ADD    AX,BX            ; kontrola p©eteáen° 64 KB
+F000:BBCE 7302           JNB    BBD2             ; nen° p©eteáen° - OK
+F000:BBD0 B409           MOV    AH,09            ; chyba - p©eteáen° hranice
+F000:BBD2 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Vysl†n° CH povelovòch bajtñ na ©adiá
+; -----------------------------------------------------------------------------
+                                                 ; VSTUP:  CH=poáet bajtñ (1-9)
+                                                 ;         SI= 1. a 2. bajt
+                                                 ;         DI= 3. a 4. bajt
+                                                 ;         [BP+0] = 5. a 6. bajt
+                                                 ;         BL=7. bajt
+                                                 ;         BH=8. bajt
+                                                 ;         CL=9. bajt
+
+                                               ;* 1. bajt
+F000:BBD3 8BC6           MOV    AX,SI
+F000:BBD5 8AE0           MOV    AH,AL 
+F000:BBD7 E87C00         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BBDA FECD           DEC    CH 
+F000:BBDC 764A           JBE    BC28
+                                               ;* 2. bajt
+F000:BBDE 8BC6           MOV    AX,SI 
+F000:BBE0 E87300         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BBE3 FECD           DEC    CH 
+F000:BBE5 7641           JBE    BC28 
+                                               ;* 3. bajt
+F000:BBE7 8BC7           MOV    AX,DI
+F000:BBE9 8AE0           MOV    AH,AL 
+F000:BBEB E86800         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BBEE FECD           DEC    CH 
+F000:BBF0 7636           JBE    BC28 
+                                               ;* 4. bajt
+F000:BBF2 8BC7           MOV    AX,DI
+F000:BBF4 E85F00         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BBF7 FECD           DEC    CH 
+F000:BBF9 762D           JBE    BC28 
+                                               ;* 5. bajt
+F000:BBFB 8B4600         MOV    AX,[BP+00]
+F000:BBFE 8AE0           MOV    AH,AL 
+F000:BC00 E85300         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BC03 FECD           DEC    CH 
+F000:BC05 7621           JBE    BC28 
+                                               ;* 6. bajt
+F000:BC07 8B4600         MOV    AX,[BP+00]
+F000:BC0A E84900         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BC0D FECD           DEC    CH 
+F000:BC0F 7617           JBE    BC28 
+                                               ;* 7. bajt
+F000:BC11 8AE3           MOV    AH,BL
+F000:BC13 E84000         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BC16 FECD           DEC    CH 
+F000:BC18 760E           JBE    BC28 
+                                               ;* 8. bajt
+F000:BC1A 8AE7           MOV    AH,BH
+F000:BC1C E83700         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BC1F FECD           DEC    CH 
+F000:BC21 7605           JBE    BC28 
+                                               ;* 9. bajt
+F000:BC23 8AE1           MOV    AH,CL
+F000:BC25 E82E00         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BC28 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Vysl†n° povelu na ©adiá
+; -----------------------------------------------------------------------------
+
+F000:BC29 F6063E0080     TEST   Byte Ptr [003E],80 ; áek† se na p©eru®en° ?
+F000:BC2E 7409           JZ     BC39             ; bude se áekat na p©eru®en°
+F000:BC30 80263E007F     AND    Byte Ptr [003E],7F ; zru®en° p©°znaku p©eru®en°
+F000:BC35 E89BFF         CALL   BBD3             ; vysl†n° povelu na ©adiá
+F000:BC38 C3             RET
+
+F000:BC39 E897FF       * CALL   BBD3             ; vysl†n° povelu na ©adiá
+F000:BC3C 720F           JB     BC4D             ; chyba
+F000:BC3E B80190         MOV    AX,9001 
+F000:BC41 CD15           INT    15               ; zah†jen° áek†n° na operaci
+F000:BC43 FB             STI     
+F000:BC44 7205           JB     BC4B 
+F000:BC46 E88901         CALL   BDD2             ; áek†n° na p©eru®en° od ©adiáe
+F000:BC49 7303           JNB    BC4E             ; zru®en° p©°zn. áten°/z†pis
+F000:BC4B B480           MOV    AH,80            ; chyba - jednotka nep©ipravena
+F000:BC4D C3             RET
+
+F000:BC4E 80263E007F   * AND    Byte Ptr [003E],7F ; zru®en° p©°zn. áten°/z†pis
+F000:BC53 32E4           XOR    AH,AH            ; p©°znak operace OK
+F000:BC55 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Vysl†n° bajtu na povelovò registr ©adiáe
+; -----------------------------------------------------------------------------
+F000:BC56 51             PUSH   CX
+F000:BC57 52             PUSH   DX 
+F000:BC58 B90200         MOV    CX,0002          ; doba pro 30 Ês
+F000:BC5B E80A34         CALL   F068             ; áek†n° na impuls 15.085737 Ês
+                                               ;* áek†n° na poëadavek povelu
+F000:BC5E BAF403         MOV    DX,03F4          ; hlavn° stavovò registr ©adiáe
+F000:BC61 50             PUSH   AX               ; £schova poëadovanÇho povelu
+F000:BC62 B440           MOV    AH,40            ; maska poëadavku povelu
+F000:BC64 33C9           XOR    CX,CX            ; max. doba pro áek†n°
+F000:BC66 E8F132         CALL   EF5A             ; áek†n° na poëadavek povelu
+F000:BC69 7302           JNB    BC6D             ; jednotka je p©ipravena OK
+F000:BC6B EB14           JMP    BC81             ; jednotka nep©ipravena
+                                               ;* áek†n° na p©ipravenost ©adiáe
+F000:BC6D B480         * MOV    AH,80            ; maska p©ipravenosti ©adiáe
+F000:BC6F 33C9           XOR    CX,CX            ; max. doba pro áek†n°
+F000:BC71 E80A33         CALL   EF7E             ; áek†n° na stav portu 1
+F000:BC74 7302           JNB    BC78             ; ©adiá je p©ipraven k povelu
+F000:BC76 EB09           JMP    BC81             ; chyba - ©adiá nep©ipraven
+                                               ;* vysl†n° povelu na ©adiá
+F000:BC78 58           * POP    AX               ; n†vrat povelu
+F000:BC79 BAF503         MOV    DX,03F5          ; registr povelñ
+F000:BC7C 8AC4           MOV    AL,AH            ; poëadovanò povel
+F000:BC7E EE             OUT    DX,AL            ; vysl†n° povelu na ©adiá
+F000:BC7F EB03           JMP    BC84             ; n†vrat
+                                               ;* chyba - jednotka nep©ipravena
+F000:BC81 58           * POP    AX
+F000:BC82 B480           MOV    AH,80            ; k¢d chyby - jednotka nep©ipr.
+F000:BC84 5A           * POP    DX
+F000:BC85 59             POP    CX 
+F000:BC86 C3             RET
+; -----------------------------------------------------------------------------
+;         Naáten° stavu operace
+; -----------------------------------------------------------------------------
+F000:BC87 52             PUSH   DX               ; £schova DX
+F000:BC88 51           * PUSH   CX               ; £schova á°taáe bajtñ
+F000:BC89 E81F00         CALL   BCAB             ; naáten° stav. bajtu od ©adiáe
+F000:BC8C 59             POP    CX               ; n†vrat á°taáe bajtñ
+F000:BC8D 721A           JB     BCA9             ; chyba p©°jmu bajtu
+F000:BC8F 8807           MOV    [BX],AL          ; uloëen° stavovÇho bajtu
+F000:BC91 43             INC    BX               ; zvò®en° adresy v bufferu
+F000:BC92 E2F4           LOOP   BC88             ; naáten° dal®°ho bajtu
+F000:BC94 B90200         MOV    CX,0002          ; doba pro 30 Ês
+F000:BC97 E8CE33         CALL   F068             ; áek†n° na impuls 15.085737 Ês
+F000:BC9A BAF403         MOV    DX,03F4          ; hlavn° stavovò registr
+F000:BC9D EC             IN     AL,DX            ; áten° hlavn°ho stav. registru
+F000:BC9E A810           TEST   AL,10            ; je ©adiá disket zanepr†zdnàn?
+F000:BCA0 7405           JZ     BCA7             ; ©adiá jië nen° zanepr†zdnàn
+F000:BCA2 B420           MOV    AH,20            ; chyba ©adiáe
+F000:BCA4 F9             STC                     ; chybovò k¢d
+F000:BCA5 EB02           JMP    BCA9             ; n†vrat
+F000:BCA7 32E4         * XOR    AH,AH            ; p©°znak - operace OK
+F000:BCA9 5A             POP    DX               ; n†vrat DX
+F000:BCAA C3             RET
+; -----------------------------------------------------------------------------
+;         Naáten° stavovÇho bajtu od ©adiáe
+; -----------------------------------------------------------------------------
+F000:BCAB 52             PUSH   DX
+F000:BCAC B90200         MOV    CX,0002          ; doba pro 30 Ês
+F000:BCAF E8B633         CALL   F068             ; áek†n° na impuls 15.085737 Ês
+F000:BCB2 BAF403         MOV    DX,03F4          ; hlavn° stavovò registr
+F000:BCB5 B480           MOV    AH,80            ; maska - dat. reg. p©ipraven
+F000:BCB7 33C9           XOR    CX,CX            ; max. doba pro áek†n°
+F000:BCB9 E8C232         CALL   EF7E             ; áek†n° na stav portu 1
+F000:BCBC 7304           JNB    BCC2             ; ©adiá je p©ipraven
+F000:BCBE B480           MOV    AH,80            ; chyba - TIME-OUT
+F000:BCC0 EB0E           JMP    BCD0             ; chybovò n†vrat
+F000:BCC2 EC           * IN     AL,DX            ; áten° hlavn°ho stav. registru
+F000:BCC3 A840           TEST   AL,40            ; m† ©adiá p©ipravena data ?
+F000:BCC5 7505           JNZ    BCCC             ; ne - áek† na povel (chyba)
+F000:BCC7 B420           MOV    AH,20            ; chyba ©adiáe
+F000:BCC9 F9             STC                     ; p©°znak chyby
+F000:BCCA EB04           JMP    BCD0             ; chybovò n†vrat
+F000:BCCC BAF503       * MOV    DX,03F5          ; registr povelñ
+F000:BCCF EC             IN     AL,DX            ; áten° bajtu od ©adiáe
+F000:BCD0 5A           * POP    DX
+F000:BCD1 C3             RET
+; -----------------------------------------------------------------------------
+;         Rozbor navr†cenÇho stavu operace
+; -----------------------------------------------------------------------------
+F000:BCD2 BB4200         MOV    BX,0042          ; navr†cenò statut operace
+F000:BCD5 F607C0         TEST   Byte Ptr [BX],C0 ; byla operace dokonáena OK ?
+F000:BCD8 7504           JNZ    BCDE             ; operace nebyla OK
+F000:BCDA 32E4           XOR    AH,AH            ; p©°znak operace OK
+F000:BCDC EB40           JMP    BD1E             ; n†vrat
+F000:BCDE F60740       * TEST   Byte Ptr [BX],40 ; byla operace zah†jena ?
+F000:BCE1 7439           JZ     BD1C             ; ne - byl chybnò p©°kaz
+F000:BCE3 8A6701         MOV    AH,[BX+01]       ; stavovò registr ST1
+F000:BCE6 F6C401         TEST   AH,01            ; nelze nalÇzt adres. znaáku ?
+F000:BCE9 7404           JZ     BCEF             ; znaáka OK
+F000:BCEB B402           MOV    AH,02            ; k¢d chyby - znaáka nenalezena
+F000:BCED EB2F           JMP    BD1E             ; konec
+F000:BCEF F6C402       * TEST   AH,02            ; je ochrana z†pisu ?
+F000:BCF2 7404           JZ     BCF8             ; nen° ochrana z†pisu
+F000:BCF4 B403           MOV    AH,03            ; k¢d chyby - je ochrana z†pisu
+F000:BCF6 EB26           JMP    BD1E             ; konec
+F000:BCF8 F6C404       * TEST   AH,04            ; sektor nenalezen ?
+F000:BCFB 7404           JZ     BD01             ; OK
+F000:BCFD B404           MOV    AH,04            ; k¢d chyby - sektor nenalezen
+F000:BCFF EB1D           JMP    BD1E             ; konec
+F000:BD01 F6C410       * TEST   AH,10            ; p©eteáen° hranice DMA ?
+F000:BD04 7404           JZ     BD0A             ; OK
+F000:BD06 B408           MOV    AH,08            ; k¢d chyby - p©eteáen° DMA
+F000:BD08 EB14           JMP    BD1E             ; konec
+F000:BD0A F6C420       * TEST   AH,20            ; chyba v datovÇm poli ?
+F000:BD0D 7404           JZ     BD13             ; OK
+F000:BD0F B410           MOV    AH,10            ; k¢d chyby - chyba CRC dat
+F000:BD11 EB0B           JMP    BD1E             ; konec
+F000:BD13 F6C480       * TEST   AH,80            ; konec stopy ?
+F000:BD16 7404           JZ     BD1C             ; OK - jinak chyba ©adiáe
+F000:BD18 B404           MOV    AH,04            ; k¢d chyby - sektor nenalezen
+F000:BD1A EB02           JMP    BD1E             ; konec
+F000:BD1C B420         * MOV    AH,20            ; k¢d chyby - chyba ©adiáe
+F000:BD1E C3           * RET
+; -----------------------------------------------------------------------------
+;         Reset ©adiáe, áten° stavu
+; -----------------------------------------------------------------------------
+F000:BD1F E84800         CALL   BD6A             ; áek†n° na p©eru®en° s resetem
+F000:BD22 7243           JB     BD67             ; chyba
+F000:BD24 BAF403         MOV    DX,03F4          ; hlavn° stavovò registr ©adiáe
+F000:BD27 EC             IN     AL,DX            ; áten° stavovÇho registru
+F000:BD28 A880           TEST   AL,80            ; je datovò registr p©ipraven ?
+F000:BD2A 7404           JZ     BD30             ; datovò registr nen° p©ipraven
+F000:BD2C A840           TEST   AL,40            ; áek† ©adiá na povel ?
+F000:BD2E 7414           JZ     BD44             ; áek† na povel - OK
+F000:BD30 E83700       * CALL   BD6A             ; áek†n° na p©eru®en° s resetem
+F000:BD33 BAF403         MOV    DX,03F4          ; hlavn° stavovò registr ©adiáe
+F000:BD36 EC             IN     AL,DX            ; áten° stavovÇho registru
+F000:BD37 A880           TEST   AL,80            ; je jië dat. reg. p©ipraven ?
+F000:BD39 7404           JZ     BD3F             ; st†le nen° p©ipraven - chyba
+F000:BD3B A840           TEST   AL,40            ; oáek†v† ©adiá povel ?
+F000:BD3D 7405           JZ     BD44             ; oáek†v† povel - OK
+F000:BD3F B420         * MOV    AH,20            ; k¢d chyby - chyba ©adiáe
+F000:BD41 F9             STC                     ; p©°znak chyby
+F000:BD42 EB23           JMP    BD67             ; n†vrat
+                                               ;* ©adiá je p©ipraven
+F000:BD44 B408         * MOV    AH,08            ; povel SENSE INTERR. STATUS
+F000:BD46 E80DFF         CALL   BC56             ; vysl†n° povel. bajtu na ©adiá
+F000:BD49 721C           JB     BD67             ; chyba
+F000:BD4B E85DFF         CALL   BCAB             ; naáten° stav. bajtu od ©adiáe
+F000:BD4E 7217           JB     BD67             ; chyba
+F000:BD50 A24200         MOV    [0042],AL
+F000:BD53 50             PUSH   AX 
+F000:BD54 E854FF         CALL   BCAB             ; naáten° stav. bajtu od ©adiáe
+F000:BD57 A24300         MOV    [0043],AL 
+F000:BD5A 59             POP    CX 
+F000:BD5B 720A           JB     BD67 
+F000:BD5D 80E1C0         AND    CL,C0 
+F000:BD60 80F9C0         CMP    CL,C0 
+F000:BD63 75DA           JNZ    BD3F 
+F000:BD65 32E4           XOR    AH,AH            ; n†vrat. k¢d pro OK
+F000:BD67 E9B1F2       * JMP    B01B             ; nast. áasovaáñ ©adiáe SPECIFY
+
+; -----------------------------------------------------------------------------
+;         Reset ©adiáe
+; -----------------------------------------------------------------------------
+F000:BD6A FA             CLI                     ; z†kaz p©eru®en°
+F000:BD6B 80263F007F     AND    Byte Ptr [003F],7F ; zru®en° operace áten°/z†pis
+F000:BD70 80263E007F     AND    Byte Ptr [003E],7F ; nulov†n° p©°znaku p©eru®en°
+F000:BD75 A03F00         MOV    AL,[003F]        ; stav motorñ mechanik
+F000:BD78 C0C004         ROL    AL,04            ;
+F000:BD7B 24FB           AND    AL,FB            ; reset ©adiáe disket
+F000:BD7D 0C08           OR     AL,08            ; povolen° p©eru®en° od ©adiáe
+F000:BD7F BAF203         MOV    DX,03F2 
+F000:BD82 EE             OUT    DX,AL            ; resetov†n° ©adiáe
+F000:BD83 B90100         MOV    CX,0001          ; doba pro 15 Ês
+F000:BD86 E8DF32         CALL   F068             ; áek†n° na impuls 15.085737 Ês
+F000:BD89 0C0C           OR     AL,0C            ; zru®en° sign†lu RESET
+F000:BD8B EE             OUT    DX,AL            ; uvolnàn° ©adiáe
+F000:BD8C B80190         MOV    AX,9001 
+F000:BD8F CD15           INT    15               ; oznaáen° zaá†tku áek†n°
+F000:BD91 FB             STI                     ; povolen° p©eru®en°
+F000:BD92 7203           JB     BD97             ; chyba
+F000:BD94 E83B00         CALL   BDD2             ; áek†n° na p©eru®en° od ©adiáe
+F000:BD97 B480         * MOV    AH,80            ; k¢d chyby - mech.nep©ipravena
+F000:BD99 7207           JB     BDA2             ; chyba
+F000:BD9B 80263E007F     AND    Byte Ptr [003E],7F ; zru®en° p©°znaku p©eru®en°
+F000:BDA0 32E4           XOR    AH,AH            ; n†vratovò k¢d - OK
+F000:BDA2 C3           * RET
+
+; -----------------------------------------------------------------------------
+;         Nastaven° áasovaáñ ©adiáe SPECIFY
+; -----------------------------------------------------------------------------
+F000:BDA3 1E             PUSH   DS               ; £schova DS
+F000:BDA4 33DB           XOR    BX,BX            ; BX <- 0
+F000:BDA6 8EDB           MOV    DS,BX            ; DS <- 0
+F000:BDA8 C51E7800       LDS    BX,[0078]        ; ukazatel disket. parametrñ
+F000:BDAC B003           MOV    AL,03            ; povel SPECIFY
+F000:BDAE 8A27           MOV    AH,[BX]          ; krokov†n° a zvednut° hlavy
+F000:BDB0 8BF0           MOV    SI,AX            ; prvn° 2 bajty k vysl†n°
+F000:BDB2 8A4701         MOV    AL,[BX+01]       ; áas pro spu®tàn° p©°tlaku
+F000:BDB5 8BF8           MOV    DI,AX            ; druhÇ 2 bajty k vysl†n°
+F000:BDB7 B503           MOV    CH,03            ; 3 bajty k vysl†n°
+F000:BDB9 1F             POP    DS               ; n†vrat DS
+F000:BDBA 800E3E0080     OR     Byte Ptr [003E],80 ; nebude se áekat na p©eru®.
+F000:BDBF E867FE         CALL   BC29             ; vysl†n° povelu na ©adiá
+F000:BDC2 E95BF2         JMP    B020             ; n†vrat z procedury
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+F000:BDC5 F9             STC                     ; ??? (STC)
+F000:BDC6 C3             RET
+; -----------------------------------------------------------------------------
+;         Test, zda je disketa 720 KB
+; -----------------------------------------------------------------------------
+F000:BDC7 E8BA32         CALL   F084             ; áten° typu diskety z CMOS
+F000:BDCA 7504           JNZ    BDD0             ; chyba - typ disku nen° OK
+F000:BDCC 3C03           CMP    AL,03            ; je disketa 720 KB ?
+F000:BDCE 7401           JZ     BDD1             ; je disketa 720 KB - OK
+F000:BDD0 F9           * STC
+F000:BDD1 C3           * RET
+; -----------------------------------------------------------------------------
+;         Äek†n° na p©eru®en° od ©adiáe
+; -----------------------------------------------------------------------------
+F000:BDD2 BB3E00         MOV    BX,003E          ; registr stavu mechanik
+F000:BDD5 33C9           XOR    CX,CX            ; max. doba
+F000:BDD7 E8C831         CALL   EFA2             ; áek†n° na p©eru®en° od ©adiáe
+F000:BDDA 7305           JNB    BDE1             ; p©eru®en° OK
+F000:BDDC 33C9           XOR    CX,CX            ; max. doba pro druhò pokus
+F000:BDDE E8C131         CALL   EFA2             ; áek†n° na p©eru®en° od ©adiáe
+F000:BDE1 C3             RET
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+F000:BDE2 FB             STI
+F000:BDE3 55             PUSH   BP 
+F000:BDE4 06             PUSH   ES 
+F000:BDE5 0E             PUSH   CS 
+F000:BDE6 07             POP    ES 
+F000:BDE7 83EC12         SUB    SP,+12           ; 12h bajtñ bufferu
+F000:BDEA 8BEC           MOV    BP,SP 
+F000:BDEC C7460E0000     MOV    Word Ptr [BP+0E],0000 
+F000:BDF1 B40F           MOV    AH,0F 
+F000:BDF3 CD10           INT    10               ; poskytnut° videom¢du
+F000:BDF5 3C07           CMP    AL,07            ; je videm¢d MDA ?
+F000:BDF7 7402           JZ     BDFB 
+F000:BDF9 B003           MOV    AL,03            ; nen° - tedy text. m¢d 3
+F000:BDFB B400         * MOV    AH,00
+F000:BDFD CD10           INT    10               ; nastaven° text. m¢du 80x25
+F000:BDFF BB0700         MOV    BX,0007 
+F000:BE02 813E6900AAAA   CMP    Word Ptr [0069],AAAA 
+F000:BE08 7409           JZ     BE13 
+F000:BE0A BDC4DF         MOV    BP,DFC4 
+F000:BE0D BA0000         MOV    DX,0000 
+F000:BE10 E8E407         CALL   C5F7 
+F000:BE13 BD47D9         MOV    BP,D947 
+F000:BE16 BA0002         MOV    DX,0200 
+F000:BE19 33F6           XOR    SI,SI 
+F000:BE1B E8EC08         CALL   C70A 
+F000:BE1E 7406           JZ     BE26 
+F000:BE20 83C412         ADD    SP,+12 
+F000:BE23 07             POP    ES 
+F000:BE24 5D             POP    BP 
+F000:BE25 C3             RET
+
+F000:BE26 2E803E58E0FF   CMP    Byte Ptr CS:[E058],FF
+F000:BE2C 7403           JZ     BE31 
+F000:BE2E EB4B           JMP    BE7B 
+F000:BE30 90             NOP     
+F000:BE31 E8410B         CALL   C975 
+F000:BE34 7524           JNZ    BE5A 
+F000:BE36 E82BD0         CALL   8E64 
+F000:BE39 BDF7D8         MOV    BP,D8F7 
+F000:BE3C BA0004         MOV    DX,0400 
+F000:BE3F E8DA07         CALL   C61C 
+F000:BE42 E8450B         CALL   C98A 
+F000:BE45 3C31           CMP    AL,31                         ;'1' 
+F000:BE47 7432           JZ     BE7B 
+F000:BE49 3C32           CMP    AL,32                         ;'2' 
+F000:BE4B 75E9           JNZ    BE36 
+F000:BE4D A16700         MOV    AX,[0067] 
+F000:BE50 A31300         MOV    [0013],AX 
+F000:BE53 B80300         MOV    AX,0003 
+F000:BE56 FFD0           CALL   AX 
+F000:BE58 EB21           JMP    BE7B 
+F000:BE5A BD10D9         MOV    BP,D910 
+F000:BE5D BA0006         MOV    DX,0600 
+F000:BE60 E89407         CALL   C5F7 
+F000:BE63 B8070E         MOV    AX,0E07 
+F000:BE66 CD10           INT    10 
+F000:BE68 B400           MOV    AH,00 
+F000:BE6A CD16           INT    16 
+F000:BE6C BD69D9         MOV    BP,D969 
+F000:BE6F BA000A         MOV    DX,0A00 
+F000:BE72 33F6           XOR    SI,SI 
+F000:BE74 E89308         CALL   C70A 
+F000:BE77 7402           JZ     BE7B 
+F000:BE79 EBA5           JMP    BE20 
+F000:BE7B EB67           JMP    BEE4 
+F000:BE7D 90             NOP     
+F000:BE7E BA000D         MOV    DX,0D00 
+F000:BE81 E87A07         CALL   C5FE 
+F000:BE84 BDDADF         MOV    BP,DFDA 
+F000:BE87 BA000C         MOV    DX,0C00 
+F000:BE8A 33F6           XOR    SI,SI 
+F000:BE8C E87B08         CALL   C70A 
+F000:BE8F 7453           JZ     BEE4 
+F000:BE91 E8D0CF         CALL   8E64 
+F000:BE94 EB05           JMP    BE9B 
+F000:BE96 B8070E         MOV    AX,0E07 
+F000:BE99 CD10           INT    10 
+F000:BE9B BDDADF         MOV    BP,DFDA 
+F000:BE9E BA000E         MOV    DX,0E00 
+F000:BEA1 E85A07         CALL   C5FE 
+F000:BEA4 E8E30A         CALL   C98A 
+F000:BEA7 2C30           SUB    AL,30                         ;'0' 
+F000:BEA9 74EB           JZ     BE96 
+F000:BEAB 3C05           CMP    AL,05 
+F000:BEAD 77E7           JA     BE96 
+F000:BEAF FEC8           DEC    AL 
+F000:BEB1 8AE0           MOV    AH,AL 
+F000:BEB3 B0B8           MOV    AL,B8 
+F000:BEB5 E8EA2F         CALL   EEA2        ; áten° bajtu z pamàti CMOS
+F000:BEB8 24F8           AND    AL,F8 
+F000:BEBA 0AE0           OR     AH,AL 
+F000:BEBC B0B8           MOV    AL,B8 
+F000:BEBE E80330         CALL   EEC4 
+F000:BEC1 B403           MOV    AH,03 
+F000:BEC3 CD10           INT    10 
+F000:BEC5 B200           MOV    DL,00 
+F000:BEC7 80C602         ADD    DH,02 
+F000:BECA 52             PUSH   DX 
+F000:BECB BDDADF         MOV    BP,DFDA 
+F000:BECE 33F6           XOR    SI,SI 
+F000:BED0 E83708         CALL   C70A 
+F000:BED3 5A             POP    DX 
+F000:BED4 740E           JZ     BEE4 
+F000:BED6 B402           MOV    AH,02 
+F000:BED8 CD10           INT    10 
+F000:BEDA B94F00         MOV    CX,004F 
+F000:BEDD B82009         MOV    AX,0920 
+F000:BEE0 CD10           INT    10 
+F000:BEE2 EBB2           JMP    BE96 
+F000:BEE4 FA             CLI     
+F000:BEE5 B88A26         MOV    AX,268A 
+F000:BEE8 E8D92F         CALL   EEC4 
+F000:BEEB B88B82         MOV    AX,828B 
+F000:BEEE E8D32F         CALL   EEC4 
+F000:BEF1 B08D           MOV    AL,8D 
+F000:BEF3 E8AC2F         CALL   EEA2        ; áten° bajtu z pamàti CMOS
+F000:BEF6 B08C           MOV    AL,8C 
+F000:BEF8 E8A72F         CALL   EEA2        ; áten° bajtu z pamàti CMOS
+F000:BEFB FB             STI     
+F000:BEFC 8BEC           MOV    BP,SP 
+F000:BEFE C6460B00       MOV    Byte Ptr [BP+0B],00 
+F000:BF02 8BEC           MOV    BP,SP 
+F000:BF04 C7460E0000     MOV    Word Ptr [BP+0E],0000 
+F000:BF09 B40F           MOV    AH,0F 
+F000:BF0B CD10           INT    10 
+F000:BF0D 32E4           XOR    AH,AH 
+F000:BF0F CD10           INT    10 
+F000:BF11 BB0700         MOV    BX,0007 
+F000:BF14 BD31DF         MOV    BP,DF31 
+F000:BF17 BA0000         MOV    DX,0000 
+F000:BF1A E8FF06         CALL   C61C 
+F000:BF1D FEC6           INC    DH 
+F000:BF1F B402           MOV    AH,02 
+F000:BF21 CD10           INT    10 
+F000:BF23 B8CD09         MOV    AX,09CD 
+F000:BF26 B92D00         MOV    CX,002D 
+F000:BF29 CD10           INT    10 
+F000:BF2B E836CF         CALL   8E64 
+F000:BF2E BD82D9         MOV    BP,D982 
+F000:BF31 BA0002         MOV    DX,0200 
+F000:BF34 E8E506         CALL   C61C 
+F000:BF37 B404           MOV    AH,04 
+F000:BF39 CD1A           INT    1A 
+F000:BF3B 8AC6           MOV    AL,DH 
+F000:BF3D E89D07         CALL   C6DD 
+F000:BF40 8AF0           MOV    DH,AL 
+F000:BF42 8AC2           MOV    AL,DL 
+F000:BF44 E89607         CALL   C6DD 
+F000:BF47 8AD0           MOV    DL,AL 
+F000:BF49 8AC5           MOV    AL,CH 
+F000:BF4B E88F07         CALL   C6DD 
+F000:BF4E 8AE8           MOV    CH,AL 
+F000:BF50 8AC1           MOV    AL,CL 
+F000:BF52 E88807         CALL   C6DD 
+F000:BF55 8AC8           MOV    CL,AL 
+F000:BF57 0AF6           OR     DH,DH 
+F000:BF59 7405           JZ     BF60 
+F000:BF5B 80FE12         CMP    DH,12 
+F000:BF5E 7602           JBE    BF62 
+F000:BF60 B601           MOV    DH,01 
+F000:BF62 0AD2           OR     DL,DL 
+F000:BF64 7405           JZ     BF6B 
+F000:BF66 80FA31         CMP    DL,31                         ;'1' 
+F000:BF69 7602           JBE    BF6D 
+F000:BF6B B201           MOV    DL,01 
+F000:BF6D 81F98019       CMP    CX,1980 
+F000:BF71 7206           JB     BF79 
+F000:BF73 81F99920       CMP    CX,2099 
+F000:BF77 7603           JBE    BF7C 
+F000:BF79 B98019         MOV    CX,1980 
+F000:BF7C B405           MOV    AH,05 
+F000:BF7E CD1A           INT    1A 
+F000:BF80 E8F906         CALL   C67C 
+F000:BF83 8BEC           MOV    BP,SP 
+F000:BF85 C6460E33       MOV    Byte Ptr [BP+0E],33           ;'3' 
+F000:BF89 EB05           JMP    BF90 
+F000:BF8B B8070E         MOV    AX,0E07 
+F000:BF8E CD10           INT    10 
+F000:BF90 E81006         CALL   C5A3 
+F000:BF93 BDA6D9         MOV    BP,D9A6 
+F000:BF96 BA0003         MOV    DX,0300 
+F000:BF99 E88006         CALL   C61C 
+F000:BF9C 8BEC           MOV    BP,SP 
+F000:BF9E BE0A00         MOV    SI,000A 
+F000:BFA1 E80808         CALL   C7AC 
+F000:BFA4 750A           JNZ    BFB0 
+F000:BFA6 B404           MOV    AH,04 
+F000:BFA8 CD1A           INT    1A 
+F000:BFAA E8CF06         CALL   C67C 
+F000:BFAD E9AB00         JMP    C05B 
+F000:BFB0 E8B809         CALL   C96B 
+F000:BFB3 73D6           JNB    BF8B 
+F000:BFB5 E89909         CALL   C951 
+F000:BFB8 74D1           JZ     BF8B 
+F000:BFBA 0AC0           OR     AL,AL 
+F000:BFBC 74CD           JZ     BF8B 
+F000:BFBE 8AF0           MOV    DH,AL 
+F000:BFC0 E8A809         CALL   C96B 
+F000:BFC3 72C6           JB     BF8B 
+F000:BFC5 46             INC    SI 
+F000:BFC6 3BF7           CMP    SI,DI 
+F000:BFC8 74C1           JZ     BF8B 
+F000:BFCA E89E09         CALL   C96B 
+F000:BFCD 73BC           JNB    BF8B 
+F000:BFCF E87F09         CALL   C951 
+F000:BFD2 74B7           JZ     BF8B 
+F000:BFD4 8BCF           MOV    CX,DI 
+F000:BFD6 2BCE           SUB    CX,SI 
+F000:BFD8 83F905         CMP    CX,+05 
+F000:BFDB 75AE           JNZ    BF8B 
+F000:BFDD 0AC0           OR     AL,AL 
+F000:BFDF 74AA           JZ     BF8B 
+F000:BFE1 8AD0           MOV    DL,AL 
+F000:BFE3 E87406         CALL   C65A 
+F000:BFE6 8AC2           MOV    AL,DL 
+F000:BFE8 80FE12         CMP    DH,12 
+F000:BFEB 779E           JA     BF8B 
+F000:BFED 80FE08         CMP    DH,08 
+F000:BFF0 730B           JNB    BFFD 
+F000:BFF2 F6C601         TEST   DH,01 
+F000:BFF5 750B           JNZ    C002 
+F000:BFF7 3C30           CMP    AL,30                         ;'0' 
+F000:BFF9 7607           JBE    C002 
+F000:BFFB EB8E           JMP    BF8B 
+F000:BFFD F6C601         TEST   DH,01 
+F000:C000 75F5           JNZ    BFF7 
+
+F000:E73C aë E772                                ; licenán° text (zak¢dovanò)
+                         db     '286-BIOS (C)1987 AMI, '
+                         db     'for American Megatrends Inc.',13,10,0
+
+; -----------------------------------------------------------------------------
+;        Äten° bajtu z pamàti CMOS
+; -----------------------------------------------------------------------------
+                                          ;* VSTUP: AL=adresa bajtu v CMOS
+F000:EEA2 9C             PUSHF              ; £schova registru p©°znakñ
+F000:EEA3 FA             CLI                ; z†kaz p©eru®en°
+F000:EEA4 D0C0           ROL    AL,1        ; p©°prava pro nastaven° NMI
+F000:EEA6 F9             STC                ; z†kaz NMI
+F000:EEA7 D0D8           RCR    AL,1        ; n†vrat adresy se zak†zanòm NMI
+F000:EEA9 E670           OUT    70,AL       ; nastaven° adresy registru CMOS
+F000:EEAB EB00           JMP    EEAD        ; mal† prodleva
+F000:EEAD EB00           JMP    EEAF        ; mal† prodleva
+F000:EEAF E471           IN     AL,71       ; áten° bajtu z pamàti CMOS
+F000:EEB1 50             PUSH   AX          ; £schova naátenÇ hodnoty
+F000:EEB2 B01A           MOV    AL,1A       ; adresa 0dh - stavovò registr CMOS
+F000:EEB4 D0D8           RCR    AL,1        ; nastav° poëadovanò bit NMI
+F000:EEB6 E670           OUT    70,AL       ; nastaven° adresy 0dh a NMI
+F000:EEB8 EB00           JMP    EEBA        ; mal† prodleva
+F000:EEBA EB00           JMP    EEBC        ; mal† prodleva
+F000:EEBC E471           IN     AL,71       ; áten° stavovÇho bajtu CMOS
+F000:EEBE 58             POP    AX          ; n†vrat naátenÇ hodnoty
+F000:EEBF 0E             PUSH   CS          ; CS -> stack (p©°prava pro IRET)
+F000:EEC0 E82500         CALL   EEE8        ; IRET (navr†t° se registr p©°znakñ)
+F000:EEC3 C3             RET
+; -----------------------------------------------------------------------------
+;        Z†pis bajtu do pamàti CMOS
+; -----------------------------------------------------------------------------
+                                          ;* VSTUP: AL=adresa bajtu v CMOS
+                                          ;*        AH=zapisovanò bajt
+F000:EEC4 9C             PUSHF              ; £schova registru p©°znakñ
+F000:EEC5 50             PUSH   AX          ; £schova bajtu a adresy
+F000:EEC6 FA             CLI                ; z†kaz p©eru®en°
+F000:EEC7 D0C0           ROL    AL,1        ; p©°prava pro nastaven° NMI
+F000:EEC9 F9             STC                ; z†kaz nemaskov. p©eru®en° NMI
+F000:EECA D0D8           RCR    AL,1        ; n†vrat adresy se zak†zanòm NMI
+F000:EECC E670           OUT    70,AL       ; nastaven° adresy registru CMOS
+F000:EECE EB00           JMP    EED0        ; mal† prodleva
+F000:EED0 EB00           JMP    EED2        ; mal† prodleva
+F000:EED2 86C4           XCHG   AL,AH       ; AL <- zapisovanò bajt
+F000:EED4 E671           OUT    71,AL       ; z†pis bajtu
+F000:EED6 B01A           MOV    AL,1A       ; adresa 0dh - stavovò registr CMOS
+F000:EED8 D0D8           RCR    AL,1        ; nastav° poëadovanò bit NMI
+F000:EEDA E670           OUT    70,AL       ; nastaven° adresy 0dh a NMI
+F000:EEDC EB00           JMP    EEDE        ; mal† prodleva
+F000:EEDE EB00           JMP    EEE0        ; mal† prodleva
+F000:EEE0 E471           IN     AL,71       ; áten° stavovÇho bajtu CMOS
+F000:EEE2 58             POP    AX          ; n†vrat naátenÇ hodnoty
+F000:EEE3 0E             PUSH   CS          ; CS -> stack (p©°prava pro IRET)
+F000:EEE4 E80100         CALL   EEE8        ; IRET (navr†t° se registr p©°znakñ)
+F000:EEE7 C3             RET
+
+F000:EEE8 CF             IRET
+; -----------------------------------------------------------------------------
+F000:EEE9 50             PUSH   AX
+F000:EEEA B020           MOV    AL,20                         ;' ' 
+F000:EEEC E6A0           OUT    A0,AL            ; uvolnàn° ©adiáe p©eru®en°
+F000:EEEE 58             POP    AX 
+F000:EEEF CD0A           INT    0A
+F000:EEF1 CF             IRET
+
+F000:EEF2 50             PUSH   AX 
+F000:EEF3 32C0           XOR    AL,AL 
+F000:EEF5 E6F0           OUT    F0,AL            ; vynul. registru koprocesoru
+F000:EEF7 E83B00         CALL   EF35             ; uvolnàn° ©adiáe p©eru®en°
+F000:EEFA 58             POP    AX 
+F000:EEFB CD02           INT    02               ; p©eru®en° NMI
+F000:EEFD CF             IRET
+; -----------------------------------------------------------------------------
+;         Inicializace ©adiáe p©eru®en°
+; -----------------------------------------------------------------------------
+                                               ;* VSTUP: BH=z†klad. p©eru®. #1
+                                               ;*        BL=z†klad. p©eru®. #2
+F000:EEFE B000           MOV    AL,00
+F000:EF00 E6F1           OUT    F1,AL            ; reset koprocesoru do real.m.
+F000:EF02 B011           MOV    AL,11 
+F000:EF04 E6A0           OUT    A0,AL            ; kask†dn° m¢d - start hranou
+F000:EF06 E620           OUT    20,AL            ; kask†dn° m¢d - start hranou
+F000:EF08 EB00           JMP    EF0A             ; prodleva
+F000:EF0A EB00           JMP    EF0C             ; prodleva
+F000:EF0C 8AC3           MOV    AL,BL            ; á°sla p©eru®en°
+F000:EF0E E6A1           OUT    A1,AL            ; nastaven° b†ze p©eru®en° #2
+F000:EF10 8AC7           MOV    AL,BH 
+F000:EF12 E621           OUT    21,AL            ; b†ze p©eru®en° #1
+F000:EF14 EB00           JMP    EF16             ; prodleva
+F000:EF16 EB00           JMP    EF18             ; prodleva
+F000:EF18 B002           MOV    AL,02 
+F000:EF1A E6A1           OUT    A1,AL            ; #2 je jako SLAVE á°slo 2
+F000:EF1C B004           MOV    AL,04 
+F000:EF1E E621           OUT    21,AL            ; SLAVE p©ipojen jako á°slo 2
+F000:EF20 EB00           JMP    EF22             ; prodleva
+F000:EF22 EB00           JMP    EF24             ; prodleva
+F000:EF24 B001           MOV    AL,01
+F000:EF26 E6A1           OUT    A1,AL 
+F000:EF28 E621           OUT    21,AL            ; up©esnàn° provozu
+F000:EF2A EB00           JMP    EF2C 
+F000:EF2C EB00           JMP    EF2E 
+F000:EF2E B0FF           MOV    AL,FF 
+F000:EF30 E6A1           OUT    A1,AL 
+F000:EF32 E621           OUT    21,AL            ; v®echna p©eru®en° zak†z†na
+F000:EF34 C3             RET
+; -----------------------------------------------------------------------------
+;         Uvolnàn° ©adiáe p©eru®en°
+; -----------------------------------------------------------------------------
+F000:EF35 B020           MOV    AL,20                         ;' '
+F000:EF37 E6A0           OUT    A0,AL 
+F000:EF39 E620           OUT    20,AL                         ;' ' 
+F000:EF3B C3             RET
+
+F000:EF3C                db     27 dup(0)
+
+F000:EF56 00E9           ADD    CL,CH 
+F000:EF58 D7             XLAT    
+F000:EF59 F8             CLC     
+
+; -----------------------------------------------------------------------------
+;        Äek†n° na stav portu 0
+; -----------------------------------------------------------------------------
+                                            ; VSTUP: DX=adresa portu
+                                            ;        AH=maska pro áek†n° na 0
+                                            ;        CX=max. doba po 7 Ês
+F000:EF5A 50             PUSH   AX
+F000:EF5B EC           * IN     AL,DX
+F000:EF5C 84C4           TEST   AH,AL 
+F000:EF5E 741C           JZ     EF7C
+                                               ;* áek†n° na stav 1 hodin
+F000:EF60 EB00         * JMP    EF62             ; mal† prodleva
+F000:EF62 E461           IN     AL,61            ; vstup z hodin 66 kHz
+F000:EF64 A810           TEST   AL,10
+F000:EF66 74F8           JZ     EF60 
+F000:EF68 49             DEC    CX               ; áasovaá
+F000:EF69 7410           JZ     EF7B             ; p©eteáen° áasovaáe
+
+F000:EF6B EC             IN     AL,DX
+F000:EF6C 84C4           TEST   AH,AL 
+F000:EF6E 740C           JZ     EF7C             ; nastala podm°nka testu portu
+
+F000:EF70 EB00         * JMP    EF72             ; mal† prodleva
+F000:EF72 E461           IN     AL,61
+F000:EF74 A810           TEST   AL,10 
+F000:EF76 75F8           JNZ    EF70             ; áek†n° na stav 0 hodin
+F000:EF78 49             DEC    CX 
+F000:EF79 75E0           JNZ    EF5B             ; p©eteáen°
+F000:EF7B F9           * STC                     ; chyba p©eteáen°
+F000:EF7C 58           * POP    AX
+F000:EF7D C3             RET
+
+; -----------------------------------------------------------------------------
+;        Äek†n° na stav portu 1
+; -----------------------------------------------------------------------------
+                                            ; VSTUP: DX=adresa portu
+                                            ;        AH=maska pro áek†n° na 1
+                                            ;        CX=maxim†ln° doba v 7 Ês
+F000:EF7E 50             PUSH   AX 
+F000:EF7F EC             IN     AL,DX 
+F000:EF80 84C4           TEST   AH,AL 
+F000:EF82 751C           JNZ    EFA0 
+F000:EF84 EB00           JMP    EF86 
+F000:EF86 E461           IN     AL,61                         ;'a' 
+F000:EF88 A810           TEST   AL,10 
+F000:EF8A 74F8           JZ     EF84 
+F000:EF8C 49             DEC    CX 
+F000:EF8D 7410           JZ     EF9F 
+F000:EF8F EC             IN     AL,DX 
+F000:EF90 84C4           TEST   AH,AL 
+F000:EF92 750C           JNZ    EFA0 
+F000:EF94 EB00           JMP    EF96 
+F000:EF96 E461           IN     AL,61                         ;'a' 
+F000:EF98 A810           TEST   AL,10 
+F000:EF9A 75F8           JNZ    EF94 
+F000:EF9C 49             DEC    CX 
+F000:EF9D 75E0           JNZ    EF7F 
+F000:EF9F F9             STC     
+F000:EFA0 58             POP    AX 
+F000:EFA1 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Äek†n° na p©eru®en° od ©adiáe
+; -----------------------------------------------------------------------------
+F000:EFA2 50             PUSH   AX
+F000:EFA3 F60780         TEST   Byte Ptr [BX],80 
+F000:EFA6 751C           JNZ    EFC4 
+F000:EFA8 EB00         * JMP    EFAA
+F000:EFAA E461           IN     AL,61                         ;'a' 
+F000:EFAC A810           TEST   AL,10 
+F000:EFAE 74F8           JZ     EFA8             ; áek†n° na 1 hodin 66 kHz
+F000:EFB0 49             DEC    CX 
+F000:EFB1 7410           JZ     EFC3 
+F000:EFB3 F60780         TEST   Byte Ptr [BX],80 
+F000:EFB6 750C           JNZ    EFC4 
+F000:EFB8 EB00         * JMP    EFBA
+F000:EFBA E461           IN     AL,61                         ;'a' 
+F000:EFBC A810           TEST   AL,10 
+F000:EFBE 75F8           JNZ    EFB8             ; áek†n° na 0 hodin 66 kHz
+F000:EFC0 49             DEC    CX 
+F000:EFC1 75E0           JNZ    EFA3 
+F000:EFC3 F9             STC     
+F000:EFC4 58             POP    AX 
+F000:EFC5 C3             RET
+
+F000:EFC6                db     0
+F000:EFC7                db     0dfh                 ; bity 0-3: rychl.krokov†n°
+                                                     ; bity 4-7: zvednut° hlavy
+F000:EFC8                db     2                    ; bit 0: 1=je provoz DMA
+                                                     ; bity 1-7: spu®tàn° hlavy
+F000:EFC9                db     25h                  ; vyp. motoru v 1/18 sek.
+F000:EFCA                db     2                    ; velikost sektoru (2->512)
+F000:EFCB                db     12h                  ; posledn° sektor na stopà
+F000:EFCC                db     1bh                  ; mezisekt. mezera p©i R/W
+F000:EFCD                db     0ffh                 ; dÇlka p©en†®enòch dat
+F000:EFCE                db     54h                  ; mezisekt.mezera p©i form.
+F000:EFCF                db     0f6h                 ; pln°c° znak pro form†t.
+F000:EFD0                db     0fh                  ; ust†len° hlavy v ms
+F000:EFD1                db     8                    ; spu®tàn° motoru v 1/8 s.
+
+F000:EFD1 08E9           OR     CL,CH
+F000:EFD3 8708           XCHG   CX,[BX+SI] 
+F000:EFD5 4A             DEC    DX 
+F000:EFD6 23520A         AND    DX,[BP+SI+0A] 
+F000:EFD9 1324           ADC    SP,[SI] 
+F000:EFDB 2434           AND    AL,34                         ;'4' 
+F000:EFDD A4             MOVSB   
+F000:EFDE A4             MOVSB   
+F000:EFDF 0A7334         OR     DH,[BP+DI+34] 
+F000:EFE2 AC             LODSB   
+F000:EFE3 4C             DEC    SP 
+F000:EFE4 842C           TEST   [SI],CH 
+F000:EFE6 A4             MOVSB   
+F000:EFE7 0A537C         OR     DL,[BP+DI+7C] 
+F000:EFEA 247A           AND    AL,7A                         ;'z' 
+F000:EFEC 0A92D2CA       OR     DL,[BP+SI+CAD2] 
+F000:EFF0 B26A           MOV    DL,6A                         ;'j' 
+F000:EFF2 0A92D2CA       OR     DL,[BP+SI+CAD2] 
+F000:EFF6 BA7159         MOV    DX,5971 
+F000:EFF9 B2D2           MOV    DL,D2 
+F000:EFFB 8A0A           MOV    CL,[BP+SI] 
+F000:EFFD 0ABB146C       OR     BH,[BP+DI+6C14] 
+F000:F001 6C             INSB    
+F000:F002 34D4           XOR    AL,D4 
+F000:F004 0A9B8414       OR     BL,[BP+DI+1484] 
+F000:F008 2C6A           SUB    AL,6A                         ;'j' 
+F000:F00A 0AB38C8C       OR     DH,[BP+DI+8C8C] 
+F000:F00E 349C           XOR    AL,9C 
+F000:F010 0A7384         OR     DH,[BP+DI-7C] 
+F000:F013 7CAC           JL     EFC1 
+F000:F015 246C           AND    AL,6C                         ;'l' 
+F000:F017 1454           ADC    AL,54                         ;'T' 
+F000:F019 9C             PUSHF   
+F000:F01A 6A71           PUSH   71                            ;'q' 
+F000:F01C 59             POP    CX 
+F000:F01D 0A7B34         OR     BH,[BP+DI+34] 
+F000:F020 C40A           LES    CX,[BP+SI] 
+F000:F022 5B             POP    BX 
+F000:F023 349C           XOR    AL,9C 
+F000:F025 A4             MOVSB   
+F000:F026 34D4           XOR    AL,D4 
+F000:F028 0A720A         OR     DH,[BP+SI+0A] 
+F000:F02B 8AC2           MOV    AL,DL 
+F000:F02D 8AAAA26A       MOV    CH,[BP+SI+6AA2] 
+F000:F031 7159           JNO    F08C 
+F000:F033 4A             DEC    DX 
+F000:F034 9A8A92520A     CALL   0A52:928A 
+F000:F039 C2AAAA         RET    AAAA
+F000:F03C 72D2           JB     F010
+F000:F03E 92             XCHG   AX,DX 
+F000:F03F 9ABA7ABE3C     CALL   3CBE:7ABA 
+; -----------------------------------------------------------------------------
+;         Zobrazen° licenán°ho textu BIOS
+; -----------------------------------------------------------------------------
+F000:F042 BE3CE7       * MOV    SI,E73C          ; licenán° text
+F000:F045 2E8A04       * MOV    AL,CS:[SI]       ; znak k zobrazen°
+F000:F048 46             INC    SI 
+F000:F049 F6D0           NOT    AL 
+F000:F04B F6D8           NEG    AL 
+F000:F04D C0C803         ROR    AL,03 
+F000:F050 F6D0           NOT    AL 
+F000:F052 F6D8           NEG    AL 
+F000:F054 7406           JZ     F05C 
+F000:F056 B40E           MOV    AH,0E 
+F000:F058 CD10           INT    10               ; zobrazen° znaku
+F000:F05A EBE9           JMP    F045             ; dal®° znak
+F000:F05C C3           * RET
+
+F000:F05D                db     8 dup(0)
+F000:F065 E95695         JMP    85BE
+; -----------------------------------------------------------------------------
+;         áek†n° na impuls 15.085737 Ês
+; -----------------------------------------------------------------------------
+F000:F068 50             PUSH   AX
+F000:F069 83C102         ADD    CX,+02
+F000:F06C EB00         * JMP    F06E             ; mal† prodleva
+F000:F06E E461           IN     AL,61
+F000:F070 A810           TEST   AL,10 
+F000:F072 74F8           JZ     F06C 
+F000:F074 49             DEC    CX 
+F000:F075 740B           JZ     F082 
+F000:F077 EB00           JMP    F079 
+F000:F079 E461           IN     AL,61                         ;'a' 
+F000:F07B A810           TEST   AL,10 
+F000:F07D 75F8           JNZ    F077 
+F000:F07F 49             DEC    CX 
+F000:F080 75EA           JNZ    F06C 
+F000:F082 58           * POP    AX
+F000:F083 C3             RET
+
+; -----------------------------------------------------------------------------
+;        Äten° typu diskety z CMOS
+; -----------------------------------------------------------------------------
+                                          ;* VSTUP: DL=á°slo disku
+                                          ;* VùSTUP: AL=typ disku
+                                          ;*         ZY=typ disku OK
+F000:F084 B00E           MOV    AL,0E       ; diagnostickò bajt z CMOS
+F000:F086 E819FE         CALL   EEA2        ; áten° bajtu z pamàti CMOS
+F000:F089 A8C0           TEST   AL,C0       ; je pamàü CMOS OK ?
+F000:F08B 7515           JNZ    F0A2        ; chyba pamàti CMOS
+F000:F08D B010           MOV    AL,10       ; popisovaá typñ mechanik
+F000:F08F E810FE         CALL   EEA2        ; áten° bajtu z pamàti CMOS
+F000:F092 0AD2           OR     DL,DL       ; je mechanika 0 ?
+F000:F094 7508           JNZ    F09E        ; je mechanika 1
+F000:F096 90             NOP     
+F000:F097 90             NOP
+F000:F098 90             NOP
+F000:F099 90             NOP
+F000:F09A 90             NOP
+F000:F09B C0E804         SHR    AL,04       ; narotov†n° mechaniky 0
+F000:F09E 240F         * AND    AL,0F       ; ponech† typ disketovÇ mechaniky
+F000:F0A0 3BE4           CMP    SP,SP       ; nastaven° p©°znaku ZY
+F000:F0A2 C3           * RET
+

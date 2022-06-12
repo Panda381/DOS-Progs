@@ -1,0 +1,537 @@
+--------------------------------------------------------------------------------
+                Programovatelnı paralelní interfejs  I8255
+--------------------------------------------------------------------------------
+1. Øídící registr,      adresa - mód 700 : 0E003H ( pamìové adresování )
+   pouze pro zápis      adresa - mód 800 : 0D3H
+
+Volba módu èinnosti bran :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  0 ... bity 0 - 3 brány C vıstupní
+  |  |  |  |  |  |  |  1 ... bity 0 - 3 brány C vstupní
+  |  |  |  |  |  |  |
+  |  |  |  |  |  |  0 ... brána B vıstupní
+  |  |  |  |  |  |  1 ... brána B vstupní
+  |  |  |  |  |  |
+  |  |  |  |  |  0 ... brána B v módu 0
+  |  |  |  |  |  1 ... brána B v módu 1 ( strobovanı vstup/vıstup )
+  |  |  |  |  |
+  |  |  |  |  0 ... bity 4 - 7 brány C vıstupní
+  |  |  |  |  1 ... bity 4 - 7 brány C vstupní
+  |  |  |  |
+  |  |  |  0 ... brána A vıstupní
+  |  |  |  1 ... brána A vstupní
+  |  |  |
+  |  0  0 ... brána A v módu 0
+  |  0  1 ... brána A v módu 1 ( strobovanı vstup/vıstup )
+  |  1  X ... brána A v módu 2 ( obousmìrnı strobovanı vstup/vıstup )
+  1
+
+Nastavení ROM monitorem - øídící slovo : 8AH
+
+        brána A : vıstupní v módu 0
+        brána B : vstupní v módu 0
+        brána C , bity b0 - b3 : vıstupní
+        brána C , bity b4 - b7 : vstupní
+
+Nastavování jednotlivıch bitù brány C :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  0 ... urèenı bit bude nastaven na úroveò 0
+  |  |  |  |  |  |  |  1 ... urèenı bit bude nastaven na úroveò 1
+  |  |  |  |  |  |  |
+  |  |  |  |  0  0  0 ... bit b0 brány C
+  |  |  |  |  0  0  1 ... bit b1 brány C
+  |  |  |  |  0  1  0 ... bit b2 brány C
+  |  |  |  |  0  1  1 ... bit b3 brány C
+  |  |  |  |  1  0  0 ... bit b4 brány C
+  |  |  |  |  1  0  1 ... bit b5 brány C
+  |  |  |  |  1  1  0 ... bit b6 brány C
+  |  |  |  |  1  1  1 ... bit b7 brány C
+  0  X  X  X
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2. Brána A              adresa - mód 700 : 0E000H ( pamìové adresování )
+                        adresa - mód 800 : 0D0H
+
+Zápis signálù pro ovládání periferií :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  0  0  0  0 ... aktivace øádku 0 klávesnice
+  |  |  |  |  0  0  0  1 ... aktivace øádku 1 klávesnice
+  |  |  |  |  0  0  1  0 ... aktivace øádku 2 klávesnice
+  |  |  |  |  0  0  1  1 ... aktivace øádku 3 klávesnice
+  |  |  |  |  0  1  0  0 ... aktivace øádku 4 klávesnice
+  |  |  |  |  0  1  0  1 ... aktivace øádku 5 klávesnice
+  |  |  |  |  0  1  1  0 ... aktivace øádku 6 klávesnice
+  |  |  |  |  0  1  1  1 ... aktivace øádku 7 klávesnice
+  |  |  |  |  1  0  0  0 ... aktivace øádku 8 klávesnice
+  |  |  |  |  1  0  0  1 ... aktivace øádku 9 klávesnice
+  |  |  |  |  1  0  1  X ... není aktivován ádnı øádek
+  |  |  |  |  1  1  X  X ... není aktivován ádnı øádek
+  |  |  |  |
+  |  |  |  0 ... aktivace joysticku 1
+  |  |  |  1 ... joystick 1 není aktivován
+  |  |  |
+  |  |  0 ... aktivace joysticku 2
+  |  |  1 ... joystick 2 není aktivován
+  |  X
+  0 ... nulování generátoru signálu pro blikání kursoru
+  1 ... signál pro blikání kursoru je generován
+
+--------------------------------------------------------------------------------
+3. Brána B              adresa - mód 700 : 0E001H ( pamìové adresování )
+                        adresa - mód 800 : 0D1H
+
+Ètení aktivovaného øádku klávesnice :
+
+[   b7   b6   b5   b4   b3   b2   b1   b0   ] - 0 ... klávesa stištìna
+    |    |    |    |    |    |    |    |        1 ... klávesa nestištìna
+
+    BL GRAPH  1) ALPHA TAB   ;    :    CR  ... øádek 0 , 1) šipka dolu
+
+    Y    Z    @    [    ]                  ... øádek 1
+
+    Q    R    S    T    U    V    W    X   ... øádek 2
+
+    I    J    K    L    M    N    O    P   ... øádek 3
+
+    A    B    C    D    E    F    G    H   ... øádek 4
+
+    1    2    3    4    5    6    7    8   ... øádek 5
+
+    \    2)   -    SP   0    9    ,    .   ... øádek 6 , 2) šipka nahoru
+
+   INST DEL   3)   4)   5)   6)   ?    /   ... øádek 7 , 3)-6) kursorové kl.
+                                                               3) nahoru
+   ESC  CTRL                         SHIFT ... øádek 8         4) dolu
+                                                               5) vpravo
+    F1   F2   F3   F4   F5                 ... øádek 9         6) vlevo
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+4. Brána C              adresa - mód 700 : 0E002H ( pamìové adresování )
+                        adresa - mód 800 : 0D2H
+
+Zápis signálù pro ovládání periferií :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  0 ... vıstup èítaèe 0 I8253 odpojen od akustického vıstupu
+  |  |  |  |  |  |  |  1 ... vıstup èítaèe 0 I8253 pøipojen na akustickı vıstup
+  |  |  |  |  |  |  |
+  |  |  |  |  |  |  signál zapisovanı na kazetu
+  |  |  |  |  |  |
+  |  |  |  |  |  0 ... pøerušení z vıstupu èítaèe 2 I8253 blokováno
+  |  |  |  |  |  1 ... pøerušení ( mód IM1 ) z vıstupu èítaèe 2 I8253 povoleno
+  |  |  |  |  |
+  |  |  |  |  pøechod z 0 na 1 rozbìhne/zastaví motor magnetofonu
+  X  X  X  X
+
+Ètení signálù z periferií :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  X  X  X  X ... kopíruje vıstupní signály
+  |  |  |  |
+  |  |  |  0 ... motor magnetofonu stojí
+  |  |  |  1 ... motor magnetofonu bìí
+  |  |  |
+  |  |  signál ètenı z kazety,klidová úroveò 0,polarita shodná se zápisem
+  |  |
+  |  signál pro blikání kursoru , f=1,5 Hz , pøi nulování má úroveò 0
+  |
+  vertikální zatemòovací impulsy, aktivní 0 , T=7,2 ms , f=50 Hz
+
+--------------------------------------------------------------------------------
+                Pomocnı øídící port
+--------------------------------------------------------------------------------
+                        adresa - mód 700 : 0E008H ( pamìové adresování )
+                                 mód 800 : port nepøístupnı
+
+Zápis - nastavení signálu GATE èítaèe 0 I8253 :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  pøivedeno na vstup GATE èítaèe 0 I8253
+  X  X  X  X  X  X  X
+
+Ètení èasovacích signálù :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  periodickı signál pro tempo hudby , f=35 Hz
+  |  0  0  0  0  0  0
+  |
+  horizontální zatemòovací impulsy , aktivní 0 , f=15611 Hz
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+                Programovatelné èítaèe I8253
+--------------------------------------------------------------------------------
+1. Øídící registr,      adresa - mód 700 : 0E007H ( pamìové adresování )
+   pouze pro zápis      adresa - mód 800 : 0D7H
+
+Volba módu èinnosti èítaèù :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  0 ... binární èítání
+  |  |  |  |  |  |  |  1 ... dekadické èítání
+  |  |  |  |  |  |  |
+  |  |  |  |  0  0  0 ... mód 0
+  |  |  |  |  0  0  1 ... mód 1
+  |  |  |  |  X  1  0 ... mód 2
+  |  |  |  |  X  1  1 ... mód 3
+  |  |  |  |  1  0  0 ... mód 4
+  |  |  |  |  1  0  1 ... mód 5
+  |  |  |  |
+  |  |  0  1 ... ètení / zápis jen vyšších slabik obsahu èítaèù
+  |  |  1  0 ... ètení / zápis jen niších slabik obsahu èítaèù
+  |  |  1  1 ... ètení / zápis obou slabik v poøadí niší - vyšší
+  |  |
+  0  0 ... èítaè 0
+  0  1 ... èítaè 1
+  1  0 ... èítaè 2
+
+Nastavení ROM monitorem - øídící slova : 36H , 74H , 0B0H
+
+        èítaè 0 : mód 3 , ètení/zápis obou slabik , binární èítání
+        èítaè 1 : mód 2 , ètení/zápis obou slabik , binární èítání
+        èítaè 2 : mód 0 , ètení/zápis obou slabik , binární èítání
+
+Vzorkování obsahu bìícího èítaèe pøed ètením jeho obsahu :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  0  0  X  X  X  X
+  |  |
+  0  0 ... èítaè 0
+  0  1 ... èítaè 1
+  1  0 ... èítaè 2
+
+---------------------------------------------------------------------------------
+2. Èítaè 0              adresa - mód 700 : 0E004H ( pamìové adresování )
+                        adresa - mód 800 : 0D4H
+
+Hodiny CLK : periodickı signál , f=1108405 Hz
+
+Hradlování GATE : mód 700 ... nastaveno bitem b0 vıstupního portu 0E008H
+                  mód 800 ... trvale 1
+
+Vıstup OUT : a) akustickı vıstup,je-li bit b0 brány C I8255 nastaven na 1.
+             b) negace tohoto signálu je pøivedena na bit b4 brány A Z80-PIO.
+
+Tabulka hodnot pøedvolby pro frekvence temperované oktávy :
+
+C   ... 4232H           E   ... 348AH           GIS ... 29B4H
+CIS ... 3E7BH           F   ... 3197H           A   ... 275CH
+D   ... 3AFAH           FIS ... 2ECFH           AIS ... 2527H
+DIS ... 37AAH           G   ... 2C2EH           H   ... 2311H
+
+Tabulka odpovídá druhé nejniší celé generovatelné oktávì ( A=110 Hz ),
+pro kadou následující vyšší oktávu je nutné hodnoty dìlit dvìma.
+
+--------------------------------------------------------------------------------
+3. Cítaè 1              adresa - mód 700 : 0E005H ( pamìové adresování )
+                        adresa - mód 800 : 0D5H
+
+Hodiny CLK : horizontální synchronizaèní impulsy , f=15611 Hz
+
+Hradlování GATE : trvale 1
+
+Vıstup OUT : pøiveden na vstup CLK èítaèe 2
+
+--------------------------------------------------------------------------------
+4. èítaè 2              adresa - mód 700 : 0E006H ( pamìové adresování )
+                        adresa - mód 800 : 0D6H
+
+Hodiny CLK : pøivedeny z vıstupu OUT èítaèe 1
+
+Hradlování GATE : trvale 1
+
+Vıstup OUT : pøi úrovni 1 generuje pøerušení ( mód IM1 ),je-li bit b2
+             brány C I8255 nastaven na 1.
+
+--------------------------------------------------------------------------------
+5. Módy èinnosti èítaèù
+
+Mód 0 :
+
+        Po nastavení módu i bìhem zápisu pøedvolby je vıstup OUT na úrovni 0.
+Po probìhnutí nastaveného poètu period hodin CLK za ukonèením pøedvolby pøejde
+vıstup OUT na úroveò 1.Na té zùstane a do zápisu nové pøedvolby,po které 
+zaène další odpoèítávání s vıstupem OUT na úrovni 0.
+        Zápis první slabiky pøed koncem nastaveného intervalu zastaví èítání,
+zápis druhé slabiky odstartuje èítání s novım obsahem èítaèe.
+        Hradlování GATE na úrovni 0 blokuje èítání.
+
+Mód 1 :
+
+        Po nastavení módu i bìhem zápisu pøedvolby je vıstup OUT na úrovni 1.
+Èítání,bìhem nìho je vıstup OUT na úrovni 0,se startuje vzestupnou hranou
+signálu GATE.Po probìhnutí nastaveného poètu period hodin CLK se vıstup OUT
+vrátí do úrovnì 1,na které zùstane a do dalšího odstartování pøes GATE.
+        Zápis nové pøedvolby v prùbìhu èítání se uplatní a po nejbliší
+vzestupné hranì signálu GATE.
+        Hradlování GATE pøi pøechodu z 0 na 1 startuje èítání s naposledy
+nastavenou pøedvolbou.Úroveò 0 èítání neovlivòuje !
+
+Mód 2 :
+
+        Po nastavení módu i bìhìm zápisu pøedvolby je vıstup OUT na úrovni 1.
+Po probìhnutí nastaveného poètu period hodin CLK je automaticky provedeno nové
+odstartování a v zaèátku opakujícího se èítání pøejde vıstup OUT na dobu
+jedné periody hodin CLK do úrovnì 0.
+        Zápis nové pøedvolby v prùbìhu èítání se uplatní a v další periodì
+vıstupního signálu.
+        Hradlování GATE na úrovni 0 blokuje èítání a nastavuje vıstup OUT
+na úroveò 1.Pøechod z 0 na 1 startuje èítání s naposledy nastavenou pøedvolbou.
+
+Mód 3:
+
+        Po nastavení módu je vıstup OUT na úrovni 1.Po ukonèení pøedvolby
+zaène èítaè odpoèítávat danı poèet period hodin CLK a v druhé polovinì èítaného 
+intervalu pøejde vıstup OUT na úroveò 0.Pøi liché pøedvolbì je první èást 
+o jednotku delší.Po doèítání je automaticky provedeno nové odstartování
+a èítání se opakuje.    
+        Zápis nové pøedvolby v prùbìhu èítání se uplatní a v další pùlperiodì
+vıstupního signálu.
+        Hradlování GATE na úrovni 0 blokuje èítání a nastavuje vıstup OUT
+na úroveò 1.Pøechod z 0 na 1 startuje èítání s naposledy nastavenou pøedvolbou.
+
+Mód 4 : 
+
+        Po nastavení módu i bìhem zápisu pøedvolby je vıstup OUT na úrovni 1.
+Po probìhnutí nastaveného poètu period hodin CLK za ukonèením pøedvolby pøejde
+vıstup OUT na dobu jedné periody do úrovnì 0.Další èítání zaène a po zapsání
+nové pøedvolby.
+        Zmìna pøedvolby v prùbìhu èítání nemá vliv na délku probíhajícího 
+intervalu.
+        Hradlování GATE na úrovni 0 blokuje èítání.
+
+Mód 5 :
+
+        Po nastavení módu i bìhem zápisu pøedvolby je vıstup OUT na úrovni 1.
+Èítání se startuje vzestupnou hranou signálu GATE.Po probìhnutí nastaveného
+poètu period hodin CLK pøejde vıstup OUT na dobu jedné periody do úrovnì 0.
+Další èítání zaène a po novém odstartování pøes GATE.
+        Zápis nové pøedvolby v prùbìhu èítání se uplatní a po nejbliší
+vzestupné hranì signálu GATE.
+        Hradlování GATE pøi pøechodu z 0 na 1 startuje èítání s naposledy
+nastavenou pøedvolbou.Úroveò 0 èítání neovlivòuje !
+
+Pozn. : Aktivní hranou signálu CLK je hrana sestupná,t.j.pøechod z úrovnì 1
+        na úroveò 0.
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+                Programovatelnı paralelní interfejs Z80-PIO
+--------------------------------------------------------------------------------
+1. Øídící registr,      adresa pro oba módy - kanál A : 0FCH
+   pouze pro zápis      adresa pro oba módy - kanál B : 0FDH
+
+Pøerušovací vektor ( mód pøerušení IM2 ) :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  V7 V6 V5 V4 V3 V2 V1 0 ... spolu s registrem I jako vyšší slabikou udává,kde
+                             v pamìti je uloena adresa obsluného programu.
+
+Volba reimu èinnosti kanálu :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  X  X  1  1  1  1
+  |  |
+  0  0 ... kanál vıstupní
+  0  1 ... kanál vstupní
+  1  0 ... kanál obousmìrnı ( jen pro kanál A , kanál B pak musí bıt v bitovı )
+  1  1 ... bitovı mód kanálu,následuje zápis bytu urèujícího
+           rozdìlení linek kanálu na vstupy a vıstupy :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |  
+  L7 L6 L5 L4 L3 L2 L1 L0 - 0 ... vıstupní
+                            1 ... vstupní
+
+Volba zdroje pøerušení :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  0  1  1  1
+  |  |  |  0 ... maska se nezapisuje
+  |  |  |  1 ... následuje zápis bytu masky
+  |  |  |
+  |  |  0 ... pøerušení pøi úrovni 0
+  |  |  1 ... pøerušení pøi úrovni 1
+  |  |
+  |  0 ... vazba jednotlivıch linek OR
+  |  1 ... vazba jednotlivıch linek AND
+  |
+  0 ... pøerušení zakázáno
+  1 ... pøerušení povoleno
+
+Maskování pøerušení od jednotlivıch linek kanálu :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  M7 M6 M5 M4 M3 M2 M1 M0 - 0 ... pøerušení nemaskováno
+                            1 ... pøerušení maskováno
+
+Povolení / zákaz pøerušení :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  X  X  X  0  0  1  1
+  |
+  0 ... pøerušení zakázáno
+  1 ... pøerušení povoleno
+
+Nastavení monitorem BASICu 800 :
+
+        øídící slova pro kanál A : 0FCH , 0FFH , 3FH , 17H , 0EFH
+        øídící slova pro kanál B : 0FEH , 0FH
+
+        kanál A : v bitovém módu,bity b6,b7 vıstupní,pøerušovací vektor 0FCH,
+                  pøerušení pøi úrovni 0 na bitu b4,po nastavení zakázáno.
+        kanál B : vıstupní,pøerušovací vektor 0FEH,pøerušení zakázáno.
+                  ( Pozn.: v registru I je hodnota 0FH )
+
+--------------------------------------------------------------------------------
+2. Kanál A              adresa pro oba módy : 0FEH
+
+Zápis signálù pro øízení tiskárny :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  X  X  X  X  X  X
+  |  |
+  |  0 ... neaktivní
+  |  1 ... inicializace tiskárny ( MZ ... IRT , Centr. ... INIT )
+  |
+  0 ... neaktivní
+  1 ... zápis dat do tiskárny ( MZ ... RDP , Centr. ... STB ),
+        smí pøijít,jen pokud je signál BUSY/RDA na úrovni 0,a pro MZ by mìl
+        trvat a do pøechodu BUSY/RDA na úroveò 1.
+
+Ètení signálù z tiskárny a èasování :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  0 ... tiskárna pøipravena pro pøíjem dat
+  |  |  |  |  |  |  |  1 ... tiskárna nepøipravena pro pøíjem dat
+  |  |  |  |  |  |  |        ( MZ ... RDA , Centr. ... BUSY )
+  |  |  |  |  |  |  |
+  |  |  |  |  |  |  0 ... závada tiskárny
+  |  |  |  |  |  |  1 ... tiskárna vpoøádku
+  |  |  |  |  |  |        ( MZ ... STA , Centr. ... ERROR )
+  |  |  |  |  0  0
+  |  |  |  |
+  |  |  |  pøes invertor pøivedenı vıstup èítaèe 0 I8253
+  |  |  |
+  |  |  vertikální zatemòovací impulsy , aktivní 0 , T=7,2 ms , f=50 Hz
+  |  |
+  X  X ... kopíruje vıstupní signály
+
+--------------------------------------------------------------------------------
+3. Kanál B              adresa pro oba módy : 0FFH
+
+Vıstup dat na tiskárnu :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  D7 D6 D5 D4 D3 D2 D1 D0 ... datové linky interfejsu tiskárny
+
+Tento kanál generuje pøerušení ( pokud je povoleno ) vdy po pøijetí
+dat tiskárnou ... pøechodu signálu BUSY/RDA z úrovnì 1 na úroveò 0.
+
+--------------------------------------------------------------------------------
+                Programovatelnı zvukovı generátor
+--------------------------------------------------------------------------------
+Pouze pro zápis         adresa pro oba módy : 0F2H
+
+Nastavení frekvence tónového kanálu :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  0  N3 N2 N1 N0 ... niší bity nastavení frekvence
+  |  |  |
+  |  0  0 ... kanál 0
+  |  0  1 ... kanál 1
+  |  1  0 ... kanál 2
+  1
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  0  X  N9 N8 N7 N6 N5 N4 ... vyšší bity nasatvení frekvnece
+
+Poøadí tìchto dvou bytù je nutné dodret.
+Frekvence f=110,84 KHz/N , pro N=0  f=108,24 Hz
+
+Tabulka hodnot N pro frekvence temperované oktávy :
+
+c   ... 034FH           e   ... 02A1H           gis ... 0216H
+cis ... 0320H           f   ... 027BH           a   ... 01F8H
+d   ... 02F3H           fis ... 0257H           ais ... 01DCH
+dis ... 02C9H           g   ... 0236H           h   ... 01C1H
+
+Hodnoty odpovídají nejniší celé generovatelné oktávì ( a=220 Hz ),pro kadou
+následující vyšší oktávu je nutné N dìlit dvìma.
+
+Nastavení frekvence šumového kanálu :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  0  0 ... f=6,93 KHz
+  |  |  |  |  |  |  0  1 ... f=3,46 KHz
+  |  |  |  |  |  |  1  0 ... f=1,73 KHz
+  |  |  |  |  |  |  1  1 ... f=f3/16 ( f3 ... frekvence tónového kanálu 3 )
+  |  |  |  |  |  |
+  |  |  |  |  |  0 ... synchronní šum
+  |  |  |  |  |  1 ... bílı šum
+  1  1  1  0  X
+
+Nastavení hlasitosti kanálù :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ]
+  |  |  |  |  |  |  |  |
+  |  |  |  |  A3 A2 A1 A0 ... utlumení 1.26^A , pro A=15 je kanál odpojen
+  |  |  |  1
+  |  0  0 ... tónovı kanál 0
+  |  0  1 ... tónovı kanál 1
+  |  1  0 ... tónovı kanál 2
+  |  1  1 ... šumovı kanál
+  1
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+                Interfejs joystickù
+--------------------------------------------------------------------------------
+Pouze pro ètení         adresa pro oba módy - joystick 1 : 0F0H
+                        adresa pro oba módy - joystick 2 : 0F1H
+
+Signály z aktivovaného joysticku :
+
+[ b7 b6 b5 b4 b3 b2 b1 b0 ] - 0 ... spínaè sepnut
+  |  |  |  |  |  |  |  |      1 ... spínaè nesepnut
+  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  vpøed
+  |  |  |  |  |  |  |
+  |  |  |  |  |  |  vzad
+  |  |  |  |  |  |
+  |  |  |  |  |  vlevo
+  |  |  |  |  |
+  |  |  |  |  vpravo
+  |  |  |  |
+  |  |  |  spouš 1
+  |  |  |
+  |  |  spouš 2 ( kontakt 7 konektoru,nìkteré joysticky zde vyadují +5V )
+  X  X
+
+--------------------------------------------------------------------------------

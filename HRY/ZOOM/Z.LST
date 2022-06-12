@@ -1,0 +1,4052 @@
+
+100h a‘ 232f = CS
+2330         = DS
+
+; ------ inicializace segmentov˜ch registr–
+
+0100 8CC8           MOV    AX,CS
+0102 053302         ADD    AX,0233          ; offset datov‚ho segmentu
+0105 8ED8           MOV    DS,AX            ;
+0107 8CC8           MOV    AX,CS
+0109 05100E         ADD    AX,0E10
+010C FA             CLI
+010D 8ED0           MOV    SS,AX
+010F BC0010         MOV    SP,1000
+0112 FB             STI
+0113 B800B8         MOV    AX,B800
+0116 8EC0           MOV    ES,AX            ; ES <- videopamˆŸ
+0118 8CC8           MOV    AX,CS
+011A 2DDB04         SUB    AX,04DB
+011D 50             PUSH   AX
+011E B8084F         MOV    AX,4F08
+0121 50             PUSH   AX
+0122 CB             RETF                    ; skok na adresu (CS-04DBh):4F08h
+0123 90             NOP
+0124 90             NOP
+0125 90             NOP
+
+; -----------------------------------------------------------------------------
+;    vstup znaku z bufferu kl vesnice a p©¡padn‚ p©eru¨en¡ programu
+; -----------------------------------------------------------------------------
+
+4ED6 8B07           MOV    AX,[BX]          ; znak z bufferu kl vesnice
+4ED8 80E4FF         AND    AH,FF            ;
+4EDB FECC           DEC    AH               ; k¢d 1 = ESC
+4EDD 7404           JZ     4EE3             ; je ESC = p©eru¨en¡ programu
+4EDF A11E00         MOV    AX,[001E]        ; znak z bufferu kl vesnice
+4EE2 C3             RET
+
+; ------ konec programu
+
+4EE3 B80300         MOV    AX,0003
+4EE6 CD10           INT    10               ; n vrat videom¢du
+4EE8 A01700         MOV    AL,[0017]        ; statut p©esmyka‡– kl vesnice
+4EEB 24DF           AND    AL,DF            ; vypnut¡ NUM LOCK
+4EED A21700         MOV    [0017],AL        ; nov˜ stav p©esmyka‡–
+4EF0 8CC8           MOV    AX,CS
+4EF2 05DB04         ADD    AX,04DB          ; n vrat p–vodn¡ho CS
+4EF5 50             PUSH   AX
+4EF6 B84E01         MOV    AX,014E
+4EF9 50             PUSH   AX
+4EFA CB             RETF                    ; skok na adresu 4EFE (p–vodn¡ 14EH)
+4EFB 90             NOP
+4EFC 90             NOP
+4EFD 90             NOP
+4EFE CD20           INT    20               ; konec programu
+
+4F00 0F8E           CTS    8E
+4F02 D0B80010       SAR    Byte Ptr [BX+SI+1000],1
+4F06 8BE0           MOV    SP,AX
+
+; Adresa 4F08h - pokra‡ov n¡
+
+; -----------------------------------------------------------------------------
+;    start programu
+; -----------------------------------------------------------------------------
+
+; ------ inicializace videom¢du
+
+4F08 B80400         MOV    AX,0004
+4F0B FB             STI
+4F0C CD10           INT    10               ; inicializace videom¢du 4
+4F0E E86202         CALL   5173             ; sestaven¡ tabulky adres linek
+
+; ------ inicializace tabulek
+
+4F11 B90400         MOV    CX,0004
+4F14 BE0000         MOV    SI,0000
+4F17 C6846EA700   * MOV    Byte Ptr [SI+A76E],00
+4F1C C68472A700     MOV    Byte Ptr [SI+A772],00
+4F21 46             INC    SI
+4F22 E2F3           LOOP   4F17
+
+; ------ inicializace sc‚ny, p©eru¨en¡ hry
+
+4F24 E9FD06         JMP    5624             ; inicializace sc‚ny
+
+; -----------------------------------------------------------------------------
+;    z kladn¡ cyklus obsluhy hry
+; -----------------------------------------------------------------------------
+
+; ------ z kladn¡ cyklus hry
+
+4F27 B80010       * MOV    AX,1000
+4F2A 8BE0           MOV    SP,AX            ; z sobn¡k
+4F2C E86112         CALL   6190             ; vstup z kl vesnice nebo joysticku
+4F2F E8DC0A         CALL   5A0E             ;þ
+4F32 E86002         CALL   5195             ; obsluha posunu zemˆ
+4F35 E89818         CALL   67D0             ; obsluha hry melodie
+4F38 E8450C         CALL   5B80             ; zobrazen¡ v¨ech objekt–
+4F3B E8CF00         CALL   500D             ; obsluha pohuby letadla
+4F3E E8F50E         CALL   5E36             ; generov n¡ st©el
+4F41 E88E11         CALL   60D2             ; generov n¡ br ny
+4F44 E8400F         CALL   5E87             ; generov n¡ disku (mal‚ UFO)
+4F47 E89D06         CALL   55E7             ; generov n¡ velk‚ho UFO
+4F4A E8CB14         CALL   6418             ; obslyha z sah– nep©¡tele st©elami
+4F4D E8F713         CALL   6347             ; ‡¡t n¡ a zobrazen¡ sk¢re
+4F50 E80E00         CALL   4F61             ; ‡¡t n¡ a zobrazen¡ paliva
+4F53 E86905         CALL   54BF             ; generov n¡ bomb velk‚ho UFO
+4F56 E8E105         CALL   553A             ; generov n¡ bomb br ny
+4F59 E89C04         CALL   53F8             ; generov n¡ kosmick‚ lodi a bomb
+4F5C E85104         CALL   53B0             ; vygenerov n¡ nov‚ hvˆzdy (sc‚na X.3)
+4F5F EBC6           JMP    4F27
+
+; -----------------------------------------------------------------------------
+;    obsluha indikace paliva
+; -----------------------------------------------------------------------------
+
+; ------ test, zda zbylo nˆjak‚ palivo
+
+4F61 A04EA7         MOV    AL,[A74E]        ; z soba paliva (bajt 2)
+4F64 0A064DA7       OR     AL,[A74D]        ; z soba paliva (bajt 1)
+4F68 0A064CA7       OR     AL,[A74C]        ; z soba paliva (bajt 0)
+4F6C 7501           JNZ    4F6F             ; zbylo nˆjak‚ palivo
+4F6E C3             RET
+
+; ------ sn¡‘en¡ z soby paliva
+
+4F6F A058A7       * MOV    AL,[A758]        ; rychlost letu (30 a‘ 120)
+4F72 34FF           XOR    AL,FF
+4F74 FEC0           INC    AL               ; negace rychlosti
+4F76 B400           MOV    AH,00
+4F78 F6261800       MUL    Byte Ptr [0018]  ; £bytek paliva
+4F7C 29064CA7       SUB    [A74C],AX        ; sn¡‘en¡ z soby paliva
+4F80 73EC           JNB    4F6E
+4F82 801E4EA700     SBB    Byte Ptr [A74E],00 ; p©enos HIGH
+4F87 730B           JNB    4F94
+4F89 C7064CA70000   MOV    Word Ptr [A74C],0000 ; vynulov n¡ z soby paliva
+4F8F C6064EA700     MOV    Byte Ptr [A74E],00
+
+; ------ vymaz n¡ ukazatele paliva
+
+4F94 B204           MOV    DL,04            ; po‡et videolinek
+4F96 BE2200         MOV    SI,0022          ; ‡¡slo linky
+4F99 8BDE         * MOV    BX,SI
+4F9B D1E3           SHL    BX,1
+4F9D 8B9FB0A4       MOV    BX,[BX+A4B0]     ; adresa linky
+4FA1 83C307         ADD    BX,+07           ; + po‡ te‡n¡ pozice
+4FA4 B94200         MOV    CX,0042          ; d‚lka ukazatele
+4FA7 B000           MOV    AL,00            ; ‡ern  barva
+4FA9 268807       * MOV    ES:[BX],AL
+4FAC 43             INC    BX
+4FAD E2FA           LOOP   4FA9
+4FAF 46             INC    SI
+4FB0 FECA           DEC    DL
+4FB2 75E5           JNZ    4F99
+
+; ------ d‚lka ukazatele paliva
+
+4FB4 A04EA7         MOV    AL,[A74E]        ; ukazatel paliva
+4FB7 3C80           CMP    AL,80
+4FB9 7202           JB     4FBD
+4FBB B07F           MOV    AL,7F            ; omezen¡ mno‘stv¡ paliva
+4FBD B400         * MOV    AH,00
+4FBF A316A7         MOV    [A716],AX        ; d‚lka ukazatele paliva
+
+; ------ zobrazen¡ ukazatele paliva
+
+4FC2 B202           MOV    DL,02            ; po‡et linek
+4FC4 BE2300         MOV    SI,0023          ; po‡ te‡n¡ linka
+4FC7 8BDE         * MOV    BX,SI
+4FC9 D1E3           SHL    BX,1
+4FCB 8B9FB0A4       MOV    BX,[BX+A4B0]
+4FCF 83C308         ADD    BX,+08
+4FD2 B0AA           MOV    AL,AA            ; purpurov  barva
+4FD4 8B0E16A7       MOV    CX,[A716]        ; d‚lka ukazatele paliva
+4FD8 D1E9           SHR    CX,1
+4FDA 7406           JZ     4FE2             ; nen¡ palivo
+4FDC 268807       * MOV    ES:[BX],AL
+4FDF 43             INC    BX
+4FE0 E2FA           LOOP   4FDC
+4FE2 F60616A701   * TEST   Byte Ptr [A716],01 ; lich  pozice ?
+4FE7 7405           JZ     4FEE
+4FE9 B0A0           MOV    AL,A0
+4FEB 268807         MOV    ES:[BX],AL       ; posledn¡ bajt
+4FEE 46           * INC    SI
+4FEF FECA           DEC    DL
+4FF1 75D4           JNZ    4FC7
+
+; ------ hl ¨en¡ o nedostatku paliva
+
+4FF3 803E4EA710     CMP    Byte Ptr [A74E],10 ; je je¨tˆ dost paliva ?
+4FF8 7312           JNB    500C             ; je dost paliva
+4FFA BE1900         MOV    SI,0019          ; text - m lo paliva
+4FFD E8610A         CALL   5A61             ; zobrazen¡ textu DS:SI
+5000 803E4EA706     CMP    Byte Ptr [A74E],06 ; je velmi m lo paliva ?
+5005 7305           JNB    500C             ; palivo OK
+5007 B006           MOV    AL,06            ; ‡¡slo melodie - palivo do¨lo
+5009 E80218         CALL   680E             ; zvukov  indikace - nen¡ palivo
+500C C3           * RET
+
+; -----------------------------------------------------------------------------
+;    ovl d n¡ pohybu letadla
+; -----------------------------------------------------------------------------
+
+500D E89F00         CALL   50AF             ; vymaz n¡ letadla se st¡nem
+
+; ------ rozli¨en¡ povel– pro smˆr
+
+5010 F60636A780     TEST   Byte Ptr [A736],80 ; povel vpravo ?
+5015 740F           JZ     5026             ; vpravo
+5017 F60636A710     TEST   Byte Ptr [A736],10 ; povel vlevo ?
+501C 741C           JZ     503A             ; vlevo
+501E C60640A701     MOV    Byte Ptr [A740],01 ; smˆr p©¡m˜
+5023 EB26           JMP    504B
+5025 90             NOP
+
+; ------ letadlo vpravo
+
+5026 C60640A702   * MOV    Byte Ptr [A740],02 ; smˆr pohybu letadla vpravo
+502B A059A7         MOV    AL,[A759]        ; poloha letadla horizont lnˆ
+502E 0405           ADD    AL,05            ; zv˜¨en¡ pozice letadla
+5030 3CBA           CMP    AL,BA            ; maxim ln¡ pozice 186
+5032 7717           JA     504B             ; je ji‘ prav˜ okraj
+5034 A259A7         MOV    [A759],AL        ; nov  pozice letadla
+5037 EB12           JMP    504B
+5039 90             NOP
+
+; ------ letadlo vlevo
+
+503A C60640A700   * MOV    Byte Ptr [A740],00 ; smˆr pohybu letadla vlevo
+503F A059A7         MOV    AL,[A759]        ; poloha letadla
+5042 2C05           SUB    AL,05            ; sn¡‘en¡ pozice letadla
+5044 3C28           CMP    AL,28            ; minim ln¡ pozice 40
+5046 7203           JB     504B             ; je ji‘ lev˜ okraj
+5048 A259A7         MOV    [A759],AL        ; nov  pozice letadla
+
+; ------ povel dol– - sn¡‘en¡ rychlosti
+
+504B F60636A704   * TEST   Byte Ptr [A736],04 ; povel nahoru ?
+5050 7413           JZ     5065             ; je povel nahoru
+5052 F60636A708     TEST   Byte Ptr [A736],08 ; povel dol– ?
+5057 753E           JNZ    5097             ; nen¡ povel dol–
+5059 A05AA7         MOV    AL,[A75A]        ; poloha letadla vertik lnˆ
+505C 0405           ADD    AL,05            ; posun letadla dol–
+505E 3C68           CMP    AL,68            ; maxim ln¡ linka 104
+5060 7325           JNB    5087             ; je ji‘ spodn¡ okraj
+5062 EB0A           JMP    506E
+5064 90             NOP
+
+; ------ povel nahoru - zv˜¨en¡ rychlosti
+
+5065 A05AA7         MOV    AL,[A75A]        ; poloha letadla vertik lnˆ
+5068 2C05           SUB    AL,05            ; posun letadla nahoru
+506A 3C4F           CMP    AL,4F            ; minim ln¡ linka 79
+506C 7206           JB     5074             ; je ji‘ horn¡ okraj - zrychlen¡
+506E A25AA7       * MOV    [A75A],AL        ; nov  vertik ln¡ poloha letadla
+5071 EB24           JMP    5097
+5073 90             NOP
+
+; ------ zrychlen¡ letu
+
+5074 FE0658A7       INC    Byte Ptr [A758]  ; zv˜¨en¡ rychlosti letu
+5078 803E58A778     CMP    Byte Ptr [A758],78 ; maxim ln¡ rychlost 120
+507D 7618           JBE    5097             ; rychlost OK
+507F C60658A778     MOV    Byte Ptr [A758],78 ; omezen¡ rychlosti
+5084 EB11           JMP    5097
+5086 90             NOP
+
+; ------ zpomalen¡ letu
+
+5087 FE0E58A7     * DEC    Byte Ptr [A758]  ; sn¡‘en¡ rychlosti letu
+508B A058A7         MOV    AL,[A758]        ; rychlost letu
+508E 3C1E           CMP    AL,1E            ; minim ln¡ rychlost 30
+5090 7305           JNB    5097             ; OK
+5092 B01E           MOV    AL,1E
+5094 A258A7         MOV    [A758],AL        ; omezen¡ rychlosti
+
+5097 E80100       * CALL   509B             ; zobrazen¡ letadla
+509A C3             RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ letadla (se st¡nem)
+; -----------------------------------------------------------------------------
+
+509B F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+50A0 7506           JNZ    50A8             ; nen¡ zobrazena zemˆ
+50A2 E81D00         CALL   50C2             ; p©¡prava k zobrazen¡ st¡nu
+50A5 E88A01         CALL   5232             ; zobrazen¡ st¡nu
+50A8 E82800       * CALL   50D3             ; p©¡prava k zobrazen¡ letadla
+50AB E88401         CALL   5232             ; zobrazen¡ letadla
+50AE C3             RET
+
+; -----------------------------------------------------------------------------
+;    vymaz n¡ letadla (se st¡nem)
+; -----------------------------------------------------------------------------
+
+50AF F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+50B4 7506           JNZ    50BC             ; nen¡ zobrazena zemˆ
+50B6 E80900         CALL   50C2             ; p©¡prava k vymaz n¡ st¡nu
+50B9 E8CB01         CALL   5287             ; vymaz n¡ st¡nu
+50BC E81400       * CALL   50D3             ; p©¡prava k vymaz n¡ letadla
+50BF E8C501         CALL   5287             ; vymaz n¡ letadla
+
+; -----------------------------------------------------------------------------
+;    p©¡prava k zobrazen¡ st¡nu letadla
+; -----------------------------------------------------------------------------
+
+50C2 B003           MOV    AL,03            ; obr zek - st¡n letadla
+50C4 A232A7         MOV    [A732],AL        ; ‡¡slo obr zku k zobrazen¡
+50C7 A059A7         MOV    AL,[A759]        ; poloha letadla horizont lnˆ
+50CA A233A7         MOV    [A733],AL        ; pozice k zobrazen¡ st¡nu
+50CD C60634A77C     MOV    Byte Ptr [A734],7C ; ‡¡slo linky k zobrazen¡ st¡nu
+50D2 C3             RET
+
+; -----------------------------------------------------------------------------
+;    p©¡prava k zobrazen¡ letadla
+; -----------------------------------------------------------------------------
+
+50D3 A040A7         MOV    AL,[A740]        ; f ze zobrazen¡ letadla (sklon)
+50D6 A232A7         MOV    [A732],AL        ; ‡¡slo obr zku k zobrazen¡
+50D9 A059A7         MOV    AL,[A759]        ; poloha letadla horizont lnˆ
+50DC A233A7         MOV    [A733],AL        ; pozice k zobrazen¡ letadla
+50DF A05AA7         MOV    AL,[A75A]        ; poloha letadla vertik lnˆ
+50E2 A234A7         MOV    [A734],AL        ; ‡¡slo linky k zobrazen¡ letadla
+50E5 C3             RET
+
+; -----------------------------------------------------------------------------
+;    £vodn¡ zobrazen¡ sc‚ny (pozad¡)
+; -----------------------------------------------------------------------------
+
+; ------ zobrazen¡ oblohy v pozad¡
+
+50E6 BE0000         MOV    SI,0000
+50E9 B85555         MOV    AX,5555
+50EC 8B9CB0A4     * MOV    BX,[SI+A4B0]
+50F0 B92800         MOV    CX,0028
+50F3 268907       * MOV    ES:[BX],AX
+50F6 43             INC    BX
+50F7 43             INC    BX
+50F8 E2F9           LOOP   50F3
+50FA 46             INC    SI
+50FB 46             INC    SI
+50FC 83FE70         CMP    SI,+70
+50FF 75EB           JNZ    50EC
+
+; ------ zobrazen¡ poho©¡ v pozad¡
+
+5101 BE5A00         MOV    SI,005A
+5104 BF0000         MOV    DI,0000
+5107 8B9CB0A4     * MOV    BX,[SI+A4B0]
+510B B95000         MOV    CX,0050
+510E 8A85E8A0     * MOV    AL,[DI+A0E8]
+5112 268807         MOV    ES:[BX],AL
+5115 47             INC    DI
+5116 43             INC    BX
+5117 E2F5           LOOP   510E
+5119 46             INC    SI
+511A 46             INC    SI
+511B 83FE6E         CMP    SI,+6E
+511E 75E7           JNZ    5107
+
+
+5120 A06BA7         MOV    AL,[A76B]        ; ‡¡slo sc‚ny
+5123 24FC           AND    AL,FC
+5125 744B           JZ     5172
+5127 BF0400         MOV    DI,0004
+512A 3C0C           CMP    AL,0C
+512C 7309           JNB    5137
+
+512E B400           MOV    AH,00
+5130 D1E8           SHR    AX,1
+5132 2D0200         SUB    AX,0002
+5135 8BF8           MOV    DI,AX
+
+5137 BE0000       * MOV    SI,0000
+513A B90400         MOV    CX,0004
+513D 8B850000     * MOV    AX,[DI+0000]
+5141 898416A7       MOV    [SI+A716],AX
+5145 83C602         ADD    SI,+02
+5148 83C706         ADD    DI,+06
+514B E2F0           LOOP   513D
+
+; ------ zobrazen¡ tov rny
+
+514D 8B3616A7       MOV    SI,[A716]
+5151 8B3E18A7       MOV    DI,[A718]
+5155 8B9CB0A4     * MOV    BX,[SI+A4B0]
+5159 031E1AA7       ADD    BX,[A71A]        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+515D 8B0E1CA7       MOV    CX,[A71C]
+5161 8A05         * MOV    AL,[DI]
+5163 268807         MOV    ES:[BX],AL
+5166 47             INC    DI
+5167 43             INC    BX
+5168 E2F7           LOOP   5161
+516A 83C602         ADD    SI,+02
+516D 83FE6E         CMP    SI,+6E
+5170 75E3           JNZ    5155
+
+5172 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    sestaven¡ tabulky adres videolinek
+; -----------------------------------------------------------------------------
+
+5173 B9C800       * MOV    CX,00C8          ; po‡et linek 200
+5176 BE0000         MOV    SI,0000          ; ukazatel v tabulce linek
+5179 8BC6         * MOV    AX,SI            ; ‡¡slo linky
+517B D1E8           SHR    AX,1
+517D D1E8           SHR    AX,1             ; linka / 4
+517F F62E14A7       IMUL   Byte Ptr [A714]  ; adresa linky
+5183 F7C60200       TEST   SI,0002          ; je to sud  linka ?
+5187 7403           JZ     518C
+5189 050020         ADD    AX,2000          ; korekce adresy linky
+518C 8984B0A4     * MOV    [SI+A4B0],AX     ; adresa linky
+5190 46             INC    SI
+5191 46             INC    SI
+5192 E2E5           LOOP   5179             ; dal¨¡ linka
+5194 C3             RET
+
+; -----------------------------------------------------------------------------
+;    obsluha posunu zemˆ
+; -----------------------------------------------------------------------------
+
+; ------ test, zda se zemˆ zobrazuje
+
+5195 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+519A 7401           JZ     519D             ; je zobrazena
+519C C3             RET
+
+; ------ ur‡en¡ barvy linky zemˆ podle ‡¡sla sc‚ny
+
+519D 8A1E6BA7       MOV    BL,[A76B]        ; ‡¡slo sc‚ny
+51A1 B700           MOV    BH,00
+51A3 D1EB           SHR    BX,1
+51A5 D1EB           SHR    BX,1             ; sc‚na / 4
+51A7 81E30300       AND    BX,0003
+51AB 8A872400       MOV    AL,[BX+0024]     ; barva linek
+51AF A22800         MOV    [0028],AL        ; barva linek
+
+; ------ adresa v tabulce linek p©edchoz¡ f ze
+
+51B2 B400           MOV    AH,00
+51B4 A053A7         MOV    AL,[A753]        ; p©edchoz¡ f ze v tabulce
+51B7 D0E0           SHL    AL,1
+51B9 D0E0           SHL    AL,1
+51BB D0E0           SHL    AL,1
+51BD 8BF0           MOV    SI,AX            ; offset v tabulce linek
+
+
+
+51BF B400           MOV    AH,00
+51C1 A058A7         MOV    AL,[A758]        ; rychlost letu
+51C4 B600           MOV    DH,00
+51C6 8A1654A7       MOV    DL,[A754]        ; nov  f ze v tabulce linek
+51CA 03C2           ADD    AX,DX            ; posun pozad¡
+51CC A254A7         MOV    [A754],AL        ; f ze
+
+51CF B105           MOV    CL,05
+51D1 D3E8           SHR    AX,CL
+51D3 D3EA           SHR    DX,CL
+51D5 2AC2           SUB    AL,DL
+51D7 020653A7       ADD    AL,[A753]
+51DB 3C0D           CMP    AL,0D
+51DD 7202           JB     51E1
+51DF 2C0D           SUB    AL,0D
+51E1 B400         * MOV    AH,00
+51E3 A253A7         MOV    [A753],AL
+51E6 D0E0           SHL    AL,1
+51E8 D0E0           SHL    AL,1
+51EA D0E0           SHL    AL,1
+51EC 8BF8           MOV    DI,AX            ; adresa nov˜ch linek
+51EE B90800         MOV    CX,0008          ; po‡et linek k zobrazen¡
+
+; ------ vymaz n¡ star‚ linky
+
+51F1 8A8408A4     * MOV    AL,[SI+A408]     ; ‡¡slo star‚ linky
+51F5 3CFF           CMP    AL,FF
+51F7 740A           JZ     5203             ; neplatn  linka
+51F9 0438           ADD    AL,38            ; + 56 (=po‡ te‡n¡ linka zemˆ)
+51FB E81D00         CALL   521B             ; adresa videolinky AL
+51FE B000           MOV    AL,00            ; ‡ern  barva
+5200 E82300         CALL   5226             ; vymaz n¡ videolinky bajtem AL
+
+; ------ zobrazen¡ nov‚ linky
+
+5203 8A8508A4     * MOV    AL,[DI+A408]     ; ‡¡slo nov‚ linky
+5207 3CFF           CMP    AL,FF
+5209 740B           JZ     5216             ; neplatn  linka
+520B 0438           ADD    AL,38            ; + 56 (=po‡ te‡n¡ linka zemˆ)
+520D E80B00         CALL   521B             ; adresa videolinky AL
+5210 A02800         MOV    AL,[0028]        ; barva k zobrazen¡ videolinky
+5213 E81000         CALL   5226             ; vymaz n¡ videolinky bajtem AL
+
+; ------ p©¡prava pro dal¨¡ linku
+
+5216 47           * INC    DI
+5217 46             INC    SI
+5218 E2D7           LOOP   51F1
+521A C3             RET
+
+; -----------------------------------------------------------------------------
+;    adresa videolinky AL
+; -----------------------------------------------------------------------------
+
+521B B700           MOV    BH,00
+521D 8AD8           MOV    BL,AL            ; ‡¡slo videolinky
+521F D1E3           SHL    BX,1
+5221 8B9FB0A4       MOV    BX,[BX+A4B0]     ; adresa videolinky
+5225 C3             RET
+
+; -----------------------------------------------------------------------------
+;    vymaz n¡ videolinky zemˆ bajtem AL
+; -----------------------------------------------------------------------------
+
+5226 51             PUSH   CX
+5227 B95000         MOV    CX,0050
+522A 268807       * MOV    ES:[BX],AL
+522D 43             INC    BX
+522E E2FA           LOOP   522A
+5230 59             POP    CX
+5231 C3             RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ obr zku
+; -----------------------------------------------------------------------------
+
+; ------ p©¡prava k zobrazen¡ obr zku
+
+5232 E8A000         CALL   52D5             ; p©¡prava k zobrazen¡/vymaz n¡ obr.
+5235 7201           JB     5238             ; OK
+5237 C3             RET
+
+; ------ p©¡prava k zobrazen¡ linky obr zku
+
+5238 B700         * MOV    BH,00
+523A 8A1E18A7       MOV    BL,[A718]        ; ‡¡slo linky k zobrazen¡
+523E 80C338         ADD    BL,38            ; + po‡ te‡n¡ linka 56
+5241 D1E3           SHL    BX,1
+5243 8B9FB0A4       MOV    BX,[BX+A4B0]     ; adresa linky ve videopamˆti
+5247 C6061BA700     MOV    Byte Ptr [A71B],00
+524C 031E1AA7       ADD    BX,[A71A]        ; p©i‡ten¡ po‡ te‡n¡ pozice obr zku
+5250 8B362AA7       MOV    SI,[A72A]        ; adresa masky obr zku
+5254 8B3E2CA7       MOV    DI,[A72C]        ; adresa obr zku
+
+; ------ zobrazen¡ jedn‚ linky obr zku
+
+5258 B500           MOV    CH,00
+525A 8A0E2FA7       MOV    CL,[A72F]        ; ¨¡©ka v˜©ezu obr zku (bajt–)
+525E 268A07       * MOV    AL,ES:[BX]       ; p–vodn¡ bajt z obrazovky
+5261 2204           AND    AL,[SI]          ; maskov n¡ maskou obr zku
+5263 0A05           OR     AL,[DI]          ; p©id n¡ obr zku
+5265 268807         MOV    ES:[BX],AL       ; ulo‘en¡ nov‚ho bajtu
+5268 43             INC    BX               ; ukazatel adresy videopamˆti
+5269 46             INC    SI               ; ukazatel masky obr zku
+526A 47             INC    DI               ; ukazatel obr zku
+526B E2F1           LOOP   525E             ; dal¨¡ bajt na lince
+
+; ------ p©¡prava k zobrazen¡ dal¨¡ linky
+
+526D FE0E31A7       DEC    Byte Ptr [A731]  ; ‡¡ta‡ linek k zobrazen¡
+5271 7413           JZ     5286             ; konec
+5273 B400           MOV    AH,00
+5275 A026A7         MOV    AL,[A726]        ; ¨¡©ka cel‚ho obr zku (bajt–)
+5278 01062AA7       ADD    [A72A],AX        ; zv˜¨en¡ adresy masky obr zku
+527C 01062CA7       ADD    [A72C],AX        ; zv˜¨en¡ adresy obr zku
+5280 FE0618A7       INC    Byte Ptr [A718]  ; zv˜¨en¡ ‡¡sla linky
+5284 EBB2           JMP    5238
+5286 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    vymaz n¡ obr zku
+; -----------------------------------------------------------------------------
+
+; ------ p©¡prava k vymaz n¡ obr zku
+
+5287 E84B00         CALL   52D5             ; p©¡prava k zobrazen¡/vymaz n¡ obr.
+528A 7201           JB     528D
+528C C3             RET
+
+528D B700           MOV    BH,00
+528F 8A1E18A7       MOV    BL,[A718]
+5293 80C338         ADD    BL,38                         ;'8'
+5296 D1E3           SHL    BX,1
+5298 8B9FB0A4       MOV    BX,[BX+A4B0]
+529C C6061BA700     MOV    Byte Ptr [A71B],00
+52A1 031E1AA7       ADD    BX,[A71A]        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+52A5 8B362AA7       MOV    SI,[A72A]        ; adresa masky zobrazovan‚ho obr zku
+52A9 B500           MOV    CH,00
+52AB 8A0E2FA7       MOV    CL,[A72F]        ; ¨¡©ka v˜©ezu zobrazovan‚ho obr zku (bajt–)
+52AF 268A07         MOV    AL,ES:[BX]
+52B2 2204           AND    AL,[SI]
+52B4 268807         MOV    ES:[BX],AL
+52B7 43             INC    BX
+52B8 46             INC    SI
+52B9 E2F4           LOOP   52AF
+52BB FE0E31A7       DEC    Byte Ptr [A731]
+52BF 7413           JZ     52D4
+52C1 B400           MOV    AH,00
+52C3 A026A7         MOV    AL,[A726]
+52C6 01062AA7       ADD    [A72A],AX        ; adresa masky zobrazovan‚ho obr zku
+52CA 01062CA7       ADD    [A72C],AX        ; adresa zobrazovan‚ho obr zku
+52CE FE0618A7       INC    Byte Ptr [A718]
+52D2 EBB9           JMP    528D
+52D4 C3             RET
+
+; -----------------------------------------------------------------------------
+;    p©¡prava k zobrazen¡/vymaz n¡ obr zku
+; -----------------------------------------------------------------------------
+
+; ------ kontrola sou©adnic
+
+52D5 803E34A790     CMP    Byte Ptr [A734],90 ; max. ‡¡slo linky obr zku 144
+52DA 7307           JNB    52E3             ; velk‚ ‡¡slo linky
+52DC 803E33A7D0     CMP    Byte Ptr [A733],D0 ; max. pozice 208
+52E1 7202           JB     52E5             ; pozice OK
+52E3 F8           * CLC
+52E4 C3             RET
+
+52E5 A032A7       * MOV    AL,[A732]        ; ‡¡slo obr zku
+52E8 B400           MOV    AH,00
+52EA D1E0           SHL    AX,1
+52EC D1E0           SHL    AX,1
+52EE D1E0           SHL    AX,1             ; ‡¡slo obr zku * 8
+52F0 8BD8           MOV    BX,AX
+52F2 8A873000       MOV    AL,[BX+0030]     ; adresa obr zku
+52F6 A221A7         MOV    [A721],AL
+52F9 8A873100       MOV    AL,[BX+0031]
+52FD A222A7         MOV    [A722],AL
+5300 F60633A701     TEST   Byte Ptr [A733],01 ; je lich  pozice ?
+5305 7407           JZ     530E             ; je sud  pozice
+5307 8B873400       MOV    AX,[BX+0034]
+530B EB05           JMP    5312
+530D 90             NOP
+
+530E 8B873200     * MOV    AX,[BX+0032]
+5312 BA0003         MOV    DX,0300
+5315 03D0           ADD    DX,AX
+5317 89162CA7       MOV    [A72C],DX        ; adresa zobrazovan‚ho obr zku
+531B BAF451         MOV    DX,51F4
+531E 03D0           ADD    DX,AX
+5320 89162AA7       MOV    [A72A],DX        ; adresa masky zobrazovan‚ho obr zku
+5324 A034A7         MOV    AL,[A734]        ; ‡¡slo linky k zobrazen¡ obr zku
+5327 A218A7         MOV    [A718],AL
+532A A033A7         MOV    AL,[A733]        ; pozice k zobrazen¡ obr zku
+532D D0E8           SHR    AL,1
+532F A31AA7         MOV    [A71A],AX        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+5332 A021A7         MOV    AL,[A721]
+5335 A231A7         MOV    [A731],AL
+5338 020634A7       ADD    AL,[A734]        ; ‡¡slo linky k zobrazen¡ obr zku
+533C F8             CLC
+533D 1C90           SBB    AL,90
+533F 7204           JB     5345
+5341 280631A7       SUB    [A731],AL
+5345 A022A7         MOV    AL,[A722]
+5348 A226A7         MOV    [A726],AL
+534B A22FA7         MOV    [A72F],AL        ; ¨¡©ka v˜©ezu zobrazovan‚ho obr zku (bajt–)
+534E A01AA7         MOV    AL,[A71A]        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+5351 020622A7       ADD    AL,[A722]
+5355 A222A7         MOV    [A722],AL
+5358 3C68           CMP    AL,68                         ;'h'
+535A 7206           JB     5362
+535C 2C68           SUB    AL,68                         ;'h'
+535E 28062FA7       SUB    [A72F],AL        ; ¨¡©ka v˜©ezu zobrazovan‚ho obr zku (bajt–)
+5362 C60630A700   * MOV    Byte Ptr [A730],00
+5367 803E1AA718     CMP    Byte Ptr [A71A],18 ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+536C 7324           JNB    5392
+536E 803E22A719     CMP    Byte Ptr [A722],19
+5373 7302           JNB    5377
+5375 F8             CLC
+5376 C3             RET
+
+5377 B018         * MOV    AL,18
+5379 2A061AA7       SUB    AL,[A71A]        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+537D B400           MOV    AH,00
+537F 01062AA7       ADD    [A72A],AX        ; adresa masky zobrazovan‚ho obr zku
+5383 01062CA7       ADD    [A72C],AX        ; adresa zobrazovan‚ho obr zku
+5387 28062FA7       SUB    [A72F],AL        ; ¨¡©ka v˜©ezu zobrazovan‚ho obr zku (bajt–)
+538B C6061AA700     MOV    Byte Ptr [A71A],00 ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+5390 F9             STC
+5391 C3             RET
+5392 802E1AA718     SUB    Byte Ptr [A71A],18 ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+5397 F9             STC
+5398 C3             RET
+
+
+5399 FB             STI
+539A B401         * MOV    AH,01
+539C CD10           INT    10
+539E 7407           JZ     53A7
+53A0 B80000         MOV    AX,0000
+53A3 CD10           INT    10
+53A5 EBF3           JMP    539A
+53A7 C3           * RET
+
+53A8 0000           ADD    [BX+SI],AL
+53AA 0000           ADD    [BX+SI],AL
+53AC 0000           ADD    [BX+SI],AL
+53AE 0000           ADD    [BX+SI],AL
+
+; -----------------------------------------------------------------------------
+;    vygenerov n¡ nov‚ hvˆzdy (4. podsc‚na)
+; -----------------------------------------------------------------------------
+
+; ------ test, zda jsou hvˆzdy obsluhov ny
+
+53B0 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+53B5 7501           JNZ    53B8             ; nen¡ zobrazena zemˆ
+53B7 C3           * RET
+53B8 FE064AA7     * INC    Byte Ptr [A74A]  ; ‡¡ta‡ obsluhy hvˆzd
+53BC F6064AA701     TEST   Byte Ptr [A74A],01
+53C1 74F4           JZ     53B7
+
+; ------ zalo‘en¡ definice nov‚ hvˆzdy
+
+53C3 BF0900         MOV    DI,0009          ; ‡¡slo objektu = hvˆzda
+53C6 E84B0B         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+53C9 72EC           JB     53B7             ; tabulka je pln 
+
+; ------ sou©adnice X hvˆzdy
+
+53CB E8920D         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+53CE 247F           AND    AL,7F            ; pozice 0 a‘ 127
+53D0 0440           ADD    AL,40            ; + po‡ tek 64 = pozice 64 a‘ 191
+53D2 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+
+53D6 E8870D       * CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+53D9 2407           AND    AL,07            ; linka 0 a‘ 7
+53DB 3C05           CMP    AL,05            ; je linka OK ?
+53DD 77F7           JA     53D6             ; je velk‚ ‡¡slo linky - znovu
+
+53DF 0413           ADD    AL,13            ; + po‡ tek
+53E1 F68489A680     TEST   Byte Ptr [SI+A689],80 ; je lev  ‡ st ?
+53E6 7502           JNZ    53EA             ; je prav  ‡ st
+53E8 0406           ADD    AL,06            ; korekce pro levou ‡ st
+
+53EA E85D0D       * CALL   614A
+53ED C6848AA636     MOV    Byte Ptr [SI+A68A],36 ; sou©adnice objektu Y (linka)
+53F2 C6848DA638     MOV    Byte Ptr [SI+A68D],38
+53F7 C3             RET
+
+; -----------------------------------------------------------------------------
+;    generov n¡ kosmick‚ lodi a bomb
+; -----------------------------------------------------------------------------
+
+; ------ test, zda je po‘adov no generov n¡ kosmick‚ lodi
+
+53F8 F60669A704     TEST   Byte Ptr [A769],04 ; je mo‘n‚ generovat loƒ ?
+53FD 7501           JNZ    5400             ; nen¡ po‘adov no generov n¡ lodi
+53FF C3           * RET
+5400 803E63A701   * CMP    Byte Ptr [A763],01 ; po‡et zbyl˜ch bran k proletˆn¡
+5405 75F8           JNZ    53FF
+5407 802669A7F7     AND    Byte Ptr [A769],F7 ; zru¨en¡ po‘adavku generov n¡ lodi
+
+; ------ nalezen¡ kosmick‚ lodi v tabulce
+
+540C BE0000         MOV    SI,0000          ; po‡ tek tabulky
+540F B91000         MOV    CX,0010          ; po‡et polo‘ek v tabulce
+5412 80BC88A606   * CMP    Byte Ptr [SI+A688],06 ; typ objektu = kosmick  loƒ ?
+5417 7440           JZ     5459             ; nalezena kosmick  loƒ
+5419 83C608         ADD    SI,+08
+541C E2F4           LOOP   5412
+
+; ------ vygenerov n¡ kosmick‚ lodi
+
+541E BF0600         MOV    DI,0006          ; kosmick  loƒ
+5421 E8F00A         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+5424 72D9           JB     53FF             ; nen¡ voln‚ m¡sto v tabulce
+
+
+5426 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+542B 7423           JZ     5450             ; je zobrazena
+542D E8300D         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5430 A880           TEST   AL,80
+5432 7505           JNZ    5439
+5434 B010           MOV    AL,10
+5436 EB03           JMP    543B
+5438 90             NOP
+
+5439 B00F         * MOV    AL,0F
+543B E80C0D       * CALL   614A
+
+; ------ parametry popisova‡e objektu
+
+543E C68489A680     MOV    Byte Ptr [SI+A689],80 ; pozice objektu X
+5443 C6848AA690     MOV    Byte Ptr [SI+A68A],90 ; linka objektu Y
+5448 A062A7         MOV    AL,[A762]
+544B 88848DA6       MOV    [SI+A68D],AL
+544F C3             RET
+
+5450 E80D0D       * CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5453 2403           AND    AL,03
+5455 0403           ADD    AL,03
+5457 EBE2           JMP    543B
+
+; ------
+
+5459 F6848FA610   * TEST   Byte Ptr [SI+A68F],10
+545E 7501           JNZ    5461
+5460 C3           * RET
+
+; ------ ‡¡ta‡ pro generov n¡ bomb
+
+5461 803E49A700     CMP    Byte Ptr [A749],00 ; je ji‘ mo‘n‚ generovat bomby ?
+5466 7405           JZ     546D             ; je ji‘ mo‘n‚
+5468 FE0E49A7       DEC    Byte Ptr [A749]  ; ‡¡ta‡ generov n¡ bomby
+546C C3             RET
+
+546D 8BC6         * MOV    AX,SI            ; offset definice kosmick‚ lodi
+546F A221A7         MOV    [A721],AL        ; £schova offsetu definice
+5472 A068A7         MOV    AL,[A768]
+5475 A249A7         MOV    [A749],AL
+
+; ------ vygenerov n¡ popisova‡e bomby
+
+5478 80BC8BA602     CMP    Byte Ptr [SI+A68B],02 ; velikost objektu
+547D 72E1           JB     5460             ; mal  velikost
+547F BF0400         MOV    DI,0004          ; objekt = bomba
+5482 E88F0A         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+5485 72D9           JB     5460
+
+5487 B00C           MOV    AL,0C
+5489 E8BE0C         CALL   614A
+
+; ------ kopie parametr– kosmick‚ lodi do parametr– bomby (sou©adnice, ...)
+
+548C 8A1E21A7       MOV    BL,[A721]        ; offset definice kosmick‚ lodi
+5490 B700           MOV    BH,00
+5492 8A878BA6       MOV    AL,[BX+A68B]     ; velikost kosmick‚ lodi
+5496 88848BA6       MOV    [SI+A68B],AL     ; velikost bomby
+549A 8AD8           MOV    BL,AL            ; velikost objektu
+549C 8A8776A7       MOV    AL,[BX+A776]     ;
+54A0 8A1E21A7       MOV    BL,[A721]        ; offset definice kosmick‚ lodi
+54A4 028789A6       ADD    AL,[BX+A689]     ; pozice kosmick‚ lodi X
+54A8 888489A6       MOV    [SI+A689],AL     ; pozice bomby X
+54AC 8A878AA6       MOV    AL,[BX+A68A]     ; sou©adnice kosmick‚ lodi Y
+54B0 88848AA6       MOV    [SI+A68A],AL     ; sou©adnice bomby Y
+54B4 C6848DA620     MOV    Byte Ptr [SI+A68D],20         ;' '
+54B9 B003           MOV    AL,03
+54BB E85013         CALL   680E             ; zvukov  indikace generov n¡ bomby
+54BE C3             RET
+
+; -----------------------------------------------------------------------------
+;    generov n¡ bomb velk‚ho UFO
+; -----------------------------------------------------------------------------
+
+54BF F60669A780     TEST   Byte Ptr [A769],80 ; po‘adavek generovat bomby UFO ?
+54C4 740B           JZ     54D1
+54C6 803E47A700     CMP    Byte Ptr [A747],00 ; ‡¡ta‡ prodlevy pro generov n¡ bomb
+54CB 7405           JZ     54D2             ; je mo‘n‚ generov n¡
+54CD FE0E47A7       DEC    Byte Ptr [A747]  ; ‡¡t n¡ prodlevy pro generov n¡ bomb
+54D1 C3           * RET
+
+; ------ nalezen¡ objektu - velk‚ UFO
+
+54D2 BE1000         MOV    SI,0010
+54D5 80BC88A603   * CMP    Byte Ptr [SI+A688],03 ; typ objektu = velk‚ UFO
+54DA 740C           JZ     54E8             ; nalezeno velk‚ UFO
+54DC 83C608       * ADD    SI,+08
+54DF 81FE8000       CMP    SI,0080
+54E3 75F0           JNZ    54D5
+54E5 EB4C           JMP    5533             ; konec - UFO nenalezeno
+54E7 90             NOP
+
+; ------ test, zda vyvohovuje pozice
+
+54E8 80BC89A628   * CMP    Byte Ptr [SI+A689],28 ; min. pozice objektu 40 ?
+54ED 72ED           JB     54DC             ; p©¡li¨ vlevo
+54EF 80BC89A6D7     CMP    Byte Ptr [SI+A689],D7 ; max. pozice 215 ?
+54F4 73E6           JNB    54DC             ; p©¡li¨ vpravo
+
+; ------ vygenerov n¡ definice bomby velk‚ho UFO
+
+54F6 8BC6           MOV    AX,SI
+54F8 A235A7         MOV    [A735],AL        ; £schova offsetu definice UFO
+54FB BF0400         MOV    DI,0004          ; objekt = bomba
+54FE E8130A         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+5501 72CE           JB     54D1
+
+5503 B00C           MOV    AL,0C
+5505 E8420C         CALL   614A
+
+; ------ generov n¡ parametr– bomby z parametr– UFO
+
+5508 A035A7         MOV    AL,[A735]        ; offset definice UFO
+550B B400           MOV    AH,00
+550D 8BF8           MOV    DI,AX
+550F 8A8589A6       MOV    AL,[DI+A689]     ; pozice objektu X
+5513 0404           ADD    AL,04
+5515 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+5519 8A858AA6       MOV    AL,[DI+A68A]     ; sou©adnice objektu Y
+551D 88848AA6       MOV    [SI+A68A],AL     ; sou©adnice objektu Y
+5521 8A858BA6       MOV    AL,[DI+A68B]     ; velikost objektu (vzd lenost)
+5525 88848BA6       MOV    [SI+A68B],AL     ; velikost objektu (vzd lenost)
+5529 C6848DA680     MOV    Byte Ptr [SI+A68D],80
+552E B003           MOV    AL,03
+5530 E8DB12         CALL   680E             ; zvukov  indikace
+
+5533 A066A7       * MOV    AL,[A766]        ; rychlost generov n¡ bomb UFO
+5536 A247A7         MOV    [A747],AL        ; ‡¡ta‡ pro generov n¡ dal¨¡ bomby
+5539 C3             RET
+
+; -----------------------------------------------------------------------------
+;    generov n¡ bomb br ny
+; -----------------------------------------------------------------------------
+
+; ------ test, zda m  b˜t generov na bomba br ny
+
+553A F60669A760     TEST   Byte Ptr [A769],60 ; po‘adavek generov n¡ bomb br ny
+553F 740B           JZ     554C
+5541 803E48A700     CMP    Byte Ptr [A748],00 ; ‡¡ta‡ generov n¡ bomb br ny
+5546 7405           JZ     554D
+5548 FE0E48A7       DEC    Byte Ptr [A748]
+554C C3           * RET
+
+; ------ nalezen¡ definice br ny
+
+554D BE1000         MOV    SI,0010
+5550 80BC88A601   * CMP    Byte Ptr [SI+A688],01 ; objekt = sloup
+5555 7410           JZ     5567             ; je br na (sloup)
+5557 83C608       * ADD    SI,+08
+555A 81FE8000       CMP    SI,0080
+555E 75F0           JNZ    5550
+5560 A067A7       * MOV    AL,[A767]        ; rychlost generov n¡ bomb br ny
+5563 A248A7         MOV    [A748],AL        ; ‡¡ta‡ pro generov n¡ dal¨¡ bomby
+5566 C3             RET
+
+; ------ test, zda je br na vzd len 
+
+5567 8BC6         * MOV    AX,SI
+5569 A235A7         MOV    [A735],AL        ; £schova offsetu definice br ny
+556C 80BC8BA607     CMP    Byte Ptr [SI+A68B],07 ; velikost objektu (vzd lenost)
+5571 73E4           JNB    5557             ; je p©¡li¨ vzd len  br na
+
+; ------
+
+5573 E8EA0B         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5576 D0E8           SHR    AL,1
+5578 735A           JNB    55D4
+
+
+557A F60669A720     TEST   Byte Ptr [A769],20            ;' '
+557F 74D6           JZ     5557
+5581 F6848FA608     TEST   Byte Ptr [SI+A68F],08
+5586 7505           JNZ    558D
+5588 B00E         * MOV    AL,0E
+558A EB03           JMP    558F
+558C 90             NOP
+558D B00D         * MOV    AL,0D
+558F A234A7       * MOV    [A734],AL        ; ‡¡slo linky k zobrazen¡ obr zku
+
+; ------ vygenerov n¡ bomby z br ny
+
+5592 BF0800         MOV    DI,0008          ; bomba br ny
+5595 E87C09         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+5598 72C6           JB     5560
+
+; ------ generov n¡ parametr– bomby podle parametr– br ny
+
+559A A034A7         MOV    AL,[A734]        ; ‡¡slo linky k zobrazen¡ obr zku
+559D E8AA0B         CALL   614A
+55A0 A035A7         MOV    AL,[A735]        ; offset definice br ny
+55A3 B400           MOV    AH,00
+55A5 8BF8           MOV    DI,AX
+55A7 8A8589A6       MOV    AL,[DI+A689]     ; pozice objektu X
+55AB 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+55AF 8A858AA6       MOV    AL,[DI+A68A]     ; sou©adnice objektu Y
+55B3 0410           ADD    AL,10
+55B5 88848AA6       MOV    [SI+A68A],AL     ; sou©adnice objektu Y
+55B9 8A858BA6       MOV    AL,[DI+A68B]     ; velikost objektu (vzd lenost)
+55BD 88848BA6       MOV    [SI+A68B],AL     ; velikost objektu (vzd lenost)
+55C1 C6848DA680     MOV    Byte Ptr [SI+A68D],80
+55C6 B004           MOV    AL,04
+55C8 E84312         CALL   680E             ; zvukov  indikace
+55CB A035A7         MOV    AL,[A735]        ; offset definice br ny
+55CE B400           MOV    AH,00
+55D0 8BF0           MOV    SI,AX
+55D2 EB83           JMP    5557             ; dal¨¡ objekt
+
+55D4 F60669A740     TEST   Byte Ptr [A769],40            ;'@'
+55D9 7503           JNZ    55DE
+55DB E979FF         JMP    5557             ; dal¨¡ objekt
+55DE F6848FA608   * TEST   Byte Ptr [SI+A68F],08
+55E3 75A3           JNZ    5588
+55E5 EBA6           JMP    558D
+
+; -----------------------------------------------------------------------------
+;    vygenerov n¡ velk‚ho UFO
+; -----------------------------------------------------------------------------
+
+55E7 F60669A710     TEST   Byte Ptr [A769],10 ; po‘adavek generov n¡ velk‚ho UFO
+55EC 740B           JZ     55F9
+55EE 803E44A700     CMP    Byte Ptr [A744],00 ; ‡¡ta‡ prodlevy generov n¡ UFO
+55F3 7405           JZ     55FA             ; je OK
+55F5 FE0E44A7       DEC    Byte Ptr [A744]  ; ‡¡t n¡ prodlevy
+55F9 C3           * RET
+
+; ------ vygenerov n¡ velk‚ho UFO
+
+55FA BF0300         MOV    DI,0003          ; velk‚ UFO
+55FD E81409         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+5600 72F7           JB     55F9
+
+; ------ stanoven¡ parametr– velk‚ho UFO
+
+5602 E85B0B         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5605 240A           AND    AL,0A
+5607 E8400B         CALL   614A
+560A C6848BA608     MOV    Byte Ptr [SI+A68B],08 ; velikost objektu (vzd lenost)
+560F E84E0B         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5612 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+5616 A061A7         MOV    AL,[A761]        ;
+5619 88848DA6       MOV    [SI+A68D],AL
+561D A060A7         MOV    AL,[A760]        ;
+5620 A244A7         MOV    [A744],AL
+5623 C3             RET
+
+; -----------------------------------------------------------------------------
+;    inicializace programu
+; -----------------------------------------------------------------------------
+
+; ------ vypnut¡ zvukov‚ho gener toru
+
+5624 E461           IN     AL,61
+5626 24FC           AND    AL,FC
+5628 E661           OUT    61,AL            ; vypnut¡ zvukov‚ho gener toru
+
+; ------ nastaven¡ barevn‚ palety modr‚
+
+562A B030           MOV    AL,30
+562C BAD903         MOV    DX,03D9
+562F EE             OUT    DX,AL            ; nastaven¡ registru palet CGA
+
+; ------ vymaz n¡ videopamˆti
+
+5630 E8CB03         CALL   59FE             ; vymaz n¡ videopamˆti
+
+5633 B90400         MOV    CX,0004
+5636 BE0000         MOV    SI,0000
+5639 8A8472A7     * MOV    AL,[SI+A772]
+563D 3A846EA7       CMP    AL,[SI+A76E]
+5641 7705           JA     5648
+5643 7214           JB     5659
+5645 46             INC    SI
+5646 E2F1           LOOP   5639
+
+5648 B90400       * MOV    CX,0004
+564B BE0000         MOV    SI,0000
+564E 8A8472A7     * MOV    AL,[SI+A772]
+5652 88846EA7       MOV    [SI+A76E],AL
+5656 46             INC    SI
+5657 E2F5           LOOP   564E
+
+5659 A06EA7       * MOV    AL,[A76E]
+565C 0A066FA7       OR     AL,[A76F]
+5660 0A0670A7       OR     AL,[A770]
+5664 0A0671A7       OR     AL,[A771]
+5668 741A           JZ     5684
+
+; ------ zobrazen¡ dosa‘en‚ho a maxim ln¡ho sk¢re
+
+566A BE32AA         MOV    SI,AA32          ; text "SCORE:"
+566D E8F103         CALL   5A61             ; zobrazen¡ textu DS:SI
+5670 BF72A7         MOV    DI,A772          ; sk¢re v BCD tvaru
+5673 47             INC    DI
+5674 E8C204         CALL   5B39             ; zobrazen¡ ‡¡sla BCD 6 ‡¡slic
+5677 BE3BAA         MOV    SI,AA3B          ; text "HIGH:"
+567A E8E403         CALL   5A61             ; zobrazen¡ textu DS:SI
+567D BF6EA7         MOV    DI,A76E          ; maxim ln¡ sk¢re v BCD tvaru
+5680 47             INC    DI
+5681 E8B504         CALL   5B39             ; zobrazen¡ ‡¡sla BCD 6 ‡¡slic
+
+; ------ inicializace registr– pro novou hru
+
+5684 C6066CA708   * MOV    Byte Ptr [A76C],08 ; rychlost st©¡len¡
+5689 C6066AA703     MOV    Byte Ptr [A76A],03 ; po‡et ‘ivot–
+568E C6066BA700     MOV    Byte Ptr [A76B],00 ; ‡¡slo sc‚ny
+5693 C706D0A7FF00   MOV    Word Ptr [A7D0],00FF
+5699 C60672A700     MOV    Byte Ptr [A772],00
+569E C60673A700     MOV    Byte Ptr [A773],00
+56A3 C60674A700     MOV    Byte Ptr [A774],00
+56A8 C60675A700     MOV    Byte Ptr [A775],00
+56AD C60646A700     MOV    Byte Ptr [A746],00
+56B2 C6063EA710     MOV    Byte Ptr [A73E],10
+56B7 C6063FA7FF     MOV    Byte Ptr [A73F],FF
+
+; ------ zobrazen¡ obr zku "BUCK ROGERS"
+
+56BC BED0B1         MOV    SI,B1D0          ; tituln¡ obr zek
+56BF BA3E00         MOV    DX,003E          ; po‡et linek
+56C2 BF1400         MOV    DI,0014          ; po‡ te‡n¡ linka
+56C5 B93B00       * MOV    CX,003B          ; po‡et bajt– na linku
+56C8 8B9DB0A4       MOV    BX,[DI+A4B0]     ; adresa linky
+56CC 83C30A         ADD    BX,+0A           ; posun linky na pozici
+56CF 8A04         * MOV    AL,[SI]
+56D1 268807         MOV    ES:[BX],AL
+56D4 46             INC    SI
+56D5 43             INC    BX
+56D6 E2F7           LOOP   56CF
+56D8 47             INC    DI
+56D9 47             INC    DI
+56DA 4A             DEC    DX
+56DB 75E8           JNZ    56C5
+
+; ------ zobrazen¡ licen‡n¡ch informac¡ "Copyright"
+
+56DD BEF6A9         MOV    SI,A9F6          ; text "Copyright"
+56E0 E87E03         CALL   5A61             ; zobrazen¡ textu DS:SI
+56E3 BE07AA         MOV    SI,AA07          ; licen‡n¡ informace
+56E6 E87803         CALL   5A61             ; zobrazen¡ textu DS:SI
+
+; ------ vypr zdnˆn¡ bufferu kl vesnice
+
+56E9 FB             STI
+56EA B401         * MOV    AH,01
+56EC CD16           INT    16               ; test kl vesy
+56EE 7406           JZ     56F6             ; nebyla stisknuta
+56F0 B400           MOV    AH,00
+56F2 CD16           INT    16               ; zru¨en¡ znaku z kl vesnice
+56F4 EBF4           JMP    56EA
+
+; ------ test, zda je joystick
+
+56F6 BA0102         MOV    DX,0201          ;
+56F9 FA             CLI
+56FA EE             OUT    DX,AL            ; inicializace portu
+56FB EC           * IN     AL,DX
+56FC 2403           AND    AL,03            ; sou©adnice
+56FE 3C03           CMP    AL,03
+5700 740E           JZ     5710
+5702 FE06DCA8       INC    Byte Ptr [A8DC]  ; ‡¡ta‡ pr–chod–
+5706 75F3           JNZ    56FB
+5708 C606DDA801     MOV    Byte Ptr [A8DD],01 ; p©¡znak, ‘e nen¡ joystick
+570D EB18           JMP    5727
+570F 90             NOP
+
+5710 B91027       * MOV    CX,2710
+5713 EC             IN     AL,DX
+5714 A803           TEST   AL,03
+5716 740A           JZ     5722
+5718 E2F9           LOOP   5713
+571A C606DDA801     MOV    Byte Ptr [A8DD],01
+571F EB06           JMP    5727
+5721 90             NOP
+5722 C606DDA800     MOV    Byte Ptr [A8DD],00
+
+
+5727 FB             STI
+5728 C706CEA70000   MOV    Word Ptr [A7CE],0000
+572E BF0000       * MOV    DI,0000
+5731 BE0000         MOV    SI,0000
+5734 B92000         MOV    CX,0020
+5737 E8B001       * CALL   58EA             ; inicializace
+573A C78580A72820   MOV    Word Ptr [DI+A780],2028
+5740 83C608         ADD    SI,+08
+5743 47             INC    DI
+5744 47             INC    DI
+5745 E2F0           LOOP   5737
+
+5747 BE0000         MOV    SI,0000
+574A 803EDDA800     CMP    Byte Ptr [A8DD],00
+574F EB13           JMP    5764
+
+5751 BA0102         MOV    DX,0201
+5754 EE             OUT    DX,AL
+5755 EC             IN     AL,DX
+5756 2430           AND    AL,30                         ;'0'
+5758 3C30           CMP    AL,30                         ;'0'
+575A 7408           JZ     5764
+575C C6065BA701     MOV    Byte Ptr [A75B],01
+5761 E9BB01         JMP    591F             ; inicializace nov‚ sc‚ny
+
+5764 C606DCA801   * MOV    Byte Ptr [A8DC],01
+
+; ------ vstup znaku z kl vesnice
+
+5769 FA             CLI
+576A 1E             PUSH   DS
+576B B84000         MOV    AX,0040
+576E 8ED8           MOV    DS,AX
+5770 8B1E1A00       MOV    BX,[001A]        ; ‡tec¡ adresa z bufferu kl vesnice
+5774 3B1E1C00       CMP    BX,[001C]        ; je nˆco v bufferu ?
+5778 C6061C001E     MOV    Byte Ptr [001C],1E ; zru¨en¡ obsahu bufferu
+577D C6061A001E     MOV    Byte Ptr [001A],1E ; zru¨en¡ obsahu bufferu
+5782 FB             STI
+5783 746A           JZ     57EF             ; nen¡ nic v bufferu kl vesnice
+5785 E84EF7         CALL   4ED6             ; vstup znaku z kl vesnice+p©eru¨en¡
+5788 25DFFF         AND    AX,FFDF          ; znak
+578B 1F             POP    DS
+
+578C C6065BA700     MOV    Byte Ptr [A75B],00 ; p©¡znak kl vesnice
+5791 8B3ECEA7       MOV    DI,[A7CE]
+5795 3B85C4A7       CMP    AX,[DI+A7C4]
+5799 7551           JNZ    57EC
+579B 47             INC    DI
+579C 47             INC    DI
+579D 893ECEA7       MOV    [A7CE],DI
+57A1 83FF0A         CMP    DI,+0A
+57A4 754A           JNZ    57F0
+
+57A6 B200           MOV    DL,00
+57A8 BF0000         MOV    DI,0000
+57AB B92000         MOV    CX,0020
+57AE 8B9D80A7     * MOV    BX,[DI+A780]
+57B2 268817         MOV    ES:[BX],DL
+57B5 47             INC    DI
+57B6 47             INC    DI
+57B7 E2F5           LOOP   57AE
+
+57B9 BFE0C1         MOV    DI,C1E0
+57BC C706CEA7BA00   MOV    Word Ptr [A7CE],00BA
+57C2 BA2900         MOV    DX,0029
+57C5 8B1ECEA7       MOV    BX,[A7CE]
+57C9 8B9FB0A4       MOV    BX,[BX+A4B0]
+57CD 83C325         ADD    BX,+25
+57D0 B90A00         MOV    CX,000A
+57D3 8A05         * MOV    AL,[DI]
+57D5 268807         MOV    ES:[BX],AL
+57D8 47             INC    DI
+57D9 43             INC    BX
+57DA E2F7           LOOP   57D3
+57DC 4A             DEC    DX
+57DD 7503           JNZ    57E2
+57DF E94CFF         JMP    572E
+
+57E2 FF06CEA7     * INC    Word Ptr [A7CE]
+57E6 FF06CEA7       INC    Word Ptr [A7CE]
+57EA EBD9           JMP    57C5
+
+57EC E93001       * JMP    591F             ; inicializace nov‚ sc‚ny
+
+57EF 1F             POP    DS
+
+; ------ obsluha hvˆzd
+
+57F0 C606DAA800   * MOV    Byte Ptr [A8DA],00
+57F5 8A84D9A7       MOV    AL,[SI+A7D9]
+57F9 0084DBA7       ADD    [SI+A7DB],AL
+57FD 733F           JNB    583E
+57FF C606DAA801     MOV    Byte Ptr [A8DA],01
+5804 B104           MOV    CL,04
+5806 D2E8           SHR    AL,CL
+5808 240E           AND    AL,0E
+580A 7502           JNZ    580E
+580C B002           MOV    AL,02
+580E 0284D9A7       ADD    AL,[SI+A7D9]
+5812 7204           JB     5818
+5814 8884D9A7       MOV    [SI+A7D9],AL
+5818 F684D9A701     TEST   Byte Ptr [SI+A7D9],01
+581D 7411           JZ     5830
+581F 80BCD6A700     CMP    Byte Ptr [SI+A7D6],00
+5824 7503           JNZ    5829
+5826 E9BC00         JMP    58E5
+5829 FE8CD6A7       DEC    Byte Ptr [SI+A7D6]
+582D EB0F           JMP    583E
+582F 90             NOP
+5830 80BCD6A74F     CMP    Byte Ptr [SI+A7D6],4F         ;'O'
+5835 7503           JNZ    583A
+5837 E9AB00         JMP    58E5
+583A FE84D6A7       INC    Byte Ptr [SI+A7D6]
+583E 8A84DAA7     * MOV    AL,[SI+A7DA]
+5842 0084DCA7       ADD    [SI+A7DC],AL
+5846 7339           JNB    5881
+5848 C606DAA801     MOV    Byte Ptr [A8DA],01
+584D B104           MOV    CL,04
+584F D2E8           SHR    AL,CL
+5851 240E           AND    AL,0E
+5853 7502           JNZ    5857
+5855 B002           MOV    AL,02
+5857 0284DAA7       ADD    AL,[SI+A7DA]
+585B 7204           JB     5861
+585D 8884DAA7       MOV    [SI+A7DA],AL
+5861 F684DAA701     TEST   Byte Ptr [SI+A7DA],01
+5866 740E           JZ     5876
+5868 80BCD8A700     CMP    Byte Ptr [SI+A7D8],00
+586D 7476           JZ     58E5
+586F FE8CD8A7       DEC    Byte Ptr [SI+A7D8]
+5873 EB0C           JMP    5881
+5875 90             NOP
+5876 80BCD8A763     CMP    Byte Ptr [SI+A7D8],63         ;'c'
+587B 7468           JZ     58E5
+587D FE84D8A7       INC    Byte Ptr [SI+A7D8]
+5881 803EDAA800   * CMP    Byte Ptr [A8DA],00
+5886 7453           JZ     58DB
+5888 8A9CD8A7       MOV    BL,[SI+A7D8]
+588C B700           MOV    BH,00
+588E D1E3           SHL    BX,1
+5890 D1E3           SHL    BX,1
+5892 8B9FB0A4       MOV    BX,[BX+A4B0]
+5896 8A84D6A7       MOV    AL,[SI+A7D6]
+589A B400           MOV    AH,00
+589C 03D8           ADD    BX,AX
+589E 268A17         MOV    DL,ES:[BX]
+58A1 80FA00         CMP    DL,00
+58A4 7529           JNZ    58CF
+58A6 8A94D9A7       MOV    DL,[SI+A7D9]
+58AA 80E203         AND    DL,03
+58AD 80FA00         CMP    DL,00
+58B0 7402           JZ     58B4
+58B2 B203           MOV    DL,03
+58B4 268817         MOV    ES:[BX],DL
+58B7 8BFE           MOV    DI,SI
+58B9 D1EF           SHR    DI,1
+58BB D1EF           SHR    DI,1
+58BD 8B8580A7       MOV    AX,[DI+A780]
+58C1 899D80A7       MOV    [DI+A780],BX
+58C5 8BD8           MOV    BX,AX
+58C7 B200           MOV    DL,00
+58C9 268817         MOV    ES:[BX],DL
+58CC EB0D           JMP    58DB
+58CE 90             NOP
+58CF 8BFE           MOV    DI,SI
+58D1 D1EF           SHR    DI,1
+58D3 D1EF           SHR    DI,1
+58D5 8B8580A7       MOV    AX,[DI+A780]
+58D9 EBEA           JMP    58C5
+58DB 83C608         ADD    SI,+08
+58DE 81E6FF00       AND    SI,00FF
+58E2 E965FE         JMP    574A
+
+58E5 E80200         CALL   58EA             ; inicializace programu
+58E8 EBF1           JMP    58DB
+
+; -----------------------------------------------------------------------------
+;    inicializace
+; -----------------------------------------------------------------------------
+
+58EA C684D6A728     MOV    Byte Ptr [SI+A7D6],28         ;'('
+58EF C684D7A700     MOV    Byte Ptr [SI+A7D7],00
+58F4 C684D8A732     MOV    Byte Ptr [SI+A7D8],32         ;'2'
+58F9 E86408         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt) ;
+58FC 243F           AND    AL,3F                         ;'?'
+58FE 0C06           OR     AL,06
+5900 8884D9A7       MOV    [SI+A7D9],AL
+5904 E85908         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt) ;
+5907 243F           AND    AL,3F                         ;'?'
+5909 0C06           OR     AL,06
+590B 8884DAA7       MOV    [SI+A7DA],AL
+590F C684DBA700     MOV    Byte Ptr [SI+A7DB],00
+5914 C684DCA700     MOV    Byte Ptr [SI+A7DC],00
+5919 C684DDA700     MOV    Byte Ptr [SI+A7DD],00
+591E C3             RET
+
+; -----------------------------------------------------------------------------
+;    inicializace nov‚ sc‚ny
+; -----------------------------------------------------------------------------
+
+; ------ zobrazen¡ textu o pou‘it¡ kl vesnice/joysticku
+
+591F 803E5BA700     CMP    Byte Ptr [A75B],00 ; obsluha kl vesnic¡ ?
+5924 7506           JNZ    592C             ; nen¡ kl vesnice
+5926 BE54AA         MOV    SI,AA54          ; text - "using keyboard"
+5929 EB04           JMP    592F
+592B 90             NOP
+592C BE43AA       * MOV    SI,AA43          ; text - "Using joystick"
+592F E82F01       * CALL   5A61             ; zobrazen¡ textu DS:SI
+
+; ------ prodleva
+
+5932 B9F401         MOV    CX,01F4
+5935 B000           MOV    AL,00
+5937 FEC0         * INC    AL
+5939 75FC           JNZ    5937
+593B E2FA           LOOP   5937
+
+; ------ kalibrace joysticku
+
+593D 803E5BA700     CMP    Byte Ptr [A75B],00 ; je kl vesnice ?
+5942 740F           JZ     5953             ; je kl vesnice
+5944 803EDBA800     CMP    Byte Ptr [A8DB],00 ; je joystick kalibrov n ?
+5949 7508           JNZ    5953             ; byl ji‘ kalibrov n
+594B E8020F         CALL   6850             ; kalibrace joysticku
+594E C606DBA801     MOV    Byte Ptr [A8DB],01 ; p©¡znak kalibrace joysticku
+
+; ------ omezen¡ ‡¡sla sc‚ny
+
+5953 803E6BA714   * CMP    Byte Ptr [A76B],14 ; ‡¡slo sc‚ny
+5958 7205           JB     595F             ; ‡¡slo sc‚ny OK
+595A 802E6BA704     SUB    Byte Ptr [A76B],04 ; ‡¡slo sc‚ny
+
+; ------ sestaven¡ defini‡n¡ tabulky sc‚ny
+
+595F B00E         * MOV    AL,0E            ; d‚lka tabulky sc‚ny
+5961 F6266BA7       MUL    Byte Ptr [A76B]  ; ‡¡slo sc‚ny
+5965 05DEA8         ADD    AX,A8DE
+5968 BF0000         MOV    DI,0000
+596B 8BF0           MOV    SI,AX
+596D B10E           MOV    CL,0E
+596F B500           MOV    CH,00
+5971 8A04         * MOV    AL,[SI]
+5973 88855CA7       MOV    [DI+A75C],AL
+5977 46             INC    SI
+5978 47             INC    DI
+5979 E2F6           LOOP   5971
+
+; ------ nov  sekce - palivo na maximum
+
+597B A06BA7         MOV    AL,[A76B]        ; ‡¡slo sc‚ny
+597E 2403           AND    AL,03
+5980 750F           JNZ    5991             ; nen¡ nov  sekce
+5982 C6064EA778     MOV    Byte Ptr [A74E],78 ; z soba paliva - bajt 2
+5987 C6064CA700     MOV    Byte Ptr [A74C],00 ; z soba paliva - bajt 0
+598C C6064DA700     MOV    Byte Ptr [A74D],00 ; z soba paliva - bajt 1
+5991 C6063FA7FF   * MOV    Byte Ptr [A73F],FF
+5996 EB06           JMP    599E
+5998 90             NOP
+
+5999 C6063FA700     MOV    Byte Ptr [A73F],00
+599E E84C00       * CALL   59ED             ; zobrazen¡ £vodu k sc‚nˆ
+
+59A1 C6065AA75C     MOV    Byte Ptr [A75A],5C ; poloha letadla vertik lnˆ
+59A6 C60659A770     MOV    Byte Ptr [A759],70 ; poloha letadla horizont lnˆ
+59AB E81209         CALL   62C0             ; zobrazen¡ po‡tu ‘ivot–
+59AE E8E3F5         CALL   4F94             ; zobrazen¡ zbyl‚ho paliva
+59B1 B01E           MOV    AL,1E
+59B3 A258A7         MOV    [A758],AL        ; rychlost letu (30 a‘ 120)
+59B6 C60657A700     MOV    Byte Ptr [A757],00
+59BB C60645A700     MOV    Byte Ptr [A745],00
+59C0 C60656A701     MOV    Byte Ptr [A756],01
+59C5 C60655A700     MOV    Byte Ptr [A755],00
+59CA C60654A700     MOV    Byte Ptr [A754],00
+59CF C60653A700     MOV    Byte Ptr [A753],00
+59D4 C60643A700     MOV    Byte Ptr [A743],00
+
+; ------ vymaz n¡ tabulky objekt–
+
+59D9 BE0000         MOV    SI,0000
+59DC B98000         MOV    CX,0080
+59DF C68488A600   * MOV    Byte Ptr [SI+A688],00 ; zru¨en¡ objektu z tabulky
+59E4 46             INC    SI
+59E5 E2F8           LOOP   59DF
+
+; ------ zobrazen¡ celkov‚ho po‡tu bran k proletˆn¡
+
+59E7 E8C603         CALL   5DB0             ; zobrazen¡ po‡tu zbyl˜ch bran
+59EA E93AF5         JMP    4F27
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ £vodu k sc‚nˆ
+; -----------------------------------------------------------------------------
+
+59ED E80E00         CALL   59FE             ; vymaz n¡ videopamˆti
+59F0 E89F00         CALL   5A92             ; zobrazen¡ £vodu k sc‚nˆ
+59F3 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+59F8 7503           JNZ    59FD             ; nen¡ zobrazena zemˆ
+59FA E8E9F6         CALL   50E6             ; zobrazen¡ pozad¡ sc‚ny (reli‚f)
+59FD C3           * RET
+
+; -----------------------------------------------------------------------------
+;    vymaz n¡ videopamˆti
+; -----------------------------------------------------------------------------
+
+59FE B90020         MOV    CX,2000          ; d‚lka
+5A01 B80000         MOV    AX,0000          ; nulovac¡ slovo
+5A04 8BD9           MOV    BX,CX
+5A06 D1E3           SHL    BX,1
+5A08 268907         MOV    ES:[BX],AX
+5A0B E2F7           LOOP   5A04
+5A0D C3             RET
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+
+5A0E A05CA7         MOV    AL,[A75C]
+5A11 D0E8           SHR    AL,1
+5A13 7502           JNZ    5A17
+5A15 B001           MOV    AL,01
+
+5A17 8AD0         * MOV    DL,AL
+5A19 F60636A780     TEST   Byte Ptr [A736],80 ; povel vpravo ?
+5A1E 7424           JZ     5A44             ; posun vpravo
+5A20 F60636A710     TEST   Byte Ptr [A736],10 ; povel vlevo ?
+5A25 742B           JZ     5A52             ; posun vlevo
+
+; ------ smˆr p©¡m˜
+
+5A27 A055A7         MOV    AL,[A755]
+5A2A A880           TEST   AL,80
+5A2C 740B           JZ     5A39
+5A2E 02C2           ADD    AL,DL
+5A30 A880           TEST   AL,80
+5A32 7529           JNZ    5A5D
+5A34 B000           MOV    AL,00
+5A36 EB25           JMP    5A5D
+5A38 90             NOP
+5A39 2AC2           SUB    AL,DL
+5A3B A880           TEST   AL,80
+5A3D 741E           JZ     5A5D
+5A3F B000           MOV    AL,00
+5A41 EB1A           JMP    5A5D
+5A43 90             NOP
+
+; ------ posun vpravo
+
+5A44 A055A7       * MOV    AL,[A755]
+5A47 2A065CA7       SUB    AL,[A75C]
+5A4B 7110           JNO    5A5D
+5A4D B080           MOV    AL,80
+5A4F EB0C           JMP    5A5D
+5A51 90             NOP
+
+; ------ posun vlevo
+
+5A52 A055A7         MOV    AL,[A755]
+5A55 02065CA7       ADD    AL,[A75C]
+5A59 7102           JNO    5A5D
+5A5B B07F           MOV    AL,7F
+5A5D A255A7         MOV    [A755],AL
+5A60 C3             RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ textu DS:SI (1. slovo = pozice a © dek)
+; -----------------------------------------------------------------------------
+
+5A61 B401           MOV    AH,01
+5A63 B560           MOV    CH,60
+5A65 CD10           INT    10               ; nastaven¡ velikosti kurzoru
+5A67 B402           MOV    AH,02
+5A69 8A14           MOV    DL,[SI]          ; pozice
+5A6B 46             INC    SI
+5A6C 8A34           MOV    DH,[SI]          ; © dek
+5A6E B700           MOV    BH,00            ; str nka 0
+5A70 CD10           INT    10               ; nastaven¡ pozice kurzoru
+5A72 B409           MOV    AH,09
+5A74 B700           MOV    BH,00            ; str nka 0
+5A76 B90100         MOV    CX,0001          ; 1 znak k zobrazen¡
+5A79 46             INC    SI
+5A7A 8A04           MOV    AL,[SI]          ; znak k zobrazen¡
+5A7C B30F           MOV    BL,0F            ; barva textu
+5A7E 3CFF         * CMP    AL,FF
+5A80 740F           JZ     5A91             ; konec textu
+5A82 CD10           INT    10               ; zobrazen¡ znaku
+5A84 FEC2           INC    DL               ; zv˜¨en¡ pozice na © dku
+5A86 B402           MOV    AH,02
+5A88 CD10           INT    10               ; nastaven¡ pozice kurzoru
+5A8A 46             INC    SI
+5A8B 8A04           MOV    AL,[SI]          ; znak k zobrazen¡
+5A8D B409           MOV    AH,09
+5A8F EBED           JMP    5A7E
+5A91 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ £vodu k sc‚nˆ
+; -----------------------------------------------------------------------------
+
+; ------ vymaz n¡ videopamˆti
+
+5A92 803E3FA700     CMP    Byte Ptr [A73F],00
+5A97 7501           JNZ    5A9A
+5A99 C3             RET
+5A9A E861FF       * CALL   59FE             ; vymaz n¡ videopamˆti
+
+; ------ zobrazen¡ textu "Sector"
+
+5A9D BE20AA         MOV    SI,AA20
+5AA0 E8BEFF         CALL   5A61             ; zobrazen¡ textu DS:SI
+
+; ------ zobrazen¡ ‡¡sla sc‚ny
+
+5AA3 B402           MOV    AH,02
+5AA5 B60A           MOV    DH,0A
+5AA7 B212           MOV    DL,12
+5AA9 B700           MOV    BH,00
+5AAB FB             STI
+5AAC CD10           INT    10               ; nastaven¡ kurzoru
+5AAE A03EA7         MOV    AL,[A73E]        ; ‡¡slo sc‚ny a podsc‚ny
+5AB1 27             DAA
+5AB2 B104           MOV    CL,04
+5AB4 F8             CLC
+5AB5 D2E8           SHR    AL,CL
+5AB7 0430           ADD    AL,30                         ;'0'
+5AB9 B30F           MOV    BL,0F
+5ABB E86F00         CALL   5B2D             ; zobrazen¡ znaku na pozici kurzoru
+
+; ------ oddˆlovac¡ te‡ka
+
+5ABE B402           MOV    AH,02
+5AC0 FEC2           INC    DL
+5AC2 CD10           INT    10               ; nastaven¡ kurzoru
+5AC4 B02E           MOV    AL,2E            ; oddˆlovac¡ te‡ka
+5AC6 E86400         CALL   5B2D             ; zobrazen¡ znaku na pozici kurzoru
+
+; ------ zobrazen¡ ‡¡sla podsc‚ny
+
+5AC9 B402           MOV    AH,02
+5ACB FEC2           INC    DL
+5ACD CD10           INT    10
+5ACF A03EA7         MOV    AL,[A73E]        ; ‡¡slo sc‚ny a podsc‚ny
+5AD2 27             DAA
+5AD3 240F           AND    AL,0F
+5AD5 0430           ADD    AL,30                         ;'0'
+5AD7 E85300         CALL   5B2D             ; zobrazen¡ znaku na pozici kurzoru
+
+; ------ uvodn¡ znˆlka p©i startu sc‚ny
+
+5ADA C706C0A7C800   MOV    Word Ptr [A7C0],00C8 ; po‡et t¢n–
+5AE0 C706C2A7B80B   MOV    Word Ptr [A7C2],0BB8 ; po‡ te‡n¡ t¢n
+
+5AE6 FA             CLI
+5AE7 8B36C2A7     * MOV    SI,[A7C2]        ; kmito‡et
+5AEB B90008         MOV    CX,0800          ; d‚lka
+5AEE E82700         CALL   5B18             ; t¢n (konstanta SI, d‚lka CX)
+5AF1 BE1027         MOV    SI,2710
+5AF4 2B36C2A7       SUB    SI,[A7C2]
+5AF8 B90008         MOV    CX,0800
+5AFB E81A00         CALL   5B18             ; t¢n (konstanta SI, d‚lka CX)
+5AFE A1C2A7         MOV    AX,[A7C2]
+5B01 052000         ADD    AX,0020
+5B04 A3C2A7         MOV    [A7C2],AX
+5B07 FF0EC0A7       DEC    Word Ptr [A7C0]  ; ‡¡ta‡ t¢n–
+5B0B 75DA           JNZ    5AE7             ; dal¨¡ t¢n
+5B0D FB             STI
+
+; ------ vypnut¡ zvukov‚ho gener toru
+
+5B0E E461           IN     AL,61
+5B10 24FC           AND    AL,FC
+5B12 E661           OUT    61,AL            ; vypnut¡ zvukov‚ho gener toru
+5B14 E8E7FE         CALL   59FE             ; vymaz n¡ videopamˆti
+5B17 C3             RET
+
+; -----------------------------------------------------------------------------
+;    t¢n (konstanta SI, d‚lka CX)
+; -----------------------------------------------------------------------------
+
+5B18 E461           IN     AL,61
+5B1A 0C03           OR     AL,03
+5B1C E661           OUT    61,AL            ; zapnut¡ v˜stupu na reproduktor
+5B1E B0B6           MOV    AL,B6
+5B20 E643           OUT    43,AL            ; povel pro nastaven¡ ‡¡ta‡e
+5B22 8BC6           MOV    AX,SI
+5B24 E642           OUT    42,AL                         ;'B'
+5B26 8AC4           MOV    AL,AH
+5B28 E642           OUT    42,AL                         ;'B'
+5B2A E2FE         * LOOP   5B2A             ; prodleva
+5B2C C3             RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ znaku na pozici kurzoru
+; -----------------------------------------------------------------------------
+
+5B2D 50             PUSH   AX
+5B2E 51             PUSH   CX
+5B2F B409           MOV    AH,09
+5B31 B90100         MOV    CX,0001
+5B34 CD10           INT    10               ; zobrazen¡ znaku na pozici kurzoru
+5B36 59             POP    CX
+5B37 58             POP    AX
+5B38 C3             RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ ‡¡sla BCD 6 ‡¡slic
+; -----------------------------------------------------------------------------
+
+5B39 B90300         MOV    CX,0003          ; po‡et p r– ‡¡sel
+5B3C 8A05         * MOV    AL,[DI]          ; vy¨¨¡ ‡¡slice
+5B3E D0E8           SHR    AL,1
+5B40 D0E8           SHR    AL,1
+5B42 D0E8           SHR    AL,1
+5B44 D0E8           SHR    AL,1
+5B46 0430           ADD    AL,30            ; korekce na znak ASCII
+5B48 E8E2FF         CALL   5B2D             ; zobrazen¡ znaku na pozici kurzoru
+5B4B B402           MOV    AH,02
+5B4D FEC2           INC    DL
+5B4F CD10           INT    10               ; nastaven¡ nov‚ pozice kurzoru
+5B51 8A05           MOV    AL,[DI]          ; ‡¡slo
+5B53 240F           AND    AL,0F            ; ni‘¨¡ ‡¡slice
+5B55 0430           ADD    AL,30            ; korekce na znak ASCII
+5B57 E8D3FF         CALL   5B2D             ; zobrazen¡ znaku na pozici kurzoru
+5B5A B402           MOV    AH,02
+5B5C FEC2           INC    DL
+5B5E CD10           INT    10               ; nastaven¡ pozice kurzoru
+5B60 47             INC    DI
+5B61 E2D9           LOOP   5B3C             ; dal¨¡ dvojice
+5B63 C3             RET
+
+
+5B64 0000           ADD    [BX+SI],AL
+5B66 0000           ADD    [BX+SI],AL
+5B68 0000           ADD    [BX+SI],AL
+5B6A 0000           ADD    [BX+SI],AL
+5B6C 0000           ADD    [BX+SI],AL
+5B6E 0000           ADD    [BX+SI],AL
+
+; ------ adresy obsluh
+
+5B70                dw     5c63             ; 0
+5B72                dw     5c5a             ; 1:
+5B74                dw     5c43             ; 2
+5B76                dw     5c72             ; 3
+5B78                dw     5c7c             ; 4
+5B7A                dw     5c51             ; 5
+5B7C                dw     5cf7             ; 6
+5B7E                dw     5d97             ; 7
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ v¨ech objekt–
+; -----------------------------------------------------------------------------
+
+5B80 B80000       * MOV    AX,0000
+5B83 BF0000         MOV    DI,0000
+5B86 B91000         MOV    CX,0010
+5B89 C6061EA7FF     MOV    Byte Ptr [A71E],FF ; linka nalezen‚ho objektu
+5B8E C6061FA700     MOV    Byte Ptr [A71F],00 ; p©¡znak nalezen¡ objektu k zobr.
+
+; ------ nalezen¡ nejvzd lenˆj¨¡ho objektu k zobrazen¡
+
+5B93 80BD88A600   * CMP    Byte Ptr [DI+A688],00 ; typ objektu =
+5B98 7421           JZ     5BBB
+5B9A F6858FA680     TEST   Byte Ptr [DI+A68F],80 ; po‘aduje se zobrazen¡ ?
+5B9F 751A           JNZ    5BBB             ; nepo‘aduje se
+5BA1 C6061FA7FF     MOV    Byte Ptr [A71F],FF ; p©¡znak nalezen¡ objektu k zobr.
+5BA6 A01EA7         MOV    AL,[A71E]        ; linka dosud nalezen‚ho objektu
+5BA9 3A858AA6       CMP    AL,[DI+A68A]     ; je tento objekt vzd lenˆj¨¡ ?
+5BAD 720C           JB     5BBB             ; nen¡ vzd lenˆj¨¡
+5BAF 8A858AA6       MOV    AL,[DI+A68A]     ; linka Y nov‚ho objektu
+5BB3 A21EA7         MOV    [A71E],AL        ; £schova linky objektu
+5BB6 8BC7           MOV    AX,DI
+5BB8 A220A7         MOV    [A720],AL        ; £schova offsetu objektu
+5BBB 83C708       * ADD    DI,+08
+5BBE E2D3           LOOP   5B93             ; dal¨¡ objekt
+
+; ------ test, zda byl nalezen nˆjak˜ objekt k zobrazen¡
+
+5BC0 803E1FA700     CMP    Byte Ptr [A71F],00 ; byl nalezen nˆjak˜ objekt ?
+5BC5 7511           JNZ    5BD8             ; byl nalezen nˆjak˜ objekt
+
+; ------ jinak opˆt nulov n¡ v¨ech p©¡znak– zobrazen¡ objekt–
+
+5BC7 BF0000         MOV    DI,0000
+5BCA B91000         MOV    CX,0010
+5BCD 80A58FA67F   * AND    Byte Ptr [DI+A68F],7F ; nulov n¡ p©¡znaku zobrazen¡
+5BD2 83C708         ADD    DI,+08
+5BD5 E2F6           LOOP   5BCD
+5BD7 C3             RET
+
+; ------ vymaz n¡ star‚ho obr zku objektu
+
+5BD8 A020A7       * MOV    AL,[A720]        ; offset objektu k zobrazen¡
+5BDB B400           MOV    AH,00
+5BDD 8BF8           MOV    DI,AX
+5BDF 808D8FA680     OR     Byte Ptr [DI+A68F],80 ; p©¡znak zobrazen¡ objektu
+5BE4 E86A03         CALL   5F51             ; p©¡prava k zobrazen¡ objektu
+5BE7 7303           JNB    5BEC             ; nebude zobrazen - je p©¡li¨ daleko
+5BE9 E89BF6         CALL   5287             ; vymaz n¡ obr zku
+
+; ------
+
+5BEC A020A7       * MOV    AL,[A720]        ; offset definice objektu k zobraz.
+5BEF B400           MOV    AH,00
+5BF1 8BF0           MOV    SI,AX
+5BF3 E88503         CALL   5F7B             ; þ
+5BF6 7212           JB     5C0A
+
+; ------ zobrazen¡ objektu
+
+5BF8 A020A7         MOV    AL,[A720]        ; offset definice objektu
+5BFB B400           MOV    AH,00
+5BFD 8BF8           MOV    DI,AX
+5BFF E84F03         CALL   5F51             ; p©¡prava k zobrazen¡ objektu
+5C02 7303           JNB    5C07             ; objekt se nebude zobrazovat
+5C04 E82BF6         CALL   5232             ; zobrazen¡ obr zku objektu
+5C07 E976FF       * JMP    5B80             ; zobrazen¡ dal¨¡ho objektu
+
+; ------ zru¨en¡ objektu z tabulky
+
+5C0A A020A7         MOV    AL,[A720]        ; offset definice objektu
+5C0D B400           MOV    AH,00
+5C0F 8BF8           MOV    DI,AX
+5C11 C68588A600     MOV    Byte Ptr [DI+A688],00 ; zru¨en¡ objektu z tabulky
+5C16 E967FF         JMP    5B80             ; zobrazen¡ dal¨¡ho objektu
+
+; ------ skok na obsluhu objektu
+
+5C19 FF8540A6       INC    Word Ptr [DI+A640] ; zv˜¨en¡ ukazatele objekt–
+
+5C1D 8B9D40A6     * MOV    BX,[DI+A640]     ; ukazatel objekt–
+5C21 8A1F           MOV    BL,[BX]          ; ‡¡slo objektu
+5C23 F6C380         TEST   BL,80            ;
+5C26 7466           JZ     5C8E
+5C28 80E37F       * AND    BL,7F            ; ‡¡slo objektu
+5C2B 80FB08         CMP    BL,08
+5C2E 73F8           JNB    5C28             ; CHYBA !?!?!?
+5C30 D0E3           SHL    BL,1
+5C32 B700           MOV    BH,00
+5C34 2E8B87705B     MOV    AX,CS:[BX+5B70]  ; adresa obsluhy objektu
+5C39 8A1E20A7       MOV    BL,[A720]        ; offset definice objektu
+5C3D B700           MOV    BH,00
+5C3F 8BF3           MOV    SI,BX            ; offset definice objektu
+5C41 FFE0           JMP    AX               ; skok na obsluhu objektu
+
+; ------ 2: UFO
+
+5C43 80BC88A601     CMP    Byte Ptr [SI+A688],01 ; typ objektu = sloup ?
+5C48 7505           JNZ    5C4F
+5C4A C60645A700     MOV    Byte Ptr [A745],00
+5C4F F9           * STC
+5C50 C3             RET
+
+; ------ 5: st©ela
+
+5C51 E8EE02         CALL   5F42             ; dal¨¡ objekt
+5C54 88848DA6       MOV    [SI+A68D],AL
+5C58 EBC3           JMP    5C1D
+
+; ------ 1: sloup
+
+5C5A E8E502         CALL   5F42             ; dal¨¡ objekt
+5C5D 888488A6       MOV    [SI+A688],AL     ; typ objektu =
+5C61 EBBA           JMP    5C1D
+
+; ------ 0:
+
+5C63 E8DC02         CALL   5F42             ; dal¨¡ objekt
+5C66 8B9D40A6       MOV    BX,[DI+A640]
+5C6A 8A27           MOV    AH,[BX]
+5C6C 898540A6       MOV    [DI+A640],AX
+5C70 EBAB           JMP    5C1D
+
+; ------ 2: disk
+
+5C72 8B8540A6       MOV    AX,[DI+A640]
+5C76 898560A6       MOV    [DI+A660],AX
+5C7A EBE7           JMP    5C63
+
+; ------ 4: bomba
+
+5C7C 8B8560A6       MOV    AX,[DI+A660]
+5C80 898540A6       MOV    [DI+A640],AX
+5C84 FF8540A6       INC    Word Ptr [DI+A640]
+5C88 FF8540A6       INC    Word Ptr [DI+A640]
+5C8C EB8B           JMP    5C19             ;
+
+
+
+
+5C8E 889C8EA6     * MOV    [SI+A68E],BL
+5C92 FF8540A6       INC    Word Ptr [DI+A640]
+
+; ------ p©¡znakov‚ slovo objektu
+
+5C96 8B9D40A6       MOV    BX,[DI+A640]     ; p©¡znakov‚ slovo objektu
+5C9A 8A07           MOV    AL,[BX]          ; p©¡znaky
+5C9C A217A7         MOV    [A717],AL        ; p©¡znaky objektu
+
+; ------ test, zda je zmˆna velikosti objektu
+
+5C9F A820           TEST   AL,20            ; po‘aduje se zmˆna velikosti ?
+5CA1 7426           JZ     5CC9             ; nen¡ zmˆna velikosti
+5CA3 F60617A702     TEST   Byte Ptr [A717],02 ; je zmen¨en¡ objektu ?
+5CA8 7411           JZ     5CBB             ; je zvˆt¨en¡ objektu
+
+; ------ zmen¨en¡ velikosti objektu
+
+5CAA 8A848BA6       MOV    AL,[SI+A68B]     ; velikost objektu (vzd lenost)
+5CAE FEC0           INC    AL               ; zmen¨en¡ objektu
+5CB0 3C0A           CMP    AL,0A            ; maxim ln¡ velikost
+5CB2 7315           JNB    5CC9             ; je ji‘ maxim ln¡ velikost
+5CB4 88848BA6       MOV    [SI+A68B],AL     ; velikost objektu (vzd lenost)
+5CB8 EB0F           JMP    5CC9
+5CBA 90             NOP
+
+; ------ zvˆt¨en¡ velikosti objektu
+
+5CBB 8A848BA6     * MOV    AL,[SI+A68B]     ; velikost objektu (vzd lenost)
+5CBF FEC8           DEC    AL               ; zvˆt¨en¡ objektu
+5CC1 3CFF           CMP    AL,FF
+5CC3 7404           JZ     5CC9             ; je ji‘ maxim ln¡ velikost
+5CC5 88848BA6       MOV    [SI+A68B],AL     ; velikost objektu (vzd lenost)
+
+
+5CC9 F60617A710   * TEST   Byte Ptr [A717],10
+5CCE 7416           JZ     5CE6
+5CD0 F60617A701     TEST   Byte Ptr [A717],01
+5CD5 7411           JZ     5CE8
+
+5CD7 8A848DA6       MOV    AL,[SI+A68D]
+5CDB F8             CLC
+5CDC 1408           ADC    AL,08
+5CDE 7302           JNB    5CE2
+5CE0 B0FF           MOV    AL,FF
+5CE2 88848DA6     * MOV    [SI+A68D],AL
+
+5CE6 F8           * CLC
+5CE7 C3             RET
+
+5CE8 8A848DA6     * MOV    AL,[SI+A68D]
+5CEC F8             CLC
+5CED 1C08           SBB    AL,08
+5CEF 7402           JZ     5CF3
+5CF1 73EF           JNB    5CE2
+5CF3 B001           MOV    AL,01
+5CF5 EBEB           JMP    5CE2
+
+; ------ 6:
+
+5CF7 803E45A700     CMP    Byte Ptr [A745],00
+5CFC 750C           JNZ    5D0A
+5CFE 8A8489A6       MOV    AL,[SI+A689]     ; pozice objektu X
+5D02 0C01           OR     AL,01
+5D04 A245A7         MOV    [A745],AL
+5D07 E90FFF         JMP    5C19
+
+
+; ------ nalezen¡ br ny v tabulce objekt–
+
+5D0A 57             PUSH   DI
+5D0B BF0000         MOV    DI,0000
+5D0E B91000         MOV    CX,0010
+5D11 80BD88A601     CMP    Byte Ptr [DI+A688],01 ; typ objektu = sloup
+5D16 750E           JNZ    5D26
+5D18 3BFE           CMP    DI,SI
+5D1A 740A           JZ     5D26             ; je to stejn˜ sloup
+5D1C 8A8589A6       MOV    AL,[DI+A689]     ; pozice objektu X
+5D20 A245A7         MOV    [A745],AL
+5D23 EB0A           JMP    5D2F
+5D25 90             NOP
+5D26 83C708       * ADD    DI,+08
+5D29 E2E6           LOOP   5D11
+5D2B 5F             POP    DI
+5D2C EB52           JMP    5D80
+5D2E 90             NOP
+5D2F 5F             POP    DI
+
+; ------ test, zda letadlo proletˆlo branou
+
+5D30 A059A7         MOV    AL,[A759]        ; poloha letadla horizont lnˆ
+5D33 0408           ADD    AL,08            ; rezerva
+5D35 3A8489A6       CMP    AL,[SI+A689]     ; pozice objektu X
+5D39 7209           JB     5D44
+5D3B 3A0645A7       CMP    AL,[A745]
+5D3F 7209           JB     5D4A
+5D41 EB3D           JMP    5D80
+5D43 90             NOP
+5D44 3A0645A7     * CMP    AL,[A745]
+5D48 7236           JB     5D80
+5D4A 893686A6       MOV    [A686],SI
+5D4E 893E84A6       MOV    [A684],DI
+
+; ------ zv˜¨en¡ sk¢re po proletˆn¡ branou
+
+5D52 B80005         MOV    AX,0500          ; sk¢re za proletˆn¡ branou
+5D55 E85A06         CALL   63B2             ; zv˜¨en¡ sk¢re o AX
+
+; ------ sn¡‘en¡ po‡tu zbyl˜ch bran
+
+5D58 803E39A700     CMP    Byte Ptr [A739],00
+5D5D 7509           JNZ    5D68
+5D5F FE0E63A7       DEC    Byte Ptr [A763]  ; sn¡‘en¡ ‡¡ta‡e bran
+5D63 7503           JNZ    5D68             ; nejsou je¨tˆ v¨echny br ny
+5D65 E97407         JMP    64DC             ; nov  sc‚na
+5D68 E84500       * CALL   5DB0             ; zobrazen¡ po‡tu zbyl˜ch bran
+5D6B B008           MOV    AL,08
+5D6D E89E0A         CALL   680E             ; zvukov  indikace - br na
+
+; ------ obsluha objektu
+
+5D70 8B3E84A6       MOV    DI,[A684]
+5D74 8B3686A6       MOV    SI,[A686]
+5D78 C60645A700     MOV    Byte Ptr [A745],00
+5D7D E999FE         JMP    5C19
+
+
+
+5D80 893E84A6       MOV    [A684],DI
+5D84 893686A6       MOV    [A686],SI
+5D88 B007           MOV    AL,07
+5D8A E8810A         CALL   680E             ; zvukov  indikace
+5D8D 8B3E84A6       MOV    DI,[A684]
+5D91 8B3686A6       MOV    SI,[A686]
+5D95 EBE1           JMP    5D78
+
+; ------ 7:
+
+5D97 E8C603         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5D9A A880           TEST   AL,80
+5D9C 7505           JNZ    5DA3
+5D9E B012           MOV    AL,12
+5DA0 EB03           JMP    5DA5
+5DA2 90             NOP
+5DA3 B011         * MOV    AL,11
+5DA5 E8A203         CALL   614A
+5DA8 808C8FA610     OR     Byte Ptr [SI+A68F],10
+5DAD E969FE         JMP    5C19
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ po‡tu zbyl˜ch bran k proletˆn¡
+; -----------------------------------------------------------------------------
+
+; ------ ur‡en¡ barvy pozad¡
+
+5DB0 B655           MOV    DH,55            ; modrozelen 
+5DB2 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+5DB7 7402           JZ     5DBB             ; je zemˆ
+5DB9 B600           MOV    DH,00            ; ‡ern  barva
+
+; ------ ur‡en¡ po‡tu bran k zobrazen¡
+
+5DBB BE1700       * MOV    SI,0017          ; po‡ te‡n¡ linka k zobrazen¡
+5DBE BF0000         MOV    DI,0000
+5DC1 8A1663A7       MOV    DL,[A763]        ; po‡et zbyl˜ch bran k proletˆn¡
+5DC5 80FA14         CMP    DL,14            ; je m‚nˆ bran ne‘ 20 ?
+5DC8 720D           JB     5DD7             ; je m‚nˆ bran ne‘ 20
+5DCA C60616A714     MOV    Byte Ptr [A716],14 ; omezen¡ po‡tu bran na 20
+5DCF C60617A700     MOV    Byte Ptr [A717],00 ; nezb˜v  ‘ dn  pozice
+5DD4 EB0E           JMP    5DE4
+5DD6 90             NOP
+5DD7 881616A7     * MOV    [A716],DL        ; po‡et bran
+5DDB C60617A714     MOV    Byte Ptr [A717],14 ; celkov˜ po‡et bran = 20
+5DE0 281617A7       SUB    [A717],DL        ; po‡et zbyl˜ch bran k vymaz n¡
+
+; ------ p©¡prava k zobrazen¡ jedn‚ linky
+
+5DE4 8BDE         * MOV    BX,SI
+5DE6 D1E3           SHL    BX,1
+5DE8 8B9FB0A4       MOV    BX,[BX+A4B0]
+5DEC 8A1616A7       MOV    DL,[A716]
+
+; ------ zobrazen¡ jedn‚ linky bran
+
+5DF0 B90300       * MOV    CX,0003
+5DF3 8A8570A4       MOV    AL,[DI+A470]
+5DF7 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+5DFC 7402           JZ     5E00             ; je zobrazena
+5DFE 3455           XOR    AL,55            ; zmˆna barvy
+5E00 268807       * MOV    ES:[BX],AL
+5E03 47             INC    DI
+5E04 43             INC    BX
+5E05 E2EC           LOOP   5DF3
+5E07 83EF03         SUB    DI,+03
+5E0A FECA           DEC    DL               ; ‡¡ta‡ bran
+5E0C 75E2           JNZ    5DF0
+
+; ------ vymaz n¡ jedn‚ linky zbyl˜ch pozic
+
+5E0E 803E17A700     CMP    Byte Ptr [A717],00
+5E13 7413           JZ     5E28             ; nezbyla ‘ dn  pozice
+5E15 8A1617A7       MOV    DL,[A717]
+5E19 B90300         MOV    CX,0003
+5E1C 8AC6           MOV    AL,DH
+5E1E 268807         MOV    ES:[BX],AL
+5E21 43             INC    BX
+5E22 E2FA           LOOP   5E1E
+5E24 FECA           DEC    DL
+5E26 75F1           JNZ    5E19
+
+; ------ p©¡prava pro dal¨¡ linku
+
+5E28 83C703         ADD    DI,+03
+5E2B 46             INC    SI
+5E2C 83FE1F         CMP    SI,+1F
+5E2F 75B3           JNZ    5DE4
+5E31 C3             RET
+
+
+5E32 0025           ADD    [DI],AH
+5E34 4A             DEC    DX
+5E35 6F             OUTSW
+
+; -----------------------------------------------------------------------------
+;    generov n¡ st©el
+; -----------------------------------------------------------------------------
+
+; ------ test, zda m–‘e b˜t dal¨¡ st©ela
+
+5E36 F60636A720     TEST   Byte Ptr [A736],20  ; st©¡len¡ ?
+5E3B 750C           JNZ    5E49             ; nen¡ st©¡len¡
+5E3D 803E41A700     CMP    Byte Ptr [A741],00 ; m–‘e b˜t dal¨¡ st©ela ?
+5E42 740B           JZ     5E4F
+5E44 FE0E41A7       DEC    Byte Ptr [A741]  ; ‡¡ta‡ prodlevy mezi st©elami
+5E48 C3             RET
+5E49 C60641A700   * MOV    Byte Ptr [A741],00 ; zru¨en¡ ‡¡ta‡e prodlevy st©el
+5E4E C3             RET
+
+; ------ vytvo©en¡ popisova‡e objektu
+
+5E4F BF0500       * MOV    DI,0005          ; ‡¡slo objektu (5=st©ela)
+5E52 BE0000         MOV    SI,0000          ; po‡ te‡n¡ offset v tabulce
+5E55 E8BF00         CALL   5F17             ; vlo‘en¡ objektu do tabulky objekt–
+5E58 722C           JB     5E86             ; nen¡ voln  polo‘ka popisova‡e
+
+; ------ pozice st©ely
+
+5E5A A059A7         MOV    AL,[A759]        ; poloha letadla horizont lnˆ
+5E5D 0408           ADD    AL,08            ; pozice objektu (=st©ed letadla)
+5E5F 888489A6       MOV    [SI+A689],AL     ; pozice st©ely X
+
+; ------ linka st©ely
+
+5E63 A05AA7         MOV    AL,[A75A]        ; poloha letadla vertik lnˆ
+5E66 2C03           SUB    AL,03            ; linka objektu (=nad letadlem)
+5E68 88848AA6       MOV    [SI+A68A],AL     ; sou©adnice st©ely Y
+
+; ------ ostatn¡ parametry objektu
+
+5E6C C6848DA6C8     MOV    Byte Ptr [SI+A68D],C8
+5E71 C6848BA605     MOV    Byte Ptr [SI+A68B],05 ; velikost objektu (vzd lenost)
+5E76 B000           MOV    AL,00
+5E78 E8CF02         CALL   614A
+
+; ------ p©¡prava pro p©¡¨t¡ st©elu
+
+5E7B A06CA7         MOV    AL,[A76C]        ; rychlost st©¡len¡
+5E7E A241A7         MOV    [A741],AL        ; prodleva mezi st©elami
+
+; ------ zvukov  indikace st©ely
+
+5E81 B001           MOV    AL,01            ; ‡¡slo melodie - st©¡len¡
+5E83 E88809         CALL   680E             ; zvukov  indikace st©¡len¡
+5E86 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    generov n¡ disku
+; -----------------------------------------------------------------------------
+
+; ------ test, zda se po‘aduje generov n¡ disku
+
+5E87 F60669A708     TEST   Byte Ptr [A769],08 ; po‘adavek generov n¡ disku ?
+5E8C 7428           JZ     5EB6             ; nepo‘aduje se generov n¡ disku
+5E8E F60669A704     TEST   Byte Ptr [A769],04 ; je povolen pouze jeden disk ?
+5E93 7416           JZ     5EAB             ; je mo‘n‚ v¡ce disk–
+
+; ------ test, zda je ji‘ generov n disk
+
+5E95 BF0000         MOV    DI,0000
+5E98 80BD88A602   * CMP    Byte Ptr [DI+A688],02 ; typ objektu = disk
+5E9D 7417           JZ     5EB6             ; je ji‘ generov n - nebude dal¨¡
+5E9F 83C708         ADD    DI,+08
+5EA2 81FF8000       CMP    DI,0080
+5EA6 75F0           JNZ    5E98
+5EA8 EB0D           JMP    5EB7             ; generov n¡ disku
+5EAA 90             NOP
+
+; ------ ‡¡ta‡ pro generov n¡ dal¨¡ho disku
+
+5EAB 803E43A700   * CMP    Byte Ptr [A743],00 ; je ji‘ ‡as pro dal¨¡ disk ?
+5EB0 7405           JZ     5EB7
+5EB2 FE0E43A7       DEC    Byte Ptr [A743]  ; ‡¡t n¡ ‡¡ta‡e
+5EB6 C3           * RET
+
+; ------ stanoven¡ po‡tu disk– k vygenerov n¡
+
+5EB7 E8A602         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5EBA 2403           AND    AL,03
+5EBC A235A7         MOV    [A735],AL        ; po‡et disk– k vygenerov n¡
+
+; ------ stanoven¡ pozice X disku
+
+5EBF E89E02       * CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5EC2 041E           ADD    AL,1E
+5EC4 3CB4           CMP    AL,B4
+5EC6 77F7           JA     5EBF
+5EC8 A234A7         MOV    [A734],AL        ; ‡¡slo linky k zobrazen¡ obr zku
+
+
+5ECB E89202         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+5ECE 2403           AND    AL,03
+5ED0 0403           ADD    AL,03
+5ED2 A233A7         MOV    [A733],AL        ; pozice k zobrazen¡ obr zku
+
+; ------ vygenerov n¡ jednoho disku
+
+5ED5 BF0200         MOV    DI,0002          ; objekt = disk
+5ED8 E83900         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+5EDB 72D9           JB     5EB6
+
+5EDD A033A7         MOV    AL,[A733]        ; pozice k zobrazen¡ obr zku
+5EE0 E86702         CALL   614A
+
+; ------ pozice disku
+
+5EE3 A034A7         MOV    AL,[A734]        ; n hodn  pozice X
+5EE6 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+
+; ------ prodleva a sou©adnice Y disku
+
+5EEA A035A7         MOV    AL,[A735]        ; po‡et disk– k vygenerov n¡
+5EED B400           MOV    AH,00
+5EEF 8BF8           MOV    DI,AX
+5EF1 2E8A85325E     MOV    AL,CS:[DI+5E32]  ;
+5EF6 88848EA6       MOV    [SI+A68E],AL     ;
+5EFA 0490           ADD    AL,90
+5EFC 88848AA6       MOV    [SI+A68A],AL     ; sou©adnice objektu Y
+5F00 A05FA7         MOV    AL,[A75F]
+5F03 88848DA6       MOV    [SI+A68D],AL
+
+; ------ dal¨¡ disk
+
+5F07 FE0E35A7       DEC    Byte Ptr [A735]  ; po‡et generovan˜ch disk–
+5F0B 79C8           JNS    5ED5
+5F0D A05EA7         MOV    AL,[A75E]        ; rychlost generov n¡ disk–
+5F10 A243A7         MOV    [A743],AL        ; ‡¡ta‡ pro generov n¡ dal¨¡ho disku
+5F13 C3             RET
+
+; -----------------------------------------------------------------------------
+;    vlo‘en¡ objektu do tabulky objekt–
+; -----------------------------------------------------------------------------
+
+5F14 BE1000         MOV    SI,0010
+
+; ------ nalezen¡ voln‚ polo‘ky v tabulce
+
+5F17 81FE8000       CMP    SI,0080          ; je konec tabulky ?
+5F1B 730C           JNB    5F29             ; konec tabulky
+5F1D 80BC88A600     CMP    Byte Ptr [SI+A688],00 ; je polo‘ka voln  ?
+5F22 7407           JZ     5F2B             ; nalezena voln  polo‘ka
+5F24 83C608         ADD    SI,+08           ; zv˜¨en¡ ukazatele v tabulce
+5F27 EBEE           JMP    5F17             ; dal¨¡ polo‘ka
+5F29 F9           * STC                     ; p©¡znak, ‘e tabulka je ji‘ pln 
+5F2A C3             RET
+
+; ------ inicializace popisova‡e objektu
+
+5F2B 8BC7           MOV    AX,DI            ;
+5F2D 888488A6       MOV    [SI+A688],AL     ; typ objektu
+5F31 B90700         MOV    CX,0007          ; po‡et bajt– popisova‡e
+5F34 46             INC    SI
+5F35 C68488A600   * MOV    Byte Ptr [SI+A688],00 ; typ objektu =
+5F3A 46             INC    SI
+5F3B E2F8           LOOP   5F35
+5F3D 83EE08         SUB    SI,+08           ; adresa popisova‡e
+5F40 F8             CLC                     ; p©¡znak nalezen¡ polo‘ky
+5F41 C3             RET
+
+
+
+5F42 53             PUSH   BX
+5F43 8B9D40A6       MOV    BX,[DI+A640]
+5F47 43             INC    BX
+5F48 8A07           MOV    AL,[BX]
+5F4A 43             INC    BX
+5F4B 899D40A6       MOV    [DI+A640],BX
+5F4F 5B             POP    BX
+5F50 C3             RET
+
+; -----------------------------------------------------------------------------
+;    p©¡prava k zobrazen¡ objektu
+; -----------------------------------------------------------------------------
+
+5F51 80BD8BA609     CMP    Byte Ptr [DI+A68B],09 ; je objekt viditeln˜
+5F56 7502           JNZ    5F5A             ; je viditeln˜
+5F58 F8             CLC
+5F59 C3             RET
+
+5F5A 8A8588A6     * MOV    AL,[DI+A688]     ; ‡¡slo objektu
+5F5E B400           MOV    AH,00
+5F60 F62615A7       MUL    Byte Ptr [A715]  ; *
+5F64 02858BA6       ADD    AL,[DI+A68B]     ; velikost objektu (f ze)
+5F68 A232A7         MOV    [A732],AL        ; ‡¡slo obr zku k zobrazen¡
+5F6B 8A8589A6       MOV    AL,[DI+A689]     ; pozice objektu X
+5F6F A233A7         MOV    [A733],AL        ; pozice k zobrazen¡ obr zku
+5F72 8A858AA6       MOV    AL,[DI+A68A]     ; linka objektu Y
+5F76 A234A7         MOV    [A734],AL        ; ‡¡slo linky k zobrazen¡ obr zku
+5F79 F9             STC
+5F7A C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+5F7B 8BFE           MOV    DI,SI
+5F7D D1EF           SHR    DI,1
+5F7F D1EF           SHR    DI,1
+5F81 893E1AA7       MOV    [A71A],DI        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+5F85 80BC8EA600     CMP    Byte Ptr [SI+A68E],00
+5F8A 7506           JNZ    5F92
+5F8C E88AFC         CALL   5C19             ; obsluha objektu
+5F8F 73F4           JNB    5F85
+5F91 C3             RET
+
+5F92 80BC88A605   * CMP    Byte Ptr [SI+A688],05 ; typ objektu = st©ela ?
+5F97 7508           JNZ    5FA1
+5F99 C60618A700     MOV    Byte Ptr [A718],00
+5F9E EB15           JMP    5FB5
+5FA0 90             NOP
+
+5FA1 B009         * MOV    AL,09
+5FA3 2A848BA6       SUB    AL,[SI+A68B]     ; velikost objektu (vzd lenost)
+5FA7 B400           MOV    AH,00
+5FA9 F62658A7       MUL    Byte Ptr [A758]  ; rychlost letu (30 a‘ 120)
+5FAD 882618A7       MOV    [A718],AH
+5FB1 D02618A7       SHL    Byte Ptr [A718],1
+5FB5 8B3E1AA7     * MOV    DI,[A71A]        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+5FB9 8A848CA6       MOV    AL,[SI+A68C]
+5FBD A217A7         MOV    [A717],AL
+5FC0 B104           MOV    CL,04
+5FC2 D2E8           SHR    AL,CL
+5FC4 A216A7         MOV    [A716],AL
+5FC7 A017A7         MOV    AL,[A717]
+5FCA B400           MOV    AH,00
+5FCC 8A9C8DA6       MOV    BL,[SI+A68D]
+5FD0 B700           MOV    BH,00
+5FD2 03C3           ADD    AX,BX
+5FD4 88848CA6       MOV    [SI+A68C],AL
+5FD8 D3E8           SHR    AX,CL
+5FDA 020618A7       ADD    AL,[A718]
+5FDE 2A0616A7       SUB    AL,[A716]
+5FE2 A216A7         MOV    [A716],AL
+5FE5 8B3E1AA7       MOV    DI,[A71A]        ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+5FE9 8B9D40A6       MOV    BX,[DI+A640]
+5FED 8A07           MOV    AL,[BX]
+5FEF A219A7         MOV    [A719],AL
+5FF2 A016A7         MOV    AL,[A716]
+5FF5 3C00           CMP    AL,00
+5FF7 7430           JZ     6029
+5FF9 F8             CLC
+5FFA 1A848EA6       SBB    AL,[SI+A68E]
+5FFE 7310           JNB    6010
+6000 34FF           XOR    AL,FF
+6002 0401           ADD    AL,01
+6004 88848EA6       MOV    [SI+A68E],AL
+6008 E89000         CALL   609B
+600B 731C           JNB    6029
+600D E98900         JMP    6099
+6010 A218A7         MOV    [A718],AL
+6013 8A848EA6       MOV    AL,[SI+A68E]
+6017 A216A7         MOV    [A716],AL
+601A E87E00         CALL   609B
+601D 727A           JB     6099
+601F E8F7FB         CALL   5C19
+6022 7275           JB     6099
+6024 A018A7         MOV    AL,[A718]
+6027 EBB9           JMP    5FE2
+
+6029 80BC88A607     CMP    Byte Ptr [SI+A688],07 ; typ objektu = v˜buch
+602E 7407           JZ     6037
+6030 80BC88A604     CMP    Byte Ptr [SI+A688],04 ; typ objektu = bomba lodi
+6035 7360           JNB    6097
+
+; ------ v˜buch
+
+6037 8A848BA6     * MOV    AL,[SI+A68B]     ; velikost objektu (vzd lenost)
+603B B400           MOV    AH,00
+603D 8BF8           MOV    DI,AX
+603F 83FF09         CMP    DI,+09
+6042 7453           JZ     6097
+
+6044 8A8509A7       MOV    AL,[DI+A709]
+6048 A216A7         MOV    [A716],AL
+
+604B A055A7         MOV    AL,[A755]
+604E 8AD0           MOV    DL,AL
+6050 A880           TEST   AL,80
+6052 7404           JZ     6058
+6054 34FF           XOR    AL,FF
+6056 0401           ADD    AL,01
+6058 D0E8           SHR    AL,1
+605A FE0E16A7       DEC    Byte Ptr [A716]
+605E 75F8           JNZ    6058
+6060 F6C280         TEST   DL,80
+6063 7404           JZ     6069
+6065 34FF           XOR    AL,FF
+6067 0401           ADD    AL,01
+6069 8AD0           MOV    DL,AL
+606B F8             CLC
+606C 008489A6       ADD    [SI+A689],AL     ; pozice objektu X
+6070 7220           JB     6092
+6072 F6C280         TEST   DL,80
+6075 7420           JZ     6097
+6077 80BC88A601     CMP    Byte Ptr [SI+A688],01 ; typ objektu =
+607C 751B           JNZ    6099
+607E 803E45A700     CMP    Byte Ptr [A745],00
+6083 7414           JZ     6099
+6085 B007           MOV    AL,07
+6087 E88407         CALL   680E             ; zvukov  indikace
+608A C60645A700     MOV    Byte Ptr [A745],00
+608F EB08           JMP    6099
+6091 90             NOP
+6092 F6C280         TEST   DL,80
+6095 74E0           JZ     6077
+6097 F8           * CLC
+6098 C3             RET
+6099 F9             STC
+609A C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+609B E80B00         CALL   60A9
+609E 7224           JB     60C4
+60A0 46             INC    SI
+60A1 E80500         CALL   60A9
+60A4 721E           JB     60C4
+60A6 4E             DEC    SI
+60A7 F8             CLC
+60A8 C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+60A9 D00619A7       ROL    Byte Ptr [A719],1
+60AD 73F8           JNB    60A7
+60AF F60619A710     TEST   Byte Ptr [A719],10
+60B4 7410           JZ     60C6
+60B6 8A8489A6       MOV    AL,[SI+A689]     ; pozice objektu X
+60BA 020616A7       ADD    AL,[A716]
+60BE 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+60C2 73E3           JNB    60A7
+60C4 F9             STC
+60C5 C3             RET
+
+60C6 A016A7         MOV    AL,[A716]
+60C9 F8             CLC
+60CA 188489A6       SBB    [SI+A689],AL     ; pozice objektu X
+60CE 73D7           JNB    60A7
+60D0 EBF2           JMP    60C4
+
+; -----------------------------------------------------------------------------
+;    generov n¡ nov‚ br ny
+; -----------------------------------------------------------------------------
+
+; ------ test, zda m  b˜t vygenerov na nov  br na
+
+60D2 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+60D7 7520           JNZ    60F9             ; nen¡ zemˆ - nejsou br ny
+60D9 803E42A700     CMP    Byte Ptr [A742],00 ; ‡¡ta‡ generov n¡ dal¨¡ br ny
+60DE 751A           JNZ    60FA             ; nen¡ je¨tˆ dal¨¡ br na
+
+; ------ vygenerov n¡ nov‚ br ny
+
+60E0 BF0100         MOV    DI,0001          ; objekt = sloup
+60E3 E82EFE         CALL   5F14             ; vygenerov n¡ lev‚ho sloupu
+60E6 7211           JB     60F9
+60E8 8BDE           MOV    BX,SI            ; £schova definice sloupu
+60EA BF0100         MOV    DI,0001          ; objekt = sloup
+60ED E824FE         CALL   5F14             ; vygenerov n¡ prav‚ho sloupu
+60F0 730E           JNB    6100             ; vygenerov n OK
+60F2 8BF3           MOV    SI,BX            ; adresa lev‚ho sloupu
+60F4 C68488A600     MOV    Byte Ptr [SI+A688],00 ; opˆt zru¨en¡ lev‚ho sloupu
+60F9 C3           * RET
+
+; ------ ‡¡t n¡ prodlevy pro dal¨¡ br nu
+
+60FA FE0E42A7       DEC    Byte Ptr [A742]  ; ‡¡ta‡ pro generov n¡ dal¨¡ br ny
+60FE EBF9           JMP    60F9             ; konec
+
+; ------ generov n¡ pozice X prav‚ br ny
+
+6100 E85D00       * CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+6103 3CC8           CMP    AL,C8            ; pozice 200 ?
+6105 73F9           JNB    6100             ; pozice neodpov¡d 
+6107 888489A6       MOV    [SI+A689],AL     ; pozice prav‚ho sloupu X
+
+; ------ generov n¡ pozice X lev‚ho sloupu
+
+610B 87F3           XCHG   SI,BX            ; definice lev‚ho sloupu
+610D F8             CLC
+610E 1A0665A7       SBB    AL,[A765]        ; ¨¡©ka br ny
+6112 72EC           JB     6100             ; br na p©¡li¨ vlevo
+6114 3C32           CMP    AL,32            ; minim ln¡ pozice
+6116 76E8           JBE    6100             ; n¡zk  pozice - znovu
+6118 888489A6       MOV    [SI+A689],AL     ; pozice lev‚ho sloupu X
+
+; ------ parametry br ny
+
+611C C6848FA608     MOV    Byte Ptr [SI+A68F],08
+6121 C6848BA609     MOV    Byte Ptr [SI+A68B],09 ; velikost objektu (vzd lenost)
+6126 C6878BA609     MOV    Byte Ptr [BX+A68B],09 ; velikost objektu (vzd lenost)
+612B C6848DA620     MOV    Byte Ptr [SI+A68D],20         ;' '
+6130 C6878DA620     MOV    Byte Ptr [BX+A68D],20         ;' '
+
+6135 B80100         MOV    AX,0001
+6138 E80F00         CALL   614A
+613B 87F3           XCHG   SI,BX
+613D B80200         MOV    AX,0002
+6140 E80700         CALL   614A
+6143 A05DA7         MOV    AL,[A75D]        ; rychlost generov n¡ bran
+6146 A242A7         MOV    [A742],AL        ; ‡¡ta‡ pro generov n¡ dal¨¡ br ny
+6149 C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+614A 56             PUSH   SI
+614B 8BFE           MOV    DI,SI
+614D D1EF           SHR    DI,1
+614F D1EF           SHR    DI,1
+6151 B400           MOV    AH,00
+6153 8BF0           MOV    SI,AX
+6155 D1E6           SHL    SI,1
+6157 8B8492AD       MOV    AX,[SI+AD92]
+615B 898540A6       MOV    [DI+A640],AX
+615F 5E             POP    SI
+
+; -----------------------------------------------------------------------------
+;    gener tor n hodn‚ho ‡¡sla (bajt)
+; -----------------------------------------------------------------------------
+
+6160 53             PUSH   BX
+6161 FF0680A6       INC    Word Ptr [A680]  ; zv˜¨en¡ ukazatele v programu
+6165 813E80A60E68   CMP    Word Ptr [A680],680E ; maxim ln¡ adresa
+616B 7708           JA     6175
+616D 813E80A6B04E   CMP    Word Ptr [A680],4EB0 ; minim ln¡
+6173 7707           JA     617C
+6175 BBB04E       * MOV    BX,4EB0          ; po‡ tek programu
+6178 891E80A6       MOV    [A680],BX        ; ukazatel dat
+617C 8B1E80A6     * MOV    BX,[A680]        ; adresa v programu
+6180 2E8A07         MOV    AL,CS:[BX]       ; bajt z programu
+6183 020690AD       ADD    AL,[AD90]        ; korekce n hodn‚ho ‡¡sla
+6187 04EF           ADD    AL,EF            ;
+6189 A290AD         MOV    [AD90],AL        ; nov  korekce
+618C 5B             POP    BX
+618D C3             RET
+
+
+618E 0000           ADD    [BX+SI],AL
+
+; -----------------------------------------------------------------------------
+;    vstup ovl d n¡ z kl vesnice nebo joysticku
+; -----------------------------------------------------------------------------
+
+; ------ test, zda zbylo nˆjak‚ palivo
+
+6190 A04CA7         MOV    AL,[A74C]        ; z soba paliva
+6193 0A064DA7       OR     AL,[A74D]
+6197 0A064EA7       OR     AL,[A74E]
+619B 7503           JNZ    61A0
+619D E9DA00         JMP    627A             ; do¨lo palivo - zpomalen¡
+
+; ------ rozli¨en¡, zda je ovl d n¡ kl vesnic¡ nebo joystickem
+
+61A0 803E5BA700     CMP    Byte Ptr [A75B],00 ; je ovl d n¡ kl vesnic¡ ?
+61A5 7503           JNZ    61AA
+61A7 E98700         JMP    6231             ; ovl d n¡ kl vesnic¡
+
+
+61AA E8DD00         CALL   628A
+61AD BA0102         MOV    DX,0201
+61B0 FA             CLI
+61B1 EE             OUT    DX,AL
+61B2 EC             IN     AL,DX
+61B3 2403           AND    AL,03
+61B5 3C03           CMP    AL,03
+61B7 75F9           JNZ    61B2
+61B9 B400           MOV    AH,00
+61BB B9FF00         MOV    CX,00FF
+61BE EC             IN     AL,DX
+61BF 0AC4           OR     AL,AH
+61C1 A801           TEST   AL,01
+61C3 750C           JNZ    61D1
+61C5 880E16A7       MOV    [A716],CL
+61C9 80CC01         OR     AH,01
+61CC 80FC03         CMP    AH,03
+61CF 7412           JZ     61E3
+61D1 A802           TEST   AL,02
+61D3 750C           JNZ    61E1
+61D5 880E17A7       MOV    [A717],CL
+61D9 80CC02         OR     AH,02
+61DC 80FC03         CMP    AH,03
+61DF 7402           JZ     61E3
+61E1 E2DB           LOOP   61BE
+61E3 FB             STI
+61E4 C60636A7FF     MOV    Byte Ptr [A736],FF ; inicializace - ‘ dn˜ povel
+61E9 8A26D9C3       MOV    AH,[C3D9]
+61ED 382617A7       CMP    [A717],AH
+61F1 7205           JB     61F8
+61F3 802636A7FB     AND    Byte Ptr [A736],FB
+61F8 8A26DAC3       MOV    AH,[C3DA]
+61FC 382617A7       CMP    [A717],AH
+6200 7705           JA     6207
+6202 802636A7F7     AND    Byte Ptr [A736],F7
+6207 8A26DBC3       MOV    AH,[C3DB]
+620B 382616A7       CMP    [A716],AH
+620F 7705           JA     6216
+6211 802636A77F     AND    Byte Ptr [A736],7F
+6216 8A26DCC3       MOV    AH,[C3DC]
+621A 382616A7       CMP    [A716],AH
+621E 7205           JB     6225
+6220 802636A7EF     AND    Byte Ptr [A736],EF
+6225 2430           AND    AL,30                         ;'0'
+6227 3C30           CMP    AL,30                         ;'0'
+6229 7405           JZ     6230
+622B 802636A7DF     AND    Byte Ptr [A736],DF
+6230 C3             RET
+
+; ------ zapnut¡ p©esmyka‡e NUM LOCK
+
+6231 800E36A720     OR     Byte Ptr [A736],20
+6236 1E             PUSH   DS
+6237 B84000         MOV    AX,0040
+623A 8ED8           MOV    DS,AX
+623C 800E170020     OR     Byte Ptr [0017],20 ; zapnut¡ p©esmyka‡e NUM LOCK
+6241 1F             POP    DS
+
+; ------ vstup znaku z kl vesnice
+
+6242 FB             STI
+6243 B401           MOV    AH,01
+6245 CD16           INT    16               ; test stavu kl vesnice
+6247 7430           JZ     6279             ; nen¡ stisknuta kl vesa
+6249 B400           MOV    AH,00
+624B CD16           INT    16               ; vstup znaku z kl vesnice
+
+; ------ nahoru, zv˜¨en¡ rychlosti
+
+624D B2FB           MOV    DL,FB            ; bit 2 - zv˜¨en¡ rychlosti
+624F 3D3848         CMP    AX,4838          ; kl vesa "8"
+6252 7421           JZ     6275
+
+; ------ dol–, sn¡‘en¡ rychlosti
+
+6254 B2F7           MOV    DL,F7            ; bit 3 - sn¡‘en¡ rychlosti
+6256 3D3250         CMP    AX,5032          ; kl vesa "2"
+6259 741A           JZ     6275
+
+; ------ vpravo
+
+625B B27F           MOV    DL,7F            ; bit 7 - vpravo
+625D 3D364D         CMP    AX,4D36          ; kl vesa "6"
+6260 7413           JZ     6275
+
+; ------ vlevo
+
+6262 B2EF           MOV    DL,EF            ; bit 4 - vlevo
+6264 3D344B         CMP    AX,4B34          ; kl vesa "4"
+6267 740C           JZ     6275
+
+; ------ st©¡len¡
+
+6269 B2DF           MOV    DL,DF            ; bit 5 - st©¡len¡
+626B 3D2039         CMP    AX,3920          ; mezern¡k
+626E 7405           JZ     6275
+
+; ------ test p©eru¨en¡ hry
+
+6270 E82200         CALL   6295             ; test p©eru¨en¡ nebo zastaven¡ hry
+
+6273 B2FF           MOV    DL,FF            ; povel - ‘ dn  funkce
+6275 881636A7     * MOV    [A736],DL        ; povel
+6279 C3           * RET
+
+; ------ zpomalen¡ - do¨lo palivo
+
+627A B0F7           MOV    AL,F7            ; povel dol–, sn¡‘en¡ rychlosti
+627C A236A7         MOV    [A736],AL        ; povel
+627F 803E5AA766     CMP    Byte Ptr [A75A],66 ; poloha letadla vertik lnˆ
+6284 7301           JNB    6287
+6286 C3             RET
+6287 E9C702       * JMP    6551
+
+; -----------------------------------------------------------------------------
+;    test p©eru¨en¡ nebo pozastaven¡ hry
+; -----------------------------------------------------------------------------
+
+; ------ vstup znaku z kl vesnice
+
+628A FB             STI
+628B B401           MOV    AH,01
+628D CD16           INT    16               ; test stavu kl vesnice
+628F 7421           JZ     62B2
+6291 B400           MOV    AH,00
+6293 CD16           INT    16               ; vstup znaku z kl vesnice
+
+; ------ test, zda je p©eru¨en¡ hry kl vesou ESC
+
+6295 3D1B01         CMP    AX,011B          ; je kl vesa ESC ?
+6298 7503           JNZ    629D             ; nen¡ ESC
+629A E987EC         JMP    4F24             ; je ESC - p©eru¨en¡ sc‚ny
+
+; ------ zastaven¡ hry kl vesou ENTER
+
+629D 3D0D1C       * CMP    AX,1C0D          ; je kl vesa ENTER ?
+62A0 7510           JNZ    62B2             ; nen¡ ENTER
+62A2 FB             STI
+62A3 B401         * MOV    AH,01
+62A5 CD16           INT    16               ; test stavu kl vesnice
+62A7 B96400         MOV    CX,0064
+62AA E2FE         * LOOP   62AA             ; prodleva
+62AC 74F5           JZ     62A3             ; ‡ek n¡ na stisk kl vesy
+62AE B400           MOV    AH,00
+62B0 CD16           INT    16               ; vstup znaku z kl vesnice
+62B2 C3           * RET
+
+
+62B3 0000           ADD    [BX+SI],AL
+62B5 0000           ADD    [BX+SI],AL
+62B7 0000           ADD    [BX+SI],AL
+62B9 0000           ADD    [BX+SI],AL
+62BB 0000           ADD    [BX+SI],AL
+62BD 0000           ADD    [BX+SI],AL
+62BF 00B655F6       ADD    [BP+F655],DH
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ po‡tu ‘ivot–
+; -----------------------------------------------------------------------------
+
+; ------ ur‡en¡ barvy pozad¡
+
+62C0 B655           MOV    DH,55            ; barva pozad¡ modrozelen 
+62C2 F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+62C7 7402           JZ     62CB             ; zobrazena zemˆ
+62C9 B600           MOV    DH,00            ; barva pozad¡ ‡ern 
+
+; ------ stanoven¡ po‡tu ‘ivot– k zobrazen¡
+
+62CB BE0A00       * MOV    SI,000A
+62CE BF0000         MOV    DI,0000
+62D1 A06AA7         MOV    AL,[A76A]        ; po‡et ‘ivot–
+62D4 3C05           CMP    AL,05            ; je v¡ce ne‘ 5 ?
+62D6 720D           JB     62E5
+
+; ------ omezen¡ po‡tu ‘ivot– na 5
+
+62D8 C60616A705     MOV    Byte Ptr [A716],05 ; d‚lka ukazatele paliva
+62DD C60617A700     MOV    Byte Ptr [A717],00 ; nezb˜v  voln  pozice
+62E2 EB0D           JMP    62F1
+62E4 90             NOP
+
+; ------ po‡et ‘ivot– je men¨¡ ne‘ 5
+
+62E5 A216A7       * MOV    [A716],AL        ; po‡et ‘ivot– k zobrazen¡
+62E8 C60617A705     MOV    Byte Ptr [A717],05 ; celkov˜ po‡et pozic
+62ED 280617A7       SUB    [A717],AL        ; zbyl˜ po‡et
+
+; ------ p©¡prava k zobrazen¡ jedn‚ linky ‘ivot–
+
+62F1 8BDE         * MOV    BX,SI
+62F3 D1E3           SHL    BX,1
+62F5 8B9FB0A4       MOV    BX,[BX+A4B0]
+62F9 83C332         ADD    BX,+32
+
+; ------ zobrazen¡ zb˜vaj¡c¡ch ‘ivot– (1 linka)
+
+62FC 8A1616A7       MOV    DL,[A716]        ; po‡et ‘ivot– k zobrazen¡
+6300 80FA00         CMP    DL,00
+6303 741E           JZ     6323             ; nezb˜v  ‘ dn˜ ‘ivot
+6305 B90600       * MOV    CX,0006          ; po‡et bajt– na linku
+6308 8A8588A4     * MOV    AL,[DI+A488]
+630C F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+6311 7402           JZ     6315             ; je zobrazena zemˆ
+6313 3455           XOR    AL,55            ; jinak zru¨en¡ barvy podkladu
+6315 268807       * MOV    ES:[BX],AL
+6318 47             INC    DI
+6319 43             INC    BX
+631A E2EC           LOOP   6308
+631C 83EF06         SUB    DI,+06
+631F FECA           DEC    DL
+6321 75E2           JNZ    6305
+
+; ------ vymaz n¡ zbyl˜ch pozic ‘ivot– (1 linka)
+
+6323 803E17A700     CMP    Byte Ptr [A717],00 ; po‡et linek k vymaz n¡
+6328 7413           JZ     633D             ; nezb˜v  ‘ dn  voln  pozice
+632A 8A1617A7       MOV    DL,[A717]        ; po‡et linek
+632E B90600         MOV    CX,0006
+6331 8AC6           MOV    AL,DH            ; barva podkladu
+6333 268807       * MOV    ES:[BX],AL       ; vymaz n¡ podkladu
+6336 43             INC    BX
+6337 E2FA           LOOP   6333             ; dal¨¡ bajt
+6339 FECA           DEC    DL
+633B 75F1           JNZ    632E
+
+; ------ p©¡prava pro dal¨¡ linku
+
+633D 83C706       * ADD    DI,+06
+6340 46             INC    SI
+6341 83FE10         CMP    SI,+10           ; jsou v¨echny linky ?
+6344 75AB           JNZ    62F1
+6346 C3             RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ sk¢re
+; -----------------------------------------------------------------------------
+
+; ------ zv˜¨en¡ sk¢re o uletˆnou dr hu
+
+6347 B106           MOV    CL,06
+6349 A058A7         MOV    AL,[A758]        ; rychlost letu
+634C B400           MOV    AH,00
+634E 8A1638A7       MOV    DL,[A738]
+6352 B600           MOV    DH,00
+6354 03C2           ADD    AX,DX
+6356 A238A7         MOV    [A738],AL
+6359 D3E8           SHR    AX,CL
+635B E85400         CALL   63B2             ; zv˜¨en¡ sk¢re o AX
+
+; ------ test, zda bude zv˜¨en¡ po‡tu ‘ivot– (zv˜¨en¡ sk¢re o 2000)
+
+635E A073A7         MOV    AL,[A773]        ; sk¢re - © d stovky
+6361 2A0646A7       SUB    AL,[A746]        ; rozd¡l od posledn¡ho zv˜¨en¡
+6365 2F             DAS
+6366 3C02           CMP    AL,02
+6368 721A           JB     6384             ; nen¡ rozd¡l 2000
+
+; ------ zv˜¨en¡ po‡tu ‘ivot–
+
+636A B009           MOV    AL,09
+636C E89F04         CALL   680E             ; zvukov  indikace
+636F FE066AA7       INC    Byte Ptr [A76A] ; po‡et ‘ivot–
+6373 7504           JNZ    6379
+6375 FE0E6AA7       DEC    Byte Ptr [A76A] ; po‡et ‘ivot– (omezen¡)
+6379 A073A7       * MOV    AL,[A773]
+637C 24FE           AND    AL,FE
+637E A246A7         MOV    [A746],AL        ; £schova sk¢re
+6381 E83CFF         CALL   62C0             ; zobrazen¡ nov‚ho po‡tu ‘ivot–
+
+; ------ zobrazen¡ sk¢re
+
+6384 BF0000       * MOV    DI,0000          ; ukazatel ‡¡slic
+6387 BE0100         MOV    SI,0001          ; linka k zobrazen¡ ‡¡sla
+638A 8BDF         * MOV    BX,DI
+638C D1E3           SHL    BX,1
+638E D1E3           SHL    BX,1
+6390 43             INC    BX               ; pozice ‡¡slice * 5 = adresa
+6391 D1DF           RCR    DI,1             ; ukazatel / 2
+6393 8A8573A7       MOV    AL,[DI+A773]     ; ‡¡slice k zobrazen¡
+6397 D1D7           RCL    DI,1             ; n vrat ukazatele
+6399 F7C70100       TEST   DI,0001          ; je to lich  ‡¡slice ?
+639D 7507           JNZ    63A6             ; je to lich  ‡¡slice
+639F B104           MOV    CL,04
+63A1 D2E8           SHR    AL,CL            ; rotace ‡¡slice na pozici
+63A3 EB03           JMP    63A8
+63A5 90             NOP
+63A6 240F         * AND    AL,0F            ; ‡¡slice k zobrazen¡
+63A8 E82C00       * CALL   63D7             ; zobrazen¡ ‡¡slice AL (adresa BX)
+63AB 47             INC    DI               ; zv˜¨en¡ ukazatele ‡¡slic
+63AC 83FF06         CMP    DI,+06
+63AF 75D9           JNZ    638A
+63B1 C3             RET
+
+; -----------------------------------------------------------------------------
+;    zv˜¨en¡ sk¢re o AL
+; -----------------------------------------------------------------------------
+
+63B2 020675A7       ADD    AL,[A775]
+63B6 27             DAA
+63B7 A275A7         MOV    [A775],AL
+63BA 8AC4           MOV    AL,AH
+63BC 120674A7       ADC    AL,[A774]
+63C0 27             DAA
+63C1 A274A7         MOV    [A774],AL
+63C4 A073A7         MOV    AL,[A773]
+63C7 1400           ADC    AL,00
+63C9 27             DAA
+63CA A273A7         MOV    [A773],AL
+63CD A072A7         MOV    AL,[A772]
+63D0 1400           ADC    AL,00
+63D2 27             DAA
+63D3 A272A7         MOV    [A772],AL
+63D6 C3             RET
+
+; -----------------------------------------------------------------------------
+;    zobrazen¡ ‡¡slice AL (adresa BX)
+; -----------------------------------------------------------------------------
+
+; ------ £schova registr–
+
+63D7 50             PUSH   AX
+63D8 53             PUSH   BX
+63D9 51             PUSH   CX
+63DA 52             PUSH   DX
+63DB 56             PUSH   SI
+63DC 57             PUSH   DI
+
+; ------ p©¡prava registr–
+
+63DD 891E16A7       MOV    [A716],BX        ; adresa k zobrazen¡ ‡¡slice
+63E1 F62614A7       MUL    Byte Ptr [A714]  ; po‡et bajt– na ‡¡slici = adresa
+63E5 8BF8           MOV    DI,AX            ; adresa ‡¡slice
+63E7 B214           MOV    DL,14            ; po‡et linek k zobrazen¡ ‡¡slice
+
+; ------ zobrazen¡ ‡¡slice
+
+63E9 8BDE         * MOV    BX,SI            ; linka k zobrazen¡ ‡¡slice
+63EB D1E3           SHL    BX,1
+63ED 8B9FB0A4       MOV    BX,[BX+A4B0]     ; adresa videolinky
+63F1 031E16A7       ADD    BX,[A716]        ; + offset ‡¡slice
+63F5 B90400         MOV    CX,0004          ; po‡et bajt– na linku
+63F8 8A8570AA     * MOV    AL,[DI+AA70]     ;
+63FC F60669A702     TEST   Byte Ptr [A769],02 ; zobrazena zemˆ ?
+6401 7402           JZ     6405             ; je zobrazena zemˆ
+6403 3455           XOR    AL,55            ; zru¨en¡ barvy pozad¡
+6405 268807       * MOV    ES:[BX],AL
+6408 47             INC    DI
+6409 43             INC    BX
+640A E2EC           LOOP   63F8
+640C 46             INC    SI
+640D FECA           DEC    DL               ; ‡¡ta‡ linek
+640F 75D8           JNZ    63E9             ; dal¨¡ linka
+
+; ------ n vrat registr–
+
+6411 5F             POP    DI
+6412 5E             POP    SI
+6413 5A             POP    DX
+6414 59             POP    CX
+6415 5B             POP    BX
+6416 58             POP    AX
+6417 C3             RET
+
+; -----------------------------------------------------------------------------
+;    obsluha z sah– nep©¡tele st©elami
+; -----------------------------------------------------------------------------
+
+; ------ nalezen¡ definice st©ely
+
+6418 BE0000         MOV    SI,0000
+641B 80BC88A605     CMP    Byte Ptr [SI+A688],05 ; typ objektu = st©ela
+6420 740D           JZ     642F
+6422 83C608         ADD    SI,+08
+6425 81FE8000       CMP    SI,0080
+6429 75F0           JNZ    641B
+642B E9C400         JMP    64F2             ; jsou ji‘ v¨echny st©ely
+642E C3             RET
+
+; ------ £schova parametr– st©ely
+
+642F 8BC6         * MOV    AX,SI            ; definice st©ely
+6431 A235A7         MOV    [A735],AL        ; £schova offsetu definice st©ely
+6434 8A8489A6       MOV    AL,[SI+A689]     ; pozice st©ely X
+6438 A228A7         MOV    [A728],AL        ; £schova pozice st©ely X
+643B 8A848AA6       MOV    AL,[SI+A68A]     ; sou©adnice objektu Y
+643F 2A066DA7       SUB    AL,[A76D]        ;
+6443 A229A7         MOV    [A729],AL        ; sou©adnice st©ely Y
+
+
+6446 E85A02         CALL   66A3
+6449 A021A7         MOV    AL,[A721]        ; offset kosmick‚ lodi v def. tab.
+644C 02066DA7       ADD    AL,[A76D]
+6450 A226A7         MOV    [A726],AL
+6453 A022A7         MOV    AL,[A722]
+6456 A227A7         MOV    [A727],AL
+
+; ------ nalezen¡ nep© tel– v defini‡n¡ tabulce
+
+6459 BE0000         MOV    SI,0000
+645C 8A8488A6     * MOV    AL,[SI+A688]     ; typ objektu
+6460 3C02           CMP    AL,02            ; je disk ?
+6462 7422           JZ     6486             ; je disk
+6464 3C03           CMP    AL,03            ; je velk‚ UFO ?
+6466 741E           JZ     6486             ; je velk‚ UFO
+6468 3C06           CMP    AL,06            ; je kosmick  loƒ ?
+646A 7412           JZ     647E             ; je kosmick  loƒ
+646C 83C608       * ADD    SI,+08
+646F 81FE8000       CMP    SI,0080
+6473 75E7           JNZ    645C
+
+; ------ p©¡prava pro dal¨¡ st©elu
+
+6475 A035A7         MOV    AL,[A735]        ; offset definice st©ely
+6478 B400           MOV    AH,00
+647A 8BF0           MOV    SI,AX
+647C EBA4           JMP    6422
+
+; ------ kosmick  loƒ - test z sahu st©elou
+
+647E E8DF01         CALL   6660             ; test z sahu lodi
+6481 73E9           JNB    646C             ; nen¡ z sah - dal¨¡ objekt
+6483 E95001         JMP    65D6             ; z sah
+
+; ------ disk (mal‚ UFO), velk‚ UFO - test z sahu st©elou
+
+6486 E8D701       * CALL   6660             ; test z sahu disku nebo UFO
+6489 73E1           JNB    646C             ; nen¡ z sah - dal¨¡ objekt
+648B 8AA488A6       MOV    AH,[SI+A688]     ; typ objektu
+648F B000           MOV    AL,00
+6491 E81EFF         CALL   63B2             ; zv˜¨en¡ sk¢re o AX
+6494 C6848EA600     MOV    Byte Ptr [SI+A68E],00
+6499 B007           MOV    AL,07
+649B E8ACFC         CALL   614A
+
+649E A035A7         MOV    AL,[A735]        ; offset definice st©ely
+64A1 B400           MOV    AH,00
+64A3 8BF0           MOV    SI,AX
+64A5 C6848EA600     MOV    Byte Ptr [SI+A68E],00
+64AA B008           MOV    AL,08
+64AC E89BFC         CALL   614A
+64AF F60669A704     TEST   Byte Ptr [A769],04
+64B4 740F           JZ     64C5
+64B6 803E63A701     CMP    Byte Ptr [A763],01 ; po‡et zbyl˜ch bran k proletˆn¡
+64BB 7508           JNZ    64C5
+64BD 802669A7F7     AND    Byte Ptr [A769],F7
+64C2 EB11           JMP    64D5
+64C4 90             NOP
+
+; ------ z sah disku - sn¡‘en¡ po‡tu zbyl˜ch disk– k sest©elen¡
+
+64C5 803E39A700     CMP    Byte Ptr [A739],00
+64CA 7509           JNZ    64D5
+64CC FE0E63A7       DEC    Byte Ptr [A763]  ; po‡et zbyl˜ch bran k proletˆn¡
+64D0 740A           JZ     64DC
+64D2 E8DBF8         CALL   5DB0             ; zobrazen¡ po‡tu zbyl˜ch bran
+64D5 B000           MOV    AL,00
+64D7 E83403         CALL   680E             ; zvukov  indikace
+64DA EB99           JMP    6475
+
+; -----------------------------------------------------------------------------
+;    dal¨¡ sc‚na (po proletˆn¡ v¨emi branami)
+; -----------------------------------------------------------------------------
+
+64DC FE066BA7       INC    Byte Ptr [A76B]  ; ‡¡slo sc‚ny
+64E0 C6063FA7FF     MOV    Byte Ptr [A73F],FF
+64E5 FE063EA7       INC    Byte Ptr [A73E]
+64E9 90             NOP
+64EA 90             NOP
+64EB 90             NOP
+64EC E964F4         JMP    5953
+
+64EF C3             RET
+64F0 90             NOP
+64F1 C3             RET
+
+; -----------------------------------------------------------------------------
+;    test srazen¡ rakety s nep© teli
+; -----------------------------------------------------------------------------
+
+; ------
+
+64F2 A059A7         MOV    AL,[A759]        ; poloha letadla horizont lnˆ
+64F5 A228A7         MOV    [A728],AL
+64F8 A05AA7         MOV    AL,[A75A]        ; poloha letadla vertik lnˆ
+64FB A229A7         MOV    [A729],AL
+64FE C60626A70F     MOV    Byte Ptr [A726],0F
+6503 C60627A71A     MOV    Byte Ptr [A727],1A
+6508 BE0000         MOV    SI,0000
+650B 80BC8BA600     CMP    Byte Ptr [SI+A68B],00 ; velikost objektu (vzd lenost)
+6510 740A           JZ     651C
+6512 83C608         ADD    SI,+08
+6515 81FE8000       CMP    SI,0080
+6519 75F0           JNZ    650B
+651B C3             RET
+
+651C 8A8488A6       MOV    AL,[SI+A688]     ; typ objektu
+6520 3C00           CMP    AL,00
+6522 74EE           JZ     6512
+6524 3C05           CMP    AL,05
+6526 74EA           JZ     6512
+6528 3C07           CMP    AL,07
+652A 74E6           JZ     6512
+652C 3C09           CMP    AL,09
+652E 74E2           JZ     6512
+
+6530 E82D01         CALL   6660
+6533 73DD           JNB    6512
+6535 C6848DA600     MOV    Byte Ptr [SI+A68D],00
+653A B91000         MOV    CX,0010
+653D BE0000         MOV    SI,0000
+6540 80BC88A601     CMP    Byte Ptr [SI+A688],01 ; typ objektu =
+6545 7505           JNZ    654C
+6547 C6848DA600     MOV    Byte Ptr [SI+A68D],00
+654C 83C608         ADD    SI,+08
+654F E2EF           LOOP   6540
+6551 E82CF6         CALL   5B80
+6554 BF0700         MOV    DI,0007          ; objekt = v˜buch
+6557 BE0000         MOV    SI,0000
+655A E8B7F9         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+655D 72F2           JB     6551
+
+; ------ zni‡en¡ raketu sr ‘kou s nep©¡telem
+
+655F A059A7         MOV    AL,[A759]        ; poloha letadla horizont lnˆ
+6562 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+6566 A05AA7         MOV    AL,[A75A]        ; poloha letadla vertik lnˆ
+6569 88848AA6       MOV    [SI+A68A],AL     ; sou©adnice objektu Y
+656D B009           MOV    AL,09
+656F E8D8FB         CALL   614A
+6572 C60655A700     MOV    Byte Ptr [A755],00
+6577 C60658A700     MOV    Byte Ptr [A758],00 ; rychlost letu (30 a‘ 120)
+657C C60639A73A     MOV    Byte Ptr [A739],3A ; po‡et krok– p©i v˜buchu rakety
+6581 B002           MOV    AL,02
+6583 E88802         CALL   680E             ; zvukov  indikace
+
+; ------ zobrazen¡ nov‚ho po‡tu ‘ivot– a sk¢re
+
+6586 FE0E6AA7       DEC    Byte Ptr [A76A]  ; po‡et ‘ivot–
+658A E833FD         CALL   62C0             ; zobrazen¡ po‡tu ‘ivot–
+658D E81FEB         CALL   50AF             ; vymaz n¡ letadla se st¡nem
+6590 E8B4FD         CALL   6347             ; zobrazen¡ sk¢re
+
+; ------ cyklus v˜buchu rakety
+
+6593 E8EAF5       * CALL   5B80             ; zobrazen¡ v¨ech objekt–
+6596 E83702         CALL   67D0             ; obsluha hry melodie
+6599 E8F9EB         CALL   5195             ; obsluha posunu zemˆ
+659C B9983A         MOV    CX,3A98
+659F E2FE         * LOOP   659F             ; prodleva
+65A1 FE0E39A7       DEC    Byte Ptr [A739]  ; ‡¡ta‡ krok– v˜buchu rakety
+65A5 75EC           JNZ    6593             ; dal¨¡ krok
+
+; ------ test, zda byly ji‘ v¨echny ‘ivoty
+
+65A7 803E6AA700     CMP    Byte Ptr [A76A],00 ; po‡et ‘ivot–
+65AC 7424           JZ     65D2             ; v¨echny ‘ivoty - konec hry
+
+; ------ test, zda zbylo je¨tˆ nˆjak‚ palivo
+
+65AE A04CA7         MOV    AL,[A74C]        ; z soba paliva - bajt 0
+65B1 0A064DA7       OR     AL,[A74D]        ; z soba paliva - bajt 1
+65B5 0A064EA7       OR     AL,[A74E]        ; z soba paliva - bajt 2
+65B9 750E           JNZ    65C9             ; zb˜v  nˆjak‚ palivo
+
+; ------ palivo do¨lo - zah jen¡ nov‚ podsc‚ny (sc‚na z–st v )
+
+65BB 80266BA7FC     AND    Byte Ptr [A76B],FC ; ‡¡slo sc‚ny
+65C0 80263EA7F0     AND    Byte Ptr [A73E],F0
+65C5 E98BF3         JMP    5953
+65C8 C3             RET
+
+65C9 C6063FA700     MOV    Byte Ptr [A73F],00
+65CE E9C8F3         JMP    5999
+65D1 C3             RET
+
+65D2 E94FE9         JMP    4F24
+65D5 C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+65D6 F6848FA610     TEST   Byte Ptr [SI+A68F],10
+65DB 7523           JNZ    6600
+65DD 8A848BA6       MOV    AL,[SI+A68B]     ; velikost objektu (vzd lenost)
+65E1 B400           MOV    AH,00
+65E3 8BF8           MOV    DI,AX
+65E5 83FF06         CMP    DI,+06
+65E8 7316           JNB    6600
+
+65EA 8A85BEB1       MOV    AL,[DI+B1BE]
+65EE 028489A6       ADD    AL,[SI+A689]     ; pozice objektu X
+65F2 2A0628A7       SUB    AL,[A728]
+65F6 7304           JNB    65FC
+
+65F8 34FF           XOR    AL,FF
+65FA 0401           ADD    AL,01
+65FC 3C04           CMP    AL,04
+65FE 7228           JB     6628
+
+6600 A035A7       * MOV    AL,[A735]
+6603 B400           MOV    AH,00
+6605 8BF0           MOV    SI,AX
+6607 C6848EA600     MOV    Byte Ptr [SI+A68E],00
+660C C6848DA618     MOV    Byte Ptr [SI+A68D],18
+6611 E84CFB         CALL   6160             ; gener tor n hodn‚ho ‡¡sla (bajt)
+6614 2407           AND    AL,07
+6616 041F           ADD    AL,1F
+6618 E82FFB         CALL   614A
+661B 808C8FA610     OR     Byte Ptr [SI+A68F],10
+6620 B005           MOV    AL,05
+6622 E8E901         CALL   680E             ; zvukov  indikace
+6625 E94DFE         JMP    6475
+
+
+6628 E8AB00         CALL   66D6             ; v˜buch nep© telsk‚ kosmick‚ lodi
+
+; ------ zv˜¨en¡ ‡¡sla sc‚ny
+
+662B C6063FA7FF     MOV    Byte Ptr [A73F],FF
+6630 A03EA7         MOV    AL,[A73E]        ; ‡¡slo sc‚ny a podsc‚ny v BCD tvaru
+6633 24F0           AND    AL,F0
+6635 0410           ADD    AL,10
+6637 3CA0           CMP    AL,A0
+6639 7502           JNZ    663D
+663B B000           MOV    AL,00
+663D A23EA7       * MOV    [A73E],AL
+
+; ------ prodleva
+
+6640 B9E803         MOV    CX,03E8
+6643 B000           MOV    AL,00
+6645 FEC8         * DEC    AL
+6647 75FC           JNZ    6645
+6649 E2FA           LOOP   6645
+664B 90             NOP
+664C 90             NOP
+
+; ------ zv˜¨en¡ sk¢re
+
+664D BE1400         MOV    SI,0014          ; po‡et zv˜¨en¡ sk¢re za sc‚nu
+6650 B80010       * MOV    AX,1000          ; sk¢re za dal¨¡ sc‚nu
+6653 E85CFD         CALL   63B2             ; zv˜¨en¡ sk¢re o AX
+6656 4E             DEC    SI
+6657 75F7           JNZ    6650
+6659 FE066BA7       INC    Byte Ptr [A76B]  ; ‡¡slo sc‚ny
+665D E9F3F2         JMP    5953             ; start nov‚ sc‚ny
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+6660 E84000         CALL   66A3
+6663 8A848AA6       MOV    AL,[SI+A68A]     ; sou©adnice objektu Y
+6667 F8             CLC
+6668 1A0629A7       SBB    AL,[A729]        ; linka st©ely Y
+666C 730D           JNB    667B
+666E 34FF           XOR    AL,FF
+6670 0401           ADD    AL,01
+6672 3A0621A7       CMP    AL,[A721]
+6676 7329           JNB    66A1
+6678 EB07           JMP    6681
+667A 90             NOP
+
+667B 3A0626A7     * CMP    AL,[A726]
+667F 7320           JNB    66A1
+6681 8A8489A6       MOV    AL,[SI+A689]     ; pozice objektu X
+6685 F8             CLC
+6686 1A0628A7       SBB    AL,[A728]
+668A 730D           JNB    6699
+668C 34FF           XOR    AL,FF
+668E 0401           ADD    AL,01
+6690 3A0622A7       CMP    AL,[A722]
+6694 730B           JNB    66A1
+6696 EB07           JMP    669F
+6698 90             NOP
+
+6699 3A0627A7       CMP    AL,[A727]
+669D 7302           JNB    66A1
+669F F9             STC
+66A0 C3             RET
+66A1 F8           * CLC
+66A2 C3             RET
+
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+
+66A3 8A8488A6       MOV    AL,[SI+A688]     ; typ objektu
+66A7 B400           MOV    AH,00
+66A9 F62615A7       MUL    Byte Ptr [A715]
+66AD 02848BA6       ADD    AL,[SI+A68B]     ; velikost objektu (vzd lenost)
+66B1 8BD8           MOV    BX,AX
+66B3 B103           MOV    CL,03
+66B5 D3E3           SHL    BX,CL
+66B7 8A873000       MOV    AL,[BX+0030]
+66BB A221A7         MOV    [A721],AL
+66BE 80BF310002     CMP    Byte Ptr [BX+0031],02
+66C3 7705           JA     66CA
+66C5 B001           MOV    AL,01
+66C7 EB07           JMP    66D0
+66C9 90             NOP
+
+66CA 8A873100     * MOV    AL,[BX+0031]
+66CE 2C02           SUB    AL,02
+66D0 D0E0         * SHL    AL,1
+66D2 A222A7         MOV    [A722],AL
+66D5 C3             RET
+
+; -----------------------------------------------------------------------------
+;    v˜buch nep© telsk‚ kosmick‚ lodi
+; -----------------------------------------------------------------------------
+
+66D6 B00A           MOV    AL,0A
+66D8 E83301         CALL   680E             ; zvukov  indikace
+66DB 8BFE           MOV    DI,SI
+66DD E871F8         CALL   5F51             ; p©¡prava k zobrazen¡ objektu
+66E0 A032A7         MOV    AL,[A732]        ; ‡¡slo obr zku k zobrazen¡
+66E3 A2C7B1         MOV    [B1C7],AL
+66E6 A033A7         MOV    AL,[A733]        ; pozice k zobrazen¡ obr zku
+66E9 A2C8B1         MOV    [B1C8],AL
+66EC A034A7         MOV    AL,[A734]        ; ‡¡slo linky k zobrazen¡ obr zku
+66EF A2C9B1         MOV    [B1C9],AL
+66F2 C60658A738     MOV    Byte Ptr [A758],38 ; rychlost letu (30 a‘ 120)
+66F7 C6063BA70F     MOV    Byte Ptr [A73B],0F ; po‡et v˜buch– k vygenerov n¡
+66FC C68488A600     MOV    Byte Ptr [SI+A688],00 ; zru¨en¡ objektu
+
+; ------ £schova parametr– objektu
+
+6701 B400           MOV    AH,00
+6703 8A848BA6       MOV    AL,[SI+A68B]     ; velikost objektu (vzd lenost)
+6707 8BF8           MOV    DI,AX
+6709 8A8489A6       MOV    AL,[SI+A689]     ; pozice objektu X
+670D 0285BEB1       ADD    AL,[DI+B1BE]
+6711 A23CA7         MOV    [A73C],AL
+6714 8A848AA6       MOV    AL,[SI+A68A]     ; sou©adnice objektu Y
+6718 A23DA7         MOV    [A73D],AL
+
+; ------ vygenerov n¡ objektu - v˜buch
+
+671B BF0700       * MOV    DI,0007          ; objekt = v˜buch
+671E E8F3F7         CALL   5F14             ; vlo‘en¡ objektu do tabulky objekt–
+6721 723F           JB     6762
+
+; ------ parametry v˜buchu
+
+6723 C6848DA620     MOV    Byte Ptr [SI+A68D],20         ;' '
+6728 A03CA7         MOV    AL,[A73C]        ; pozice X
+672B 888489A6       MOV    [SI+A689],AL     ; pozice objektu X
+672F A03DA7         MOV    AL,[A73D]        ; pozice Y
+6732 88848AA6       MOV    [SI+A68A],AL     ; sou©adnice objektu Y
+6736 C6848BA603     MOV    Byte Ptr [SI+A68B],03 ; velikost objektu (vzd lenost)
+
+673B B007           MOV    AL,07
+673D E80AFA         CALL   614A
+6740 FE0E3BA7       DEC    Byte Ptr [A73B]
+6744 7435           JZ     677B
+6746 B010           MOV    AL,10
+6748 2A063BA7       SUB    AL,[A73B]
+674C D0E0           SHL    AL,1
+674E B400           MOV    AH,00
+6750 8BF8           MOV    DI,AX
+6752 8A859EB1       MOV    AL,[DI+B19E]
+6756 00063CA7       ADD    [A73C],AL
+675A 8A859FB1       MOV    AL,[DI+B19F]
+675E 00063DA7       ADD    [A73D],AL
+
+; ------ cyklick  obsluha v˜buchu
+
+6762 E81BF4       * CALL   5B80             ; obsluha v¨ech objekt–
+6765 E86800         CALL   67D0             ; obsluha hry melodie
+6768 E825FA         CALL   6190             ; vstup z kl vesnice nebo joysticku
+676B E89FE8         CALL   500D             ; ovl d n¡ pohybu letadla
+
+; ------ prodleva
+
+676E B91400         MOV    CX,0014
+6771 B000           MOV    AL,00
+6773 FEC8         * DEC    AL
+6775 75FC           JNZ    6773
+6777 E2FA           LOOP   6773
+6779 EBA0           JMP    671B             ; dal¨¡ obsluha v˜buchu
+
+; ------ konec v˜buchu
+
+677B B00B           MOV    AL,0B
+677D E88E00         CALL   680E             ; zvukov  indikace
+6780 A0C7B1         MOV    AL,[B1C7]
+6783 A232A7         MOV    [A732],AL        ; ‡¡slo obr zku k zobrazen¡
+6786 A0C8B1         MOV    AL,[B1C8]
+6789 A233A7         MOV    [A733],AL        ; pozice k zobrazen¡ obr zku
+678C A0C9B1         MOV    AL,[B1C9]
+678F A234A7         MOV    [A734],AL        ; ‡¡slo linky k zobrazen¡ obr zku
+6792 E8F2EA         CALL   5287             ; vymaz n¡ kosmick‚ lodi
+
+; ------ ‡ek n¡, a‘ budou v¨echny objekty zru¨eny
+
+6795 BE0000       * MOV    SI,0000
+6798 80BC88A600     CMP    Byte Ptr [SI+A688],00 ; je objekt ?
+679D 750A           JNZ    67A9
+679F 83C608         ADD    SI,+08
+67A2 81FE8000       CMP    SI,0080
+67A6 75F0           JNZ    6798
+67A8 C3             RET                     ; v¨echny objekty ji‘ zru¨eny
+
+; ------ prodleva
+
+67A9 B91400         MOV    CX,0014
+67AC B000           MOV    AL,00
+67AE FEC8           DEC    AL
+67B0 75FC           JNZ    67AE
+67B2 E2FA           LOOP   67AE
+
+; ------ obsluha objekt–
+
+67B4 E8C9F3         CALL   5B80             ; obsluha v¨ech objekt–
+67B7 E81600         CALL   67D0             ; obsluha hry melodie
+67BA E8D3F9         CALL   6190             ; vstup z kl vesnice nebo joysticku
+67BD E84DE8         CALL   500D             ; ovl d n¡ pohybu letadla
+67C0 EBD3           JMP    6795             ; test dal¨¡ho objektu
+
+
+67C2 0000           ADD    [BX+SI],AL
+67C4 0000           ADD    [BX+SI],AL
+67C6 0000           ADD    [BX+SI],AL
+67C8 0000           ADD    [BX+SI],AL
+67CA 0000           ADD    [BX+SI],AL
+67CC 0000           ADD    [BX+SI],AL
+67CE 0000           ADD    [BX+SI],AL
+
+; -----------------------------------------------------------------------------
+;    obsluha hry melodie
+; -----------------------------------------------------------------------------
+
+67D0 53             PUSH   BX
+67D1 51             PUSH   CX
+
+; ------ ‡¡t n¡ d‚lky t¢nu
+
+67D2 833E64C000     CMP    Word Ptr [C064],+00 ; je konec t¢nu ?
+67D7 7432           JZ     680B             ; je konec t¢nu
+67D9 FF0E64C0       DEC    Word Ptr [C064]  ; ‡¡ta‡ d‚lky t¢nu
+67DD 752C           JNZ    680B
+
+; ------ nastaven¡ ‡asov‚ konstanty t¢nu
+
+67DF 8B1E60C0       MOV    BX,[C060]        ; ukazatel melodie
+67E3 8B07           MOV    AX,[BX]
+67E5 E642           OUT    42,AL
+67E7 8AC4           MOV    AL,AH
+67E9 E642           OUT    42,AL                         ;'B'
+
+; ------ nastaven¡ ‡¡ta‡e d‚lky t¢nu
+
+67EB 8B4702         MOV    AX,[BX+02]
+67EE A364C0         MOV    [C064],AX        ; ‡¡ta‡ d‚lky t¢nu
+
+; ------ posun ukazatele melodie
+
+67F1 83C304         ADD    BX,+04           ; zv˜¨en¡ adresy
+67F4 891E60C0       MOV    [C060],BX        ; nov  adresa
+67F8 833E64C000     CMP    Word Ptr [C064],+00 ; je konec melodie ?
+67FD 750C           JNZ    680B
+
+; ------ vypnut¡ zvukov‚ho gener toru
+
+67FF C70662C00000   MOV    Word Ptr [C062],0000 ; konec melodie
+6805 E461           IN     AL,61
+6807 24FC           AND    AL,FC            ; vypnut¡ zvuk. gener toru
+6809 E661           OUT    61,AL
+
+680B 59           * POP    CX
+680C 5B             POP    BX
+680D C3             RET
+
+; -----------------------------------------------------------------------------
+;    Zapnut¡ melodie (1=st©¡len¡, 6=p¡p n¡, ‘e do¨lo palivo, 8=proletˆn¡ br nou)
+; -----------------------------------------------------------------------------
+
+680E 53             PUSH   BX
+680F 51             PUSH   CX
+6810 B400           MOV    AH,00
+6812 D1E0           SHL    AX,1             ; ‡¡slo melodie * 2
+6814 8BD8           MOV    BX,AX
+6816 8B9F66C0       MOV    BX,[BX+C066]     ; adresa melodie
+681A 8B07           MOV    AX,[BX]
+681C 3B0662C0       CMP    AX,[C062]
+6820 7220           JB     6842
+6822 E461           IN     AL,61                         ;'a'
+6824 0C03           OR     AL,03
+6826 E661           OUT    61,AL                         ;'a'
+6828 B0B6           MOV    AL,B6
+682A E643           OUT    43,AL                         ;'C'
+682C 8B4702         MOV    AX,[BX+02]
+682F E642           OUT    42,AL                         ;'B'
+6831 8AC4           MOV    AL,AH
+6833 E642           OUT    42,AL                         ;'B'
+6835 8B4704         MOV    AX,[BX+04]
+6838 A364C0         MOV    [C064],AX
+683B 83C306         ADD    BX,+06
+683E 891E60C0       MOV    [C060],BX
+6842 59           * POP    CX
+6843 5B             POP    BX
+6844 C3             RET
+
+
+6845 0000           ADD    [BX+SI],AL
+6847 0000           ADD    [BX+SI],AL
+6849 0000           ADD    [BX+SI],AL
+684B 0000           ADD    [BX+SI],AL
+684D 0000           ADD    [BX+SI],AL
+684F 00E8           ADD    AL,CH
+
+; -----------------------------------------------------------------------------
+;    kalibrace joysticku
+; -----------------------------------------------------------------------------
+
+6850 E8ABF1         CALL   59FE             ; vymaz n¡ videopamˆti
+6853 BE80C3         MOV    SI,C380          ; text "JOYSTICK CALIBRATION"
+6856 E808F2         CALL   5A61             ; zobrazen¡ textu
+6859 BE97C3         MOV    SI,C397          ; text "Adjust ..."
+685C E802F2         CALL   5A61             ; zobrazen¡ textu
+685F BEBEC3         MOV    SI,C3BE          ; text "and press ..."
+6862 E8FCF1         CALL   5A61             ; zobrazen¡ textu
+6865 BA0102         MOV    DX,0201
+6868 EE             OUT    DX,AL            ;
+6869 EC             IN     AL,DX
+686A 2430           AND    AL,30                         ;'0'
+686C 3C30           CMP    AL,30                         ;'0'
+686E 74F9           JZ     6869
+6870 BA0102         MOV    DX,0201
+6873 FA             CLI
+6874 EE             OUT    DX,AL
+6875 EC             IN     AL,DX
+6876 2403           AND    AL,03
+6878 3C03           CMP    AL,03
+687A 75F9           JNZ    6875
+687C B400           MOV    AH,00
+687E B9FF00         MOV    CX,00FF
+6881 EC             IN     AL,DX
+6882 0AC4           OR     AL,AH
+6884 A801           TEST   AL,01
+6886 750C           JNZ    6894
+6888 880E16A7       MOV    [A716],CL
+688C 80CC01         OR     AH,01
+688F 80FC03         CMP    AH,03
+6892 7412           JZ     68A6
+6894 A802           TEST   AL,02
+6896 750C           JNZ    68A4
+6898 880E17A7       MOV    [A717],CL
+689C 80CC02         OR     AH,02
+689F 80FC03         CMP    AH,03
+68A2 7402           JZ     68A6
+68A4 E2DB           LOOP   6881
+68A6 A016A7         MOV    AL,[A716]
+68A9 A2DBC3         MOV    [C3DB],AL
+68AC A2DCC3         MOV    [C3DC],AL
+68AF B400           MOV    AH,00
+68B1 F636DDC3       DIV    Byte Ptr [C3DD]
+68B5 0006DCC3       ADD    [C3DC],AL
+68B9 2806DBC3       SUB    [C3DB],AL
+68BD A017A7         MOV    AL,[A717]
+68C0 A2D9C3         MOV    [C3D9],AL
+68C3 A2DAC3         MOV    [C3DA],AL
+68C6 B400           MOV    AH,00
+68C8 F636DDC3       DIV    Byte Ptr [C3DD]
+68CC 0006D9C3       ADD    [C3D9],AL
+68D0 2806DAC3       SUB    [C3DA],AL
+68D4 E827F1         CALL   59FE             ; vymaz n¡ videopamˆti
+68D7 C3             RET
+
+
+4E00  CD 21 CB 00 00 00 00 00-00 00 00 00 00 20 20 20  M!K..........
+4E10  20 20 20 20 20 20 20 20-00 00 00 00 00 20 20 20          .....
+4E20  20 20 20 20 20 20 20 20-00 00 00 00 00 00 00 00          ........
+4E30  01 20 0D 00 0D 4D 2E 43-4F 4D 00 0D 00 00 00 00  . ...M.COM......
+4E40  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+4E50  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+4E60  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+4E70  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+4E80  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+4E90  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+4EA0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+4EB0  8C C8 05 33 02 8E D8 8C-C8 05 10 0E FA 8E D0 BC  .H.3..X.H...z.P<
+4EC0  00 10 FB B8 00 B8 8E C0-8C C8 2D DB 04 50 B8 08  ..{8.8.@.H-[.P8.
+4ED0  4F 50 CB 90 90 90 8B 07-80 E4 FF FE CC 74 04 A1  OPK......d.~Lt.!
+4EE0  1E 00 C3 B8 03 00 CD 10-A0 17 00 24 DF A2 17 00  ..C8..M. ..$_"..
+4EF0  8C C8 05 DB 04 50 B8 4E-01 50 CB 90 90 90 CD 20  .H.[.P8N.PK...M
+4F00  0F 8E D0 B8 00 10 8B E0-B8 04 00 FB CD 10 E8 62  ..P8...`8..{M.hb
+4F10  02 B9 04 00 BE 00 00 C6-84 6E A7 00 C6 84 72 A7  .9..>..F.n'.F.r'
+4F20  00 46 E2 F3 E9 FD 06 B8-00 10 8B E0 E8 61 12 E8  .Fbsi}.8...`ha.h
+4F30  DC 0A E8 60 02 E8 98 18-E8 45 0C E8 CF 00 E8 F5  \.h`.h..hE.hO.hu
+4F40  0E E8 8E 11 E8 40 0F E8-9D 06 E8 CB 14 E8 F7 13  .h..h@.h..hK.hw.
+4F50  E8 0E 00 E8 69 05 E8 E1-05 E8 9C 04 E8 51 04 EB  h..hi.ha.h..hQ.k
+4F60  C6 A0 4E A7 0A 06 4D A7-0A 06 4C A7 75 01 C3 A0  F N'..M'..L'u.C
+4F70  58 A7 34 FF FE C0 B4 00-F6 26 18 00 29 06 4C A7  X'4.~@4.v&..).L'
+4F80  73 EC 80 1E 4E A7 00 73-0B C7 06 4C A7 00 00 C6  sl..N'.s.G.L'..F
+4F90  06 4E A7 00 B2 04 BE 22-00 8B DE D1 E3 8B 9F B0  .N'.2.>"..^Qc..0
+4FA0  A4 83 C3 07 B9 42 00 B0-00 26 88 07 43 E2 FA 46  $.C.9B.0.&..CbzF
+4FB0  FE CA 75 E5 A0 4E A7 3C-80 72 02 B0 7F B4 00 A3  ~Jue N'<.r.0.4.#
+4FC0  16 A7 B2 02 BE 23 00 8B-DE D1 E3 8B 9F B0 A4 83  .'2.>#..^Qc..0$.
+4FD0  C3 08 B0 AA 8B 0E 16 A7-D1 E9 74 06 26 88 07 43  C.0*...'Qit.&..C
+4FE0  E2 FA F6 06 16 A7 01 74-05 B0 A0 26 88 07 46 FE  bzv..'.t.0 &..F~
+4FF0  CA 75 D4 80 3E 4E A7 10-73 12 BE 19 00 E8 61 0A  JuT.>N'.s.>..ha.
+5000  80 3E 4E A7 06 73 05 B0-06 E8 02 18 C3 E8 9F 00  .>N'.s.0.h..Ch..
+5010  F6 06 36 A7 80 74 0F F6-06 36 A7 10 74 1C C6 06  v.6'.t.v.6'.t.F.
+5020  40 A7 01 EB 26 90 C6 06-40 A7 02 A0 59 A7 04 05  @'.k&.F.@'. Y'..
+5030  3C BA 77 17 A2 59 A7 EB-12 90 C6 06 40 A7 00 A0  <:w."Y'k..F.@'.
+5040  59 A7 2C 05 3C 28 72 03-A2 59 A7 F6 06 36 A7 04  Y',.<(r."Y'v.6'.
+5050  74 13 F6 06 36 A7 08 75-3E A0 5A A7 04 05 3C 68  t.v.6'.u> Z'..<h
+5060  73 25 EB 0A 90 A0 5A A7-2C 05 3C 4F 72 06 A2 5A  s%k.. Z',.<Or."Z
+5070  A7 EB 24 90 FE 06 58 A7-80 3E 58 A7 78 76 18 C6  'k$.~.X'.>X'xv.F
+5080  06 58 A7 78 EB 11 90 FE-0E 58 A7 A0 58 A7 3C 1E  .X'xk..~.X' X'<.
+5090  73 05 B0 1E A2 58 A7 E8-01 00 C3 F6 06 69 A7 02  s.0."X'h..Cv.i'.
+50A0  75 06 E8 1D 00 E8 8A 01-E8 28 00 E8 84 01 C3 F6  u.h..h..h(.h..Cv
+50B0  06 69 A7 02 75 06 E8 09-00 E8 CB 01 E8 14 00 E8  .i'.u.h..hK.h..h
+50C0  C5 01 B0 03 A2 32 A7 A0-59 A7 A2 33 A7 C6 06 34  E.0."2' Y'"3'F.4
+50D0  A7 7C C3 A0 40 A7 A2 32-A7 A0 59 A7 A2 33 A7 A0  '|C @'"2' Y'"3'
+50E0  5A A7 A2 34 A7 C3 BE 00-00 B8 55 55 8B 9C B0 A4  Z'"4'C>..8UU..0$
+50F0  B9 28 00 26 89 07 43 43-E2 F9 46 46 83 FE 70 75  9(.&..CCbyFF.~pu
+5100  EB BE 5A 00 BF 00 00 8B-9C B0 A4 B9 50 00 8A 85  k>Z.?....0$9P...
+5110  E8 A0 26 88 07 47 43 E2-F5 46 46 83 FE 6E 75 E7  h &..GCbuFF.~nug
+5120  A0 6B A7 24 FC 74 4B BF-04 00 3C 0C 73 09 B4 00   k'$|tK?..<.s.4.
+5130  D1 E8 2D 02 00 8B F8 BE-00 00 B9 04 00 8B 85 00  Qh-...x>..9.....
+5140  00 89 84 16 A7 83 C6 02-83 C7 06 E2 F0 8B 36 16  ....'.F..G.bp.6.
+5150  A7 8B 3E 18 A7 8B 9C B0-A4 03 1E 1A A7 8B 0E 1C  '.>.'..0$...'...
+5160  A7 8A 05 26 88 07 47 43-E2 F7 83 C6 02 83 FE 6E  '..&..GCbw.F..~n
+5170  75 E3 C3 B9 C8 00 BE 00-00 8B C6 D1 E8 D1 E8 F6  ucC9H.>...FQhQhv
+5180  2E 14 A7 F7 C6 02 00 74-03 05 00 20 89 84 B0 A4  ..'wF..t... ..0$
+5190  46 46 E2 E5 C3 F6 06 69-A7 02 74 01 C3 8A 1E 6B  FFbeCv.i'.t.C..k
+51A0  A7 B7 00 D1 EB D1 EB 81-E3 03 00 8A 87 24 00 A2  '7.QkQk.c....$."
+51B0  28 00 B4 00 A0 53 A7 D0-E0 D0 E0 D0 E0 8B F0 B4  (.4. S'P`P`P`.p4
+51C0  00 A0 58 A7 B6 00 8A 16-54 A7 03 C2 A2 54 A7 B1  . X'6...T'.B"T'1
+51D0  05 D3 E8 D3 EA 2A C2 02-06 53 A7 3C 0D 72 02 2C  .ShSj*B..S'<.r.,
+51E0  0D B4 00 A2 53 A7 D0 E0-D0 E0 D0 E0 8B F8 B9 08  .4."S'P`P`P`.x9.
+51F0  00 8A 84 08 A4 3C FF 74-0A 04 38 E8 1D 00 B0 00  ....$<.t..8h..0.
+5200  E8 23 00 8A 85 08 A4 3C-FF 74 0B 04 38 E8 0B 00  h#....$<.t..8h..
+5210  A0 28 00 E8 10 00 47 46-E2 D7 C3 B7 00 8A D8 D1   (.h..GFbWC7..XQ
+5220  E3 8B 9F B0 A4 C3 51 B9-50 00 26 88 07 43 E2 FA  c..0$CQ9P.&..Cbz
+5230  59 C3 E8 A0 00 72 01 C3-B7 00 8A 1E 18 A7 80 C3  YCh .r.C7....'.C
+5240  38 D1 E3 8B 9F B0 A4 C6-06 1B A7 00 03 1E 1A A7  8Qc..0$F..'....'
+5250  8B 36 2A A7 8B 3E 2C A7-B5 00 8A 0E 2F A7 26 8A  .6*'.>,'5.../'&.
+5260  07 22 04 0A 05 26 88 07-43 46 47 E2 F1 FE 0E 31  ."...&..CFGbq~.1
+5270  A7 74 13 B4 00 A0 26 A7-01 06 2A A7 01 06 2C A7  't.4. &'..*'..,'
+5280  FE 06 18 A7 EB B2 C3 E8-4B 00 72 01 C3 B7 00 8A  ~..'k2ChK.r.C7..
+5290  1E 18 A7 80 C3 38 D1 E3-8B 9F B0 A4 C6 06 1B A7  ..'.C8Qc..0$F..'
+52A0  00 03 1E 1A A7 8B 36 2A-A7 B5 00 8A 0E 2F A7 26  ....'.6*'5.../'&
+52B0  8A 07 22 04 26 88 07 43-46 E2 F4 FE 0E 31 A7 74  ..".&..CFbt~.1't
+52C0  13 B4 00 A0 26 A7 01 06-2A A7 01 06 2C A7 FE 06  .4. &'..*'..,'~.
+52D0  18 A7 EB B9 C3 80 3E 34-A7 90 73 07 80 3E 33 A7  .'k9C.>4'.s..>3'
+52E0  D0 72 02 F8 C3 A0 32 A7-B4 00 D1 E0 D1 E0 D1 E0  Pr.xC 2'4.Q`Q`Q`
+52F0  8B D8 8A 87 30 00 A2 21-A7 8A 87 31 00 A2 22 A7  .X..0."!'..1.""'
+5300  F6 06 33 A7 01 74 07 8B-87 34 00 EB 05 90 8B 87  v.3'.t...4.k....
+5310  32 00 BA 00 03 03 D0 89-16 2C A7 BA F4 51 03 D0  2.:...P..,':tQ.P
+5320  89 16 2A A7 A0 34 A7 A2-18 A7 A0 33 A7 D0 E8 A3  ..*' 4'".' 3'Ph#
+5330  1A A7 A0 21 A7 A2 31 A7-02 06 34 A7 F8 1C 90 72  .' !'"1'..4'x..r
+5340  04 28 06 31 A7 A0 22 A7-A2 26 A7 A2 2F A7 A0 1A  .(.1' "'"&'"/' .
+5350  A7 02 06 22 A7 A2 22 A7-3C 68 72 06 2C 68 28 06  '.."'""'<hr.,h(.
+5360  2F A7 C6 06 30 A7 00 80-3E 1A A7 18 73 24 80 3E  /'F.0'..>.'.s$.>
+5370  22 A7 19 73 02 F8 C3 B0-18 2A 06 1A A7 B4 00 01  "'.s.xC0.*..'4..
+5380  06 2A A7 01 06 2C A7 28-06 2F A7 C6 06 1A A7 00  .*'..,'(./'F..'.
+5390  F9 C3 80 2E 1A A7 18 F9-C3 FB B4 01 CD 10 74 07  yC...'.yC{4.M.t.
+53A0  B8 00 00 CD 10 EB F3 C3-00 00 00 00 00 00 00 00  8..M.ksC........
+53B0  F6 06 69 A7 02 75 01 C3-FE 06 4A A7 F6 06 4A A7  v.i'.u.C~.J'v.J'
+53C0  01 74 F4 BF 09 00 E8 4B-0B 72 EC E8 92 0D 24 7F  .tt?..hK.rlh..$.
+53D0  04 40 88 84 89 A6 E8 87-0D 24 07 3C 05 77 F7 04  .@...&h..$.<.ww.
+53E0  13 F6 84 89 A6 80 75 02-04 06 E8 5D 0D C6 84 8A  .v..&.u...h].F..
+53F0  A6 36 C6 84 8D A6 38 C3-F6 06 69 A7 04 75 01 C3  &6F..&8Cv.i'.u.C
+5400  80 3E 63 A7 01 75 F8 80-26 69 A7 F7 BE 00 00 B9  .>c'.ux.&i'w>..9
+5410  10 00 80 BC 88 A6 06 74-40 83 C6 08 E2 F4 BF 06  ...<.&.t@.F.bt?.
+5420  00 E8 F0 0A 72 D9 F6 06-69 A7 02 74 23 E8 30 0D  .hp.rYv.i'.t#h0.
+5430  A8 80 75 05 B0 10 EB 03-90 B0 0F E8 0C 0D C6 84  (.u.0.k..0.h..F.
+5440  89 A6 80 C6 84 8A A6 90-A0 62 A7 88 84 8D A6 C3  .&.F..&. b'...&C
+5450  E8 0D 0D 24 03 04 03 EB-E2 F6 84 8F A6 10 75 01  h..$...kbv..&.u.
+5460  C3 80 3E 49 A7 00 74 05-FE 0E 49 A7 C3 8B C6 A2  C.>I'.t.~.I'C.F"
+5470  21 A7 A0 68 A7 A2 49 A7-80 BC 8B A6 02 72 E1 BF  !' h'"I'.<.&.ra?
+5480  04 00 E8 8F 0A 72 D9 B0-0C E8 BE 0C 8A 1E 21 A7  ..h..rY0.h>...!'
+5490  B7 00 8A 87 8B A6 88 84-8B A6 8A D8 8A 87 76 A7  7....&...&.X..v'
+54A0  8A 1E 21 A7 02 87 89 A6-88 84 89 A6 8A 87 8A A6  ..!'...&...&...&
+54B0  88 84 8A A6 C6 84 8D A6-20 B0 03 E8 50 13 C3 F6  ...&F..& 0.hP.Cv
+54C0  06 69 A7 80 74 0B 80 3E-47 A7 00 74 05 FE 0E 47  .i'.t..>G'.t.~.G
+54D0  A7 C3 BE 10 00 80 BC 88-A6 03 74 0C 83 C6 08 81  'C>...<.&.t..F..
+54E0  FE 80 00 75 F0 EB 4C 90-80 BC 89 A6 28 72 ED 80  ~..upkL..<.&(rm.
+54F0  BC 89 A6 D7 73 E6 8B C6-A2 35 A7 BF 04 00 E8 13  <.&Wsf.F"5'?..h.
+5500  0A 72 CE B0 0C E8 42 0C-A0 35 A7 B4 00 8B F8 8A  .rN0.hB. 5'4..x.
+5510  85 89 A6 04 04 88 84 89-A6 8A 85 8A A6 88 84 8A  ..&.....&...&...
+5520  A6 8A 85 8B A6 88 84 8B-A6 C6 84 8D A6 80 B0 03  &...&...&F..&.0.
+5530  E8 DB 12 A0 66 A7 A2 47-A7 C3 F6 06 69 A7 60 74  h[. f'"G'Cv.i'`t
+5540  0B 80 3E 48 A7 00 74 05-FE 0E 48 A7 C3 BE 10 00  ..>H'.t.~.H'C>..
+5550  80 BC 88 A6 01 74 10 83-C6 08 81 FE 80 00 75 F0  .<.&.t..F..~..up
+5560  A0 67 A7 A2 48 A7 C3 8B-C6 A2 35 A7 80 BC 8B A6   g'"H'C.F"5'.<.&
+5570  07 73 E4 E8 EA 0B D0 E8-73 5A F6 06 69 A7 20 74  .sdhj.PhsZv.i' t
+5580  D6 F6 84 8F A6 08 75 05-B0 0E EB 03 90 B0 0D A2  Vv..&.u.0.k..0."
+5590  34 A7 BF 08 00 E8 7C 09-72 C6 A0 34 A7 E8 AA 0B  4'?..h|.rF 4'h*.
+55A0  A0 35 A7 B4 00 8B F8 8A-85 89 A6 88 84 89 A6 8A   5'4..x...&...&.
+55B0  85 8A A6 04 10 88 84 8A-A6 8A 85 8B A6 88 84 8B  ..&.....&...&...
+55C0  A6 C6 84 8D A6 80 B0 04-E8 43 12 A0 35 A7 B4 00  &F..&.0.hC. 5'4.
+55D0  8B F0 EB 83 F6 06 69 A7-40 75 03 E9 79 FF F6 84  .pk.v.i'@u.iy.v.
+55E0  8F A6 08 75 A3 EB A6 F6-06 69 A7 10 74 0B 80 3E  .&.u#k&v.i'.t..>
+55F0  44 A7 00 74 05 FE 0E 44-A7 C3 BF 03 00 E8 14 09  D'.t.~.D'C?..h..
+5600  72 F7 E8 5B 0B 24 0A E8-40 0B C6 84 8B A6 08 E8  rwh[.$.h@.F..&.h
+5610  4E 0B 88 84 89 A6 A0 61-A7 88 84 8D A6 A0 60 A7  N....& a'...& `'
+5620  A2 44 A7 C3 E4 61 24 FC-E6 61 B0 30 BA D9 03 EE  "D'Cda$|fa00:Y.n
+5630  E8 CB 03 B9 04 00 BE 00-00 8A 84 72 A7 3A 84 6E  hK.9..>....r':.n
+5640  A7 77 05 72 14 46 E2 F1-B9 04 00 BE 00 00 8A 84  'w.r.Fbq9..>....
+5650  72 A7 88 84 6E A7 46 E2-F5 A0 6E A7 0A 06 6F A7  r'..n'Fbu n'..o'
+5660  0A 06 70 A7 0A 06 71 A7-74 1A BE 32 AA E8 F1 03  ..p'..q't.>2*hq.
+5670  BF 72 A7 47 E8 C2 04 BE-3B AA E8 E4 03 BF 6E A7  ?r'GhB.>;*hd.?n'
+5680  47 E8 B5 04 C6 06 6C A7-08 C6 06 6A A7 03 C6 06  Gh5.F.l'.F.j'.F.
+5690  6B A7 00 C7 06 D0 A7 FF-00 C6 06 72 A7 00 C6 06  k'.G.P'..F.r'.F.
+56A0  73 A7 00 C6 06 74 A7 00-C6 06 75 A7 00 C6 06 46  s'.F.t'.F.u'.F.F
+56B0  A7 00 C6 06 3E A7 10 C6-06 3F A7 FF BE D0 B1 BA  '.F.>'.F.?'.>P1:
+56C0  3E 00 BF 14 00 B9 3B 00-8B 9D B0 A4 83 C3 0A 8A  >.?..9;...0$.C..
+56D0  04 26 88 07 46 43 E2 F7-47 47 4A 75 E8 BE F6 A9  .&..FCbwGGJuh>v)
+56E0  E8 7E 03 BE 07 AA E8 78-03 FB B4 01 CD 16 74 06  h~.>.*hx.{4.M.t.
+56F0  B4 00 CD 16 EB F4 BA 01-02 FA EE EC 24 03 3C 03  4.M.kt:..znl$.<.
+5700  74 0E FE 06 DC A8 75 F3-C6 06 DD A8 01 EB 18 90  t.~.\(usF.](.k..
+5710  B9 10 27 EC A8 03 74 0A-E2 F9 C6 06 DD A8 01 EB  9.'l(.t.byF.](.k
+5720  06 90 C6 06 DD A8 00 FB-C7 06 CE A7 00 00 BF 00  ..F.](.{G.N'..?.
+5730  00 BE 00 00 B9 20 00 E8-B0 01 C7 85 80 A7 28 20  .>..9 .h0.G..'(
+5740  83 C6 08 47 47 E2 F0 BE-00 00 80 3E DD A8 00 EB  .F.GGbp>...>](.k
+5750  13 BA 01 02 EE EC 24 30-3C 30 74 08 C6 06 5B A7  .:..nl$0<0t.F.['
+5760  01 E9 BB 01 C6 06 DC A8-01 FA 1E B8 40 00 8E D8  .i;.F.\(.z.8@..X
+5770  8B 1E 1A 00 3B 1E 1C 00-C6 06 1C 00 1E C6 06 1A  ....;...F....F..
+5780  00 1E FB 74 6A E8 4E F7-25 DF FF 1F C6 06 5B A7  ..{tjhNw%_..F.['
+5790  00 8B 3E CE A7 3B 85 C4-A7 75 51 47 47 89 3E CE  ..>N';.D'uQGG.>N
+57A0  A7 83 FF 0A 75 4A B2 00-BF 00 00 B9 20 00 8B 9D  '...uJ2.?..9 ...
+57B0  80 A7 26 88 17 47 47 E2-F5 BF E0 C1 C7 06 CE A7  .'&..GGbu?`AG.N'
+57C0  BA 00 BA 29 00 8B 1E CE-A7 8B 9F B0 A4 83 C3 25  :.:)...N'..0$.C%
+57D0  B9 0A 00 8A 05 26 88 07-47 43 E2 F7 4A 75 03 E9  9....&..GCbwJu.i
+57E0  4C FF FF 06 CE A7 FF 06-CE A7 EB D9 E9 30 01 1F  L...N'..N'kYi0..
+57F0  C6 06 DA A8 00 8A 84 D9-A7 00 84 DB A7 73 3F C6  F.Z(...Y'..['s?F
+5800  06 DA A8 01 B1 04 D2 E8-24 0E 75 02 B0 02 02 84  .Z(.1.Rh$.u.0...
+5810  D9 A7 72 04 88 84 D9 A7-F6 84 D9 A7 01 74 11 80  Y'r...Y'v.Y'.t..
+5820  BC D6 A7 00 75 03 E9 BC-00 FE 8C D6 A7 EB 0F 90  <V'.u.i<.~.V'k..
+5830  80 BC D6 A7 4F 75 03 E9-AB 00 FE 84 D6 A7 8A 84  .<V'Ou.i+.~.V'..
+5840  DA A7 00 84 DC A7 73 39-C6 06 DA A8 01 B1 04 D2  Z'..\'s9F.Z(.1.R
+5850  E8 24 0E 75 02 B0 02 02-84 DA A7 72 04 88 84 DA  h$.u.0...Z'r...Z
+5860  A7 F6 84 DA A7 01 74 0E-80 BC D8 A7 00 74 76 FE  'v.Z'.t..<X'.tv~
+5870  8C D8 A7 EB 0C 90 80 BC-D8 A7 63 74 68 FE 84 D8  .X'k...<X'cth~.X
+5880  A7 80 3E DA A8 00 74 53-8A 9C D8 A7 B7 00 D1 E3  '.>Z(.tS..X'7.Qc
+5890  D1 E3 8B 9F B0 A4 8A 84-D6 A7 B4 00 03 D8 26 8A  Qc..0$..V'4..X&.
+58A0  17 80 FA 00 75 29 8A 94-D9 A7 80 E2 03 80 FA 00  ..z.u)..Y'.b..z.
+58B0  74 02 B2 03 26 88 17 8B-FE D1 EF D1 EF 8B 85 80  t.2.&...~QoQo...
+58C0  A7 89 9D 80 A7 8B D8 B2-00 26 88 17 EB 0D 90 8B  '...'.X2.&..k...
+58D0  FE D1 EF D1 EF 8B 85 80-A7 EB EA 83 C6 08 81 E6  ~QoQo...'kj.F..f
+58E0  FF 00 E9 65 FE E8 02 00-EB F1 C6 84 D6 A7 28 C6  ..ie~h..kqF.V'(F
+58F0  84 D7 A7 00 C6 84 D8 A7-32 E8 64 08 24 3F 0C 06  .W'.F.X'2hd.$?..
+5900  88 84 D9 A7 E8 59 08 24-3F 0C 06 88 84 DA A7 C6  ..Y'hY.$?....Z'F
+5910  84 DB A7 00 C6 84 DC A7-00 C6 84 DD A7 00 C3 80  .['.F.\'.F.]'.C.
+5920  3E 5B A7 00 75 06 BE 54-AA EB 04 90 BE 43 AA E8  >['.u.>T*k..>C*h
+5930  2F 01 B9 F4 01 B0 00 FE-C0 75 FC E2 FA 80 3E 5B  /.9t.0.~@u|bz.>[
+5940  A7 00 74 0F 80 3E DB A8-00 75 08 E8 02 0F C6 06  '.t..>[(.u.h..F.
+5950  DB A8 01 80 3E 6B A7 14-72 05 80 2E 6B A7 04 B0  [(..>k'.r...k'.0
+5960  0E F6 26 6B A7 05 DE A8-BF 00 00 8B F0 B1 0E B5  .v&k'.^(?...p1.5
+5970  00 8A 04 88 85 5C A7 46-47 E2 F6 A0 6B A7 24 03  .....\'FGbv k'$.
+5980  75 0F C6 06 4E A7 78 C6-06 4C A7 00 C6 06 4D A7  u.F.N'xF.L'.F.M'
+5990  00 C6 06 3F A7 FF EB 06-90 C6 06 3F A7 00 E8 4C  .F.?'.k..F.?'.hL
+59A0  00 C6 06 5A A7 5C C6 06-59 A7 70 E8 12 09 E8 E3  .F.Z'\F.Y'ph..hc
+59B0  F5 B0 1E A2 58 A7 C6 06-57 A7 00 C6 06 45 A7 00  u0."X'F.W'.F.E'.
+59C0  C6 06 56 A7 01 C6 06 55-A7 00 C6 06 54 A7 00 C6  F.V'.F.U'.F.T'.F
+59D0  06 53 A7 00 C6 06 43 A7-00 BE 00 00 B9 80 00 C6  .S'.F.C'.>..9..F
+59E0  84 88 A6 00 46 E2 F8 E8-C6 03 E9 3A F5 E8 0E 00  ..&.FbxhF.i:uh..
+59F0  E8 9F 00 F6 06 69 A7 02-75 03 E8 E9 F6 C3 B9 00  h..v.i'.u.hivC9.
+5A00  20 B8 00 00 8B D9 D1 E3-26 89 07 E2 F7 C3 A0 5C   8...YQc&..bwC \
+5A10  A7 D0 E8 75 02 B0 01 8A-D0 F6 06 36 A7 80 74 24  'Phu.0..Pv.6'.t$
+5A20  F6 06 36 A7 10 74 2B A0-55 A7 A8 80 74 0B 02 C2  v.6'.t+ U'(.t..B
+5A30  A8 80 75 29 B0 00 EB 25-90 2A C2 A8 80 74 1E B0  (.u)0.k%.*B(.t.0
+5A40  00 EB 1A 90 A0 55 A7 2A-06 5C A7 71 10 B0 80 EB  .k.. U'*.\'q.0.k
+5A50  0C 90 A0 55 A7 02 06 5C-A7 71 02 B0 7F A2 55 A7  .. U'..\'q.0."U'
+5A60  C3 B4 01 B5 60 CD 10 B4-02 8A 14 46 8A 34 B7 00  C4.5`M.4...F.47.
+5A70  CD 10 B4 09 B7 00 B9 01-00 46 8A 04 B3 0F 3C FF  M.4.7.9..F..3.<.
+5A80  74 0F CD 10 FE C2 B4 02-CD 10 46 8A 04 B4 09 EB  t.M.~B4.M.F..4.k
+5A90  ED C3 80 3E 3F A7 00 75-01 C3 E8 61 FF BE 20 AA  mC.>?'.u.Cha.> *
+5AA0  E8 BE FF B4 02 B6 0A B2-12 B7 00 FB CD 10 A0 3E  h>.4.6.2.7.{M. >
+5AB0  A7 27 B1 04 F8 D2 E8 04-30 B3 0F E8 6F 00 B4 02  ''1.xRh.03.ho.4.
+5AC0  FE C2 CD 10 B0 2E E8 64-00 B4 02 FE C2 CD 10 A0  ~BM.0.hd.4.~BM.
+5AD0  3E A7 27 24 0F 04 30 E8-53 00 C7 06 C0 A7 C8 00  >''$..0hS.G.@'H.
+5AE0  C7 06 C2 A7 B8 0B FA 8B-36 C2 A7 B9 00 08 E8 27  G.B'8.z.6B'9..h'
+5AF0  00 BE 10 27 2B 36 C2 A7-B9 00 08 E8 1A 00 A1 C2  .>.'+6B'9..h..!B
+5B00  A7 05 20 00 A3 C2 A7 FF-0E C0 A7 75 DA FB E4 61  '. .#B'..@'uZ{da
+5B10  24 FC E6 61 E8 E7 FE C3-E4 61 0C 03 E6 61 B0 B6  $|fahg~Cda..fa06
+5B20  E6 43 8B C6 E6 42 8A C4-E6 42 E2 FE C3 50 51 B4  fC.FfB.DfBb~CPQ4
+5B30  09 B9 01 00 CD 10 59 58-C3 B9 03 00 8A 05 D0 E8  .9..M.YXC9....Ph
+5B40  D0 E8 D0 E8 D0 E8 04 30-E8 E2 FF B4 02 FE C2 CD  PhPhPh.0hb.4.~BM
+5B50  10 8A 05 24 0F 04 30 E8-D3 FF B4 02 FE C2 CD 10  ...$..0hS.4.~BM.
+5B60  47 E2 D9 C3 00 00 00 00-00 00 00 00 00 00 00 00  GbYC............
+5B70  63 5C 5A 5C 43 5C 72 5C-7C 5C 51 5C F7 5C 97 5D  c\Z\C\r\|\Q\w\.]
+5B80  B8 00 00 BF 00 00 B9 10-00 C6 06 1E A7 FF C6 06  8..?..9..F..'.F.
+5B90  1F A7 00 80 BD 88 A6 00-74 21 F6 85 8F A6 80 75  .'..=.&.t!v..&.u
+5BA0  1A C6 06 1F A7 FF A0 1E-A7 3A 85 8A A6 72 0C 8A  .F..'. .':..&r..
+5BB0  85 8A A6 A2 1E A7 8B C7-A2 20 A7 83 C7 08 E2 D3  ..&".'.G" '.G.bS
+5BC0  80 3E 1F A7 00 75 11 BF-00 00 B9 10 00 80 A5 8F  .>.'.u.?..9...%.
+5BD0  A6 7F 83 C7 08 E2 F6 C3-A0 20 A7 B4 00 8B F8 80  &..G.bvC  '4..x.
+5BE0  8D 8F A6 80 E8 6A 03 73-03 E8 9B F6 A0 20 A7 B4  ..&.hj.s.h.v  '4
+5BF0  00 8B F0 E8 85 03 72 12-A0 20 A7 B4 00 8B F8 E8  ..ph..r.  '4..xh
+5C00  4F 03 73 03 E8 2B F6 E9-76 FF A0 20 A7 B4 00 8B  O.s.h+viv.  '4..
+5C10  F8 C6 85 88 A6 00 E9 67-FF FF 85 40 A6 8B 9D 40  xF..&.ig...@&..@
+5C20  A6 8A 1F F6 C3 80 74 66-80 E3 7F 80 FB 08 73 F8  &..vC.tf.c..{.sx
+5C30  D0 E3 B7 00 2E 8B 87 70-5B 8A 1E 20 A7 B7 00 8B  Pc7....p[.. '7..
+5C40  F3 FF E0 80 BC 88 A6 01-75 05 C6 06 45 A7 00 F9  s.`.<.&.u.F.E'.y
+5C50  C3 E8 EE 02 88 84 8D A6-EB C3 E8 E5 02 88 84 88  Chn....&kChe....
+5C60  A6 EB BA E8 DC 02 8B 9D-40 A6 8A 27 89 85 40 A6  &k:h\...@&.'..@&
+5C70  EB AB 8B 85 40 A6 89 85-60 A6 EB E7 8B 85 60 A6  k+..@&..`&kg..`&
+5C80  89 85 40 A6 FF 85 40 A6-FF 85 40 A6 EB 8B 88 9C  ..@&..@&..@&k...
+5C90  8E A6 FF 85 40 A6 8B 9D-40 A6 8A 07 A2 17 A7 A8  .&..@&..@&..".'(
+5CA0  20 74 26 F6 06 17 A7 02-74 11 8A 84 8B A6 FE C0   t&v..'.t....&~@
+5CB0  3C 0A 73 15 88 84 8B A6-EB 0F 90 8A 84 8B A6 FE  <.s....&k.....&~
+5CC0  C8 3C FF 74 04 88 84 8B-A6 F6 06 17 A7 10 74 16  H<.t....&v..'.t.
+5CD0  F6 06 17 A7 01 74 11 8A-84 8D A6 F8 14 08 73 02  v..'.t....&x..s.
+5CE0  B0 FF 88 84 8D A6 F8 C3-8A 84 8D A6 F8 1C 08 74  0....&xC...&x..t
+5CF0  02 73 EF B0 01 EB EB 80-3E 45 A7 00 75 0C 8A 84  .so0.kk.>E'.u...
+5D00  89 A6 0C 01 A2 45 A7 E9-0F FF 57 BF 00 00 B9 10  .&.."E'i..W?..9.
+5D10  00 80 BD 88 A6 01 75 0E-3B FE 74 0A 8A 85 89 A6  ..=.&.u.;~t....&
+5D20  A2 45 A7 EB 0A 90 83 C7-08 E2 E6 5F EB 52 90 5F  "E'k...G.bf_kR._
+5D30  A0 59 A7 04 08 3A 84 89-A6 72 09 3A 06 45 A7 72   Y'..:..&r.:.E'r
+5D40  09 EB 3D 90 3A 06 45 A7-72 36 89 36 86 A6 89 3E  .k=.:.E'r6.6.&.>
+5D50  84 A6 B8 00 05 E8 5A 06-80 3E 39 A7 00 75 09 FE  .&8..hZ..>9'.u.~
+5D60  0E 63 A7 75 03 E9 74 07-E8 45 00 B0 08 E8 9E 0A  .c'u.it.hE.0.h..
+5D70  8B 3E 84 A6 8B 36 86 A6-C6 06 45 A7 00 E9 99 FE  .>.&.6.&F.E'.i.~
+5D80  89 3E 84 A6 89 36 86 A6-B0 07 E8 81 0A 8B 3E 84  .>.&.6.&0.h...>.
+5D90  A6 8B 36 86 A6 EB E1 E8-C6 03 A8 80 75 05 B0 12  &.6.&kahF.(.u.0.
+5DA0  EB 03 90 B0 11 E8 A2 03-80 8C 8F A6 10 E9 69 FE  k..0.h"....&.ii~
+5DB0  B6 55 F6 06 69 A7 02 74-02 B6 00 BE 17 00 BF 00  6Uv.i'.t.6.>..?.
+5DC0  00 8A 16 63 A7 80 FA 14-72 0D C6 06 16 A7 14 C6  ...c'.z.r.F..'.F
+5DD0  06 17 A7 00 EB 0E 90 88-16 16 A7 C6 06 17 A7 14  ..'.k.....'F..'.
+5DE0  28 16 17 A7 8B DE D1 E3-8B 9F B0 A4 8A 16 16 A7  (..'.^Qc..0$...'
+5DF0  B9 03 00 8A 85 70 A4 F6-06 69 A7 02 74 02 34 55  9....p$v.i'.t.4U
+5E00  26 88 07 47 43 E2 EC 83-EF 03 FE CA 75 E2 80 3E  &..GCbl.o.~Jub.>
+5E10  17 A7 00 74 13 8A 16 17-A7 B9 03 00 8A C6 26 88  .'.t....'9...F&.
+5E20  07 43 E2 FA FE CA 75 F1-83 C7 03 46 83 FE 1F 75  .Cbz~Juq.G.F.~.u
+5E30  B3 C3 00 25 4A 6F F6 06-36 A7 20 75 0C 80 3E 41  3C.%Jov.6' u..>A
+5E40  A7 00 74 0B FE 0E 41 A7-C3 C6 06 41 A7 00 C3 BF  '.t.~.A'CF.A'.C?
+5E50  05 00 BE 00 00 E8 BF 00-72 2C A0 59 A7 04 08 88  ..>..h?.r, Y'...
+5E60  84 89 A6 A0 5A A7 2C 03-88 84 8A A6 C6 84 8D A6  ..& Z',....&F..&
+5E70  C8 C6 84 8B A6 05 B0 00-E8 CF 02 A0 6C A7 A2 41  HF..&.0.hO. l'"A
+5E80  A7 B0 01 E8 88 09 C3 F6-06 69 A7 08 74 28 F6 06  '0.h..Cv.i'.t(v.
+5E90  69 A7 04 74 16 BF 00 00-80 BD 88 A6 02 74 17 83  i'.t.?...=.&.t..
+5EA0  C7 08 81 FF 80 00 75 F0-EB 0D 90 80 3E 43 A7 00  G.....upk...>C'.
+5EB0  74 05 FE 0E 43 A7 C3 E8-A6 02 24 03 A2 35 A7 E8  t.~.C'Ch&.$."5'h
+5EC0  9E 02 04 1E 3C B4 77 F7-A2 34 A7 E8 92 02 24 03  ....<4ww"4'h..$.
+5ED0  04 03 A2 33 A7 BF 02 00-E8 39 00 72 D9 A0 33 A7  .."3'?..h9.rY 3'
+5EE0  E8 67 02 A0 34 A7 88 84-89 A6 A0 35 A7 B4 00 8B  hg. 4'...& 5'4..
+5EF0  F8 2E 8A 85 32 5E 88 84-8E A6 04 90 88 84 8A A6  x...2^...&.....&
+5F00  A0 5F A7 88 84 8D A6 FE-0E 35 A7 79 C8 A0 5E A7   _'...&~.5'yH ^'
+5F10  A2 43 A7 C3 BE 10 00 81-FE 80 00 73 0C 80 BC 88  "C'C>...~..s..<.
+5F20  A6 00 74 07 83 C6 08 EB-EE F9 C3 8B C7 88 84 88  &.t..F.knyC.G...
+5F30  A6 B9 07 00 46 C6 84 88-A6 00 46 E2 F8 83 EE 08  &9..FF..&.Fbx.n.
+5F40  F8 C3 53 8B 9D 40 A6 43-8A 07 43 89 9D 40 A6 5B  xCS..@&C..C..@&[
+5F50  C3 80 BD 8B A6 09 75 02-F8 C3 8A 85 88 A6 B4 00  C.=.&.u.xC...&4.
+5F60  F6 26 15 A7 02 85 8B A6-A2 32 A7 8A 85 89 A6 A2  v&.'...&"2'...&"
+5F70  33 A7 8A 85 8A A6 A2 34-A7 F9 C3 8B FE D1 EF D1  3'...&"4'yC.~QoQ
+5F80  EF 89 3E 1A A7 80 BC 8E-A6 00 75 06 E8 8A FC 73  o.>.'.<.&.u.h.|s
+5F90  F4 C3 80 BC 88 A6 05 75-08 C6 06 18 A7 00 EB 15  tC.<.&.u.F..'.k.
+5FA0  90 B0 09 2A 84 8B A6 B4-00 F6 26 58 A7 88 26 18  .0.*..&4.v&X'.&.
+5FB0  A7 D0 26 18 A7 8B 3E 1A-A7 8A 84 8C A6 A2 17 A7  'P&.'.>.'...&".'
+5FC0  B1 04 D2 E8 A2 16 A7 A0-17 A7 B4 00 8A 9C 8D A6  1.Rh".' .'4....&
+5FD0  B7 00 03 C3 88 84 8C A6-D3 E8 02 06 18 A7 2A 06  7..C...&Sh...'*.
+5FE0  16 A7 A2 16 A7 8B 3E 1A-A7 8B 9D 40 A6 8A 07 A2  .'".'.>.'..@&.."
+5FF0  19 A7 A0 16 A7 3C 00 74-30 F8 1A 84 8E A6 73 10  .' .'<.t0x...&s.
+6000  34 FF 04 01 88 84 8E A6-E8 90 00 73 1C E9 89 00  4......&h..s.i..
+6010  A2 18 A7 8A 84 8E A6 A2-16 A7 E8 7E 00 72 7A E8  ".'...&".'h~.rzh
+6020  F7 FB 72 75 A0 18 A7 EB-B9 80 BC 88 A6 07 74 07  w{ru .'k9.<.&.t.
+6030  80 BC 88 A6 04 73 60 8A-84 8B A6 B4 00 8B F8 83  .<.&.s`...&4..x.
+6040  FF 09 74 53 8A 85 09 A7-A2 16 A7 A0 55 A7 8A D0  ..tS...'".' U'.P
+6050  A8 80 74 04 34 FF 04 01-D0 E8 FE 0E 16 A7 75 F8  (.t.4...Ph~..'ux
+6060  F6 C2 80 74 04 34 FF 04-01 8A D0 F8 00 84 89 A6  vB.t.4....Px...&
+6070  72 20 F6 C2 80 74 20 80-BC 88 A6 01 75 1B 80 3E  r vB.t .<.&.u..>
+6080  45 A7 00 74 14 B0 07 E8-84 07 C6 06 45 A7 00 EB  E'.t.0.h..F.E'.k
+6090  08 90 F6 C2 80 74 E0 F8-C3 F9 C3 E8 0B 00 72 24  ..vB.t`xCyCh..r$
+60A0  46 E8 05 00 72 1E 4E F8-C3 D0 06 19 A7 73 F8 F6  Fh..r.NxCP..'sxv
+60B0  06 19 A7 10 74 10 8A 84-89 A6 02 06 16 A7 88 84  ..'.t....&...'..
+60C0  89 A6 73 E3 F9 C3 A0 16-A7 F8 18 84 89 A6 73 D7  .&scyC .'x...&sW
+60D0  EB F2 F6 06 69 A7 02 75-20 80 3E 42 A7 00 75 1A  krv.i'.u .>B'.u.
+60E0  BF 01 00 E8 2E FE 72 11-8B DE BF 01 00 E8 24 FE  ?..h.~r..^?..h$~
+60F0  73 0E 8B F3 C6 84 88 A6-00 C3 FE 0E 42 A7 EB F9  s..sF..&.C~.B'ky
+6100  E8 5D 00 3C C8 73 F9 88-84 89 A6 87 F3 F8 1A 06  h].<Hsy...&.sx..
+6110  65 A7 72 EC 3C 32 76 E8-88 84 89 A6 C6 84 8F A6  e'rl<2vh...&F..&
+6120  08 C6 84 8B A6 09 C6 87-8B A6 09 C6 84 8D A6 20  .F..&.F..&.F..&
+6130  C6 87 8D A6 20 B8 01 00-E8 0F 00 87 F3 B8 02 00  F..& 8..h...s8..
+6140  E8 07 00 A0 5D A7 A2 42-A7 C3 56 8B FE D1 EF D1  h.. ]'"B'CV.~QoQ
+6150  EF B4 00 8B F0 D1 E6 8B-84 92 AD 89 85 40 A6 5E  o4..pQf...-..@&^
+6160  53 FF 06 80 A6 81 3E 80-A6 0E 68 77 08 81 3E 80  S...&.>.&.hw..>.
+6170  A6 B0 4E 77 07 BB B0 4E-89 1E 80 A6 8B 1E 80 A6  &0Nw.;0N...&...&
+6180  2E 8A 07 02 06 90 AD 04-EF A2 90 AD 5B C3 00 00  ......-.o".-[C..
+6190  A0 4C A7 0A 06 4D A7 0A-06 4E A7 75 03 E9 DA 00   L'..M'..N'u.iZ.
+61A0  80 3E 5B A7 00 75 03 E9-87 00 E8 DD 00 BA 01 02  .>['.u.i..h].:..
+61B0  FA EE EC 24 03 3C 03 75-F9 B4 00 B9 FF 00 EC 0A  znl$.<.uy4.9..l.
+61C0  C4 A8 01 75 0C 88 0E 16-A7 80 CC 01 80 FC 03 74  D(.u....'.L..|.t
+61D0  12 A8 02 75 0C 88 0E 17-A7 80 CC 02 80 FC 03 74  .(.u....'.L..|.t
+61E0  02 E2 DB FB C6 06 36 A7-FF 8A 26 D9 C3 38 26 17  .b[{F.6'..&YC8&.
+61F0  A7 72 05 80 26 36 A7 FB-8A 26 DA C3 38 26 17 A7  'r..&6'{.&ZC8&.'
+6200  77 05 80 26 36 A7 F7 8A-26 DB C3 38 26 16 A7 77  w..&6'w.&[C8&.'w
+6210  05 80 26 36 A7 7F 8A 26-DC C3 38 26 16 A7 72 05  ..&6'..&\C8&.'r.
+6220  80 26 36 A7 EF 24 30 3C-30 74 05 80 26 36 A7 DF  .&6'o$0<0t..&6'_
+6230  C3 80 0E 36 A7 20 1E B8-40 00 8E D8 80 0E 17 00  C..6' .8@..X....
+6240  20 1F FB B4 01 CD 16 74-30 B4 00 CD 16 B2 FB 3D   .{4.M.t04.M.2{=
+6250  38 48 74 21 B2 F7 3D 32-50 74 1A B2 7F 3D 36 4D  8Ht!2w=2Pt.2.=6M
+6260  74 13 B2 EF 3D 34 4B 74-0C B2 DF 3D 20 39 74 05  t.2o=4Kt.2_= 9t.
+6270  E8 22 00 B2 FF 88 16 36-A7 C3 B0 F7 A2 36 A7 80  h".2...6'C0w"6'.
+6280  3E 5A A7 66 73 01 C3 E9-C7 02 FB B4 01 CD 16 74  >Z'fs.CiG.{4.M.t
+6290  21 B4 00 CD 16 3D 1B 01-75 03 E9 87 EC 3D 0D 1C  !4.M.=..u.i.l=..
+62A0  75 10 FB B4 01 CD 16 B9-64 00 E2 FE 74 F5 B4 00  u.{4.M.9d.b~tu4.
+62B0  CD 16 C3 00 00 00 00 00-00 00 00 00 00 00 00 00  M.C.............
+62C0  B6 55 F6 06 69 A7 02 74-02 B6 00 BE 0A 00 BF 00  6Uv.i'.t.6.>..?.
+62D0  00 A0 6A A7 3C 05 72 0D-C6 06 16 A7 05 C6 06 17  . j'<.r.F..'.F..
+62E0  A7 00 EB 0D 90 A2 16 A7-C6 06 17 A7 05 28 06 17  '.k..".'F..'.(..
+62F0  A7 8B DE D1 E3 8B 9F B0-A4 83 C3 32 8A 16 16 A7  '.^Qc..0$.C2...'
+6300  80 FA 00 74 1E B9 06 00-8A 85 88 A4 F6 06 69 A7  .z.t.9.....$v.i'
+6310  02 74 02 34 55 26 88 07-47 43 E2 EC 83 EF 06 FE  .t.4U&..GCbl.o.~
+6320  CA 75 E2 80 3E 17 A7 00-74 13 8A 16 17 A7 B9 06  Jub.>.'.t....'9.
+6330  00 8A C6 26 88 07 43 E2-FA FE CA 75 F1 83 C7 06  ..F&..Cbz~Juq.G.
+6340  46 83 FE 10 75 AB C3 B1-06 A0 58 A7 B4 00 8A 16  F.~.u+C1. X'4...
+6350  38 A7 B6 00 03 C2 A2 38-A7 D3 E8 E8 54 00 A0 73  8'6..B"8'ShhT. s
+6360  A7 2A 06 46 A7 2F 3C 02-72 1A B0 09 E8 9F 04 FE  '*.F'/<.r.0.h..~
+6370  06 6A A7 75 04 FE 0E 6A-A7 A0 73 A7 24 FE A2 46  .j'u.~.j' s'$~"F
+6380  A7 E8 3C FF BF 00 00 BE-01 00 8B DF D1 E3 D1 E3  'h<.?..>..._QcQc
+6390  43 D1 DF 8A 85 73 A7 D1-D7 F7 C7 01 00 75 07 B1  CQ_..s'QWwG..u.1
+63A0  04 D2 E8 EB 03 90 24 0F-E8 2C 00 47 83 FF 06 75  .Rhk..$.h,.G...u
+63B0  D9 C3 02 06 75 A7 27 A2-75 A7 8A C4 12 06 74 A7  YC..u''"u'.D..t'
+63C0  27 A2 74 A7 A0 73 A7 14-00 27 A2 73 A7 A0 72 A7  '"t' s'..'"s' r'
+63D0  14 00 27 A2 72 A7 C3 50-53 51 52 56 57 89 1E 16  ..'"r'CPSQRVW...
+63E0  A7 F6 26 14 A7 8B F8 B2-14 8B DE D1 E3 8B 9F B0  'v&.'.x2..^Qc..0
+63F0  A4 03 1E 16 A7 B9 04 00-8A 85 70 AA F6 06 69 A7  $...'9....p*v.i'
+6400  02 74 02 34 55 26 88 07-47 43 E2 EC 46 FE CA 75  .t.4U&..GCblF~Ju
+6410  D8 5F 5E 5A 59 5B 58 C3-BE 00 00 80 BC 88 A6 05  X_^ZY[XC>...<.&.
+6420  74 0D 83 C6 08 81 FE 80-00 75 F0 E9 C4 00 C3 8B  t..F..~..upiD.C.
+6430  C6 A2 35 A7 8A 84 89 A6-A2 28 A7 8A 84 8A A6 2A  F"5'...&"('...&*
+6440  06 6D A7 A2 29 A7 E8 5A-02 A0 21 A7 02 06 6D A7  .m'")'hZ. !'..m'
+6450  A2 26 A7 A0 22 A7 A2 27-A7 BE 00 00 8A 84 88 A6  "&' "'"''>.....&
+6460  3C 02 74 22 3C 03 74 1E-3C 06 74 12 83 C6 08 81  <.t"<.t.<.t..F..
+6470  FE 80 00 75 E7 A0 35 A7-B4 00 8B F0 EB A4 E8 DF  ~..ug 5'4..pk$h_
+6480  01 73 E9 E9 50 01 E8 D7-01 73 E1 8A A4 88 A6 B0  .siiP.hW.sa.$.&0
+6490  00 E8 1E FF C6 84 8E A6-00 B0 07 E8 AC FC A0 35  .h..F..&.0.h,| 5
+64A0  A7 B4 00 8B F0 C6 84 8E-A6 00 B0 08 E8 9B FC F6  '4..pF..&.0.h.|v
+64B0  06 69 A7 04 74 0F 80 3E-63 A7 01 75 08 80 26 69  .i'.t..>c'.u..&i
+64C0  A7 F7 EB 11 90 80 3E 39-A7 00 75 09 FE 0E 63 A7  'wk...>9'.u.~.c'
+64D0  74 0A E8 DB F8 B0 00 E8-34 03 EB 99 FE 06 6B A7  t.h[x0.h4.k.~.k'
+64E0  C6 06 3F A7 FF FE 06 3E-A7 90 90 90 E9 64 F4 C3  F.?'.~.>'...idtC
+64F0  90 C3 A0 59 A7 A2 28 A7-A0 5A A7 A2 29 A7 C6 06  .C Y'"(' Z'")'F.
+6500  26 A7 0F C6 06 27 A7 1A-BE 00 00 80 BC 8B A6 00  &'.F.''.>...<.&.
+6510  74 0A 83 C6 08 81 FE 80-00 75 F0 C3 8A 84 88 A6  t..F..~..upC...&
+6520  3C 00 74 EE 3C 05 74 EA-3C 07 74 E6 3C 09 74 E2  <.tn<.tj<.tf<.tb
+6530  E8 2D 01 73 DD C6 84 8D-A6 00 B9 10 00 BE 00 00  h-.s]F..&.9..>..
+6540  80 BC 88 A6 01 75 05 C6-84 8D A6 00 83 C6 08 E2  .<.&.u.F..&..F.b
+6550  EF E8 2C F6 BF 07 00 BE-00 00 E8 B7 F9 72 F2 A0  oh,v?..>..h7yrr
+6560  59 A7 88 84 89 A6 A0 5A-A7 88 84 8A A6 B0 09 E8  Y'...& Z'...&0.h
+6570  D8 FB C6 06 55 A7 00 C6-06 58 A7 00 C6 06 39 A7  X{F.U'.F.X'.F.9'
+6580  3A B0 02 E8 88 02 FE 0E-6A A7 E8 33 FD E8 1F EB  :0.h..~.j'h3}h.k
+6590  E8 B4 FD E8 EA F5 E8 37-02 E8 F9 EB B9 98 3A E2  h4}hjuh7.hyk9.:b
+65A0  FE FE 0E 39 A7 75 EC 80-3E 6A A7 00 74 24 A0 4C  ~~.9'ul.>j'.t$ L
+65B0  A7 0A 06 4D A7 0A 06 4E-A7 75 0E 80 26 6B A7 FC  '..M'..N'u..&k'|
+65C0  80 26 3E A7 F0 E9 8B F3-C3 C6 06 3F A7 00 E9 C8  .&>'pi.sCF.?'.iH
+65D0  F3 C3 E9 4F E9 C3 F6 84-8F A6 10 75 23 8A 84 8B  sCiOiCv..&.u#...
+65E0  A6 B4 00 8B F8 83 FF 06-73 16 8A 85 BE B1 02 84  &4..x...s...>1..
+65F0  89 A6 2A 06 28 A7 73 04-34 FF 04 01 3C 04 72 28  .&*.('s.4...<.r(
+6600  A0
+
+0018                ; rychlost ub˜v n¡ paliva
+0019                ; text - m lo paliva
+
+0024                ; tabulka barev linek zemˆ jednotliv˜ch sc‚n
+
+0028                ; barva videolinky k zobraze¡ ‡ar zemˆ
+
+A408                ; tabulka k £schovˆ zobrazen˜ch linek zemˆ
+
+A470                ; obr zek br ny k zobrazen¡ zbyl‚ho po‡tu bran k proletˆn¡
+A488                ; obr zek letadla - zb˜vaj¡c¡ po‡et ‘ivot–
+
+A4B0                ; tabulka adres videolinek
+
+A680                ; ukazatel v programu pro gener tor n hodn‚ho ‡¡sla
+
+A688                ; tabulka definic objekt– (16 objekt– po 8 bajtech)
+                    ; A688  0: typ objektu  0=polo‘ka voln 
+                    ;                       1=sloup
+                    ;                       2=l‚taj¡c¡ tal¡©
+                    ;                       3=UFO
+                    ;                       4=bomba kosmick‚ lodi
+                    ;                       5=st©ela
+                    ;                       6=kosmick  loƒ
+                    ;                       7=v˜buch
+                    ;                       8=bomba bran
+                    ;                       9=hvˆzda (podsc‚na X.3)
+                    ; A689  1: pozice objektu X
+                    ; A68A  2: sou©adnice objektu Y
+                    ; A68B  3: velikost objektu (vzd lenost) (9=neviditeln˜)
+                    ; A68C  4:
+                    ; A68D  5:
+                    ; A68E  6:
+                    ; A68F  7: bit 7: 0=po‘aduje se zobrazen¡ objektu
+
+                    ; bit 1: 1=po‘aduje se zmen¨en¡ objektu
+                    ; bit 5: 1=po‘aduje se zmˆna velikosti objektu
+
+
+
+A714                ; po‡et bajt– na ‡¡slici
+
+A716                ; d‚lka ukazatele paliva, po‡et ‘ivot– k zobrazen¡,
+                    ;   adresa k zobrazen¡ ‡¡slice sk¢re, po‡et zbyl˜ch bran
+                    ;   k zobrazen¡
+A717                ; po‡et voln˜ch pozic k vymaz n¡ ‘ivot–, po‡et voln˜ch pozic
+                    ;   k vymaz n¡ zbyl˜ch bran, p©¡znaky pohybu objektu
+
+A718                ; ukazatel ‡¡sla linky k zobrazen¡ obr zku
+
+A71A                ; offset po‡ tku zobrazovan‚ho obr zku na videolince
+
+A71E                ; linka Y nalezen‚ho objektu k zobrazen¡
+A71F                ; p©¡znak nalezen¡ objektu k zobrazen¡ (=0ffh, 0=nenalezen)
+A720                ; offset v tabulce nalezen‚ho objektu k zobrazen¡
+A721                ; offset kosmick‚ lodi v tabulce objekt–
+
+A726                ; ¨¡©ka cel‚ho zobrazovan‚ho obr zku (bajt–)
+
+A728                ; pozice st©ely X
+A729                ; linka st©ely Y
+A72A                ; adresa masky zobrazovan‚ho obr zku
+A72C                ; adresa zobrazovan‚ho obr zku
+
+A72F                ; ¨¡©ka v˜©ezu zobrazovan‚ho obr zku (bajt–)
+A731                ; ‡¡ta‡ linek k zobrazen¡ obr zku
+A732                ; ‡¡slo obr zku k zobrazen¡
+                    ;   0=letadlo vlevo
+                    ;   1=letadlo p©¡mo
+                    ;   2=letadlo vpravo
+                    ;   3=st¡n letadla
+                    ;  10=br na
+A733                ; pozice k zobrazen¡ obr zku
+A734                ; ‡¡slo linky k zobrazen¡ obr zku
+A735                ; offset definice velk‚ho UFO, offset definice br ny,
+                    ;   offset definice st©ely
+A736                ; povel z kl vesnice nebo joysticku
+                    ;      bit 2: 0=nahoru, zv˜¨en¡ rychlosti
+                    ;      bit 3: 0=dol–, sn¡‘en¡ rychlosti
+                    ;      bit 4: 0=vlevo
+                    ;      bit 5: 0=st©¡len¡
+                    ;      bit 7: 0=vpravo
+
+A739                ; ‡¡ta‡ krok– p©i v˜buchu rakety
+
+A73C                ; pozice X
+A73D                ; linka Y
+A73E                ; ‡¡slo sc‚ny a podsc‚ny v BCD tvaru
+A73F
+A740                ; smˆr pohybu letadla (0=vlevo, 1=p©¡mo, 2=vpravo)
+A741                ; ‡¡ta‡ prodlevy mezi st©elami
+A742                ; ‡¡ta‡ pro generov n¡ dal¨¡ br ny
+A743                ; ‡¡ta‡ pro generov n¡ dal¨¡ho disku (mal‚ UFO)
+A744                ; ‡¡ta‡ generov n¡ velk‚ho UFO
+
+A746                ; sk¢re posledn¡ho zv˜¨en¡ po‡tu ‘ivot– (2 BCD ‡¡slice)
+A747                ; ‡¡ta‡ prodlevy pro generov n¡ bomb velk‚ho UFO
+
+A749                ; ‡¡ta‡ pro generov n¡ bomb kosmickou lod¡ (0=mo‘n‚ gener.)
+A748                ; ‡¡ta‡ pro generov n¡ bomb br ny
+A74A                ; ‡¡ta‡ obsluhy hvˆzd
+
+A74C                ; z soba paliva (3 bajty)
+
+A753                ; uschovan  star  f ze v tabulce linek zemˆ
+
+A758                ; rychlost letu (30 a‘ 120)
+A759                ; poloha letadla horizont lnˆ
+A75A                ; poloha letadla vertik lnˆ
+A75B                ; 0=ovl d n¡ kl vesnic¡
+
+                    ; defini‡n¡ tabulka sc‚ny
+A75C
+A75D                ; rychlost generov n¡ br ny
+A75E                ; rychlost generov n¡ disk–
+
+A760                ; rychlost generov n¡ velk‚ho UFO
+A763                ; po‡et zbyl˜ch bran k proletˆn¡
+
+A765                ; ¨¡©ka br ny (pozic)
+A766                ; rychlost generov n¡ bomb velk‚ho UFO
+A767                ; rychlost generov n¡ bomb br ny
+A769                ; bit 1: 0=zobrazena zemˆ (posunuj¡c¡ se ‡ ry)
+                    ; bit 2: 0=po‘adavek generov n¡ kosmick‚ lodi
+                    ;        1=povoleno generov n¡ pouze jednoho disku (mal‚ UFO)
+                    ; bit 3: 1=po‘adavek generov n¡ disku (mal‚ UFO)
+                    ; bit 4: 1=po‘adavek generov n¡ velk‚ho UFO
+
+                    ; bit 6 a bit 5: r–zn‚ od 0=po‘adavek generov n¡ bomb br ny
+
+                    ; bit 7: 0=po‘adavek generov n¡ bomb velk‚ho UFO
+
+A76A                ; po‡et ‘ivot–
+A76B                ; ‡¡slo sc‚ny (0 a‘ 19)
+A76C                ; rychlost st©¡len¡
+
+A76E                ; maxim ln¡ sk¢re (6 ‡¡slic v BCD tvaru)
+A772                ; sk¢re (6 ‡¡slic v BCD tvaru)
+
+A8DB                ; 1=p©¡znak kalibrace joysticku
+A8DD                ; 0=je joystick, 1=nen¡
+
+A8DE                ; definice jednotliv˜ch sc‚n (tabulky po 14 bajtech)
+
+A9F6                ; text "Copyright"
+
+AA07                ; licen‡n¡ informace - firma
+AA32                ; text "SCORE:"
+AA3B                ; text "HIGH:"
+AA43                ; text "Using joystick"
+AA54                ; text "Using keyboard"
+
+AD90                ; korekce pro gener tor n hodn‚ho ‡¡sla
+
+B1D0                ; tituln¡ obr zek
+
+C060                ; ukazatel melodie
+C062                ; 0=konec melodie
+C064                ; ‡¡ta‡ doby d‚lky t¢nu
+
+C380                ; text "JOYSTICK CALIBRATION"
+C397                ; text "Adjust ..."
+C3BE                ; text "and press ..."
+

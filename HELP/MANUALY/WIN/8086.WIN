@@ -1,0 +1,4270 @@
+
+      +------------------------------------------------------------+
+      |  I n s t r u k c e   p r o c e s o r u   8 0 8 6 / 8 0 8 8 |
+      +------------------------------------------------------------+
+                           (c) Miroslav Nìmeèek
+
+                          Registry mikroprocesoru
+
+
+
+           15 ............. 0  -------> 16-bitový registr
+            7 .... 0|7 .... 0  ------->  8-bitový registr
+           +--------+--------+
+      AX   |   AH   |   AL   |   akumulátor     -+
+           +--------+--------+                   |
+      BX   |   BH   |   BL   |   bázový registr  |
+           +--------+--------+                   +-> Hlavní registry
+      CX   |   CH   |   CL   |   èítací registr  |
+           +--------+--------+                   |
+      DX   |   DH   |   DL   |   datový registr -+
+           +--------+--------+
+      |        |        |
+      |        +--------+-------> použito jako 8-bitové registry
+      +-------------------------> použito jako 16-bitové registry
+
+ 
+           15 ............. 0
+           +-----------------+
+           |       SP        |   ukazatel zásobníku -+
+           +-----------------+                       +-> ukazatele
+           |       BP        |   bázový ukazatel ----+
+           +-----------------+
+ 
+           15 ............. 0
+           +-----------------+
+           |       SI        |   zdrojový index -----+
+           +-----------------+                       +-> indexy
+           |       DI        |   cílový index -------+
+           +-----------------+
+ 
+           15 ............. 0
+           +-----------------+
+           |       IP        |   èítaè instrukcí (ukazatel instrukcí)
+           +-----------------+
+           |      FLAGS      |   registr pøíznakù (stavový registr)
+           +-----------------+
+ 
+           15 ............. 0
+           +-----------------+
+           |       CS        |   kódový segmentový registr
+           +-----------------+
+           |       DS        |   datový segmentový registr
+           +-----------------+
+           |       SS        |   zásobníkový segmentový registr
+           +-----------------+
+           |       ES        |   zvláštní segmentový registr
+           +-----------------+
+
+
+                             Registr pøíznakù
+
+ 
+       15 14 13 12 11 10 09 08   07 06 05 04 03 02 01 00
+      +--+--+--+--+--+--+--+--+ +--+--+--+--+--+--+--+--+
+      |  |  |  |  |  |  |  |  | |  |  |  |  |  |  |  |  |
+      |--|--|--|--|OF|DF|IF|TF| |SF|ZF|--|AF|--|PF|--|CF|
+      |  |  |  |  |  |  |  |  | |  |  |  |  |  |  |  |  |
+      +--+--+--+--+--+--+--+--+ +--+--+--+--+--+--+--+--+
+                    |  |  |  |    |  |     |     |     |
+                    |  |  |  |    |  |     |     |     +- pøenos
+                    |  |  |  |    |  |     |     |
+                    |  |  |  |    |  |     |     +------- parita
+                    |  |  |  |    |  |     |
+                    |  |  |  |    |  |     +------------- pomocný
+                    |  |  |  |    |  |                    pøenos (pro
+                    |  |  |  |    |  |                    aritm. BCD)
+                    |  |  |  |    |  |
+                    |  |  |  |    |  +------------------- nula
+                    |  |  |  |    |
+                    |  |  |  |    +---------------------- znaménko
+                    |  |  |  |
+                    |  |  |  +--------------------------- krokový
+                    |  |  |                               režim
+                    |  |  |
+                    |  |  +------------------------------ pøerušení
+                    |  |
+                    |  +--------------------------------- smìr pøenosu
+                    |
+                    +------------------------------------ pøeplnìní
+
+
+
+
+OF - pøíznak pøeplnìní:   Pøíznak   je   nastaven  v  pøípadì,  že  nastane
+                          pøeteèení    aritmetické    operace.    Pøeteèení
+                          aritmetické   operace   vznikne,  pokud  výsledek
+                          operace pøesahuje velikost pøíjmového operandu.
+
+DF - pøíznak smìru:       Pøíznak  slouží  k  øízení  automatického  posuvu
+                          ukazatele  pøi  øetìzcových instrukcí a nastavuje
+                          jej uživatel. Pokud je pøíznak nastaven, ukazatel
+                          je  dekrementován.  V pøípadì vynulování pøíznaku
+                          je ukazatel inkrementován.
+
+IF - povolení pøerušení:  Pokud  je  tento  pøíznak  nastaven, je pøerušení
+                          povoleno.   Pokud   je   pøíznak   vynulován,  je
+                          pøerušení   (kromì   nemaskovatelného  pøerušení)
+                          zakázáno.
+
+TF - pøíznak krokování:   Tento  pøíznak  se používá ke krokování programu.
+                          Pokud  je pøíznak nastaven, je po každé instrukci
+                          vyvoláno pøerušení INT 3 (bìhem obsluhy pøerušení
+                          je pøíznak automaticky vynulován).
+
+SF - pøíznak znaménka:    Pøíznak   je  nastaven,  pokud  je  nejvyšší  bit
+                          výsledku  operace  nastaven  na 1. Jiným slovem -
+                          S=0 pro kladná èísla a S=1 pro záporná èísla.
+
+ZF - pøíznak nuly:        Nastaven, pokud je výsledkem operace nula.
+
+AF - pomocný pøenos:      Nastaven,  pokud  nastal  pøenos z nižší poloviny
+                          operandu  (8-  nebo 16-bitového èísla) nebo pokud
+                          nastalo podteèení z horní do dolní poloviny èísla
+                          pøi  odeèítání.  Tento pøíznak je používán hlavnì
+                          pro dekadické aritmetické operace.
+
+PF - pøíznak parity:      Nastaven  pøi sudém poètu bitù s hodnotou 1 (sudá
+                          parita)  a  vynulován  pøi  lichém  poètu  bitù 1
+                          (lichá    parita).    Pøíznak   èasto   používají
+                          komunikaèní programy.
+
+CF - pøíznak pøenosu:     Nastaven,  pokud  nastal  pøenos nebo podteèení z
+                          èísla  bìhem  aritmetické operace. Používá se pøi
+                          víceslovních operacích.
+
+
+
+
+
+
+                          Zpùsob adresace pamìti
+
+    Pamì  lze  adresovat  pomocí  20  bitù  (tj.  lze  adresovat 1 MB
+pamìti).   Absolutní   adresa   vznikne   souètem  obsahu  pøíslušného
+segmentového  registru  vynásobeného  16 * a  ukazatele 16 bitù (napø.
+program  .COM  je  uložen  v  pamìti v segmentu urèeném ukazatelem CS,
+ukazatel  programu  je nastaven na adresu 100h, program lze tak uložit
+bez zmìny kódu programu prakticky kdekoliv v pamìti po násobcích 16).
+
+
+ 
+obsah segmentového registru :    xxxx xxxx xxxx xxxx 0000   (16 bitù)
+ 
+efektivní adresa (offset)   :  + 0000 yyyy yyyy yyyy yyyy   (16 bitù)
+ 
+---------------------------------------------------------------------
+ 
+absolutní adresa            :    xxxx zzzz zzzz zzzz yyyy   (20 bitù)
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        P o p i s   i n s t r u k c í
+
+
+Pøi popisu instrukcí jsou použita následující oznaèení:
+
+    op1;op2        - všeobecné operandy instrukcí
+    [op1];[op2]    - obsahy operandù
+    èíslo_8        - èíselný operand o délce 8 bitù
+    èíslo_16       - èíslený operand o délce 16 bitù
+    registr_8      - registr délce 8 bitù
+    registr_16     - registr délce 16 bitù
+    pamì_8        - adresa bajtu
+    pamì_16       - adresa slova
+    EA             - efektivní adresa
+    rep            - jeden prùchod opakovací smyèky
+
+
+
+
+
+
+Popis ovlivnìní registru pøíznakù (9 pøíznakù):
+
+    pøíznaky :          O  - pøíznak pøeteèení OF
+                        D  - pøíznak smìru DF
+                        I  - pøíznak povolení pøerušení IF
+                        T  - pøíznak krokování programu TF
+                        S  - pøíznak znaménka SF
+                        Z  - pøíznak nuly ZF
+                        A  - pøíznak pomocného pøenosu AF
+                        P  - pøíznak parity PF
+                        C  - pøíznak pøenosu CF
+
+    ovlivnìní pøíznaku: -  - pøíznak není ovlivnìn
+                        *  - pøíznak je zmìnìn podle výsledku operace
+                        0  - pøíznak je vynulován (nastaven na 0)
+                        1  - pøíznak je nastaven (nastaven na 1)
+
+Tabulka popisu instrukcí:
+
+    operand: - Obsahuje výpis možných operandù instrukce a adresových módù
+
+    takty:   - Poèet  taktù,  které  je  potøeba  k  provedení  instrukce u
+               procesoru  8088 (procesory 80x8x vykonávají stejné instrukce
+               v ménì taktech, uvedené hodnoty jsou tedy pouze orientaèní).
+               Pokud jsou možná obì použití instrukce pro operace s bajty i
+               se  slovy,  je  poèet  taktù  pro  operaci se slovy uveden v
+               závorce  za  poètem  taktù  pro  operaci s bajtem. Efektivní
+               adresování  vyžaduje  další  doplòující  takty,  což  je zde
+               vyjádøeno pouze symbolicky (EA).
+
+    pøenosy: - Poèet  pøístupù  do pamìti. Pro každý pøístup do pamìti jsou
+               potøeba 4 takty.
+
+    bajtù:   - Poèet  taktù  instrukce. U instrukcí s vìtvení funkcí (napø.
+               podmínìný  skok,  smyèka)  jsou  uvedeny  obì  možnosti  - v
+               pøípadì splnìní podmínky nebo nesplnìní podmínky; kratší èas
+               je  potøebný pro možnost s menším poètem operací (napø. skok
+               se neprovede).
+
+
+
+                              Adresové  módy
+
++---------------------+------------------+-------------------------------+
+| adresový mód        |  formát adresy   | standardní segmentový registr |
++---------------------+------------------+-------------------------------+
+| registr             |  registr         |          žádný                |
++---------------------+------------------+-------------------------------+
+| pøímý operand       |  data            |          žádný                |
++---------------------+------------------+-------------------------------+
+| nepøímý registr     |  [BX]            |          DS                   |
+|                     |  [BP]            |          SS                   |
+|                     |  [DI]            |          DS                   |
+|                     |  [SI]            |          DS                   |
++---------------------+------------------+-------------------------------+
+| báze relativnì*     |  návìští [BX]    |          DS                   |
+|                     |  návìští [BP]    |          SS                   |
++---------------------+------------------+-------------------------------+
+| pøímý indexový*     |  návìští [DI]    |          DS                   |
+|                     |  návìští [SI]    |          DS                   |
++---------------------+------------------+-------------------------------+
+| bázový indexový*    |  návìští [BX+SI] |          DS                   |
+|                     |  návìští [BX+DI] |          DS                   |
+|                     |  návìští [BP+SI] |          SS                   |
+|                     |  návìští [BP+DI] |          SS                   |
++---------------------+------------------+-------------------------------+
+| øetìzcová instrukce |     zdroj        |        DS:SI                  |
+|                     |   pøíjemce       |        ES:DI                  |
++---------------------+------------------+-------------------------------+
+
+*  oznaèení  [...]  mùže být nahrazeno [posun + ...]. Proto zápis [24 + BX]
+   produkuje adresu 24 + BX.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                           Efektivní  adresování
+
+    Tabulka  vypisuje  poèty  taktù  mikroprocesoru  8088,  které  vyžadují
+pøepoèty efektivní adresy (nutno pøièíst k poètu taktù instrukcí).
+
++---------------------------------+--------------+----------------------+
+|  složka efektivní adresy        |  takty 8088  |     pøíklad          |
++---------------------------------+--------------+----------------------+
+|  posunutí                       |      6       |   MOV AX,ADR         |
++---------------------------------+--------------+----------------------+
+|  nepøímý registr                |      5       |   MOV AX,[BP]        |
+|     BX, BP, SI, DI              |              |                      |
++---------------------------------+--------------+----------------------+
+|  posunutí + báze nebo index     |      9       |   MOV AX,ADR[BP]     |
+|     BX + posun, BP + posun,     |              |                      |
+|     SI + posun, DI + posun      |              |                      |
++---------------------------------+--------------+----------------------+
+|  báze + index                   |              |                      |
+|     BP + DI, BX + SI            |      7       |   MOV AX,[BP+DI]     |
+|     BP + SI, BX + DI            |      8       |   MOV AX,[BX+DI]     |
++---------------------------------+--------------+----------------------+
+|  posunutí + báze + index        |              |                      |
+|     BP + DI + posun             |     11       |   MOV AX,ADR[BP+DI]  |
+|     BX + SI + posun             |              |                      |
+|                                 |              |                      |
+|     BP + SI + posun             |     12       |   MOV AX,ADR[BP+SI]  |
+|     BX + DI + posun             |              |                      |
++---------------------------------+--------------+----------------------+
+
+Pozn.: Pøi pøepisu segmentu se pøidávají 2 takty.
+
+
+
+
+
+     P ø e h l e d   i n s t r u k c í   m i k r o p r o c e s o r u
+
+ A A A        - ASCII korekce po souètu
+ A A D        - ASCII korekce pøed dìlením
+ A A M        - ASCII korekce po násobení
+ A A S        - ASCII korekce po odeèítání
+ A D C        - aritmetický souèet s pøíznakem pøenosu
+ A D D        - aritmetický souèet
+ A N D        - logické AND
+ C A L L      - volání procedury
+ C B W        - konverze bajtu na slovo
+ C L C        - nulování pøíznaku pøenosu CF
+ C L D        - nulování pøíznaku smìru DF
+ C L I        - nulování pøíznaku povolení pøerušení IF
+ C M C        - doplnìk pøíznaku pøenosu CF
+ C M P        - porovnání dvou operandù
+ C M P S      - porovnání øetìzcù (bajtù nebo slov)
+ C M P S B    - porovnání øetìzcù bajtù
+ C M P S W    - porovnání øetìzcù slov
+ C W D        - konverze slova na dvojité slovo
+ D A A        - dekadická korekce po souètu
+ D A S        - dekadická korekce pro odeèítání
+ D E C        - dekrementace operandu
+ D I V        - dìlení bez znaménka
+ E S C        - pøedání øízení koprocesoru
+ H L T        - zastavení procesoru
+ I D I V      - celoèíselné dìlení (se znaménkem)
+ I M U L      - celoèíselné dìlení (se znaménkem)
+ I N          - vstup bajtu nebo slova z I/O portu
+ I N C        - inkrementace operandu
+ I N T        - pøerušení
+ I N T O      - pøerušení pøi pøeteèení
+ I R E T      - návrat z pøerušení
+ J A          - skok, je-li nad
+ J A E        - skok, je-li nad nebo shodný
+ J B          - skok, je-li pod
+ J B E        - skok, je-li pod nebo shodný
+ J C          - skok, je-li pøíznak pøenosu CF
+ J C X Z      - skok, je-li registr CX = 0
+ J E          - skok, je-li rovnost
+ J G          - skok, je-li vìtší
+ J G E        - skok, je-li vìtší nebo shodný
+ J L          - skok, je-li menší
+ J L E        - skok, je-li menší nebo shodný
+ J M P        - nepodmínìný skok
+ J N A        - skok, není-li nad
+ J N A E      - skok, není-li nad ani shodný
+ J N B        - skok, není-li pod
+ J N B E      - skok, není-li pod ani shodný
+ J N C        - skok, není-li pøíznak pøenosu CF
+ J N E        - skok, není-li shodný
+ J N G        - skok, není-li vìtší
+ J N G E      - skok, není-li vìtší ani shodný
+ J N L        - skok, není-li menší
+ J N L E      - skok, není-li menší ani shodný
+ J N O        - skok, není-li pøíznak pøeteèení OF
+ J N P        - skok, není-li pøíznak parity PF (tj. je parita lichá)
+ J N S        - skok, není-li pøíznak znaménka SF
+ J N Z        - skok, není-li pøíznak nuly ZF
+ J O          - skok, je-li pøíznak pøeteèení OF
+ J P          - skok, je-li pøíznak parity PF (tj. je parita sudá)
+ J P E        - skok, je-li parita sudá
+ J P O        - skok, je-li parita lichá
+ J S          - skok, je-li pøíznak znaménka SF
+ J Z          - skok, je-li pøíznak nuly ZF
+ L A H F      - naplnìní registru AH obsahem pøíznakového registru
+ L D S        - naplnìní registru ukazatelem s použitím DS
+ L E A        - naplnìní efektivní adresou
+ L E S        - naplnìní registru ukazatelem s použitím ES
+ L O C K      - uzamèení sbìrnice
+ L O D S      - naplnìní akumulátoru øetìzcem (bajtem nebo slovem)
+ L O D S B    - naplnìní akumulátoru bajtovým øetìzcem
+ L O D S W    - naplnìní akumulátoru øetìzcem slov
+ L O O P      - èítací smyèka
+ L O O P E    - èítací smyèka, je-li shoda
+ L O O P N E  - èítací smyèka, není-li shoda
+ L O O P N Z  - èítací smyèka, pokud není nula
+ L O O P Z    - èítací smyèka, je-li nula
+ M O V        - pøesun dat (bajt nebo slovo)
+ M O V S      - pøesun øetìzce (bajt nebo slovo)
+ M O V S B    - pøesun bajtového øetìzce
+ M O V S W    - pøesun øetìzce slov
+ M U L        - násobení bez znaménka
+ N E G        - negace
+ N O P        - prázdná operace
+ N O T        - logická negace
+ O R          - logické OR
+ O U T        - výstup bajtu nebo slova na I/O port
+ P O P        - vyjmutí slova ze zásobníku
+ P O P F      - vyjmutí registru pøíznakù ze zásobníku
+ P U S H      - uložení slova do zásobníku
+ P U S H F    - uložení registru pøíznakù do zásobníku
+ R C L        - rotace vlevo pøes pøíznakový bit pøenosu CF
+ R C R        - rotace vpravo pøes pøíznakový bit pøenosu CF
+ R E P        - opakování instrukce
+ R E P E      - opakování instrukce, pokud je rovnost
+ R E P N E    - opakování instrukce, pokud není shoda
+ R E P N Z    - opakování instrukce, pokud není nula
+ R E P Z      - opakování instrukce, pokud je nula
+ R E T        - návrat z procedury
+ R O L        - rotace vlevo
+ R O R        - rotace vpravo
+ S A H F      - uložení registru AH do pøíznakového registru
+ S A L        - aritmetický posun vlevo
+ S A R        - aritmetický posun vpravo
+ S B B        - odeètení s pøíznakem pøenosu CF
+ S C A S      - porovnání øetìzce (bajt nebo slovo)
+ S C A S B    - porovnání bajtového øetìzce
+ S C A S W    - porovnání øetìzce slov
+ S H L        - logický posun vlevo
+ S H R        - logický posun vpravo
+ S T C        - nastavení pøíznaku pøenosu CF
+ S T D        - nastavení pøíznaku smìru DF
+ S T          - nastavení pøíznaku povolení pøerušení IF
+ S T O S      - uložení øetìzce (bajt nebo slovo)
+ S T O S B    - uložení bajtového øetìzce
+ S T O S W    - uložení øetìzce slov
+ S U B        - odeèítání
+ T E S T      - test
+ W A I T      - èekání
+ X C H G      - zámìna registrù
+ X L A T      - tabulkový pøevod
+ X O R        - logické XOR (výhradní nebo)
+
+
+
+
+
+
+
+
+
+
+              V ý z n a m  i n s t r u k c í  p r o c e s o r u
+             --------------------------------------------------
+
+
+ A A A        - ASCII korekce po souètu
+
+Formát:       AAA
+
+Význam:       if (AL & 0Fh) > 9 or (AF = 1) then           Pøíznaky:
+                   AL <-- AL + 6                      O D I T S Z A P C
+                   AH <-- AH + 1                      ? - - - ? ? * ? *
+                   AF <-- 1; CF <-- 1
+              else
+                   AF <-- 0; CF <-- 0
+              AL <-- AL & 0Fh
+
+
+    Konvertuje  èíslo  v  nižších  4  bitech registru AL (nižší tetráda) na
+nepakované BCD èíslo (vyšší tetráda registru AL je vynulována).
+
+    Pokud  nižší  4  bity  èísla  v  AL  jsou  vìtší než 9 nebo je nastaven
+rozšiøující  pøíznak  pøenosu,  konvertuje tato instrukce do své nepakované
+BCD  formy  pøiètením 6 (odeètením 10) k AL, pøiètením 1 k AH a nasatavením
+rozšiøujícího pøíznaku pøenosu a pøíznaku pøenosu. Tato instrukce bude vždy
+vracet 0 ve vyšší tetrádì AL.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    4    |   -   |  1  |        AAA        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Nepakovaná  forma  BCD  ukládá  1  èíslici do bajtu; AH obsahuje
+           významnìjší èíslici a AL ménì významnou èíslici.
+
+
+
+
+ A A D        - ASCII korekce pøed dìlením
+
+Formát:       AAD
+
+Význam:       AL <-- AH * 10 + AL                          Pøíznaky:
+              AH <-- 0                                O D I T S Z A P C
+                                                      ? - - - * * ? * ?
+
+    AAD konvertuje nepakované dvoumístné BCD èíslo v AX do binárního èísla,
+k  pøípravì pro dìlení použitím DIV nebo IDIV, které vyžaduje binární formu
+dat namísto èísla BCD.
+
+    AAD modifikuje èíslo v AL tak, aby výsledek vzniklý dìlením bylo platné
+nepakované   BCD  èíslo.  Pro  subsekvenci  DIV,  aby  produkovala  správný
+výsledek,  musí  být  AH  =  0.  Po dìlení je podíl umístìn v registru AL a
+zbytek v AH. Obì vyšší tetrády jsou vynulovány.
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |   60    |   -   |  2  |        AAD        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Nepakovaná  forma  BCD  ukládá  1  èíslici do bajtu; AH obsahuje
+           významnìjší èíslici a AL ménì významnou èíslici.
+
+
+
+
+ A A M        - ASCII korekce po násobení
+
+Formát:       AAM
+
+Význam:       AH <-- AL / 10                               Pøíznaky:
+              AL <-- AL MOD 10                        O D I T S Z A P C
+                                                      ? - - - * * ? * ?
+
+    Tato instrukce provádí korekci výsledku po pøedcházejícím násobení dvou
+platných  nepakovaných BCD operandù. Platné dvoumístné nepakované BCD èíslo
+je  vzato  z  registru AX a po korekci je výsledek uložen zpìt do AX. Vyšší
+tetrády operandù, které byly násobeny, musí být pøed násobením nastaveny na
+nulu, aby byl korekcí získán správný výsledek.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |   83    |   -   |  1  |        AAM        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Nepakovaná  forma  BCD  ukládá  1  èíslici do bajtu; AH obsahuje
+           významnìjší èíslici a AL ménì významnou èíslici.
+
+
+
+
+ A A S        - ASCII korekce po odeèítání
+
+Formát:       AAS
+
+Význam:       if (AL & 0Fh) > 9 or (AF = 1) then           Pøíznaky:
+                   AL <-- AL - 6                      O D I T S Z A P C
+                   AH <-- AH - 1                      ? - - - ? ? * ? *
+                   AF <-- 1; CF <-- 1
+              else
+                   AF <-- 0; CF <-- 0
+              AL <-- AL & 0Fh
+
+    AAS   provádí   korekci   výsledku   pøedcházejícího   odeèítání   dvou
+nepakovaných  BCD  operandù  zmìnou obsahu registru AL na platné èíslo BCD.
+Pøíjmový  operand odeèítání musí být specifikován v AL. Vyšší tetráda AL je
+vždy nastavena na 0.
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    4    |   -   |  1  |        AAS        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Nepakovaná  forma  BCD  ukládá  1  èíslici do bajtu; AH obsahuje
+           významnìjší èíslici a AL ménì významnou èíslici.
+
+
+
+
+ A D C        - aritmetický souèet s pøíznakem pøenosu
+
+Formát:       ADC    op1, op2
+
+Význam:       [op1] <-- [op1] + [op2] + CF                 Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * * * *
+
+    ADC  seète  první  a  druhý  operand;  pokud  je  pøíznak  CF nastaven,
+pøiète·1. Výsledek souètu uloží do prvního operandu. Oba operandy mohou být
+bajty  nebo  slova  a  oba mohou být binární operandy se znaménkem nebo bez
+znaménka.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  ADC BX,SI        |
+|  registr, èíslo            |    4    |   -   | 3-4 |  ADC CX,128       |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  ADC AL,10        |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  ADC DX,RESULT    |
+|  pamì, registr            |16(24)+EA|   2   | 2-4 |  ADC BETA,DI      |
+|  pamì, èíslo              |17(25)+EA|   2   | 3-6 |  ADC GAMMA,16h    |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: ADC  je  používáno  pro  seèítání èísel, která jsou delší než 16
+           bitù,  protože  je  seèítá  s  pøíznakem CF vzniklým v pøedchozí
+           operaci seèítání.
+
+
+
+ A D D        - aritmetický souèet
+
+
+Formát:       ADD    op1, op2
+
+Význam:       [op1] <-- [op1] + [op2]                      Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * * * *
+
+    ADD  seète první a druhý operand; výsledek souètu uloží do prvního ope-
+randu.  Oba  operandy  mohou  být  bajty nebo slova a oba mohou být binární
+operandy se znaménkem nebo bez znaménka.
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  ADD BX,CX        |
+|  registr, èíslo            |    4    |   -   | 3-4 |  ADD BL,4         |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  ADD AX,256       |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  ADD DI,[DX]      |
+|  pamì, registr            |16(24)+EA|   2   | 2-4 |  ADD TOTAL,BL     |
+|  pamì, èíslo              |17(25)+EA|   2   | 3-6 |  ADD RESULT,3     |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+ A N D        - logické AND
+
+Formát:       AND    op1, op2
+
+Význam:       [op1] <-- [op1] AND [op2]                    Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      0 - - - * * ? * 0
+
+    AND  provádí  bit  po bitu operaci AND obou operandù a výsledek operace
+uloží do pøíjmového operandu. Operandy mohou být bajty nebo slova.
+
+    AND  nastavuje každý bit výsledku na 1, pokud oba z odpovídajících bitù
+operandù  jsou nastaveny na 1. Pokud je pøíslušný bit jednoho z operandù 0,
+je výsledný bit také 0.
+
+                        Instrukce AND logicky:
+       +------------------------+------------------------+------------+
+       | pøíjmový operand [op1] | zdrojový operand [op2] |  výsledek  |
+       +------------------------+------------------------+------------+
+       |           0            |           0            |      0     |
+       |           0            |           1            |      0     |
+       |           1            |           0            |      0     |
+       |           1            |           1            |      1     |
+       +------------------------+------------------------+------------+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  AND AL,DL        |
+|  registr, èíslo            |    4    |   -   | 3-4 |  AND CX,0FFh      |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  AND AL,01000010b |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  AND CX,MASK      |
+|  pamì, registr            |16(24)+EA|   2   | 2-4 |  AND VALUE,BL     |
+|  pamì, èíslo              |17(25)+EA|   2   | 3-6 |  AND STATUS,01h   |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+
+
+ C A L L      - volání procedury
+
+Formát:       CALL jméno_procedury
+
+Význam:       if FAR CALL (mezisegmentové volání)          Pøíznaky:
+                   PUSH CS                                neovlivnìny
+                   CS <-- cílový_segment
+              PUSH IP
+              IP <-- cílový_offset
+
+    Pøíkaz  CALL  pøedává  øízení  na  proceduru, která mùže být buï uvnitø
+segmentu  (procedura  NEAR)  nebo  vnì  segmentu  (procedura FAR). Dva typy
+povelù CALL jsou dány rozdílnou funkcí strojových povelù a pøíslušejí k nim
+dva  rozdílné povely RET. Typy povelù lze rozlišovat udáním jejich typù pøi
+pøekladu nebo oddìleným pøekladem procedury a povelu CALL.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  blízká_procedura          | 19(23)  |   1   |  3  |  CALL NEAR_PROC   |
+|  vzdálená_procedura        | 28(36)  |   2   |  5  |  CALL FAR_PROC    |
+|  memptr 16                 |21(29)+EA|   2   | 2-4 |  CALL PROC_TAB[SI]|
+|  regptr 16                 | 16(24)  |   1   |  2  |  CALL AX          |
+|  memptr 32                 |37(57)+EA|   4   | 2-4 |  CALL [BX].ROUTINE|
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pro  mezisegmentové  procedury  (procedury  v odlišném segmentu)
+           procesor   nejdøíve  uloží  souèasnou  hodnotu  segmentu  CS  do
+           zásobníku,  potom  uloží  souèasnou  hodnotu ukazatele IP (který
+           ukazuje na instrukci následující za pøíkazem CALL) a potom pøedá
+           øízení na proceduru.
+
+           Pro introsegmentové procedury (uvnitø jednoho segmentu) procesor
+           nejdøíve  uloží souèasnou hodnotu IP (který ukazuje na instrukci
+           následující  za  CALL)  do  zásobníku  a  potom  pøedá øízení na
+           proceduru.
+
+           CALL  mùže také èíst adresu procedury z registru nebo pamìového
+           místa.
+
+
+
+
+ C B W        - konverze bajtu na slovo
+
+Formát:       CBW
+
+Význam:       if (AL < 80h) then                           Pøíznaky:
+                   AH <-- 0                               neovlivnìny
+              else
+                   AH <-- 0FFh
+
+    CBW rozšiøuje znaménkový bit registru AL do registru AH. Tato instrukce
+rozšiøuje.
+
+
+    Tato  instrukce  nastaví  AH  na 0FFh, pokud je nastaven znaménkový bit
+registru  AL  (tj.  bit  7). Pokud znaménkový bit registru AL není nastaven
+(tj.  je  kladné èíslo), je AH nastaven na 0. Tato instrukce se používá pro
+generování slova z bajtu pøedcházející bajtovému dìlení.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    2    |   -   |  1  |        CBW        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+ C L C        - nulování pøíznaku pøenosu CF
+
+Formát:       CLC
+
+Význam:       CF <-- 0                                     Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      - - - - - - - - 0
+
+    CLC nuluje (nastavuje na 0) pøíznak pøenosu. Žádné jiné pøíznaky nejsou
+ovlivnìny.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    2    |   -   |  1  |        CLC        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+ C L D        - nulování pøíznaku smìru DF
+
+Formát:       CLD
+
+Význam:       DF <-- 0                                     Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      - 0 - - - - - - -
+
+    CLD  nuluje  (nastavuje na 0) pøíznak smìru. Žádné jiné pøíznaky nejsou
+ovlivnìny.  Vynulováním  pøíznaku  smìru  se  nastavuje,  že  v øetìzcových
+operacích budou registry SI a DI inkrementrovány.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    2    |   -   |  1  |        CLD        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+
+
+
+ C L I        - nulování pøíznaku povolení pøerušení IF
+
+Formát:       CLI
+
+Význam:       IF <-- 0                                     Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      - - 0 - - - - - -
+
+    CLI  nuluje  (nastavuje na 0) pøíznak povolení maskovatelného pøerušení
+(tj. pøerušení nebude povoleno). Žádné jiné pøíznaky nejsou ovlivnìny.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    2    |   -   |  1  |        CLI        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ C M C        - doplnìk pøíznaku pøenosu CF
+
+Formát:       CMC
+
+Význam:       CF <--  - CF                                 Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      - - - - - - - - *
+
+    CMC  pøevrací souèasný stav pøíznak pøenosu. Žádné jiné pøíznaky nejsou
+ovlivnìny.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    2    |   -   |  1  |        CMC        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ C M P        - porovnání dvou operandù
+
+Formát:       CMP    op1, op2
+
+Význam:       nastavení pøíznakù podle výsledku            Pøíznaky:
+              operace [op1] - [op2]                   O D I T S Z A P C
+                                                      * - - - * * * * *
+
+    CMP  porovnává  dva operandy odeètením operandu [op2] od [op1]. Nastaví
+se  pøíznaky  podle  výsledku  operace,  výsledek operace se však neukládá.
+Žádný  z  operandù  není  operací  ovlivnìn.  Operandy mohou být bajty nebo
+slova.
+
+
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  CMP CX,BX        |
+|  registr, èíslo            |    4    |   -   | 3-4 |  CMP BL,02h       |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  CMP AL,00010110b |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  CMP DH,ALPHA_BETA|
+|  pamì, registr            | 9(13)+EA|   1   | 2-4 |  CMP TOTAL,SI     |
+|  pamì, èíslo              |10(14)+EA|   1   | 3-6 |  CMP VALUES,3420h |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ C M P S      - porovnání øetìzcù (bajtù nebo slov)
+
+Formát:       CMPS  pøíjmový_øetìzec,zdrojový_øetìzec
+
+Význam:       CMP [DS:SI], [ES:DI] (nastaví pøíznaky)      Pøíznaky:
+              if DF = 0                               O D I T S Z A P C
+                   SI <-- SI + n   (n = 1 pro bajt,   * - - - * * * * *
+                   DI <-- DI + n     2 pro slovo)
+              else
+                   SI <-- SI - n
+                   DI <-- DI - n
+
+    Tato  instrukce  porovnává  dvì  hodnoty odeètením bajtu nebo slova, na
+který  ukazuje  ukazatel  ES:DI,  od  bajtu  nebo slova ukazovaného DS:SI a
+nastaví  pøíznaky  shodnì  s operací porovnání. Operandy samy o sobì nejsou
+zmìnìny.  Po  porovnání  jsou  registry  SI  a  DI inkrementovány (pokud je
+pøíznak  smìru  DF  vynulován)  nebo  dekrementovány  (DF  je nastaven) pro
+pøípravu k další operaci porovnání.
+ 
++-------------------------+------------+-------+-----+-------------------+
+|          Operandy       |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|  [op1],[op2]            |   22(30)   |   2   |  1  |  CMPS STR1,STR2   |
+|  (opakov.) [op1],[op2]  |9+22(30)/rep| 2/rep |  1  |REPE CMPS STR1,STR2|
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce je obvykle assemblerem pøevádìna na instrukce buï
+           CMPSB  (porovnání  øetìzce  bajtù) nebo CMPSW (porovnání øetìzce
+           slov).
+
+Pøíklady:
+
+         buffer1   db        100 DUP (?)    ; porovnávaný øetìzec 1
+         buffer2   db        100 DUP (?)    ; porovnávaný øetìzec 2
+
+                   cld                      ; nastavení smìru vpøed
+                   mov       cx, 100        ; èítaè bajtù (100 bajtù)
+                   lea       si, buffer1    ; poèát. adresa 1. bufferu
+                   lea       di, buffer2    ; poèát. adresa 2. bufferu
+         repe      cmps      buffer1,buffer2; porovnání øetìzcù
+                   jne       mismatch       ; není shoda øetìzcù
+                        .                   ; zde pokraèuje pøi shodì
+                        .
+
+         mismatch: dec       si             ; pøi chybì návrat ukazatelù
+                   dec       di             ;  na místo, kde nastala
+                         .                  ;  neshoda
+                         .
+
+
+
+
+ C M P S B    - porovnání øetìzcù bajtù
+
+Formát:       CMPSB  pøíjmový_øetìzec,zdrojový_øetìzec
+
+Význam:       CMP [DS:SI], [ES:DI] (nastaví pøíznaky)      Pøíznaky:
+              if DF = 0                               O D I T S Z A P C
+                   SI <-- SI + 1                      * - - - * * * * *
+                   DI <-- DI + 1
+              else
+                   SI <-- SI - 1
+                   DI <-- DI - 1
+
+    Tato  instrukce porovnává dvì hodnoty odeètením bajtu, na který ukazuje
+ukazatel  ES:DI,  od  bajtu  ukazovaného  DS:SI a nastaví pøíznaky shodnì s
+operací  porovnání.  Operandy samy o sobì nejsou zmìnìny. Po porovnání jsou
+registry  SI a DI inkrementovány (pokud je pøíznak smìru DF vynulován) nebo
+dekrementovány (DF je nastaven) pro pøípravu k další operaci porovnání.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |   22    |   2   |  1  |  CMPSB            |
+|       (opakovanì)          | 9+22/rep| 2/rep |  1  |  REPE CMPSB       |
++----------------------------+---------+-------+-----+-------------------+
+
+Pøíklady:
+
+         buffer1   db        100 DUP (?)    ; porovnávaný øetìzec 1
+         buffer2   db        100 DUP (?)    ; porovnávaný øetìzec 2
+
+                   cld                      ; nastavení smìru vpøed
+                   mov       cx, 100        ; èítaè bajtù (100 bajtù)
+                   lea       si, buffer1    ; poèát. adresa 1. bufferu
+                   lea       di, buffer2    ; poèát. adresa 2. bufferu
+                   repe      cmpsb          ; porovnání øetìzcù
+                   jne       mismatch       ; není shoda øetìzcù (ZF=0)
+                        .                   ; zde pokraèuje pøi shodì
+                        .
+
+         mismatch: dec       si             ; pøi chybì návrat ukazatelù
+                   dec       di             ;  na místo, kde nastala
+                         .                  ;  neshoda
+                         .
+
+
+
+
+ C M P S W    - porovnání øetìzcù slov
+
+Formát:       CMPSB  pøíjmový_øetìzec,zdrojový_øetìzec
+
+Význam:       CMP [DS:SI], [ES:DI] (nastaví pøíznaky)      Pøíznaky:
+              if DF = 0                               O D I T S Z A P C
+                   SI <-- SI + 2                      * - - - * * * * *
+                   DI <-- DI + 2
+              else
+                   SI <-- SI - 2
+                   DI <-- DI - 2
+
+    Tato  instrukce porovnává dvì hodnoty odeètením slova, na které ukazuje
+ukazatel  ES:DI,  od  slova  ukazovaného  DS:SI a nastaví pøíznaky shodnì s
+operací  porovnání.  Operandy samy o sobì nejsou zmìnìny. Po porovnání jsou
+registry  SI a DI inkrementovány (pokud je pøíznak smìru DF vynulován) nebo
+dekrementovány (DF je nastaven) pro pøípravu k další operaci porovnání.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |   30    |   2   |  1  |  CMPSW            |
+|       (opakovanì)          | 9+30/rep| 2/rep |  1  |  REPE CMPSW       |
++----------------------------+---------+-------+-----+-------------------+
+
+Pøíklady:
+
+         buffer1   db        100 DUP (?)    ; porovnávaný øetìzec 1
+         buffer2   db        100 DUP (?)    ; porovnávaný øetìzec 2
+
+                   cld                      ; nastavení smìru vpøed
+                   mov       cx, 50         ; èítaè slov (100 bajtù)
+                   lea       si, buffer1    ; poèát. adresa 1. bufferu
+                   lea       di, buffer2    ; poèát. adresa 2. bufferu
+                   repe      cmpsw          ; porovnání øetìzcù
+                   jne       mismatch       ; není shoda øetìzcù (ZF=0)
+                        .                   ; zde pokraèuje pøi shodì
+                        .
+
+         mismatch: dec       si             ; pøi chybì návrat ukazatelù
+                   dec       si
+                   dec       di             ;  na místo, kde nastala
+                         .                  ;  neshoda
+                         .
+
+
+
+
+
+
+
+
+
+
+ C W D        - konverze slova na dvojité slovo
+
+Formát:       CWD
+
+Význam:       if (AX < 8000H)                              Pøíznaky:
+                   DX <-- 0                               neovlivnìny
+              else
+                   DX <-- FFFFH
+
+    CWD rozšiøuje znaménkový bit registru AX do registru DX. Tato instrukce
+generuje dvojité slovo ekvivalentní èíslu se znaménkem uloženému v registru
+AX.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    5    |   -   |  1  |        CWD        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce nastaví DX na hodnotu 0FFFFH, pokud je znaménkový
+bit  (bit  15)  registru  AX  nastaven na 1 (tj. záporné èíslo). Pokud není
+znaménkový bit nastaven (AX je kladné nebo nulové), DX je nastaven na 0.
+
+
+
+ D A A        - dekadická korekce po souètu
+
+Formát:       DAA
+
+Význam:       if (AL & 0FH) > 9 or (AF = 1)                Pøíznaky:
+                   AL <-- AL + 6                      O D I T S Z A P C
+                   AF <-- 1                           ? - - - * * * * *
+              else AF <-- 0
+              if (AL > 9FH) or (CF = 1)
+                   AL <-- AL + 60H
+                   CF <-- 1
+              else CF <-- 0
+
+    DAA  provádí  korekci  výsledku  po  pøedcházející  operaci souètu dvou
+platných  pakovaných  dekadických  operandù (poznamenejme, že výsledek musí
+být  uložen v AL). Tato instrukce zmìní obsah AL tak, že bude obsahovat pár
+platných pakovaných dekadických èíslic.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    4    |   -   |  1  |        DAA        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pakovaná  forma BCD ukládá 1 èíslici do tetrády (4 bity, tj. po-
+           lovina bajtu); èíslice na nižší pozici je v nižší tetrádì bajtu.
+
+           Není možné použít korekci po dìlení nebo násobení pakovaných BCD
+           èísel.  Pokud  potøebujete použít násobení nebo dìlení, je lepší
+           použít  nepakovaná  BCD  èísla.  Podívejte  se  napø.  na  popis
+           instrukce AAM (ASCII korekce po násobení).
+
+
+ D A S        - dekadická korekce pro odeèítání
+
+Formát:       DAS
+
+Význam:       if (AL & 0FH) > 9 or (AF = 1)                Pøíznaky:
+                   AL <-- AL - 6                      O D I T S Z A P C
+                   AF <-- 1                           ? - - - * * * * *
+              else AF <-- 0
+              if (AL > 9FH) or (CF = 1)
+                   AL <-- AL - 60H
+                   CF <-- 1
+              else CF <-- 0
+
+    DAS  provádí  korekci  výsledku  po pøedcházející operaci odeètení dvou
+platných  pakovaných  dekadických  operandù (poznamenejme, že výsledek musí
+být  uložen v AL). Tato instrukce zmìní obsah AL tak, že bude obsahovat pár
+platných pakovaných dekadických èíslic.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    4    |   -   |  1  |        DAS        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pakovaná  forma BCD ukládá 1 èíslici do tetrády (4 bity, tj. po-
+           lovina bajtu); èíslice na nižší pozici je v nižší tetrádì bajtu.
+
+           Není možné použít korekci po dìlení nebo násobení pakovaných BCD
+           èísel.  Pokud  potøebujete použít násobení nebo dìlení, je lepší
+           použít  nepakovaná  BCD  èísla.  Podívejte  se  napø.  na  popis
+           instrukce AAM (ASCII korekce po násobení).
+
+
+
+
+
+ D E C        - dekrementace operandu
+
+Formát:       DEC  op1
+
+Význam:       [op1] <-- [op1] - 1                          Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * * * -
+
+    Tato  instrukce dekrementuje operand o 1. S operandem (bajt nebo slovo)
+je zacházeno jako s binárním èíslem bez znaménka.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr 16                |    2    |   -   |  1  |  DEC BX           |
+|  registr 8                 |    3    |   -   |  2  |  DEC BL           |
+|  pamì                     |15(23)+EA|   2   | 2-4 |  DEC MATICE[SI]   |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Instrukce  DEC  nenastavuje  pøíznak  pøenosu  CF,  takže  pokud
+           potøebujete  dekrementovat  více-slovní  èíslo,  je  lépe použít
+           instrukce SUB a SBB.
+
+
+
+
+
+ D I V        - dìlení bez znaménka
+
+Formát:       DIV  op1
+
+Význam:       AL <-- AX / [op1]     ; op1 je bajt          Pøíznaky:
+              AH <-- zbytek                           O D I T S Z A P C
+                                                      ? - - - ? ? ? ? ?
+         nebo AX <-- DX:AX / [op1]  ; op1 je slovo
+              DX <-- zbytek
+
+    Instrukce  provádí dìlení bez znaménka. Pokud je operand bajt, DIV dìlí
+slovo  v  AX  tímto  operandem, uloží podíl do AL a zbytek po dìlení do AH.
+Pokud  je  operandem  slovo, DIV dìlí dvouslovo v registru DX:AX operandem,
+ukládá do registru AX podíl a do registru DX zbytek po dìlení.
+ 
++------------------------+-------------+-------+-----+-------------------+
+|          Operandy      |    Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++------------------------+-------------+-------+-----+-------------------+
+|  registr 8             |   0 - 90    |   -   |  2  |  DIV BL           |
+|  registr 16            |   4 - 162   |   -   |  2  |  DIV BX           |
+|  pamì 8               | (89-96)+EA  |   1   | 2-4 |  DIV VYUP         |
+|  pamì 16              |(154-172)+EA |   1   | 2-4 |  DIV NCONQUER[SI] |
++------------------------+-------------+-------+-----+-------------------+
+
+    Pozn.: Pokud  je  výsledek pøíliš velký na cílový operand (AL nebo AX),
+           vygeneruje  se  pøerušení  INT 0 (dìlení nulou) a podíl i zbytek
+           jsou nedefinované.
+
+           Je-li  vygenerováno  pøerušení  0  (dìlení  nulou),  uloží  se u
+           procesorù  80286  a  80386 hodnota CS:IP ukazující na instrukci,
+           která   chybu  zpùsobila  (instrukce  DIV).  Avšak  u  procesorù
+           8086/8088  je  uložena  hodnota  CS:IP  ukazující  na  instrukci
+           bezprostøednì  následující  za  instrukcí  DIV,  která zpùsobila
+           chybu.
+
+
+
+
+
+ E S C        - pøedání øízení koprocesoru
+
+Formát:       ESC  operaèní_kód_koprocesoru, op2           Pøíznaky:
+                                                          neovlivnìny
+
+    ESC se používá k pøedání øízení z mikroprocesoru na koprocesor, jako je
+8087 nebo 80287. Jako odpovìï na ESC si mikroprocesor vyžádá z pamìti první
+operand  -  instrukci pro koprocesor - a umístí jej na sbìrnici. Koprocesor
+pøijme  povel  ESC  a  provede  instrukci  umístìnou  na  sbìrnici,  užitím
+efektivní adresy druhého operandu.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  pøímý operand, pamì      |8 (12)+EA|   1   | 2-4 |  ESC 6,ADR[SI]    |
+|  pøímý operand, registr    |     2   |   -   |  2  |  ESC KOD-KOPROC,AH|
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pro  správnou  synchronizaci  s  matematickým  korpocesorem musí
+           programátor  explicitnì  kódovat  instrukci  WAIT  pøed  všechny
+           instrukce   ESC.  Procesory  80286  a  80386  mají  automatickou
+           synchronizaci, tam není tøeba instrukci WAIT zadávat.
+
+
+
+
+ H L T        - zastavení procesoru
+
+Formát:       HLT                                          Pøíznaky:
+                                                          neovlivnìny
+
+    Tato instrukce zastaví èinnost mikroprocesoru. Opuštìní tohoto stavu je
+možné  pouze  pomocí nemaskovatelného pøerušení, maskovatelného pøerušení s
+povoleným pøerušením a aktivací signálu RESET.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    2    |   -   |  1  |       HLT         |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ I D I V      - celoèíselné dìlení (se znaménkem)
+
+Formát:       IDIV op1
+
+Význam:       AL <-- AX / [op1]     ; op1 je bajt          Pøíznaky:
+              AH <-- zbytek                           O D I T S Z A P C
+                                                      ? - - - ? ? ? ? ?
+         nebo AX <-- DX:AX / [op1]  ; op1 je slovo
+              DX <-- zbytek
+
+    Instrukce  provádí dìlení se znaménkem. Pokud je operand bajt, DIV dìlí
+slovo  v  AX  tímto  operandem, uloží podíl do AL a zbytek po dìlení do AH.
+Pokud  je  operandem slovo, IDIV dìlí dvouslovo v registru DX:AX operandem,
+ukládá do registru AX podíl a do registru DX zbytek po dìlení.
+
+
+
+
+
+
+ 
++------------------------+-------------+-------+-----+-------------------+
+|          Operandy      |    Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++------------------------+-------------+-------+-----+-------------------+
+|  registr 8             |  101 - 112  |   -   |  2  |  IDIV CL          |
+|  registr 16            |  165 - 184  |   -   |  2  |  IDIV DX          |
+|  pamì 8               |(107-118)+EA |   1   | 2-4 |  IDIV BAJT[SI]    |
+|  pamì 16              |(175-194)+EA |   1   | 2-4 |  IDIV [BX].POLE_A |
++------------------------+-------------+-------+-----+-------------------+
+
+    Pozn.: Pokud  je  výsledek pøíliš velký na cílový operand (AL nebo AX),
+           vygeneruje  se  pøerušení  INT 0 (dìlení nulou) a podíl i zbytek
+           jsou nedefinované.
+
+           Mikroprocesory  80286 a 80386 mohou generovat nejdelší negativní
+           èíslo  (80H  nebo  8000H)  jako  podíl pro tuto instrukci, avšak
+           procesory  8086/8088  generují  pøerušení  INT  0 (dìlení nulou)
+           nastane-li tato situace.
+
+           Je-li  vygenerováno  pøerušení  0  (dìlení  nulou),  uloží  se u
+           procesorù  80286  a  80386 hodnota CS:IP ukazující na instrukci,
+           která  chybu  zpùsobila  (instrukce  IDIV).  Avšak  u  procesorù
+           8086/8088  je  uložena  hodnota  CS:IP  ukazující  na  instrukci
+           bezprostøednì  následující  za  instrukcí  IDIV, která zpùsobila
+           chybu.
+
+
+
+
+
+ I M U L      - celoèíselné dìlení (se znaménkem)
+
+Formát:       IMUL op1
+
+Význam:       AX <-- AL * [op1]    ; operandem bajt         Pøíznaky:
+                                                        O D I T S Z A P C
+         nebo DX:AX <-- AX * [op1] ; operandem slovo    * - - - ? ? ? ? *
+
+    IMUL  provádí  násobení  se  znaménkem.  Pokud  je operandem bajt, IMUL
+vynásobí operand registrem AL, výsledek uloží do AX. Je-li operandem slovo,
+IMUL  vynásobí  operand  registrem  AX  a  uloží výsledek do DX:AX. Pøíznak
+pøenosu  CF  a  pøíznak  pøeteèení  OF jsou nastaveny, pokud horní polovina
+výsledku  (AX  pro  bajtovou  operaci,  DX  pro operaci se slovem) obsahuje
+nìjakou významovou èíslici výsledku, jinak jsou vynulovány.
+ 
++------------------------+-------------+-------+-----+-------------------+
+|          Operandy      |    Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++------------------------+-------------+-------+-----+-------------------+
+|  registr 8             |   80 - 98   |   -   |  2  | IMUL CL           |
+|  registr 16            |  128 - 154  |   -   |  2  | IMUL BX           |
+|  pamì 8               | (86-104)+EA |   1   | 2-4 | IMUL BITE         |
+|  pamì 16              |(138-164)+EA |   1   | 2-4 | IMUL SLOVO[BP][DI]|
++------------------------+-------------+-------+-----+-------------------+
+
+    Pozm.: Viz též instrukci MUL pro násobení bez znaménka.
+
+
+
+ I N          - vstup bajtu nebo slova z I/O portu
+
+Formát:       IN   akumulátor, port
+
+Význam:       akumulátor <-- [port]                        Pøíznaky:
+                                                          neovlivnìny
+
+    IN  pøenáší  bajt  nebo slovo z portu do registru AL nebo AX. Port mùže
+být  specifikován  pøímým  operandem  (bajt  -  pro  porty  0  až 255) nebo
+registrem DX (možný pøístup na všechny porty s adresami 0 až 65535).
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  akumulátor, pøímý oper. 8 |  10(14) |   1   |  2  |  IN AL,45H        |
+|  akumulátor, DX            |   8(12) |   1   |  1  |  IN AX,DX         |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Je  doporuèováno,  aby konstruktéøi nepoužívali vstupnì/výstupní
+           porty  F8H  až FFH, nebo tyto adresy jsou rezervoványpro øízení
+           matematického koprocesoru a další rozšíøení procesoru.
+
+           Viz též instrukce OUT pro výstup bajtu nebo slova na port.
+
+
+
+ I N C        - inkrementace operandu
+
+Formát:       INC  op1
+
+Význam:       [op1] <-- [op1] + 1                          Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * * * -
+
+    Tato  instrukce inkrementuje operand o 1. S operandem (bajt nebo slovo)
+je zacházeno jako s binárním èíslem bez znaménka.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr 16                |    2    |   -   |  1  |  INC BX           |
+|  registr 8                 |    3    |   -   |  2  |  INC BL           |
+|  pamì                     |15(23)+EA|   2   | 2-4 |  INC MATICE[SI]   |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Instrukce  INC  nenastavuje  pøíznak  pøenosu  CF,  takže  pokud
+           potøebujete  inkrementovat  více-slovní  èíslo,  je  lépe použít
+           instrukce ADD a ADC.
+
+
+
+
+
+
+ I N T        - pøerušení
+
+Formát:       INT  èíslo_pøerušení
+
+Význam:       PUSHF                                        Pøíznaky:
+              TF <-- 0                                O D I T S Z A P C
+              IF <-- 0                                0 0 - - - - - - -
+              CALL FAR (èíslo_pøerušení * 4)
+
+    INT  uloží  registr pøíznakù, vynuluje pøíznaky krokování TF a povolení
+pøerušení IF, uloží CS:IP a pøedá øízení ovladaèi pøerušení specifikovanému
+èíslem  pøerušení.  Pokud  je  ovladaè  pøerušení  ukonèen  instrukcí IRET,
+pùvodní obsah registru pøíznakù je navrácen.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  pøímý operand 8 (typ = 3) |   52    |   5   |  1  |  INT 3            |
+|  pøímý operand 8 (typ <> 3)|   51    |   5   |  2  |  INT 21H          |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Registr  pøíznakù  je  uložen  ve  stejné  formátu, jaký používá
+           instrukce PUSHF.
+
+           Adresa  vektoru  pøerušení  se  urèí vynásobením èísla pøerušení
+           (parametr  pøíkazu)  ètyømi.  První slovo na vypoètené adrese je
+           uloženo do registru IP a druhé slovo do CS.
+
+           Všechna  èísla  pøerušení kromì 3 generují 2 bajtovou instrukci;
+           typ  pøerušení 3 (INT 3) generuje jednobajtovou instrukci, která
+           se  nazývá  pøerušení  bodu  zastavení  (pøerušení  programu pøi
+           hardwarové chybì).
+
+
+
+
+ I N T O      - pøerušení pøi pøeteèení
+
+Formát:       INTO
+
+Význam:       if (OF = 1)                                 Pøíznaky:
+                 PUSHF                                O D I T S Z A P C
+                 TF <-- 0                             0 0 - - - - - - -
+                 IF <-- 0
+                 CALL FAR (10H)
+
+    INTO  aktivuje  pøerušení  typu 4 v pøípadì, že je pøíznak pøeteèení OF
+nastaven.  V opaèném pøípadì nemá žádný úèinek. Toto pøerušení je identické
+pøerušení  "INT  4"  (pokud  je nastaven pøíznak pøeteèení OF) - INTO uloží
+registr  pøíznakù,  vynuluje pøíznaky krokování TF a povolení pøerušení IF,
+uloží   CS:IP  a  pøedá  øízení  ovladaèi  pøerušení,  který  je  adresován
+ukazatelem  na adrese 0:0010H. Pokud je ovladaè pøerušení ukonèen instrukcí
+IRET, pùvodní obsah registru pøíznakù je navrácen.
+
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |53 nebo 4|   5   |  1  |       INTO        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Registr  pøíznakù  je  uložen  ve  stejné  formátu, jaký používá
+           instrukce PUSHF.
+
+           Pøíkaz INTO se používá po každé operaci, která by mohla zpùsobit
+           pøeteèení.  To  umožòuje použití jedné procedury k obsluze chyby
+           pøeteèení  výpoètù  pro  celý program, pøitom je její vyvolávání
+           maximálnì efektivní.
+
+
+
+
+ I R E T      - návrat z pøerušení
+
+Formát:       IRET
+
+Význam:       POP IP                                       Pøíznaky:
+              POP CS                                  O D I T S Z A P C
+              POPF                                    r r r r r r r r r
+
+    Instrukce  IRET  navrací  øízení z rutiny obsluhující pøerušení zpìt do
+bodu,  odkud  bylo pøerušení vyvoláno. Pøitom navrátí pùvodní stav registrù
+IP,  CS a pøíznakového registru. Návrat pùvodního obsahu ostatních registrù
+je nutno provést programovì.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |   32    |   3   |  1  |       IRET        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ J A          - skok, je-li nad
+
+Formát:       JA   krátké_návìští
+
+Význam:       skok, je-li CF = 0 a ZF = 0                  Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce  se používá po instrukcích CMP nebo SUB. JA pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být bez znaménka)
+vìtší  než  druhý  operand (také bez znaménka). Vzdálenost skoku musí být v
+rozsahu  -128  až  +127  bajtù  od  zaèátku  instrukce následující za touto
+instrukcí.
+
+
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |      JA NAD       |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNBE, skok nen-li pod ani rovno, je stejná instrukce jako JA.
+
+           Instrukce   JA,   skok  je-li  nad,  by  mìla  být  použita  pøi
+           porovnávání èísel bez znaménka.
+
+           Instrukce  JG,  skok  je-li  vìtší,  by  mìla  být  použita  pøi
+           porovnávání èísel se znaménkem.
+
+
+
+
+
+ J A E        - skok, je-li nad nebo shoda
+
+Formát:       JAE  krátké_návìští
+
+Význam:       skok, je-li CF = 0                           Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce se používá po instrukcích CMP nebo SUB. JAE pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být bez znaménka)
+vìtší  nebo  roven  druhému  operandu (také bez znaménka). Vzdálenost skoku
+musí  být  v rozsahu -128 až +127 bajtù od zaèátku instrukce následující za
+touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JA NAD_SHODA    |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNB,  skok  nen-li  pod, a JNC, skok není-li pøíznak pøenosu CF,
+           jsou stejné instrukce jako JAE.
+
+           Instrukce JAE skok je-li nad nebo shoda, by mìla být použita pøi
+           porovnávání èísel bez znaménka.
+
+           Instrukce  JGE, skok je-li vìtší nebo rovno, by mìla být použita
+           pøi porovnávání èísel se znaménkem.
+
+
+
+
+ J B          - skok, je-li pod
+
+Formát:       JB   krátké_návìští
+
+Význam:       skok, je-li CF = 1                           Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce  se používá po instrukcích CMP nebo SUB. JB pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být bez znaménka)
+menší  než  druhý  operand (také bez znaménka). Vzdálenost skoku musí být v
+rozsahu  -128  až  +127  bajtù  od  zaèátku  instrukce následující za touto
+instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |      JB POD       |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JC,  skok je-li pøíznak pøenosu CF, a JNAE, skok není-li nad ani
+           shoda, je stejná instrukce jako JB.
+
+           Instrukce   JB,   skok  je-li  pod,  by  mìla  být  použita  pøi
+           porovnávání èísel bez znaménka.
+
+           Instrukce  JL,  skok  je-li  menší,  by  mìla  být  použita  pøi
+           porovnávání èísel se znaménkem.
+
+
+
+
+
+ J B E        - skok, je-li pod nebo shodný
+
+Formát:       JBE   krátké_návìští
+
+Význam:       skok, je-li CF = 1 nebo ZF = 1               Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce se používá po instrukcích CMP nebo SUB. JBE pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být bez znaménka)
+menší  nebo  roven  druhému  operandu (také bez znaménka). Vzdálenost skoku
+musí  být  v rozsahu -128 až +127 bajtù od zaèátku instrukce následující za
+touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JBE POD_SHODA   |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNA,  skok  není-li nad, je stejná instrukce jako JBE.
+
+           Instrukce  JBE,  skok  je-li pod nebo shoda, by mìla být použita
+           pøi porovnávání èísel bez znaménka.
+
+           Instrukce  JLE, skok je-li menší nebo rovno, by mìla být použita
+           pøi porovnávání èísel se znaménkem.
+
+
+
+
+
+ J C          - skok, je-li pøíznak pøenosu CF
+
+Formát:       JC   krátké_návìští
+
+Význam:       skok, je-li CF = 1                           Pøíznaky:
+                                                          neovlivnìny
+
+    JC  pøedává øízení na krátké návìští, pokud je nastaven pøíznak pøenosu
+CF.  Vzdálenost  skoku  musí  být  v  rozsahu -128 až +127 bajtù od zaèátku
+instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JC CF_JEDNA     |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JB,  skok  je-li  pod,  a  JNAE,  skok není-li nad ani shoda, je
+           stejná instrukce jako JC.
+
+           Použijte instrukci JNC ke skoku není-li nastaven pøíznak pøenosu
+           CF.
+
+
+
+
+
+ J C X Z      - skok, je-li registr CX = 0
+
+Formát:       JCXZ krátké_návìští
+
+Význam:       skok, je-li registr CX = 0
+
+    JCXZ  pøedá øízení na krátké návìští, pokud je nastaven pøíznak pøenosu
+CF.  Vzdálenost  skoku  musí  být  v  rozsahu -128 až +127 bajtù od zaèátku
+instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |18 nebo 6|   -   |  2  | JCXZ KONEC_SMYCKY |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Tato  instrukce je obvykle použita na zaèátku smyèky k pøerušení
+           smyèky v pøípadì, že èítací promìnná (registr CX) je nula.
+
+
+
+
+
+ J E          - skok, je-li rovnost
+
+Formát:       JE   krátké_návìští
+
+Význam:       skok, je-li ZF = 1                           Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce  se používá po instrukcích CMP nebo SUB. JE pøedává øízení na
+krátké  návìští, pokud byl první operand roven druhému operandu. Vzdálenost
+skoku  musí  být  v  rozsahu  -128  až  +127  bajtù  od  zaèátku  instrukce
+následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |     JE SHODA      |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JZ,  skok  je-li pøíznak nuly ZF, je stejná instrukce jako JE.
+
+
+
+
+
+ J G          - skok, je-li vìtší
+
+Formát:       JG   krátké_návìští
+
+Význam:       skok, je-li ZF = 0 a SF = OF                 Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce  se používá po instrukcích CMP nebo SUB. JG pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být se znaménkem)
+vìtší  než  druhý  operand (také se znaménkem). Vzdálenost skoku musí být v
+rozsahu  -128  až  +127  bajtù  od  zaèátku  instrukce následující za touto
+instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |     JG VETSI      |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNLE, skok nen-li menší ani rovno, je stejná instrukce jako JG.
+
+           Instrukce   JA,   skok  je-li  nad,  by  mìla  být  použita  pøi
+           porovnávání èísel bez znaménka.
+
+           Instrukce  JG,  skok  je-li  vìtší,  by  mìla  být  použita  pøi
+           porovnávání èísel se znaménkem.
+
+
+
+
+
+ J G E        - skok, je-li vìtší nebo shodný
+
+Formát:       JGE  krátké_návìští
+
+Význam:       skok, je-li SF = OF                          Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce se používá po instrukcích CMP nebo SUB. JGE pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být se znaménkem)
+vìtší  nebo  roven  druhému  operandu (také se znaménkem). Vzdálenost skoku
+musí  být  v rozsahu -128 až +127 bajtù od zaèátku instrukce následující za
+touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |  JGE VETSI_ROVNO  |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNL,  skok  nen-li  menší,je stejná instrukce jako JGE.
+
+           Instrukce JAE skok je-li nad nebo shoda, by mìla být použita pøi
+           porovnávání èísel bez znaménka.
+
+           Instrukce  JGE, skok je-li vìtší nebo rovno, by mìla být použita
+           pøi porovnávání èísel se znaménkem.
+
+
+
+
+ J L          - skok, je-li menší
+
+Formát:       JL   krátké_návìští
+
+Význam:       skok, je-li SF <> OF                         Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce  se používá po instrukcích CMP nebo SUB. JL pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být se znaménkem)
+menší  než  druhý  operand (také se znaménkem). Vzdálenost skoku musí být v
+rozsahu  -128  až  +127  bajtù  od  zaèátku  instrukce následující za touto
+instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |     JL MENSI      |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNGE, skok není-li vìtší ani shoda, je stejná instrukce jako JL.
+
+           Instrukce   JB,   skok  je-li  pod,  by  mìla  být  použita  pøi
+           porovnávání èísel bez znaménka.
+
+           Instrukce  JL,  skok  je-li  menší,  by  mìla  být  použita  pøi
+           porovnávání èísel se znaménkem.
+
+
+
+
+
+
+ J L E        - skok, je-li menší nebo shodný
+
+Formát:       JLE   krátké_návìští
+
+Význam:       skok, je-li SF <> OF nebo ZF = 1             Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce se používá po instrukcích CMP nebo SUB. JLE pøedává øízení na
+krátké  návìští,  pokud  byl  první operand (který by mìl být se znaménkem)
+menší  nebo  roven  druhému  operandu (také se znaménkem). Vzdálenost skoku
+musí  být  v rozsahu -128 až +127 bajtù od zaèátku instrukce následující za
+touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JLE MENSI_ROVNO |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNG,  skok  není-li vìtší, je stejná instrukce jako JLE.
+
+           Instrukce  JBE,  skok  je-li pod nebo shoda, by mìla být použita
+           pøi porovnávání èísel bez znaménka.
+
+           Instrukce  JLE, skok je-li menší nebo rovno, by mìla být použita
+           pøi porovnávání èísel se znaménkem.
+
+
+
+
+ J M P        - nepodmínìný skok
+
+Formát:       JMP  návìští
+
+Význam:       skok vždy                                    Pøíznaky:
+                                                          neovlivnìny
+
+    JMP  pøedá  vždy  øízení  na  oznaèené  návìští. Na rozdíl od CALL, JMP
+neukládá  IP  (návratová  adresa),  nelze  se tedy vrátit zpìt. Skok uvnitø
+segmentu mùže být proveden buï pøes adresaci pamìtí nebo pomocí 16-bitového
+rgistru; skok vnì segmentu lze provést pouze pomocí adresace pamìtí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  krátké_návìští SHORT      |   15    |   -   |  2  | JMP VELMI_BLIZKO  |
+|  blízké_návìští NEAR       |   15    |   -   |  3  | JMP STEJNY_SEGMENT|
+|  daleké_návìští FAR        |   15    |   -   |  5  | JMP FAR VNE_SEGM  |
+|  pamì. ukazatel 16        | 18 + EA |   -   | 2-4 | JMP [STEJNY_SEGM] |
+|  registr. ukazatel 16      |   11    |   -   |  2  | JMP BX            |
+|  pamì. ukazatel 32        | 24 + EA |   -   | 2-4 | JMP JINY_SEGMENT  |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pokud  assembler  urèí, že vzdálenost skoku uvnitø segmentu není
+           vzdálenìjší   než  127  bajtù  od  souèasné  adresy,  vygeneruje
+           assembler automaticky krátký skok (2 bajty - krátké návìští).
+
+
+
+ J N A        - skok, není-li nad
+
+    Instrukce JNA je synonymum pro JBE. Viz popis instrukce JBE.
+
+
+
+
+
+ J N A E      - skok, není-li nad ani shodný
+
+    Instrukce JNAE je synonymum pro JB. Viz popis instrukce JB.
+
+
+
+
+
+ J N B        - skok, není-li pod
+
+    Instrukce JNB je synonymum pro JAE. Viz popis instrukce JAE.
+
+
+
+
+
+ J N B E      - skok, není-li pod ani shodný
+
+    Instrukce JNBE je synonymum pro JA. Viz popis instrukce JA.
+
+
+
+
+ J N C        - skok, není-li pøíznak pøenosu CF
+
+Formát:       JNC   krátké_návìští
+
+Význam:       skok, je-li CF = 0                           Pøíznaky:
+                                                          neovlivnìny
+
+    JNC  pøedává  øízení  na  krátké  návìští,  pokud  je vynulován pøíznak
+pøenosu  CF.  Vzdálenost  skoku  musí  být  v rozsahu -128 až +127 bajtù od
+zaèátku instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JNC CF_NULA     |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNB,  skok  není-li  pod,  a  JAE, skok je-li nad nebo shoda, je
+           stejná instrukce jako JNC.
+
+           Použijte  instrukci  JC  ke skoku je-li nastaven pøíznak pøenosu
+           CF.
+
+
+
+
+
+ J N E        - skok, není-li shodný
+
+Formát:       JNE   krátké_návìští
+
+Význam:       skok, je-li ZF = 0                           Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce se používá po instrukcích CMP nebo SUB. JNE pøedává øízení na
+krátké   návìští,   pokud  nebyl  první  operand  roven  druhému  operandu.
+Vzdálenost skoku musí být v rozsahu -128 až +127 bajtù od zaèátku instrukce
+následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JNE NESHODA     |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: JNZ, skok není-li pøíznak nuly ZF, je stejná instrukce jako JNE.
+
+
+
+
+
+ J N G        - skok, není-li vìtší
+
+    Instrukce JNG je synonymum pro JLE. Viz popis instrukce JLE.
+
+
+
+
+
+ J N G E      - skok, není-li vìtší ani shodný
+
+    Instrukce JNGE je synonymum pro JL. Viz popis instrukce JL.
+
+
+
+
+
+ J N L        - skok, není-li menší
+
+    Instrukce JNL je synonymum pro JGE. Viz popis instrukce JGE.
+
+
+
+
+
+ J N L E      - skok, není-li menší ani shodný
+
+    Instrukce JNLE je synonymum pro JG. Viz popis instrukce JG.
+
+
+
+
+
+ J N O        - skok, není-li pøíznak pøeteèení OF
+
+Formát:       JNO   krátké_návìští
+
+Význam:       skok, je-li OF = 0                           Pøíznaky:
+                                                          neovlivnìny
+
+    JNO  pøedává  øízení  na  krátké  návìští,  pokud  je vynulován pøíznak
+pøeteèení  OF.  Vzdálenost  skoku  musí být v rozsahu -128 až +127 bajtù od
+zaèátku instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JNO NEPRETEKL   |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Použijte  instrukci JO ke skoku je-li nastaven pøíznak pøeteèení
+           OF.
+
+
+
+
+ J N P        - skok, není-li pøíznak parity PF (tj. je parita lichá)
+
+Formát:       JNP     krátké_návìští
+
+Význam:       skok, je-li PF = 0                           Pøíznaky:
+                                                          neovlivnìny
+
+    JNP pøedává øízení na krátké návìští, pokud je vynulován pøíznak parity
+PF.  Vzdálenost  skoku  musí  být  v  rozsahu -128 až +127 bajtù od zaèátku
+instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |  JNP LICHA_PARITA |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Instrukce JPO, skok je-li parita lichá, je stejná instrukce jako
+           JNP.
+
+           Použijte instrukci JP ke skoku je-li nastaven pøíznak parity PF.
+
+
+
+
+
+
+
+ J N S        - skok, není-li pøíznak znaménka SF
+
+Formát:       JNS     krátké_návìští
+
+Význam:       skok, je-li SF = 0                           Pøíznaky:
+                                                          neovlivnìny
+
+    JNS  pøedává  øízení  na  krátké  návìští,  pokud  je vynulován pøíznak
+znaménka  SF.  Vzdálenost  skoku  musí  být v rozsahu -128 až +127 bajtù od
+zaèátku instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |  JNS KLADNE_CISLO |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Použijte  instrukci  JS ke skoku je-li nastaven pøíznak znaménka
+           SF.
+
+
+
+
+ J N Z        - skok, není-li pøíznak nuly ZF
+
+    Instrukce JNZ je synonymum pro JNE. Viz popis instrukce JNE.
+
+
+
+
+ J O          - skok, je-li pøíznak pøeteèení OF
+
+Formát:       JO     krátké_návìští
+
+Význam:       skok, je-li OF = 1                           Pøíznaky:
+                                                          neovlivnìny
+
+    JNO  pøedává  øízení  na  krátké  návìští,  pokud  je  nastaven pøíznak
+pøeteèení  OF.  Vzdálenost  skoku  musí být v rozsahu -128 až +127 bajtù od
+zaèátku instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |     JO PRETEKL    |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Použijte   instrukci  JNO  ke  skoku  není-li  nastaven  pøíznak
+           pøeteèení OF.
+
+
+
+
+
+
+
+ J P          - skok, je-li pøíznak parity PF (tj. je parita sudá)
+
+Formát:       JP     krátké_návìští
+
+Význam:       skok, je-li PF = 1                           Pøíznaky:
+                                                          neovlivnìny
+
+    JP  pøedává  øízení na krátké návìští, pokud je nastaven pøíznak parity
+PF.  Vzdálenost  skoku  musí  být  v  rozsahu -128 až +127 bajtù od zaèátku
+instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |   JP SUDA_PARITA  |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Instrukce  JPE, skok je-li parita sudá, je stejná instrukce jako
+           JP.
+
+           Použijte  instrukci JNP ke skoku není-li nastaven pøíznak parity
+           PF.
+
+
+
+
+ J P E        - skok, je-li parita sudá
+
+    Instrukce JPE je synonymum pro JP. Viz popis instrukce JP.
+
+
+
+
+ J P O        - skok, je-li parita lichá
+
+    Instrukce JPO je synonymum pro JNP. Viz popis instrukce JNP.
+
+
+
+
+ J S          - skok, je-li pøíznak znaménka SF
+
+Formát:       JS     krátké_návìští
+
+Význam:       skok, je-li SF = 1                           Pøíznaky:
+                                                          neovlivnìny
+
+    JS pøedává øízení na krátké návìští, pokud je nastaveb pøíznak znaménka
+SF.  Vzdálenost  skoku  musí  být  v  rozsahu -128 až +127 bajtù od zaèátku
+instrukce následující za touto instrukcí.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |16 nebo 4|   -   |  2  |  JS ZAPORNE_CISLO |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Použijte  instrukci  JNS  ke  skoku,  není-li  nastaven  pøíznak
+           znaménka SF.
+
+
+
+
+ J Z          - skok, je-li pøíznak nuly ZF
+
+    Instrukce JZ je synonymum pro JE. Viz popis instrukce JE.
+
+
+
+
+
+ L A H F      - naplnìní registru AH obsahem pøíznakového registru
+
+Formát:       LAHF
+
+Význam:       bity AH:         pøíznakové bity:            Pøíznaky:
+              7 6 4 2 0   <--     S Z A P C               neovlivnìny
+
+    LAHF  kopíruje  pìt pøíznakù procesoru 8080/8085 (znaménko SF, nula ZF,
+rozšíøený pøenos AF, parita PF a pøenos CF) do bitù 7, 6, 4, 2 a 0 registru
+AH. Pøíznaky samotné nejsou touto instrukcí ovlivnìny.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    4    |   -   |  1  |      LAHF         |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce je v prvé øadì používána ke zvýšení kompatibility
+           mezi instrukcemi rodin procesorù 8080/8085 a 8086.
+
+           Po  provedení  této  instrukce  jsou  bity  1, 3 a 5 registru AH
+           nedefinovány.
+
+
+
+
+
+ L D S        - naplnìní registru ukazatelem s použitím DS
+
+Formát:       LDS    op1, op2
+
+Význam:       DS <-- [op2 + 2]                             Pøíznaky:
+              [op1] <-- [op2]                             neovlivnìny
+
+    LDS  uloží  do dvou registrù 32-bitový ukazatel nalezený na adrese dané
+operandem  op2. LDS uloží hodnotu segmentu (vyšší slovo na zdrojové adrese)
+do  registru  DS  a  hodnotu  ofsetu  (nižší  slovo  na zdrojové adrese) do
+operandu  op1.  Cílovým  registrem  op1  mùže být nìkterý 16-bitový registr
+(všechny registry kromì segmentových registrù).
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  reg 16, pamì 32          | 24 + EA |   2   | 2-4 | LDS DI,UKAZATEL_32|
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Instrukce  LES,  naplnìní  registru ukazatelem s použitím ES, je
+           porovnatelná  instrukce,  která  uloží  ukazatel  do registru ES
+           radìji než do registru DS.
+
+
+
+ L E A        - naplnìní efektivní adresou
+
+Formát:       LEA   op1, op2
+
+Význam:       [op1] <-- adresa [op2]                       Pøíznaky:
+                                                          neovlivnìny
+
+    LEA  pøenáší  offset  zdrojového  operandu (radìji než jeho hodnotu) do
+cílového  opeandu.  Zdrojový  operand  musí  být pamìová reference, cílový
+operand musí být 16-bitový registr.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  reg 16, pamì 32          |  2 + EA |   -   | 2-4 | LEA BX,ADR_PAMETI |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Tato  instrukce  má  výhodu  oproti používání operátoru OFFSET s
+           instrukcí  MOV, ve které musí být zdrojový operand popsán. Napø.
+           tento zápis je povolený:
+
+              LEA BX,TABULKA[SI] ;
+
+           zatímco
+
+              MOV BX,OFFSET TABULKA[SI]
+
+           je  nepovolená  instrukce,  nebo  operátor  OFFSET provádí svou
+           kalkulaci adresy bìhem pøekladu programu, zatímco tato adresa je
+           známa až pøi bìhu programu.
+
+Pøíklad:
+
+    Rutina  pro  tisk øetìzce v DOS (funkce 09H) vyžaduje ukazatel na text,
+který  má  být  vytištìn,  v  registrech DS:DX. Pokud byl øetìzec, který si
+pøejete  tisknout,  na  adrese  "TISKNI_MNE"  ve  stejném datovém segmentu,
+mùžete naplnit DS:DX požadovaným ukazatelem užitím instrukce:
+
+         LEA  DX,TISKNI_MNE
+
+
+
+
+
+ L E S        - naplnìní registru ukazatelem s použitím ES
+
+Formát:       LES    op1, op2
+
+Význam:       DS <-- [op2 + 2]                             Pøíznaky:
+              [op1] <-- [op2]                             neovlivnìny
+
+    LES  uloží  do dvou registrù 32-bitový ukazatel nalezený na adrese dané
+operandem  op2. LES uloží hodnotu segmentu (vyšší slovo na zdrojové adrese)
+do  registru  ES  a  hodnotu  ofsetu  (nižší  slovo  na zdrojové adrese) do
+operandu  op1.  Cílovým  registrem  op1  mùže být nìkterý 16-bitový registr
+(všechny registry kromì segmentových registrù).
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  reg 16, pamì 32          | 24 + EA |   2   | 2-4 | LES DI,ADR_RETEZCE|
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Instrukce  LDS,  naplnìní  registru ukazatelem s použitím DS, je
+           porovnatelná  instrukce,  která  uloží  ukazatel  do registru DS
+           radìji než do registru ES.
+
+
+
+
+ L O C K      - uzamèení sbìrnice
+
+Formát:       LOCK
+
+Význam:       uzamkne sbìrnici                             Pøíznaky:
+                                                          neovlivnìny
+
+    LOCK  je  jednobajtový prefix, který mùže pøedcházet nìkteré instrukce.
+LOCK  zpùsobí  to,  že  procesor  potvrdí  uzamykací  signál  LOCK  po dobu
+provádìní  následující  instrukce.  Pokud  je  systém  konfigurován tak, že
+signál  LOCK  je  použit,  chrání  tak  externí zaøízení nebo procesy proti
+pøístupu na sbìrnici, vèetnì pøerušení a pøenosù DMA.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|           -                |    2    |   -   |  1  | LOCK XCHG FLAG,AL |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Tato  instrukce  byla  pøipravena  k  podpoøe  víceprocesorových
+           systémù se sdílenými prostøedky. V tìchto systémech je pøístup k
+           tìmto  prostøedkùm  centrálnì  øízen  prostøednictvím  software-
+           hardwarové kombinace s použitím semaforù.
+
+           Instrukce LOCK by mìla být použita pouze k ochranì jiných øadièù
+           sbìrnice  pøed  pøerušením  a  operacemi  pro  pøenos dat. Tento
+           prefix mùže být použit pouze s instrukcemi XCHG, MOV a MOVS.
+
+
+
+ L O D S      - naètení øetìzce (bajt nebo slovo)
+
+Formát:       LODS   zdrojový_øetìzec
+
+Význam:       Akumulátor <-- [DS:SI]                      Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   SI <-- SI + n   (n = 1 pro bajt,
+                                     2 pro slovo)
+              else
+                   SI <-- SI - n
+
+    LODS  pøenáší  hodnotu  (slovo  nebo  bajt)  ukazovanou pomocí DS:SI do
+registru AX nebo AL. Též inkrementuje nebo dekrementuje SI (v závislosti na
+stavu pøíznaku smìru DF) k nastavení na následující element øetìzce.
+ 
++-------------------------+------------+-------+-----+-------------------+
+|         Operandy        |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|  zdrojový_øetìzec       |   12(16)   |   -   |  1  |  LODS VYPIS       |
+|  (opakov.) zdroj._øetìz.|9+13(17)/rep| 1/rep |  1  |  REP LODS VYPIS   |
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce je obvykle assemblerem pøevádìna na instrukce buï
+           LODSB (naètení bajtu) nebo LODSW (naètení slova) v závislosti na
+           tom,  zda  je  vstupní  øetìzec øetìzcem slov nebo bajtù. V obou
+           pøípadech   musíte  explicitnì  nastavit  registr  SI  na  ofset
+           øetìzce.
+
+           Aèkoliv   je  možné  opakovat  tuto  instrukci,  nemá  opakování
+           instrukce smysl, nebo opakovanì pøepisuje hodnotu v AL.
+
+
+Pøíklad:
+
+    tabulka   db        '$CMD0000'     ; øetìzec, který chceme vyslat
+                   .
+                   .
+              cld                      ; posun ukazatele vpøed
+              lea       si,tabulka     ; nastavení poèáteèní adresy do SI
+              mov       cx,8           ; poèet znakù k vyslání
+    opet:     lods      tabulka        ; pøenos elementu tabulky - parametr
+                                       ;   "tabulka" je potøebný pouze pro
+                                       ;   assembler k vymezení, zda jde o
+                                       ;   øetìzec bajtù nebo slov
+              out       250,al         ; vyslání znaku na port
+              loop      opet           ; další bajt øetìzce
+
+
+
+
+
+
+
+
+
+ L O D S B    - naplnìní akumulátoru bajtovým øetìzcem
+
+Formát:       LODSB  zdrojový_øetìzec
+
+Význam:       AL <-- [DS:SI]                              Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   SI <-- SI + 1
+              else
+                   SI <-- SI - 1
+
+    LODS   pøenáší   bajt  ukazovaný  pomocí  DS:SI  do  registru  AL.  Též
+inkrementuje nebo dekrementuje SI (v závislosti na stavu pøíznaku smìru DF)
+k nastavení na následující bajt øetìzce.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|              -             |   12    |   -   |  1  |  LODSB            |
+|          opakovanì         |9+13/rep | 1/rep |  1  |  REP LODSB        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Aèkoliv   je  možné  opakovat  tuto  instrukci,  nemá  opakování
+           instrukce smysl, nebo opakovanì pøepisuje hodnotu v AL.
+
+
+Pøíklad:
+
+    tabulka   db        '$CMD0000'     ; øetìzec, který chceme vyslat
+                   .
+                   .
+              cld                      ; posun ukazatele vpøed
+              lea       si,tabulka     ; nastavení poèáteèní adresy do SI
+              mov       cx,8           ; poèet znakù k vyslání
+    opet:     lodsb                    ; pøeètení znaku k vyslání
+              out       250,al         ; vyslání znaku na port
+              loop      opet           ; další bajt øetìzce
+
+
+
+ L O D S W    - naplnìní akumulátoru øetìzcem slov
+
+Formát:       LODSW  zdrojový_øetìzec
+
+Význam:       AX <-- [DS:SI]                              Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   SI <-- SI + 2
+              else
+                   SI <-- SI - 2
+
+    LODS   pøenáší  slovo  ukazované  pomocí  DS:SI  do  registru  AX.  Též
+inkrementuje nebo dekrementuje SI (v závislosti na stavu pøíznaku smìru DF)
+k nastavení na následující bajt øetìzce.
+
+
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|          -                 |   16    |   -   |  1  |  LODSW            |
+|      opakovanì             | 9+17/rep| 1/rep |  1  |  REP LODSW        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Aèkoliv   je  možné  opakovat  tuto  instrukci,  nemá  opakování
+           instrukce smysl, nebo opakovanì pøepisuje hodnotu v AL.
+
+
+Pøíklad:
+
+    tabulka   db        '$CMD0000'     ; øetìzec, který chceme vyslat
+                   .
+                   .
+              cld                      ; posun ukazatele vpøed
+              lea       si,tabulka     ; nastavení poèáteèní adresy do SI
+              mov       cx,4           ; poèet slov k vyslání
+    opet:     lodsw                    ; pøeètení slova k vyslání
+              out       250,ax         ; vyslání slova na port
+              loop      opet           ; další bajt øetìzce
+
+
+ L O O P      - èítací smyèka
+
+Formát:       LOOP   krátké_návìští
+
+Význam:       CX <-- CX - 1                               Pøíznaky:
+              if (CX <> 0)                               neovlivnìny
+                   JMP  krátké_návìští
+
+    LOOP  dekrementuje  CX  o  1  a  pokud  není  CX  =  0, pøedá øízení na
+krátké_návìští.   Pokud   je  CX  =  0,  pokraèuje  následující  instrukcí.
+Krátké_návìští  musí  ležet  v  rozsahu  -128  až +127 bajtù od následující
+instrukce.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |  17/5   |   -   |  2  |    LOOP OPET      |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+
+ L O O P E    - èítací smyèka, je-li shoda
+
+Formát:       LOOPE  krátké_návìští
+
+Význam:       CX <-- CX - 1                               Pøíznaky:
+              if (CX <> 0) and ZF = 1                    neovlivnìny
+                   JMP  krátké_návìští
+
+    LOOPE  se  používá  po  instrukcích CMP nebo SUB. Dekrementuje CX o 1 a
+pokud  je CX rùzné od 0 a zároveò první operand pøedešlé instrukce CMP nebo
+SUB  je  roven  druhému  operandu, pøedá øízení na krátké_návìští. Pokud je
+CX·=·0  nebo  operandy  si  nebyly  rovny, pokraèuje následující instrukcí.
+Krátké_návìští  musí  ležet  v  rozsahu  -128  až +127 bajtù od následující
+instrukce.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |18 nebo 6|   -   |  2  |    LOOPE OPET     |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: LOOPZ, smyèka je-li pøíznak nuly ZF, je stejná instrukce.
+
+
+
+ L O O P N E  - èítací smyèka, není-li shoda
+
+Formát:       LOOPNE  krátké_návìští
+
+Význam:       CX <-- CX - 1                               Pøíznaky:
+              if (CX <> 0) and ZF = 0                    neovlivnìny
+                   JMP  krátké_návìští
+
+    LOOPNE  se  používá  po instrukcích CMP nebo SUB. Dekrementuje CX o 1 a
+pokud  je CX rùzné od 0 a zároveò první operand pøedešlé instrukce CMP nebo
+SUB  není  roven druhému operandu, pøedá øízení na krátké_návìští. Pokud je
+CX·=·0  nebo  operandy  si  jsou  rovny,  pokraèuje  následující instrukcí.
+Krátké_návìští  musí  ležet  v  rozsahu  -128  až +127 bajtù od následující
+instrukce.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|      krátké_návìští        |18 nebo 6|   -   |  2  |   LOOPNE OPET     |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: LOOPNZ, smyèka není-li pøíznak nuly ZF, je stejná instrukce.
+
+
+
+
+ L O O P N Z  - èítací smyèka, pokud není nula
+
+    LOOPNZ je synonymum pro instrukci LOOPNE. Viz popis instrukce LOOPNE.
+
+
+
+ L O O P Z    - èítací smyèka, je-li nula
+
+    LOOPZ je synonymum pro instrukci LOOPE. Viz popis instrukce LOOPE.
+
+
+
+
+ M O V        - pøesun dat (bajt nebo slovo)
+
+Formát:       MOV    pøíjemce, zdroj
+
+Význam:       pøíjemce <-- zdroj                          Pøíznaky:
+                                                         neovlivnìny
+
+    MOV kopíruje bajt nebo slovo ze zdrojového operandu do cílového.
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    2    |   -   |  2  |  MOV BX,CX        |
+|  pamì, akumulátor         |  10(14) |   1   |  3  |  MOV PAMET,AL     |
+|  akumulátor, pamì         |  10(14) |   1   |  3  |  MOV AX,PAMET     |
+|  pamì, registr            | 9(13)+EA|   1   | 2-4 |  MOV PAMET,BX     |
+|  registr, pamì            | 8(12)+EA|   1   | 2-4 |  MOV BX,PAMET     |
+|  registr, èíslo            |    4    |   -   | 2-3 |  MOV BX,0F6CDH    |
+|  pamì, èíslo              |10(14)+EA|   1   | 3-6 |  MOV MASKA,0F6CDH |
+|  seg-reg., reg16           |    2    |   -   |  2  |  MOV DS,BX        |
+|  seg-reg., pamì16         | 8(12)+EA|   1   | 2-4 |  MOV DS,SEGMENT   |
+|  reg16, seg-reg            |    2    |   -   |  2  |  MOV BP,SS        |
+|  pamì, seg-reg.           | 9(13)+EA|   1   | 2-4 |  MOV PROMENNA,CS  |
++----------------------------+---------+-------+-----+-------------------+
+
+
+ M O V S      - pøesun øetìzce (bajt nebo slovo)
+
+Formát:       MOVS  pøíjmový_øetìzec,zdrojový_øetìzec
+
+Význam:       [ES:DI] <-- [DS:SI]                         Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   SI <-- SI + n   (n = 1 pro bajt,
+                   DI <-- DI + n     2 pro slovo)
+              else
+                   SI <-- SI - n
+                   DI <-- DI - n
+
+    Tato  instrukce  kopíruje  bajt nebo slovo adresované registry DS:SI na
+pamìovou  lokaci  adresovanou  registry  ES:DI.  Po  operaci  pøesunu jsou
+registry  SI a DI inkrementovány (pokud je pøíznak smìru DF vynulován) nebo
+dekrementovány (DF je nastaven) pro pøípravu k další operaci pøesunu.
+ 
++-------------------------+------------+-------+-----+-------------------+
+|          Operandy       |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|  pøíjm._øet.,zdroj._øet.|   18(26)   |   2   |  1  | MOVS BUFFER,VSTUP |
+|  (opakov.) pøíj.,zdroj. |9+17(25)/rep| 2/rep |  1  | REPE MOVS BUFF,TXT|
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce je obvykle assemblerem pøevádìna na instrukce buï
+           MOVSB  (pøesun  øetìzce bajtù) nebo MOVSW (pøesun øetìzce slov),
+           závisle  na  tom,  zda  je  zdrojový øetìzec øetìzcem bajtù nebo
+           slov. V obou pøípadech musíte explicitnì uložit do registrù SI a
+           DI offset zdrojového a pøíjmového øetìzce.
+
+Pøíklady:
+
+         buffer1   db        100 DUP (?)    ; zdrojový øetìzec 1
+         buffer2   db        100 DUP (?)    ; pøíjmový øetìzec 2
+                        ...
+                   cld                      ; nastavení smìru vpøed
+                   mov       cx, 100        ; èítaè bajtù (100 bajtù)
+                   lea       si, buffer1    ; poèát. adresa zdrojového øet.
+                   lea       di, buffer2    ; poèát. adresa pøíjmového øet.
+         rep       movs      buffer1,buffer2; pøenos øetìzce 1 do bufferu 2
+
+
+
+
+ M O V S B    - pøesun bajtového øetìzce
+
+Formát:       MOVSB pøíjmový_øetìzec,zdrojový_øetìzec
+
+Význam:       [ES:DI] <-- [DS:SI]                         Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   SI <-- SI + 1
+                   DI <-- DI + 1
+              else
+                   SI <-- SI - 1
+                   DI <-- DI - 1
+
+    Tato  instrukce  kopíruje  bajt  adresovaný registry DS:SI na pamìovou
+lokaci adresovanou registry ES:DI. Po operaci pøesunu jsou registry SI a DI
+inkrementovány  (pokud  je  pøíznak smìru DF vynulován) nebo dekrementovány
+(DF je nastaven) pro pøípravu k další operaci pøesunu.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |   18    |   2   |  1  | MOVSB             |
+|      (opakovanì)           | 9+17/rep| 2/rep |  1  | REP MOVSB         |
++----------------------------+---------+-------+-----+-------------------+
+
+Pøíklady:
+
+         buffer1   db        100 DUP (?)    ; zdrojový øetìzec 1
+         buffer2   db        100 DUP (?)    ; pøíjmový øetìzec 2
+                        ...
+                   cld                      ; nastavení smìru vpøed
+                   mov       cx, 100        ; èítaè bajtù (100 bajtù)
+                   lea       si, buffer1    ; poèát. adresa zdrojového øet.
+                   lea       di, buffer2    ; poèát. adresa pøíjmového øet.
+         rep       movsb                    ; pøenos øetìzce 1 do bufferu 2
+
+
+
+
+
+
+
+ M O V S W    - pøesun øetìzce slov
+
+Formát:       MOVSW pøíjmový_øetìzec,zdrojový_øetìzec
+
+Význam:       [ES:DI] <-- [DS:SI]                         Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   SI <-- SI + 2
+                   DI <-- DI + 2
+              else
+                   SI <-- SI - 2
+                   DI <-- DI - 2
+
+    Tato  instrukce  kopíruje  slovo adresované registry DS:SI na pamìovou
+lokaci adresovanou registry ES:DI. Po operaci pøesunu jsou registry SI a DI
+inkrementovány  (pokud  je  pøíznak smìru DF vynulován) nebo dekrementovány
+(DF je nastaven) pro pøípravu k další operaci pøesunu.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    26   |   2   |  1  | MOVSW             |
+|      (opakovanì)           | 9+25/rep| 2/rep |  1  | REP MOVSW         |
++----------------------------+---------+-------+-----+-------------------+
+
+Pøíklady:
+
+         buffer1   db        100 DUP (?)    ; zdrojový øetìzec 1
+         buffer2   db        100 DUP (?)    ; pøíjmový øetìzec 2
+                        ...
+                   cld                      ; nastavení smìru vpøed
+                   mov       cx, 50         ; èítaè slov (50 slov)
+                   lea       si, buffer1    ; poèát. adresa zdrojového øet.
+                   lea       di, buffer2    ; poèát. adresa pøíjmového øet.
+         rep       movsw                    ; pøenos øetìzce 1 do bufferu 2
+
+
+
+ M U L        - násobení bez znaménka
+
+Formát:       MUL op1
+
+Význam:       AX <-- AL * [op1]    ; operandem bajt         Pøíznaky:
+                                                        O D I T S Z A P C
+         nebo DX:AX <-- AX * [op1] ; operandem slovo    * - - - ? ? ? ? *
+
+    MUL  provádí  násobení  bez  znaménka.  Pokud  je  operandem  bajt, MUL
+vynásobí operand registrem AL, výsledek uloží do AX. Je-li operandem slovo,
+MUL  vynásobí  operand  registrem  AX  a  uloží  výsledek do DX:AX. Pøíznak
+pøenosu  CF  a  pøíznak  pøeteèení  OF jsou nastaveny, pokud horní polovina
+výsledku  (AX  pro  bajtovou  operaci,  DX  pro operaci se slovem) obsahuje
+nìjakou významovou èíslici výsledku, jinak jsou vynulovány.
+
+
+
+
+
+ 
++-------------------------+------------+-------+-----+-------------------+
+|          Operandy       |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|  registr 8              |   70 - 77  |   -   |  2  | MUL CH            |
+|  registr 16             |  118 - 133 |   -   |  2  | MUL BX            |
+|  pamì 8                | (76+83)+EA |   1   | 2-4 | MUL BAJT_A        |
+|  pamì 16               |(128-143)+EA|   1   | 2-4 | MUL SLOVO_A       |
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Viz též instrukci IMUL pro násobení se znaménkem.
+
+
+
+ N E G        - negace
+
+Formát:       NEG    op1
+
+Význam:       [op1] <--  - [op1] (dvojkový doplnìk)       Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * * * *
+
+    Instrukce  NEG  odeète  operand  [op1] od nuly a výsledek uloží zpìt do
+operandu.  Jedná se tedy o dvojkový doplnìk operandu. Operand mùže být bajt
+nebo slovo.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr                   |    3    |   -   |  2  | NEG DL            |
+|  pamì                     |16(24)+EA|   2   | 2-4 | NEG KOEFICIENT    |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pokud  je  operand  nula,  pøíznak  pøenosu CF bude vynulován; v
+           ostatních pøípadech je CF nastaven.
+
+           Pøi  pokusu  negovat  bajt obsahující -128 nebo slovo obsahující
+           32·768  nezpùsobí  žádnou  zmìnu operandu, avšak nastaví pøíznak
+           pøeteèení OF.
+
+
+
+
+ N O P        - prázdná operace
+
+Formát:       NOP
+
+Význam:       žádná funkce                                 Pøíznaky:
+                                                          neovlivnìny
+
+    Tato  instrukce  nezpùsobí  žádnou  èinnost  procesoru.  Používá  se  k
+èasovacím  funkcím  a  k  vyplnìní  prázdného místa v programovém segmentu,
+umožòující  pozdìjší  doplnìní  instrukcí  nebo  dostavení  na  požadovanou
+adresu.
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    3    |   -   |  1  |       NOP         |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ N O T        - logická negace
+
+Formát:       NOT    op1
+
+Význam:       NOT    [op1] <--  NOT[op1]                   Pøíznaky:
+                                                          neovlivnìny
+
+    NOT  invertuje  každý  bit  operandu (tzn. vytváøí jednièkový doplnìk).
+Operandem mùže být bajt nebo slovo.
+
+                 Instrukce NOT logicky:
+               +------------+-----------+
+               |  operand   |  výsledek |
+               +------------+-----------+
+               |    0       |     1     |
+               |    1       |     0     |
+               +------------+-----------+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr                   |    3    |   -   |  2  | NOT DX            |
+|  pamì                     |16(24)+EA|   2   | 2-4 | NOT MASKA         |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+ O R          - logické OR
+
+Formát:       OR     op1, op2
+
+Význam:       [op1] <-- [op1] OR [op2]                    Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      0 - - - * * ? * 0
+
+    OR  provádí  bit  po  bitu  operaci OR obou operandù a výsledek operace
+uloží do pøíjmového operandu [op1]. Operandy mohou být bajty nebo slova.
+
+    OR  nastavuje  každý  bit  výsledku  na  1,  pokud  je  alespoò jeden z
+odpovídajících  bitù  operandù nastaven na 1. Pokud jsou oba pøíslušné bity
+operandù 0, je výsledný bit také 0.
+
+                        Instrukce OR logicky:
+       +------------------------+------------------------+------------+
+       | pøíjmový operand [op1] | zdrojový operand [op2] |  výsledek  |
+       +------------------------+------------------------+------------+
+       |           0            |           0            |      0     |
+       |           0            |           1            |      1     |
+       |           1            |           0            |      1     |
+       |           1            |           1            |      1     |
+       +------------------------+------------------------+------------+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  OR CH,DL         |
+|  registr, èíslo            |    4    |   -   | 3-4 |  OR CX,00FFh      |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  OR AL,01110110b  |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  OR BX, PAMET     |
+|  pamì, registr            |16(24)+EA|   2   | 2-4 |  OR PAMET,BX      |
+|  pamì, èíslo              |17(25)+EA|   2   | 3-6 |  OR SLOVO_A,76h   |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ O U T        - výstup bajtu nebo slova na I/O port
+
+Formát:       OUT   port,akumulátor
+
+Význam:       [port] <-- akumulátor                        Pøíznaky:
+                                                          neovlivnìny
+
+    OUT  pøenáší bajt nebo slovo z registru AL nebo AX na specifikovaný I/O
+port.  Port  mùže  být specifikován pøímým operandem (bajt - pro porty 0 až
+255)  nebo  registrem  DX  (možný  pøístup na všechny porty o adresách 0 až
+65535).
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  pøímý_oper.8, akumulátor  |  10(14) |   1   |  2  |  OUT 254,AX       |
+|  DX, akumulátor            |   8(12) |   1   |  1  |  OUT DX,AL        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Je  doporuèováno,  aby konstruktéøi nepoužívali vstupnì/výstupní
+           porty  F8H  až FFH, nebo tyto adresy jsou rezervoványpro øízení
+           matematického koprocesoru a další rozšíøení procesoru.
+
+           Viz též instrukce IN pro vstup bajtu nebo slova z portu.
+
+
+
+
+ P O P        - vyjmutí slova ze zásobníku
+
+Formát:       POP op1
+
+Význam:       [op1] <-- (SP)                               Pøíznaky:
+              SP <-- SP + 2                               neovlivnìny
+
+    Instrukce  POP  vyjme ze zásobníku slovo uložené na jeho vrcholu, uloží
+je do operandu a inkrementuje ukazatel zásobníku SP o 2 (nastavení na novou
+položku v zásobníku).
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|   registr                  |   12    |   1   |  1  | POP CX            |
+|   seg-reg (kromì CS)       |   12    |   1   |  1  | POP ES            |
+|   pamì                    |  25+EA  |   2   | 2-4 | POP HODNOTA       |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Jako operand instrukce POP nelze použít registr CS.
+
+
+
+ P O P F      - vyjmutí registru pøíznakù ze zásobníku
+
+Formát:       POPF
+
+Význam:       pøíznakový_registr <-- (SP)                  Pøíznaky:
+              SP <-- SP + 2                           O D I T S Z A P C
+                                                      r r r r r r r r r
+
+    Instrukce  POPF vyjme ze zásobníku slovo uložené na jeho vrcholu, uloží
+je  do  pøíznakového  registru  a  inkrementuje  ukazatel  zásobníku SP o 2
+(nastavení na novou položku v zásobníku).
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |   12    |   1   |  1  |      POPF         |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ P U S H      - uložení slova do zásobníku
+
+Formát:       PUSH op1
+
+Význam:       SP <-- SP - 2                                Pøíznaky:
+              (SP) <-- [op1]                              neovlivnìny
+
+    Instrukce  PUSH  dekrementuje  ukazatel zásobníku SP o 2 a zkopíruje do
+nìj obsah operandu. Operandem instrukce PUSH nemùže být 8-bitový registr.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|   registr                  |   15    |   1   |  1  | PUSH BX           |
+|   seg-reg (kromì CS)       |   14    |   1   |  1  | PUSH ES           |
+|   pamì                    |  24+EA  |   2   | 2-4 | PUSH PARAMETRY    |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Jako operand instrukce POP nelze použít registr CS.
+
+           I  když  jako  zdrojový  operand bude použit bajt v pamìti, bude
+           vždy uloženo celé slovo.
+
+           Mikroprocesory 80286 a 80386 ukládají do zásobníku pøi instrukci
+           PUSH  SP jiné hodnoty než procesory 8086/8088. Procesory 80286 a
+           80386  uloží  do  zásobníku  hodnotu registru SP ještì pøed jeho
+           dekrementací,  zatímco procesoru 8086/8088 nejdøíve dekrementují
+           kazatel  zásobníku  SP  o 2 a potom teprve uloží jeho hodnotu na
+           vrchol   zásobníku.   Použijte  namísto  této  instrukce  radìji
+           následující posloupnost instrukcí, která zajistí správnou funkci
+           se všemi typy mikroprocesorù:
+
+                   PUSH      BP
+                   MOV       BP,SP
+                   XCHG      BP,[BP]
+
+
+
+ P U S H F    - uložení registru pøíznakù do zásobníku
+
+Formát:       PUSHF
+
+Význam:       SP <-- SP - 2                                Pøíznaky:
+              (SP) <-- registr_pøíznakù                   neovlivnìny
+
+    Instrukce  PUSH  dekrementuje  ukazatel zásobníku SP o 2 a zkopíruje do
+nìj obsah registru pøíznakù.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |   14    |   1   |  1  |      PUSHF        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ R C L        - rotace vlevo pøes pøíznakový bit pøenosu CF
+
+Formát:       RCL op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+              +----->--------------------+            * - - - - - - - *
+            +-+--+   +-----------------+ |
+            | CF +-<-+  operand [op1]  +<+
+            +----+   +-----------------+
+
+    RCL  posouvá slovo nebo bajt operandu vlevo o požadovaný poèet bitových
+pozic  specifikovaný  druhým  operandem  instrukce.  Bity  pøesunuty  ven z
+operandu  na  jeho  levém  konci  (nejvyšší  øád) jsou ukládány do pøíznaku
+pøenosu  CF.  Pùvodní  obsah pøíznaku pøenosu CF je pøesunut do operandu na
+uvolnìnou  bitovou  pozici  na  pravém  konci  (nejnižší  øád). Tato bitová
+operace se opakuje podle zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | RCL CX,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | RCL BL,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | RCL NASOBENO_2,1  |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | RCL PRESUN,CL     |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce RCL používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce RCL používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+ R C R        - rotace vpravo pøes pøíznakový bit pøenosu CF
+
+Formát:       RCR op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+         +---------------------<----+                 * - - - - - - - *
+         | +-----------------+   +--+-+
+         +>+  operand [op1]  +->-+ CF |
+           +-----------------+   +----+
+
+    RCR posouvá slovo nebo bajt operandu vpravo o požadovaný poèet bitových
+pozic  specifikovaný  druhým  operandem  instrukce.  Bity  pøesunuty  ven z
+operandu  na  jeho  pravém  konci  (nejnižší øád) jsou ukládány do pøíznaku
+pøenosu  CF.  Pùvodní  obsah pøíznaku pøenosu CF je pøesunut do operandu na
+uvolnìnou bitovou pozici na levém konci (nejvyšší øád). Tato bitová operace
+se opakuje podle zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | RCR CX,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | RCR DL,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | RCR DELENO_2,1    |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | RCR PRESUN,CL     |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce RCR používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce RCR používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+ R E P        - opakování instrukce
+
+Formát:       REP    øetìzcová_instrukce
+
+Význam:       while CX <> 0       ; pro MOVS, LODS, STOS   Pøíznaky:
+                   provedení instrukce                    neovlivnìny
+                   CX <-- CX - 1
+              ------------------------
+              while CX <> 0       ; pro CMPS, SCAS
+                   provedení instrukce
+                   CX <-- CX - 1
+                   if ZF = 0 pøerušení smyèky
+
+    REP  je  prefix,  který  mùže být specifikován pøed nìkterou øetìzcovou
+instrukcí (CMPS, LODS, MOVS, SCAS, STOS). REP zpùsobuje opakování øetìzcové
+instrukce  až  do  doby,  dokud  není  registr CX roven nule. Registr CX je
+dekrementován po každém provedení øetìzcové instrukce. Pro instrukce CMPS a
+SCAS  bude  smyèka  pøerušena  také v pøípadì, že je vynulován po provedení
+øetìzcové instrukce pøíznak nuly ZF.
+
+    Pozn.: Pokud  je  CX  pøed  zapoèetím instrukce roven 0, instrukce není
+           provedena ani jednou.
+
+           Test  registru  CX  zda  je  roven  0 se provádí pøed provedením
+           instrukce. Test na vynulování pøíznaku nuly pro instrukce CMPS a
+           SCAS se provádí po provedení instrukce.
+
+           REP,  REPE (opakování pokud je shoda) a REPZ (opakování pokud je
+           nula) jsou synonyma pro stejnou instrukci.
+
+           Instrukce REPNZ (opakování pokud není nula) je podobná funkce jako
+           REP  s  tím  rozdílem,  že pøi použití s instrukcemi CMPS a SCAS
+           bude  zmyèka pøerušena v pøípadì, že je nastaven pøíznak nuly ZF
+           (nastane shoda elementù øetìzcù).
+
+           Instrukce  REP je všeobecnì používána s instrukcemi MOVS (pøesun
+           øetìzce) a STOS (uložení øetìzce); lze ji chápat jako "opakování
+           dokud není konec øetìzce".
+
+           Pøíznak  nuly  ZF  není  nutno pøed použitím opakované øetìzcové
+           instrukce inicializovat.
+
+           Opakovací instrukce, která je bìhem opakování pøerušena, navrátí
+           proces  zpìt  správnì na tuto opakovací instrukci. Pokud však je
+           pøed  opakovací  instrukcí  REP  použit ještì jiný prefix (napø.
+           pøesmìøování    segmentu   nebo   LOCK),   jsou   všechny   tyto
+           pøedcházející  prefixy  ztraceny  kromì  tohoto  jednoho,  který
+           bezprostøednì   pøedchází  øetìzcovou  instrukci.  Proto,  pokud
+           musíte  použít  více  než jeden prefix na jednoduchou instrukci,
+           musíte  pøed  vyvoláním instrukce zakázat pøerušení a povolit je
+           ihned  po  provedení  instrukce.  Nutno však podotknout, že toto
+           opatøení  neochrání  pøed nemaskovatelným pøerušením a že dlouhé
+           øetìzcové  operace  mohou  zpùsobit  dlouhé  prodlevy  v procesu
+           pøerušení.
+
+
+
+
+ R E P E      - opakování instrukce, pokud je shoda
+
+    Instrukce REPE je synonymum pro instrukci REP. Viz popis instrukce REP.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ R E P N E    - opakování instrukce, pokud není shoda
+
+Formát:       REP    øetìzcová_instrukce
+
+Význam:       while CX <> 0       ; pro MOVS, LODS, STOS   Pøíznaky:
+                   provedení instrukce                    neovlivnìny
+                   CX <-- CX - 1
+              ------------------------
+              while CX <> 0       ; pro CMPS, SCAS
+                   provedení instrukce
+                   CX <-- CX - 1
+                   if ZF = 1 pøerušení smyèky  ; toto je jediný rozdíl
+                                               ; mezi REP a REPNE
+
+    REPNE  je  prefix, který mùže být specifikován pøed nìkterou øetìzcovou
+instrukcí  (CMPS,  LODS,  MOVS,  SCAS,  STOS).  REPNE  zpùsobuje  opakování
+øetìzcové  instrukce  až do doby, dokud není registr CX roven nule. Registr
+CX  je dekrementován po každém provedení øetìzcové instrukce. Pro instrukce
+CMPS  a  SCAS  bude  smyèka  pøerušena  také  v  pøípadì, že je nastaven po
+provedení  øetìzcové  instrukce pøíznak nuly ZF. Porovnejte s intrukcí REP,
+která pøeruší smyèku v pøípadì, že je pøíznak nuly ZF nastaven na nulu.
+
+    Pozn.: Pokud  je  CX  pøed  zapoèetím instrukce roven 0, instrukce není
+           provedena ani jednou.
+
+           Test  registru  CX  zda  je  roven  0 se provádí pøed provedením
+           instrukce. Test na vynulování pøíznaku nuly pro instrukce CMPS a
+           SCAS se provádí po provedení instrukce.
+
+           REPNE (opakování pokud není shoda) a REPNZ (opakování pokud není
+           nula) jsou synonyma pro stejnou instrukci.
+
+           Pøíznak  nuly  ZF  není  nutno pøed použitím opakované øetìzcové
+           instrukce inicializovat.
+
+           Opakovací instrukce, která je bìhem opakování pøerušena, navrátí
+           proces  zpìt  správnì na tuto opakovací instrukci. Pokud však je
+           pøed  opakovací  instrukcí REPNE použit ještì jiný prefix (napø.
+           pøesmìøování    segmentu   nebo   LOCK),   jsou   všechny   tyto
+           pøedcházející  prefixy  ztraceny  kromì  tohoto  jednoho,  který
+           bezprostøednì   pøedchází  øetìzcovou  instrukci.  Proto,  pokud
+           musíte  použít  více  než jeden prefix na jednoduchou instrukci,
+           musíte  pøed  vyvoláním instrukce zakázat pøerušení a povolit je
+           ihned  po  provedení  instrukce.  Nutno však podotknout, že toto
+           opatøení  neochrání  pøed nemaskovatelným pøerušením a že dlouhé
+           øetìzcové  operace  mohou  zpùsobit  dlouhé  prodlevy  v procesu
+           pøerušení.
+
+
+
+
+ R E P N Z    - opakování instrukce, pokud není nula
+
+    Instrukce  REPNZ  je synonymum pro instrukci REPNE. Viz popis instrukce
+REPNE.
+
+
+
+ R E P Z      - opakování instrukce, pokud je nula
+
+    Instrukce REPZ je synonymum pro instrukci REP. Viz popis instrukce REP.
+
+
+
+ R E T        - návrat z procedury
+
+Formát:       RET                                          Pøíznaky:
+                                                          neovlivnìny
+Význam:       POP  IP
+              if FAR RETURN (vnitrosegmentová instrukce)
+                   POP CS
+              SP <-- SP + volitelná hodnota (pokud je specifikována)
+
+    RET  navrátí øízení zpìt z volané procedury na instrukci následující za
+instrukcí  CALL,  která tuto proceduru vyvolala. Pøi provádìní instrukce se
+nejdøíve  vyjme  z  vrcholu  zásobníku  návratová  adresa. Pokud se jedná o
+instrukci  RET uvnitø segmentu, je návratovou adresou slovo, které se uloží
+do  ukazatele  instrukcí  IP.  Obsah segmentu programu CS zùstává nezmìnìn.
+Pokud  jde o instrukci RET mezisegmentovou, vyjme se z vrcholu zásobníku po
+vyjmutí registru IP ještì obsah segmentu CS (návratová adresa má tedy délku
+2  slov).  Pokud  je  za instrukcí RET specifikována ještì èíselná hodnota,
+zvýší se ukazatel zásobníku SP o danou hodnotu.
+
+    Assembler  generuje  rùzné  typy  RET  v  závislosti  na typu procedury
+obsahující  tuto  instrukci  RET. Pokud je procedura oznaèena programátorem
+jako  typ NEAR (tj. vnitrosegmentová), potom je generována vnitrosegmentová
+instrukce  RET.  Pokud  je  procedura  oznaèena  programátorem jako typ FAR
+(mezisegmentová),  je  vygenerována mezisegmentová instrukce RET. Volitelná
+hodnota pro zvýšení ukazatele zásobníku je hodnota, která bude pøipoètena k
+hodnotì   SP.   Uvedení   této   hodnoty  má  stejný  úèinek  jako  vyjmutí
+specifikovaného poètu bajtù z vrcholu zásobníku bez jejich uložení.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|(vnitrosegmentová)          |   20    |   1   |  1  |      RET          |
+|(vnitrosegmentová) hodnota  |   24    |   1   |  3  |      RET 4        |
+|(mezisegmentová)            |   32    |   2   |  1  |      RET          |
+|(mezisegmentová) hodnota    |   31    |   2   |  3  |      RET 2        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ R O L        - rotace vlevo
+
+Formát:       ROL    op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+                   +------->-------------+            * - - - - - - - *
+            +----+ | +-----------------+ |
+            | CF +<+<+  operand [op1]  +<+
+            +----+   +-----------------+
+
+    ROL  posouvá slovo nebo bajt operandu vlevo o požadovaný poèet bitových
+pozic  specifikovaný  druhým  operandem  instrukce.  Bity  pøesunuty  ven z
+operandu  na jeho levém konci (nejvyšší øád) jsou ukládány zpìt do operandu
+na  uvolnìnou bitovou pozici na pravém konci (nejnižší øád). Bit vysunutý z
+levé  strany  operandu je zároveò zkopírován i do pøíznaku pøenosu CF. Tato
+bitová operace se opakuje podle zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | ROL DI,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | ROL BX,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | ROL BAJT,1        |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | ROL SLOVO,CL      |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce ROL používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce ROL používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+ R O R        - rotace vpravo
+
+Formát:       ROR    op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+         +------------<--------+                      * - - - - - - - *
+         | +-----------------+ | +----+
+         +>+  operand [op1]  +>+>+ CF |
+           +-----------------+   +----+
+
+    ROR posouvá slovo nebo bajt operandu vpravo o požadovaný poèet bitových
+pozic  specifikovaný  druhým  operandem  instrukce.  Bity  pøesunuty  ven z
+operandu na jeho pravém konci (nejnižší øád) jsou ukládány zpìt do operandu
+na  uvolnìnou  bitovou pozici na levém konci (nejvyšší øád). Bit vysunutý z
+pravé  strany operandu je zároveò zkopírován i do pøíznaku pøenosu CF. Tato
+bitová operace se opakuje podle zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | ROR BL,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | ROR AX,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | ROR SLOVO,1       |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | ROR BAJT,CL       |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce ROR používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce ROR používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+
+ S A H F      - uložení registru AH do pøíznakového registru
+
+Formát:       SAHF
+
+Význam:       bity pøíznak. reg.     bity AH              Pøíznaky:
+                  S Z A P C     <-- 7 6 4 2 0         O D I T S Z A P C
+                                                      - - - - * * * * *
+
+    Instrukce SAHF kopíruje bity 7, 6, 4, 2 a 0 registru AH do pøíznakových
+bitù  SF,  ZF,  AF, PF a CF pøíznakového registru (pøíznaky znaménka, nuly,
+pomocného pøenosu, parity a pøenosu).
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    4    |   -   |  1  |       SAHF        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pøíznaky  pøeteèení  OF,  smìru  DF, pøerušení IF a krokování TF
+           nejsou touto instrukcí ovlivnìny.
+
+           Tato  instrukce  byla pùvodnì používána ke svýšení sluèitelnosti
+           mezi rodinami procesorù 8080/8085 a 8086.
+
+
+
+
+ S A L        - aritmetický posun vlevo
+
+Formát:       SAL    op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * ? * *
+            +----+   +-----------------+
+            | CF +-<-+  operand [op1]  +-<- 0
+            +----+   +-----------------+
+
+    SAL  posouvá slovo nebo bajt operandu vlevo o požadovaný poèet bitových
+pozic  specifikovaný  druhým  operandem  instrukce.  Bity  pøesunuty  ven z
+operandu  na  jeho  levém  konci  (nejvyšší  øád) jsou ukládány do pøíznaku
+pøenosu  CF.  Na uvolnìnou bitovou pozici na pravém konci (nejnižší øád) je
+uložena  nula  (nejménì  významný bit je vynulován). Tato bitová operace se
+opakuje podle zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+
+
+
+
+
+
+
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | SAL AL,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | SAL SI,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | SAL SLOVO,1       |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | SAL BAJT,CL       |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce SAL používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce SAL používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+
+ S A R        - aritmetický posun vpravo
+
+Formát:       SAR    op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * ? * *
+            +----+   +-----------------+   +----+
+            | SF +->-+  operand [op1]  +->-+ CF |
+            +----+   +-----------------+   +----+
+
+    SAR posouvá slovo nebo bajt operandu vpravo o požadovaný poèet bitových
+pozic  specifikovaný  druhým  operandem  instrukce.  Bity  pøesunuty  ven z
+operandu  na  jeho  pravém  konci  (nejnižší øád) jsou ukládány do pøíznaku
+pøenosu  CF.  Na  uvolnìnou bitovou pozici na levém konci (nejvyšší øád) je
+uložen  obsah  pøíznaku  znaménka.  Tato  bitová  operace  se opakuje podle
+zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | SAR DX,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | SAR DI,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | SAR BLOKY,1       |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | SAR BLOKY,CL      |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce SAR používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce SAR používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+ S B B        - odeètení s pøíznakem pøenosu CF
+
+Formát:       SBB    op1, op2
+
+Význam:       [op1] <-- [op1] - [op2] - CF                 Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * * * *
+
+    SBB  odeète  druhý  operand  od  prvního; pokud je pøíznak CF nastaven,
+odeète·1.  Výsledek  rozdílu  uloží do prvního operandu. Oba operandy mohou
+být bajty nebo slova a oba mohou být binární operandy se znaménkem nebo bez
+znaménka.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  SBB DX,AX        |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  SBB DX,0FFEH     |
+|  pamì, registr            |16(24)+EA|   2   | 2-4 |  SBB ALFA,SI      |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  SBB AX,8         |
+|  registr, èíslo            |    4    |   -   | 3-4 |  SBB BH,4         |
+|  pamì, èíslo              |17(25)+EA|   2   | 3-6 |  SBB CELKEM,10    |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: SBB  je  používáno  pro odeèítání èísel, která jsou delší než 16
+           bitù,  protože  je  odeèítá  i  s  pøíznakem  podteèení (pøíznak
+           uložený  jako  pøíznak  pøenosu CF) vzniklým v pøedchozí operaci
+           odeèítání.
+
+           Mùžete  odeèítat  pøímý  operand  dlouhý jeden bajt od operandu,
+           kterým  je  slovo;  v  tomto  pøípadì  je  bajt  pøed  odeètením
+           znaménkovì rozšíøen na 16 bitù.
+
+
+
+
+
+ S C A S      - porovnání øetìzce (bajt nebo slovo)
+
+Formát:       SCAS   cílový_øetìzec
+
+Význam:       CMP akumulátor,[ES:DI]                       Pøíznaky:
+              if DF = 0                               O D I T S Z A P C
+                   DI <-- DI + n   (n = 1 pro bajt,   * - - - * * * * *
+                                     2 pro slovo)
+              else
+                   DI <-- DI - n
+
+    Instrukce  porovnává  obsah  akumulátoru  (AL  nebo  AX)  s bajtem nebo
+slovem,  na  které  ukazuje  ES:DI.  SCAS nastavuje pøíznaky podle výsledku
+operace  porovnání;  samotné  operandy  pøitom nejsou ovlivnìny. Po operaci
+porovnání  se inkrementuje (DF = 0) nebo dekrementuje registr DI (DF = 1) a
+pøipraví tak další prvek øetìzce k porovnávání.
+ 
++-------------------------+------------+-------+-----+-------------------+
+|         Operandy        |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|  cílový_øetìzec         |   15(19)   |   1   |  1  |  SCAS TABULKA_SLOV|
+|  (opakov.) cílový_øetìz.|9+15(19)/rep| 1/rep |  1  |  REPNE SCAS TAB_B |
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce je obvykle assemblerem pøevádìna na instrukce buï
+           SCASB   (porovnání   bajtu)   nebo  SCASW  (porovnání  slova)  v
+           závislosti  na  tom,  zda  je  cílový øetìzec øetìzcem slov nebo
+           bajtù. V obou pøípadech musíte explicitnì nastavit registr DI na
+           ofset øetìzce.
+
+           SCAS  se  obvykle  používá pro hledání zadaného bajtu nebo slova
+           nebo  pro  hledání  konce bloku stejných dat. Použijte instrukci
+           CMPS  (porovnání  øetìzce),  pokud  si  pøejete  porovnávat  dva
+           øetìzce (nebo bloky) v pamìti.
+
+
+Pøíklad:
+                   mov       ax,ds
+                   mov       es,ax     ; kopírování DS do ES
+                   cld                 ; smìr posunu ukazatele vpøed
+                   mov       al,'A'    ; hledaný znak
+                   mov       cx,100    ; prohledáváno 100 bajtù
+                   lea       di,tab    ; poèát. adresa prohledávané tabulky
+         repne     scas      tab       ; prohledání tabulky
+                   je        nalezen   ; hledaný znak byl nalezen - skok
+                     ...
+
+
+
+
+
+ S C A S B    - porovnání bajtového øetìzce
+
+Formát:       SCASB  cílový_øetìzec
+
+Význam:       CMP akumulátor,[ES:DI]                       Pøíznaky:
+              if DF = 0                               O D I T S Z A P C
+                   DI <-- DI + 1                      * - - - * * * * *
+              else
+                   DI <-- DI - 1
+
+    Instrukce  porovnává  obsah  akumulátoru  AL s bajtem, na který ukazuje
+ES:DI.  SCASB  nastavuje pøíznaky podle výsledku operace porovnání; samotné
+operandy  pøitom nejsou ovlivnìny. Po operaci porovnání se inkrementuje (DF
+=  0)  nebo  dekrementuje  registr  DI  (DF = 1) a pøipraví tak další prvek
+øetìzce k porovnávání.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|           Operandy         |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    15   |   1   |  1  |  SCASB            |
+|        (opakovanì)         | 9+15/rep| 1/rep |  1  |  REPNE SCASB      |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: SCASB  se  obvykle  používá  pro hledání zadaného bajtu nebo pro
+           hledání  konce  bloku  stejných  dat.  Použijte  instrukci  CMPS
+           (porovnání  øetìzce),  pokud  si  pøejete porovnávat dva øetìzce
+           (nebo bloky) v pamìti.
+
+
+Pøíklad:
+                   mov       ax,ds
+                   mov       es,ax     ; kopírování DS do ES
+                   cld                 ; smìr posunu ukazatele vpøed
+                   mov       al,'A'    ; hledaný znak
+                   mov       cx,100    ; prohledáváno 100 bajtù
+                   lea       di,tab    ; poèát. adresa prohledávané tabulky
+         repne     scasb               ; prohledání tabulky
+                   je        nalezen   ; hledaný znak byl nalezen - skok
+                     ...
+
+
+
+
+
+
+
+
+ S C A S W    - porovnání øetìzce slov
+
+Formát:       SCASW  cílový_øetìzec
+
+Význam:       CMP akumulátor,[ES:DI]                       Pøíznaky:
+              if DF = 0                               O D I T S Z A P C
+                   DI <-- DI + 2                      * - - - * * * * *
+              else
+                   DI <-- DI - 2
+
+    Instrukce  porovnává  obsah  akumulátoru AX se slovem, na které ukazuje
+ES:DI.  SCASW  nastavuje pøíznaky podle výsledku operace porovnání; samotné
+operandy  pøitom nejsou ovlivnìny. Po operaci porovnání se inkrementuje (DF
+=  0)  nebo  dekrementuje  registr  DI  (DF = 1) a pøipraví tak další prvek
+øetìzce k porovnávání.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|           Operandy         |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    19   |   1   |  1  |  SCASW            |
+|        (opakovanì)         | 9+19/rep| 1/rep |  1  |  REPNE SCASW      |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: SCASW  se  obvykle  používá  pro hledání zadaného slova nebo pro
+           hledání  konce  bloku  stejných  dat.  Použijte  instrukci  CMPS
+           (porovnání  øetìzce),  pokud  si  pøejete porovnávat dva øetìzce
+           (nebo bloky) v pamìti.
+
+
+Pøíklad:
+                   mov       ax,ds
+                   mov       es,ax     ; kopírování DS do ES
+                   cld                 ; smìr posunu ukazatele vpøed
+                   mov       ax,'A'    ; hledaný znak
+                   mov       cx,50     ; prohledáváno 50 slov
+                   lea       di,tab    ; poèát. adresa prohledávané tabulky
+         repne     scasw               ; prohledání tabulky
+                   je        nalezen   ; hledaný znak byl nalezen - skok
+                     ...
+
+
+
+ S H L        - logický posun vlevo
+
+Formát:       SHL    op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * ? * *
+            +----+   +-----------------+
+            | CF +-<-+  operand [op1]  +-<- 0
+            +----+   +-----------------+
+
+    SHL  je stejná instrukce jako SAL, aritmetický posun vlevo. SHL posouvá
+slovo   nebo   bajt  operandu  vlevo  o  požadovaný  poèet  bitových  pozic
+specifikovaný  druhým operandem instrukce. Bity pøesunuty ven z operandu na
+jeho  levém  konci  (nejvyšší øád) jsou ukládány do pøíznaku pøenosu CF. Na
+uvolnìnou  bitovou  pozici  na  pravém konci (nejnižší øád) je uložena nula
+(nejménì  významný  bit je vynulován). Tato bitová operace se opakuje podle
+zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | SHL AL,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | SHL SI,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | SHL SLOVO,1       |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | SHL BAJT,CL       |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce SHL používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce SHL používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+ S H R        - logický posun vpravo
+
+Formát:       SHR    op1, poèet_posuvù
+
+Význam:                                                    Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * ? * *
+                   +-----------------+   +----+
+              0 ->-+  operand [op1]  +->-+ CF |
+                   +-----------------+   +----+
+
+    SHR posouvá slovo nebo bajt operandu vpravo o požadovaný poèet bitových
+pozic  specifikovaný  druhým  operandem  instrukce.  Bity  pøesunuty  ven z
+operandu  na  jeho  pravém  konci  (nejnižší øád) jsou ukládány do pøíznaku
+pøenosu  CF.  Na  uvolnìnou bitovou pozici na levém konci (nejvyšší øád) je
+uložena  nula  (nejvýznamnìjší  bit  operandu  je  vynulován).  Tato bitová
+operace se opakuje podle zadaného poètu rotací.
+
+    Pokud  není  poèet  rotací  roven  hodnotì 1, pøíznak pøeteèení OF není
+definován.  Pokud  je  poèet  rotací roven 1, potom je pøíznak pøeteèení OF
+nastaven  podle  výsledku  operace  XOR  mezi  2  nejvyššími bity pùvodního
+operandu.
+ 
++----------------------+---------------+-------+-----+-------------------+
+|         Operandy     |      Taktù    |Pøenosy|Bajtù|      Pøíklad      |
++----------------------+---------------+-------+-----+-------------------+
+| registr,1            |       2       |   -   |  2  | SHR SI,1          |
+| registr,CL           |     8+4/bit   |   -   |  2  | SHR SI,CL         |
+| pamì,1              |    15(23)+EA  |   2   | 2-4 | SHR BAJT[SI],1    |
+| pamì,CL             |20(28)+EA+4/bit|   2   | 2-4 | SHR SLOVO,CL      |
++----------------------+---------------+-------+-----+-------------------+
+
+    Pozn.: Jako  poèet  rotací  je  normálnì použita hodnota v registru CL.
+           Pokud  si  však  pøejete  provést  rotaci  pouze o jednu pozici,
+           nahraïte  druhý  operand  (CL)  hodnotou  1,  jak  je  uvedeno v
+           pøíkladì.
+
+           Procesory  80286  a  80386  omezují  poèet rotací na hodnotu 31.
+           Pokud  je  poèet  rotací  vìtší  než  31,  provede mikroprocesor
+           operaci  MOD  32  k vytvoøení nové hodnoty èítaèe v rozsahu 0 až
+           31.  Toto  omezení  horní  mezi èítaèe existuje z dùvodu omezení
+           èasu potøebného k provedení instrukce, nebo požadavky pøerušení
+           pøicházející  v  tomto  okamžiku jsou obslouženy až po dokonèení
+           instrukce.
+
+           Vícenásobné použití instrukce SHR používající parametr pro poèet
+           rotací  1  je rychlejší a mùže vyžadovat ménì pamìti než samotná
+           instrukce SHR používající registr CL jako parametr èítaèe.
+
+           Pokud je hodnota èítaèe rotací vìtší než 1, je pøíznak pøeteèení
+           OF nedefinovaný.
+
+
+
+
+ S T C        - nastavení pøíznaku pøenosu CF
+
+Formát:       STC
+
+Význam:       CF <-- 1                                     Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      - - - - - - - - 1
+
+    CLC nastavuje pøíznak pøenosu. Žádné jiné pøíznaky nejsou ovlivnìny.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |    2    |   -   |  1  |        STC        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+ S T D        - nastavení pøíznaku smìru DF
+
+Formát:       STD
+
+Význam:       DF <-- 1                                     Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      - 1 - - - - - - -
+
+    STD  nastavuje  pøíznak  smìru.  Žádné  jiné pøíznaky nejsou ovlivnìny.
+Nastavení  pøíznaku  smìru  má ten úèinek, že v øetìzcových operacích budou
+registry SI a DI dekrementrovány.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    2    |   -   |  1  |        STD        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+ S T I        - nastavení pøíznaku povolení pøerušení IF
+
+Formát:       STI
+
+Význam:       IF <-- 1                                     Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      - - 1 - - - - - -
+
+    STI  nastavuje pøíznak povolení maskovatelného pøerušení (tj. pøerušení
+bude povoleno). Žádné jiné pøíznaky nejsou ovlivnìny.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|             -              |    2    |   -   |  1  |        CLI        |
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+
+ S T O S      - uložení øetìzce (bajtù nebo slov)
+
+Formát:       STOS   pøíjmový_øetìzec
+
+Význam:       [ES:DI] <-- Akumulátor                      Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   DI <-- DI + n   (n = 1 pro bajt,
+                                     2 pro slovo)
+              else
+                   DI <-- DI - n
+
+    STOS kopíruje hodnotu (slovo nebo bajt) z registru AL nebo AX do pamìti
+na  adresu  ES:DI. Po pøenosu inkrementuje (DF = 0) nebo dekrementuje (DF =
+1)  registr  DI  a  pøipraví  tak  další  prvek  øetìzce  k uložení hodnoty
+akumulátoru.
+ 
++-------------------------+------------+-------+-----+-------------------+
+|         Operandy        |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|  pøíjmový_øetìzec       |   11(15)   |   1   |  1  |  STOS POLE_SLOV   |
+|  (opakov.) pøijm._øetìz.|9+10(14)/rep| 1/rep |  1  |  REP STOS POLE_B  |
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce je obvykle assemblerem pøevádìna na instrukce buï
+           STOSB (uložení bajtu) nebo STOSW (uložení slova) v závislosti na
+           tom,  zda  je  pøíjmový øetìzec øetìzcem slov nebo bajtù. V obou
+           pøípadech   musíte  explicitnì  nastavit  registr  DI  na  ofset
+           øetìzce.
+
+           Tato instrukce se obvykle používá k inicializaci bloku pamìti.
+
+
+Pøíklad:
+              mov       al,0      ; nulovací bajt pamìti
+              lea       di,buffer ; poèáteèní adresa nulovaného bufferu
+              mov       cx,100    ; délka bufferu 100 bajtù
+              cld                 ; smìr posuvu ukazatele vpøed
+         rep  stos      buffer    ; vymazání bufferu
+
+
+
+
+
+
+ S T O S B    - uložení øetìzce bajtù
+
+Formát:       STOSB   pøíjmový_øetìzec
+
+Význam:       [ES:DI] <-- AL                              Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   DI <-- DI + 1
+              else
+                   DI <-- DI - 1
+
+    STOSB kopíruje hodnotu registru AL (bajt) do pamìti na adresu ES:DI. Po
+pøenosu  inkrementuje  (DF  =  0)  nebo  dekrementuje (DF = 1) registr DI a
+pøipraví tak další prvek øetìzce k uložení hodnoty akumulátoru.
+ 
++-------------------------+------------+-------+-----+-------------------+
+|         Operandy        |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|           -             |     11     |   1   |  1  |  STOSB            |
+|       opakovanì         |  9+10/rep  | 1/rep |  1  |  REP STOSB        |
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce se obvykle používá k inicializaci bloku pamìti.
+
+Pøíklad:
+              mov       al,0      ; nulovací bajt pamìti
+              lea       di,buffer ; poèáteèní adresa nulovaného bufferu
+              mov       cx,100    ; délka bufferu 100 bajtù
+              cld                 ; smìr posuvu ukazatele vpøed
+         rep  stosb               ; vymazání bufferu
+
+
+
+
+ S T O S W    - uložení øetìzce slov
+
+Formát:       STOSW   pøíjmový_øetìzec
+
+Význam:       [ES:DI] <-- AX                              Pøíznaky:
+              if DF = 0                                  neovlivnìny
+                   DI <-- DI + 2
+              else
+                   DI <-- DI - 2
+
+    STOSB  kopíruje  hodnotu registru AX (slovo) do pamìti na adresu ES:DI.
+Po  pøenosu  inkrementuje  (DF = 0) nebo dekrementuje (DF = 1) registr DI a
+pøipraví tak další prvek øetìzce k uložení hodnoty akumulátoru.
+ 
++-------------------------+------------+-------+-----+-------------------+
+|         Operandy        |    Taktù   |Pøenosy|Bajtù|      Pøíklad      |
++-------------------------+------------+-------+-----+-------------------+
+|           -             |     15     |   1   |  1  |  STOSW            |
+|       opakovanì         |  9+14/rep  | 1/rep |  1  |  REP STOSW        |
++-------------------------+------------+-------+-----+-------------------+
+
+    Pozn.: Tato instrukce se obvykle používá k inicializaci bloku pamìti.
+
+Pøíklad:
+              mov       ax,0      ; nulovací slovo pamìti
+              lea       di,buffer ; poèáteèní adresa nulovaného bufferu
+              mov       cx,50     ; délka bufferu 100 bajtù
+              cld                 ; smìr posuvu ukazatele vpøed
+         rep  stosw               ; vymazání bufferu
+
+
+
+ S U B        - odeèítání
+
+Formát:       SUB    op1, op2
+
+Význam:       [op1] <-- [op1] - [op2]                     Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      * - - - * * * * *
+
+    SUB odeète druhý operand od prvního a výsledek rozdílu uloží do prvního
+operandu.  Oba  operandy mohou být bajty nebo slova a oba mohou být binární
+operandy se znaménkem nebo bez znaménka.
+
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  SUB DX,BX        |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  SUB DX,POCET     |
+|  pamì, registr            |16(24)+EA|   2   | 2-4 |  SUB RYCHLOST,CL  |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  SUB AH,25        |
+|  registr, èíslo            |    4    |   -   | 3-4 |  SUB DX,5280      |
+|  pamì, èíslo              |17(25)+EA|   2   | 3-6 |  SUB VYSLEDEK,1032|
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pro  odeèítání  èísel  delších  než  16  bitù použijte instrukci
+           SBB,která  odeèítá  od  operandu  i  pøíznak  podteèení (pøíznak
+           uložený  jako  pøíznak  pøenosu  CF) vzniklý v pøedchozí operaci
+           odeèítání.
+
+           Mùžete  odeèítat  pøímý  operand  dlouhý jeden bajt od operandu,
+           kterým  je  slovo;  v  tomto  pøípadì  je  bajt  pøed  odeètením
+           znaménkovì rozšíøen na 16 bitù.
+
+
+
+
+ T E S T      - test
+
+Formát:       TEST   op1, op2
+
+Význam:       [op1] AND [op2]  ; nastavení pøíznakù       Pøíznaky:
+              CF <-- 0                                O D I T S Z A P C
+              OF <-- 0                                0 - - - * * ? * 0
+
+
+    TEST  provádí  bit  po bitu operaci AND obou operandù, výsledek operace
+však  nikam neukládá, pouze nastaví podle výsledku operace pøíznakové bity.
+Žádný z obou operandù není zmìnìn. Operandy mohou být bajty nebo slova.
+
+    TEST  nastavuje každý bit mezivýsledku na 1, pokud oba z odpovídajících
+bitù  operandù  jsou  nastaveny  na  1.  Pokud  je  pøíslušný bit jednoho z
+operandù 0, je výsledný bit také 0.
+
+                        operace AND logicky:
+       +------------------------+------------------------+------------+
+       | pøíjmový operand [op1] | zdrojový operand [op2] |  výsledek  |
+       +------------------------+------------------------+------------+
+       |           0            |           0            |      0     |
+       |           0            |           1            |      0     |
+       |           1            |           0            |      0     |
+       |           1            |           1            |      1     |
+       +------------------------+------------------------+------------+
+
+
+
+
+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  | TEST SI,DX        |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 | TEST SI,MASKA     |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 | TEST AL,00000100b |
+|  registr, èíslo            |    5    |   -   | 3-4 | TEST CX,1234      |
+|  pamì, èíslo              | 11 + EA |   -   | 3-6 | TEST PARAM,1F1Fh  |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Instrukce   TEST   je   obvykle   používána  k  testování  stavù
+           jednotlivých   bitù   operandu  (stav  jiných  bitù  lze  pøitom
+           ignorovat).
+
+
+
+ W A I T      - èekání
+
+Formát:       WAIT
+
+Význam:       žádná funkce                                 Pøíznaky:
+                                                          neovlivnìny
+
+    Instrukce  WAIT  zpùsobí,  že procesor vstoupí do stavu èekání. V tomto
+neaktivním stavu procesor setrvává, pokud je vstup TEST do mikroprocesoru v
+aktivním stavu.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|            -               |  3 + 5n |   -   |  1  |       WAIT        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Tato  instrukce  se  používá  k synchronizaci externího hardware
+           procesoru, jako je napø. koprocesor.
+
+
+
+
+ X C H G      - zámìna registrù
+
+Formát:       XCHG   op1,op2
+
+Význam:       [op1] <--> [op2]                             Pøíznaky:
+                                                          neovlivnìny
+
+    XCHG zamìní obsahy dvou operandù. Operandy mohou být bajty nebo slova.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+| akumulátor,reg16           |    3    |   -   |  1  | XCHG AX,SI        |
+| pamì,registr              |17(25)+EA|   2   | 2-4 | LOCK XCHG SEMAF,DX|
+| registr,registr            |    4    |   -   |  2  | XCHG CL,DL        |
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Ve   spojení   s  prefixem  LOCK  je  tato  instrukce  obzvláštì
+           použitelná pro øízení sdílených prostøedkù.
+
+
+
+ X L A T      - tabulkový pøevod
+
+Formát:       XLAT   pøevodní_tabulka
+
+Význam:       AL <-- (BX + AL)                             Pøíznaky:
+                                                          neovlivnìny
+
+    XLAT  pøevede  bajt  podle  pøevodní  tabulky.  V registru BX je uložen
+ukazatel  na  256-bajtovou  pøevodní  tabulku.  Bajt  k pøevodu je uložen v
+registru  AL  a  slouží  jako  index  (tj.  offset)  v pøevodní tabulce. Po
+pøeètení  bajtu  z  adresy  BX+AL  (tj.  bajt  vzdálený AL bajtù od zaèátku
+tabulky BX) je bajt uložen do registru AL.
+ 
++----------------------------+---------+-------+-----+-------------------+
+|         Operandy           |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|     pøevodní_tabulka       |    11   |   1   |  1  | XLAT TABULKA_ZNAKU|
++----------------------------+---------+-------+-----+-------------------+
+
+    Pozn.: Pøevodní tabulka mùže být menší než 256 bajtù.
+
+           Operand   instrukce   (pøevodní_tabulka)   je  volitelný,  nebo
+           ukazatel tabulky musí být uložen již pøed provedením instrukce v
+           registru BX.
+
+Pøíklad:
+              lea       bx,hex_tabulka      ; ukazatel na tabulku v BX
+              mov       al,dekadicke_cislo  ; èíslo k pøevodu na HEX
+              xlat      hex_tabulka         ; pøevod AL ne HEX èíslici
+                   ....
+
+    hex_tabulka    db   '0123456789ABCDEF'
+
+
+
+
+ X O R        - logické XOR (výhradní nebo)
+
+Formát:       XOR    op1, op2
+
+Význam:       [op1] <-- [op1] XOR [op2]                    Pøíznaky:
+                                                      O D I T S Z A P C
+                                                      0 - - - * * * * 0
+
+    XOR  provádí  bit  po  bitu operaci XOR (výhradní nebo) obou operandù a
+výsledek  operace  uloží  do  pøíjmového operandu. Operandy mohou být bajty
+nebo slova.
+
+    XOR nastavuje každý bit výsledku na 1, pokud jsou pøíslušné bity v obou
+operandech  rùzné  (tj.  jeden je 1 a druhý 0). Pokud jsou bity shodné (tj.
+oba 0 nebo oba 1), je výsledkem operace 0.
+
+                        Instrukce XOR logicky:
+       +------------------------+------------------------+------------+
+       | pøíjmový operand [op1] | zdrojový operand [op2] |  výsledek  |
+       +------------------------+------------------------+------------+
+       |           0            |           0            |      0     |
+       |           0            |           1            |      1     |
+       |           1            |           0            |      1     |
+       |           1            |           1            |      0     |
+       +------------------------+------------------------+------------+
+
+ 
++----------------------------+---------+-------+-----+-------------------+
+|          Operandy          |  Taktù  |Pøenosy|Bajtù|      Pøíklad      |
++----------------------------+---------+-------+-----+-------------------+
+|  registr, registr          |    3    |   -   |  2  |  XOR CX,BX        |
+|  registr, pamì            | 9(13)+EA|   1   | 2-4 |  XOR CL,MASK_BAJT |
+|  pamì, registr            |16(24)+EA|   2   | 2-4 |  XOR ALFA[SI],DX  |
+|  akumulátor, èíslo         |    4    |   -   | 2-3 |  XOR AL,01000001b |
+|  registr, èíslo            |    4    |   -   | 3-4 |  XOR SI,00C2h     |
+|  pamì, èíslo              |17(25)+EA|   2   | 3-6 |  XOR NAVR_KOD,0D2h|
++----------------------------+---------+-------+-----+-------------------+
+
+
+
+
+                                8 0 8 7
+
+    Matematický  koprocesor  8087 je výkonný numerický procesor, který
+doplòuje  standardní  instrukèní  soubor  hlavního procesoru øady 86 o
+aritmetické,  trigoniometrické,  exponenciální  a logaritmické funkce.
+Operace je možno provádìt s celoèíselnými operandy rùzných formátù, ve
+zobrazení  v  pohyblivé øádové èárce èi v BCD formátu. Obvod 8087 mùze
+spolupracovat  jako  matematický  procesor  s  hlavními procesory typu
+8086,  8088,  80186  a  80188.  Jeho  výkonnost  je  pøi matematických
+operacích až stonásobnì vyšší než výkon hlavního procesoru.
+
+    Souèinnost  koprocesoru  8087  s  hlavním  procesorem,  který musí
+pracovat   pracovat  v  maximálním  módu,  je  založena  na  pøedávání
+instrukèního  kódu  ESC  spolu  s  pøedáním  adres  operandù. Vzájemná
+synchronizace  èinností  je  zajištìna schopností koprocesoru sledovat
+tok  instrukcí,  které  CPU vyzvedává z pamìti. Èinnost koprocesoru je
+odstartována pøevzetím instrukce ESC. O pøùbìhu operace informuje 8087
+hlavní  procesor  signálem BUSY na vstupu /TEST. CPU èeká na provedení
+operace  koprocesoru  v  instrukci WAIT. Koprocesor mùže vyslat signál
+pøerušení pøi detekci chyby výpoètu nebo vyjímeèného stavu.
+
+    Typy dat 8087:
+ +---------------+---------+----------+--+--+--+--+--+--+--+--+--+--+
+ | formát dat    | rozsah  | pøesnost |10| 9| 8| 7| 6| 5| 4| 3| 2| 1|
+ +---------------+---------+----------+--+--+--+--+--+--+--+--+--+--+
+ |Byte Integer   |  102    |  8 bitù  |70|                          |
+ |Word Integer   |  104    | 16 bitù  |15--0|                       |
+ |Short Integer  |  109    | 32 bitù  |31--------0|                 |
+ |Long Integer   |  1018   | 64 bitù  |63--------------------0|     |
+ |Packed BCD     |  1018   |18 èíslic |S D17----------------------D0|
+ |Short Real     |  10±38  | 24 bitù  |S E7-0 F1-23|                |
+ |Long Real      | 10±308  | 53 bitù  |S E10-0 F1----------F52|     |
+ |pøechodný Real | 10±4932 | 64 bitù  |S E14-0 F0----------------F63|
+ +---------------+---------+----------+-----------------------------+
+  Exponent pro REAL je posunutý o polovinu své hodnoty.
+
+    Všechna  èísla  uvnitø  8087  jsou  v  pøechodnì  reálném formátu.
+Instrukce  naplnìní a uložení dat automaticky pøevádí operandy uložené
+v  pamìti  v  urèitém  formátu  na pøechodný reálný formát a zpìt. Pro
+výpoèty používá 8087 zásobník o velikosti 8 10-bajtových registrù.
+
+    Po  inicializaci  signálem  RESET  urèí  koprocesor automaticky ze
+stavu  signálu  BHE/S7,  zda  je  hlavní  procesor  typu 8086/186 nebo
+8088/188  a  podle toho pøizpùsobí délku instrukèní fronty. Sledováním
+stavu  fronty instrukcí získává a dekóduje instrukce synchronnì s CPU.
+CPU  rozliší instrukci ESC s odkazem na pamì, vypoète adresu operandu
+a  provádí  formálnì ètení operandu z urèené fyzické adresy (data však
+ignoruje).  Koprocesor zachytí tuto adresu a pøípadnì pøevezme i ètená
+data.  Ètení  dalších  bajtù  dat  nebo  zápis  do pamìti provádí 8087
+vlastním pøístupem na sbìrnici.
+
+    Šíøka  vnitøní sbìrnice 8087 je 84 bitù - 68 bitù mantisa, 15 bitù
+exponent a 1 bit znaménko.
+
+    Po  dobu  provádìní  operace  je  aktivní  indikaèní  výstup  BUSY
+používaný pro synchronizaci souèinnosti s hlavním procesorem.
+
+
+
+                       Univerzální registry 8087
+
+    Pole  univerzálních  registrù 8087 obsahuje 8 80-bitových registrù
+se zásobníkovou organizací. Operandy jsou v nich uspoøádány ve formátu
+pohyblivé  øádové èárky (bit 79=znaménko, bity 64 až 78=exponent, bity
+0  až  63=mantisa).  Pøi  implicitním  adresování  používá  8087  toho
+registru, který je právì oznaèen za vrchol zásobníku. Ukazatel vrcholu
+zásobníku  je  obsažen v 3-bitovém poli (TOP) stavového registru 8087.
+Zásobník  je  plnìn  od  registrù  s vyšší adresou k registrùm s nižší
+adresou.
+
+                         Pøíznakové slovo 8087
+
+    Každému  univerzálnímu registru v zásobníku je pøiøazen dvoubitový
+pøíznakový  registr,  kterým  je  indikován poslední stav jeho obsahu.
+Pøíznaky  stavu  zásobníkových  registrù  jsou  uspoøádány  do jednoho
+16-bitového  slova (bity 0 a 1 = stav registru 0, ..... bity 14 a 15 =
+stav registru 7). Pøíznak registru mùže nabývat hodnot: 0=data platná,
+1=nula, 2=speciální, 3=prázdný.
+
+
+                          Stavové slovo 8087
+
+    Celkový  stav 8087 se odráží v 16-bitovém stavovém slovu:
+                                        +------ vyjím. stav ----+
+ 15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+| B | C3| T   O   P | C2| C1| C0| IR| . | PE| UE| OE| ZE| DE| IE|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   neplatná
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   èinnost
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   (Ilegal)
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   denormaliz.
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   operand
+  |   |   |   |   |   |   |   |   |   |   |   |   |   dìlení 0 (Zero)
+  |   |   |   |   |   |   |   |   |   |   |   |   pøeteèení (Overfl.)
+  |   |   |   |   |   |   |   |   |   |   |   podteèení (Un.)
+  |   |   |   |   |   |   |   |   |   |   pøesnost
+  |   |   |   |   |   |   |   |   |   rezervováno
+  |   |   |   |   |   |   |   |   žádost o pøerušení (nastaven, je-li
+  |   |   |   |   |   |   |   |   nastaven libovolný nemaskovaný bit
+  |   |   |   |   |   |   |   |   výjimeèného stavu) (Inter. Request)
+  |   +---+---+---+---+---+---+podmínkový kód (Condition)
+  |       +---+---+vrchol ukazatele zásobníku (Top)
+  operaèní jednotka v èinnosti (Busy)
+
+
+                           Øídicí slovo 8087
+
+    Øídicí slovo umožòuje nastavit režim èinnosti 8087.
+
+                                        +--- masky vyj. stavu --+
+ 15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
++---+---+---+---+---+---+-------+---+---+---+---+---+---+---+---+
+| .   .   . | IC| R   C | P   C | M | . | PM| UM| OM| ZM| DM| IM|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   neplatná
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   èinnost
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   (Ileg.)
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   denormaliz.
+  |   |   |   |   |   |   |   |   |   |   |   |   |   |   operand
+  |   |   |   |   |   |   |   |   |   |   |   |   |   dìlení 0 (Zero)
+  |   |   |   |   |   |   |   |   |   |   |   |   pøeteèení (Overfl.)
+  |   |   |   |   |   |   |   |   |   |   |   podteèení (Un.)
+  |   |   |   |   |   |   |   |   |   |   pøesnost
+  |   |   |   |   |   |   |   |   |   rezervováno
+  |   |   |   |   |   |   |   |   maska pøerušení (1=pøer. maskováno)
+  |   |   |   |   |   |   +---+øízení pøesnosti (Pr. Ctr.)
+  |   |   |   |   |   |        (00=24 b., 01=rez., 10=53 b., 11=64 b.)
+  |   |   |   |   +---+øízení zaokrouhlení (Ro. Ctr.)
+  |   |   |   |        00=na nejbližší/sudý, 01=dolù, 10=nahoru
+  |   |   |   |        11=osekáno smìrem k nule
+  |   |   |   +øízení nekoneèna (0=prùmìtové, 1=styèné)
+  +---+---+rezervováno
+
+
+                       Ukazatelé instrukcí a dat
+
+    Po  vniku  chybového  stavu  je  možné pøesunout informace o stavu
+8087 do pamìti:
+
+ Offset:
+  + 0 (2 bajty)         øídicí slovo
+  + 2 (2 bajty)         stavové slovo
+  + 4 (2 bajty)         pøíznakové slovo
+  + 6 (2 bajty)         ukazatel instrukcí (0-15)
+  + 8 (2 bajty)         ukazatel instrukcí (bity 12-15 = 16-19)
+                        0 (bit 11)
+                        oper. kód instrukce (bity 0-10 = 0-10)
+ + 10 (2 bajty)         ukazatel dat (0-15)
+ + 12 (2 bajty)         ukazatel dat (bity 12-15 = 16-19)
+

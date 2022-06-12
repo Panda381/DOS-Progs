@@ -1,0 +1,3 @@
+@echo off
+echo €ekejte, prob¡h  instalace fontu 1/20 VYSOK pro tisk rnu...
+copy /b hpljcs2v.bin prn > nul

@@ -1,0 +1,489 @@
+
+
+
+
+
+
+
+ 
+
+   ##############	 	     ######## 	        ########
+   ##############                  ############	      ############ 
+   ####     #####                 #####    #####     #####    ##### 
+   ##       #####                #####      #####   #####      ##### 
+            #####                #####      #####   #####      #####
+           ##### 	 	 #####      #####   #####      #####
+          #####                   #####    #####    #####      #####
+         #####              ##     ############     #####      #####
+        #####       ##########      ##########      #####      #####
+       #####       ##########      ############     #####      #####
+      #####        ##             #####    #####    #####      #####
+     #####          	  	 #####      #####   #####      #####
+    #####			 #####      #####   #####      #####
+   #####       ## 		 #####      #####   #####      #####
+   #####     ####                 #####    #####     #####    #####
+   ##############                  ############       ############
+   ##############                    ########           ########
+
+
+
+
+
+
+
+
+
+
+
+
+    P O P I S    I N S T R U K C ã    M I K R O P R O C E S O R U
+
+
+
+			   - 1 -
+
+        Mikroprocesor Z-80
+        ==================
+
+Obvody:	Z-80 CPU (ekv. U880D) - mikroprocesor
+       	Z-80 PIO (ekv. U855D) - paraleln° vstup/vòstup
+	Z-80 SIO (ekv. U856D) - sÇriovò vstup/vòstup
+	Z-80 CTC (ekv. U857D) - á°taá/áasovaá
+	Z-80 DMA (ekv. U858D) - ©adiá p©enosu dat DMA
+
+Registry: +-----+-----+   +-----+-----+   +-----+-----+
+	  |  A  |  F  |   |  A' |  F' |   |  I  |  R  |
+	  +-----+-----+   +-----+-----+   +-----+-----+
+	  |  B  |  C  |   |  B' |  C' |   |    IX     |
+	  +-----+-----+   +-----+-----+   +-----------+
+	  |  D  |  E  |   |  D' |  E' |   |    IY     |
+          +-----+-----+   +-----+-----+   +-----------+
+          |  H  |  L  |   |  H' |  L' |   |    SP     |
+	  +-----+-----+   +-----+-----+   +-----------+
+					  |    PC     |
+					  +-----------+
+Registr p©°znakñ F:
+    7   6   5   4   3   2   1   0
+  +---+---+---+---+---+---+---+---+
+  | S | Z |   |HC |   |P/V| N |CY |
+  +---+---+---+---+---+---+---+---+
+    |   |       |       |   |   |
+    |   |       |       |   |   +-PûENOS:0=NC nebyl p©enos
+    |   |       |       |   |            1=C  byl p©enos
+    |   |       |       |   |
+    |   |       |       |   +-----OPERACE:0   bylo sá°t†n°
+    |   |       |       |                 1   bylo odá°t†n°
+    |   |       |       |
+    |   |       |       +---------PARITA/PûETEÄENã:
+    |   |       |                 0=PO par.lich†/nen° p©eteáen°
+    |   |       |                 1=PE par.sud†/bylo p©eteáen°
+    |   |       |
+    |   |       +-----------------POLOVIÄNã PûENOS:
+    |   |                         0    nebyl polovián° p©enos
+    |   |                         1    byl polovián° p©enos
+    |   |
+    |   +-------------------------NULA  0=N  vòsledek nenulovò
+    |                                   1=Z  vòsledek nulovò
+    |
+    +-----------------------------ZNAMêNKO:0=P vòsledek nez†pornò
+				           1=M vòsledek z†pornò
+
+Podm°nky instrukc°:  NZ: Z =0 vòsledek operace nenulovò
+		      Z: Z =1 vòsledek operace nulovò
+		     NC: CY=0 nen° p©enos
+		      C: CY=1 nastal p©enos 
+		     PO: P =0 lich† parita / nen° p©eteáen°
+		     PE: P =1 sud† parita / je p©eteáen°
+		      P: S =0 vòsledek operace nez†pornò
+		      M: S =1 vòsledek operace z†pornò
+
+			   - 2 -
+
+Instrukce Z-80:
+===============
+PouëitÇ znaáen°:  e = celoá°seln† konstanta -128...+127
+		  d = celoá°seln† konstanta 0...255
+		  a = celoá°seln† konstanta 0...65 535
+		  r = registry A,B,C,D,E,H,L
+		  b = á°slo bitu 0...7
+
+		  A,F,B,C,D,E,H,L,I,R = registry procesoru
+		  A',F',B',C',D',E',H',L' = p†rovÇ registry
+		  IX,IY = indexovÇ registry
+		    HX,HY = vy®®° bajt indexovÇho registru
+		    LX,LY = nië®° bajt indexovÇho registru
+		  SP = ukazatel z†sobn°ku
+		  PC = programovò á°taá instrukc°
+
+		  NC,C,NZ,Z,PO,PE,P,M = podm°nky (podle F:)
+
+		  (HL)= obsah na adrese udanÇ registry HL
+		  I.  = prvn° operand instrukce
+		  II. = druhò operand instrukce
+
+
+Instrukce pro p©esuny dat:
+--------------------------
+LD I.,II.	I. <-- II.	     F: beze zmàny
+					pro LD A,I a LD A,R:
+ 			   	   	  Z=1(Z)  pro A=0, jinak Z=0(NZ)
+				   	  P=0(PO) pro p©eru®en° zak†z†no,
+					  P=1(PE) pro p©eru®en° povoleno
+				   	  S=0(P)  pro A7=0 jinak S=1(M)
+				
+EX I.,II.	I. <-> II.	     F: beze zmàny
+
+EXX		BC <-> BC'     	     F: beze zmàny
+		DE <-> DE'
+		HL <-> HL'
+
+PUSH I.         (SP-2) <-- I.L       F: beze zmàny
+                (SP-1) <-- I.H
+                SP     <-- SP-2      
+
+POP I.          I.H <-- (SP+1)       F: beze zmàny
+                I.L <-- (SP)
+                SP  <-- SP+2
+
+
+			   - 3 -
+
+ Instrukce pro p©enos a prohled†v†n° bloku dat:
+----------------------------------------------
+CPI             A - (HL)             F: Z=1(Z) pro A=(HL),jinak Z=0(NZ)
+                HL <-- HL+1             P/V=0(PO) pro BC-1=0,jinak P/V=1
+                BC <-- BC-1	        S,HC podle vòsledku operace, N=1
+
+CPIR            A - (HL)             F: Z=1(Z) pro A=(HL),jinak Z=0(NZ)
+                HL <-- HL+1             P/V=0(PO) pro BC-1=0,jinak P/V=1
+                BC <-- BC-1	        S,HC podle vòsledku operace, N=1
+                opakuj aë do A = (HL)
+                nebo BC = 0
+
+CPD             A - (HL)             F: Z=1(Z) pro A=(HL),jinak Z=0(NZ)
+                HL <-- HL-1             P/V=0(PO) pro BC-1=0,jinak P/V=1
+                BC <-- BC-1	        S,HC podle vòsledku operace, N=1
+					
+CPDR            A - (HL)             F: Z=1(Z) pro A=(HL),jinak Z=0(NZ)
+                HL <-- HL-1             P/V=0(PO) pro BC-1=0,jinak P/V=1
+                BC <-- BC-1  	        S,HC podle vòsledku operace, N=1
+                opakuj aë do A = (HL)
+                nebo BC = 0 
+
+LDI             (DE)<--(HL)          F: P/V=0(PO) pro BC-1=0,jinak P/V=1
+                 DE <-- DE+1	        HC=0, N=0
+                 HL <-- HL+1
+                 BC <-- BC-1
+
+LDIR            (DE)<--(HL)          F: HC=0, P/V=0(PO), N=0
+                 DE <-- DE+1
+                 HL <-- HL+1
+                 BC <-- BC-1
+                opakuj aë do BC=0
+
+LDD             (DE)<--(HL)          F: P/V=0(PO) pro BC-1=0,jinak P/V=1
+                 DE <-- DE-1		HC=0, N=0
+                 HL <-- HL-1
+                 BC <-- BC-1
+
+LDDR            (DE)<--(HL)          F: HC=0, P/V=0, N=0
+                 DE <-- DE-1
+                 HL <-- HL-1
+                 BC <-- BC-1
+                opakuj aë do BC=0
+
+
+
+			   - 4 -
+
+Instrukce pro aritmetickÇ a logickÇ operace:
+--------------------------------------------
+ADD I.,II.      I. <-- I.+II.        F: 8-bitñ: S,Z,HC,V,CY podle vòsledku
+                                                operace, N=0
+					16-bitñ:HC,CY podle vòsledku, N=0         
+                                                                                
+ADC I.,II.      I. <-- I.+II.+CY     F: S,Z,HC,V,CY podle vòsledku operace
+					N=0 
+
+SUB I.          A <-- A-I.           F: S,Z,HC,V,CY podle vòsledku operace
+					N=1
+
+SBC I.,II.      I. <-- I.-II.-CY     F: S,Z,HC,V,CY podle vòsledku operace
+					N=1
+
+INC I.          I. <-- I.+1          F: 8-bitñ: S,Z,HC,V podle vòsledku
+						operace, N=0
+                                        16-bitñ:beze zmàn
+
+DEC I.		I. <-- I.-1	     F: 8-bitñ: S,Z,HC,V podle vòsledku
+						operace, N=1
+					16-bitñ:beze zmàn
+						
+DAA		BCD korekce obsahu   F: S,Z,HC,P,CY podle vòsledku operace  
+		st©adaáe na BCD
+
+CPI I.		A - I.		     F: S,Z,HC,V,CY podle vòsledku operace
+					N=1
+
+CPL		A <-- /A	     F: HC,N=1   jinak beze zmàny
+
+NEG		A <-- 0-A	     F: S,Z,HC,V,CY podle vòsledku operace
+					N=1
+
+AND I.		A <-- A AND I.	     F: S,Z,P podle vòsledku operace
+					N,CY=0 ; HC=1
+
+OR I.           A <-- A OR I.	     F: S,Z,P podle vòsledku operace
+					HC,N,CY=0
+
+XOR I.		A <-- A XOR I.	     F: S,Z,P podle vòsledku operace
+					HC,N,CY=0
+					 
+Instrukce pro pr†ci s bitem:
+----------------------------
+BIT b,I.	Z <-- NOT I.b	     F: Z nastaven podle bitu b.
+		      (bit b.)		HC=1 ; N=0; S,P/V neuráen
+
+SET b,I.	I.b <-- 1	     F: Beze zmàny
+
+RES b,I.	I.b <-- 0	     F: Beze zmàny
+
+			   - 5 -
+
+Instrukce rotac° a posuvu:
+--------------------------
+RL I.		CY <-- b7<<<b0 <-+   F: S,Z,P,CY podle vòsledku operace
+		 |	         |	HC,N=0
+		 +------>--------+
+
+RLA		jako RL I.	     F: CY podle vòsledku operace; HC,N=0
+
+RLC I.		CY <-+- b7<<<b0 <+   F: S,Z,P,CY podle vòsledku operace
+		     |           |	HC,N=0
+		     +----->-----+
+
+RLCA		jako RLC I.	     F: CY podle vòsledku operace; HC,N=0
+                 
+RR I.		+-> CY --> b7>>>b0   F: S,Z,P,CY podle vòsledku operace
+		|                |	HC,N=0
+		+-------<--------+
+
+RRA		jako RR I.	     F:	CY podle vòsledku operace; HC,N=0
+
+RRC I.		CY <--+--> b7>>>b0   F: S,Z,P,CY podle vòsledku operace
+		      |          |	HC,N=0
+		      +----<-----+
+
+RRCA		jako RRC I.	     F: CY podle vòsledku operace; HC,N=0
+
+RLD		(A) {a7...a4} {a3...a0} <---- {m7...m4} <- {m3...m0} (HL)
+				  |			       |
+				  +------->------------>-------+
+				     F: S,Z,P podle vòsledku operace; HC,N=0
+
+RRD		(A) {a7...a4} {a3...a0} ----> {m7...m4} -> {m3...m0} (HL)
+		     		  |                               |
+				  +----<-------------------<------+ 
+  				     F: S,Z,P podle vòsledku operace; HC,N=0
+
+SLA I.		CY <-- b7<<<b0 <--0  F:	S,Z,P,CY podle vòsledku operace
+					HC,N=0
+
+SRA I.		+-<- b7>>>0 ---> CY  F: S,Z,P,CY podle vòsledku operace
+		|    |			HC,N=0
+		+-->-+
+
+SRL I.		0--> b7>>>b0 --> CY  F: S,Z,P,CY podle vòsledku operace
+					HC,N=0
+
+SLI I.		CY <-- b7<<<b0 <--1  F: S,Z,P,CY podle vòsledku operace
+					HC,N=0
+
+			   - 6 -
+
+Instrukce skoku:
+----------------
+DJNZ e		B <-- B-1				F: beze zmàny
+	  	  B-1=0 ..... dal®° instrukce
+		  B-1<>0 .... PC <-- PC+e
+
+JP a		PC <-- a	     			F: beze zmàny
+
+JP podm.,a	podm°nka splnàna ..... PC <-- a		F: beze zmàny
+		podm°nka nesplnàna ... dal®° instrukce
+
+JR e		PC <-- PC+e	     			F: beze zmàny
+
+JR podm.,e	podm°nka splnàna ..... PC <-- PC+e	F: beze zmàny
+		podm°nka nesplnàna ... dal®° instrukce
+
+
+Instrukce pro pr†ci s podprogramy:
+----------------------------------
+CALL a		(SP-1) <-- PCH	     F: beze zmàny	
+		(SP-2) <-- PCL
+		SP     <-- SP-2
+		PC     <--- a
+
+CALL podm.,a	podm°nka splnàna:    F: beze zmàny
+		  (SP-1) <-- PCH
+		  (SP-2) <-- PCL
+		  SP     <-- SP-2
+		  PC     <-- a
+		podm°nka nesplnàna:
+		  dal®° instrukce
+
+RET		PCL <-- (SP)	     F: beze zmàny
+		PCH <-- (SP+1)
+		SP  <-- SP+2
+
+RET podm.	podm°nka splnàna:    F: beze zmàny
+		  PCL <-- (SP)
+		  PCH <-- (SP+1)
+		  SP  <-- SP+2
+
+RETI		PCL <-- (SP)	     F: beze zmàny
+		PCH <-- (SP+1)
+		SP  <-- SP+2
+
+RETN		PCL <-- (SP)	     F: beze zmàny
+		PCH <-- (SP+1)
+		SP  <-- SP+2
+		IFF1 <-- IFF2
+
+RSTd		(SP-1) <-- PCH	     F: beze zmàny
+		(SP-2) <-- PCL
+		PCH    <-- 0
+		PCL    <-- d
+		SP     <-- SP-2
+
+
+
+			   - 7 -
+
+Instrukce vstupñ a vòstupñ:
+---------------------------
+IN I.,II.	I. <-- II.	     F: pro vstup IN A,(d): beze zmàny
+					pro vstup IN r,(C): S,Z,P podle dat
+							    HC,N=0
+
+INI		(HL) <-- (C)	     F: Z=1 pro B-1=0, jinak Z=0
+		B    <-- B-1		S,HC,P/V nedefinov†no
+		HL   <-- HL+1		N=1
+
+INIR		(HL) <-- (C)	     F: Z,N=1 ; S,HC,P/V nedefinov†no
+		B    <-- B-1
+		HL   <-- HL+1
+		opakuj aë B=0		
+
+IND		(HL) <-- (C)	     F: Z=1 pro B-1=0, jinak Z=0
+		B    <-- B-1		S,HC,P/V nedefinov†no
+		HL   <-- HL-1		N=1
+
+INDR		(HL) <-- (C)	     F: Z,N=1 ; S,HC,P/V nedefinov†no
+		B    <-- B-1
+		HL   <-- HL-1
+		opakuj aë B=0
+
+OUT I.,II.	II. <-- I.	     F: beze zmàny
+
+OUTI		(C) <-- (HL)	     F: Z=1 pro B-1=0, jinak Z=0
+		B   <-- B-1		S,HC,P/V nedefinov†no
+		HL  <-- HL+1		N=1
+
+OTIR		(C) <-- (HL)	     F: Z,N=1 ; S,HC,P/V nedefinov†no
+		B   <-- B-1
+		HL  <-- HL-1
+		opakuj aë B=0
+
+OUTD		(C) <-- (HL)	     F: Z=1 pro B-1=0, jinak Z=0
+		B   <-- B-1		S,HC,P/V nedefinov†no
+		HL  <-- HL-1		N=1
+		
+OTDR		(C) <-- (HL)	     F: Z,N=1 ; S,HC,P/V nedefinov†no
+		B   <-- B-1
+		HL  <-- HL-1
+		opakuj aë B=0
+
+
+
+			   - 8 -
+
+û°d°c° instrukce:
+-----------------
+CCF		CY  <-- /CY	     F: CY=/CY ; N=0
+					HC=p©edchoz° nastaven° CY
+
+SCF		CY  <-- 1	     F: HC,N=0 ; CY=1
+
+DI		IFF1 <-- 0	     F: beze zmàny
+
+EI		IFF1 <-- 1	     F: beze zmàny
+
+IM d		m¢d p©eru®en°	     F: beze zmàny
+
+NOP		ë†dnò £áinek         F: beze zmàny
+
+HALT		+-NOP->-+	     F: beze zmàny
+		|       |
+		+--<----+
+
+
+UtajenÇ instrukce Z-80 CPU:
+---------------------------
+ADC I.,II.      - 
+ADD I.,II.        \
+SBC I.,II.	   |
+SUB I.		   |
+AND I.             |
+CP I.               > plat° i pro HX, HY, LX a LY
+DEC I.             |
+INC I.             |
+XOR I.		  /
+LD I.,II.       -
+
+
+			   - 9 -
+
+RES b,I.,II.	II.b <-- 0	            kde I.=A,B,C,D,E,H,L 
+		I.   <-- II.			II.=(IX+e),(IY+e)
+
+SET b,I.,II.	II.b <-- 1	            kde I.=A,B,C,D,E,H,L
+		I.   <-- II.    		II.=(IX+e),(IY+e)
+
+RL I.,II.	(II.) CY <-- b7<<<b0 <--+   kde I.=A,B,C,D,E,H,L 
+		       |                |       II.=(IX+e),(IY+e)
+		       +------->--------+
+		I.   <-- II.
+
+RLC I.,II.	(II.) CY <-+- b7<<<b0 <-+   kde I.=A,B,C,D,E,H,L
+			   |            |       II.=(IX+e),(IY+e)
+		           +----->------+
+		I.   <-- II.
+
+RR I.,II.	(II.) +--> b7>>>b0 --> CY   kde I.=A,B,C,D,E,H,L
+		      |                 |       II.=(IX+e),(IY+e)
+		      +-------<---------+
+		I.   <-- II.
+
+RRC I.,II.	(II.) +-> b7>>>b0 -+-> CY   kde I.=A,B,C,D,E,H,L
+		      |            |            II.=(IX+e),(IY+e)
+		      +-----<------+
+	  	I.   <-- II.
+
+SLA I.,II.	(II.) CY <-- b7<<<b0 <--0   kde I.=A,B,C,D,E,H,L
+		I.   <-- II.			II.=(IX+e),(IY+e)
+
+
+SLI I.,II.	(II.) CY <-- b7<<<b0 <--0   kde I.=A,B,C,D,E,H,L 
+		I.   <-- II.		        II.=(IX+e),(IY+e)
+
+SRA I.,II.	(II.) +-<- b7>>>b0 --> CY   kde I.=A,B,C,D,E,H,L
+		      |    |     		II.=(IX+e),(IY+e)
+		      +->--+
+		I.   <-- II.
+
+SRL I.,II.	(II.) 0--> b7>>>b0 --> CY   kde I.=A,B,C,D,E,H,L
+		I.   <-- II.			II.=(IX+e),(IY+e)
+
+

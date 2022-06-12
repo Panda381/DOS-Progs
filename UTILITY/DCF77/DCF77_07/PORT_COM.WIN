@@ -1,0 +1,144 @@
+
+     1 2 . -   P o r t   a s s y n c h r o n n í h o   a d a p t é r u
+
+
+    Prostor  dat  BIOS  obsahuje  výpis  bázových  adres  až ètyø sériových
+(komunikaèních)  portù  COM.  Bìhem  inicializaèního  testu  POST testuje a
+inicializuje BIOS porty COM1 a COM2.
+
+    - adaptér portu COM1 dekóduje porty 03F8H až 03FFH (IRQ 4 / INT 0CH)
+    - adaptér portu COM2 dekóduje porty 02F8H až 02FFH (IRQ 3 / INT 0BH)
+
+    Pøerušení  ROM  BIOS  INT 14H bude pracovat s kterýmkoliv z tìchto ètyø
+portù,  pokud uložíte bázovou adresu portu do tabulky portù COM zaaèínající
+na  adrese  0:0400H.  Je  nutné,  aby  žádné dva adaptéry nesdílely stejnou
+adresu nebo jinak nebudou pracovat.
+
+Porty 03F8H - 03FFH: port asynchronního adaptéru COM1
+-----------------------------------------------------
+
+    Analogicky pracují registry adaptéru COM2.
+
+03F8H  - zápis: registr úschovy pøenášených dat - 8 bitù znaku k vyslání
+       - ètení: registr pøijímacího bufferu - 8 bitù pøijatého znaku
+Pro DLAB=1:
+       - zápis: registr   dìlièky  -  nižší  bajt  (pokud  DLAB=1,  tj.  po
+                instrukci  OUT  03FBH,80H).  Po operaci OUT 03FBH,80H tento
+                port  obsahuje  nižší bajt dìlièky taktu. Spoleènì s vyšším
+                bajtem   (port   03F9H)  tvoøí  16-bitovou  hodnotu,  která
+                nastavuje rychlost pøenosu dat:
+                +-----------+-----------+-----------+-----------+
+                |    baud   |  dìlièka  |    baud   |  dìlièka  |
+                +-----------+-----------+-----------+-----------+
+                |    110    |   1040    |    1200   |    96     |
+                |    150    |    768    |    2400   |    48     |
+                |    300    |    384    |    4800   |    24     |
+                |    600    |    192    |    9600   |    12     |
+                +-----------+-----------+-----------+-----------+
+03F9H  - zápis: registr povolení pøerušení (DLAB=1)
+                +-+-+-+-+-+-+-+-+
+                |7 6 5 4 3 2 1 0|
+                +++++++++++++++++ bit
+                 | | | | | | | +-> 0: 1=možné pøerušení pøi pøíjmu dat
+                 | | | | | | +---> 1: 1=možné pøer. pøi prázdném vys. buff.
+                 | | | | | +-----> 2: 1=možné pøer. stavem pøijímací linky
+                 | | | | +-------> 3: 1=možné pøer. stavem modemu
+                 | | | +---------> 4: vždy = 0
+                 | | +-----------> 5: vždy = 0
+                 | +-------------> 6: vždy = 0
+                 +---------------> 7: vždy = 0
+       - zápis: registr   dìlièky  -  vyšší  bajt  (pokud  DLAB=1,  tj.  po
+                instrukci  OUT  03FBH,80H).  Po operaci OUT 03FBH,80H tento
+                port  obsahuje  vyšší bajt dìlièky taktu. Spoleènì s nižším
+                bajtem   (port   03F8H)  tvoøí  16-bitovou  hodnotu,  která
+                nastavuje rychlost pøenosu dat.
+
+
+
+
+
+
+
+
+03FAH  - ètení: identifikaèní  registr  pøerušení. Pokud nastane pøerušení,
+                ètìte  tento  registr,  pokud  chcete zjistit, co zpùsobilo
+                pøerušení.
+                +-+-+-+-+-+-+-+-+
+                |7 6 5 4 3 2 1 0|
+                +++++++++++++++++  bit
+                 | | | | | | | +->  0:  1=nenastalo žádné pøerušení
+                 | | | | | +-+---> 1-2: 00=pøerušení stavem pøijímací linky
+                 | | | | |                 vzniká  pøi pøeteèení, paritì,
+                 | | | | |                 chybì rámu nebo pøi pøerušení.
+                 | | | | |                 Resetování ètením stavu linky
+                 | | | | |                 (port 03FDH)
+                 | | | | |              01=pøijatá data platná (resetování
+                 | | | | |                 ètením pøijím. bufferu 03F8H)
+                 | | | | |              10=vysílací buffer prázdný (reset
+                 | | | | |                 zápisem do vysíl. bufferu 03F8H)
+                 | | | | |              11=stav modemu. Vzniká pøi zmìnì
+                 | | | | |                 signálù CTS, DSR, RI nebo RLSD.
+                 | | | | |                 Reset ètením stavu modemu 03FEH.
+                 | | | | +------->  3:  vždy = 0
+                 | | | +--------->  4:  vždy = 0
+                 | | +----------->  5:  vždy = 0
+                 | +------------->  6:  vždy = 0
+                 +--------------->  7:  vždy = 0
+
+03FBH  - ètení/zápis: øídící registr linky
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++  bit
+          | | | | | | +-+-> 0-1: délka slova: 00=5; 01=6; 10=7; 11=8
+          | | | | | +----->  2:  stop-bity: 0=1, 1=2
+          | | | +-+-------> 3-4: parita: x0=žádná; 01=lichá; 11=sudá
+          | | +----------->  5:  parita znaku (BIOS nepoužívá)
+          | +------------->  6:  možné øízení BREAK; 1=zaèátek vysílání 0s
+          +--------------->  7:  DLAB (pøístupový bit k registru dìlièky)
+                                 - urèuje mód portù 03F8H a 03F9H pro nast.
+                                  (pokud je DLAB=1, je pøístup k dìlièce)
+
+03FCH  - zápis: øídící registr modemu
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++ bit
+          | | | | | | | +-> 0: 1=aktivace -DTR (-data terminal ready)
+          | | | | | | |          (informuje, že èeká na pøíjem znaku)
+          | | | | | | +---> 1: 1=aktivace -RTS (-request to send)
+          | | | | | |            (má pøipraven znak k vyslání)
+          | | | | | +-----> 2: 1=aktivace -OUT1 (uživatelský výstup)
+          | | | | +-------> 3: 1=aktivace -OUT2 (uživatelský výstup)
+          | | | +---------> 4: 1=aktivace zpìtné smyèky pro diagnostiku
+          | | +-----------> 5: vždy = 0
+          | +-------------> 6: vždy = 0
+          +---------------> 7: vždy = 0
+
+03FDH  - ètení: stavový registr linky
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++ bit
+          | | | | | | | +-> 0: 1=data pøipravena (DR) (reset ètením dat)
+          | | | | | | +---> 1: 1=chyba pøeteèení (OE): pøedch. znak ztracen
+          | | | | | +-----> 2: 1=chyba parity (PE): reset ètením st.linky
+          | | | | +-------> 3: 1=chyba rámu (FE): špatný stop-bit ve znaku
+          | | | +---------> 4: 1=indikace break (BI): pøijata dlouhá mezera
+          | | +-----------> 5: 1=vysílací registr prázdný (OK k vysílání)
+          | +-------------> 6: 1=vysílaè prázdný. Nevysílá žádná data.
+          +---------------> 7: vždy = 0
+         Pozn.: Pøi povoleném pøerušení (03F9H) zpùsobí bity 1-4 pøerušení.
+
+03FEH  - ètení: stavový registr modemu
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++ bit
+          | | | | | | | +-> 0: 1=zmìna stavu DCTS (Delta Clear To Send)
+          | | | | | | +---> 1: 1=zmìna stavu DDSR (Delta Data Set Ready)
+          | | | | | +-----> 2: 1=aktivní zvuková signalizace TERI
+          | | | | |              (Trailing Edge Ring Indicator)
+          | | | | +-------> 3: 1=zmìna st. DDCD (Delta Data Carrier Detect)
+          | | | +---------> 4: 1=CTS (Clear To Send) je aktivní
+          | | +-----------> 5: 1=DSR (Data Set Ready) je aktivní
+          | +-------------> 6: 1=signalizace RI (Ring Indikator) je aktivní
+          +---------------> 7: 1=DCD (Data Carrier Detect) je aktivní
+         Pozn.: Pøi povoleném pøerušení (03F9H) zpùsobí bity 0-3 pøerušení.
+

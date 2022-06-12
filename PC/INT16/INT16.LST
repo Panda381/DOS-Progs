@@ -1,0 +1,326 @@
+
+; segment F000
+
+; -----------------------------------------------------------------------------
+;    Z pis znaku CX do bufferu kl vesnice (ZY=buffer je pln˜)
+; -----------------------------------------------------------------------------
+
+C6D8 A11C00       * MOV    AX,[001C]        ; ukl dac¡ adresa do bufferu
+C6DB 050200         ADD    AX,0002          ; zv˜¨en¡ ukl dac¡ adresy
+
+C6DE 3B068200       CMP    AX,[0082]        ; je konec bufferu kl vesnice ?
+C6E2 7503           JNZ    C6E7             ; nen¡ konec bufferu kl vesnice
+C6E4 A18000         MOV    AX,[0080]        ; za‡ tek bufferu kl vesnice
+
+C6E7 3B061A00     * CMP    AX,[001A]        ; je buffer kl vesnice pln˜ ?
+C6EB 7409           JZ     C6F6             ; buffer kl vesnice je pln˜
+
+C6ED 8B361C00       MOV    SI,[001C]        ; star  ukl dac¡ adresa do bufferu
+C6F1 890C           MOV    [SI],CX          ; ulo‘en¡ znaku CX do bufferu
+C6F3 A31C00         MOV    [001C],AX        ; nov  ukl dac¡ adresa do bufferu
+C6F6 C3           * RET
+
+; -----------------------------------------------------------------------------
+;    vysl n¡ indik tor– na port kl vesnice
+; -----------------------------------------------------------------------------
+
+C6F7 FA           * CLI
+C6F8 50             PUSH   AX
+
+; ------ nov˜ stav indik tor–
+
+C6F9 A01700         MOV    AL,[0017]        ; stav p©esmyka‡–
+C6FC 2470           AND    AL,70            ; indik tory
+C6FE B104           MOV    CL,04
+C700 D2E8           SHR    AL,CL
+C702 8A269700       MOV    AH,[0097]        ; aktu ln¡ stav indik tor–
+C706 80E407         AND    AH,07
+C709 3AC4           CMP    AL,AH            ; byl stav p©esmyka‡– zmˆnˆn ?
+C70B 7420           JZ     C72D             ; stav indik tor– nezmˆnˆn
+C70D 80269700F8     AND    Byte Ptr [0097],F8 ; nulov n¡ indik tor–
+C712 08069700       OR     [0097],AL        ; nov˜ aktu ln¡ stav indik tor–
+
+; ------ uvolnˆn¡ ©adi‡e p©eru¨en¡
+
+C716 50             PUSH   AX
+C717 B020           MOV    AL,20
+C719 E620           OUT    20,AL            ; uvolnˆn¡ ©adi‡e p©eru¨en¡
+
+; ------ vysl n¡ povelu pro nastaven¡ indik tor–
+
+C71B B0ED           MOV    AL,ED            ; povel pro nastaven¡ indik tor–
+C71D E82A00         CALL   C74A             ; vysl n¡ bajtu AL na kl vesnici
+C720 58             POP    AX
+C721 7505           JNZ    C728             ; chyba p©enosu
+
+; ------ vysl n¡ stavu indik tor–
+
+C723 E82400         CALL   C74A             ; vysl n¡ bajtu AL na kl vesnici
+C726 7405           JZ     C72D
+
+; ------ uvolnˆn¡ kl vesnice
+
+C728 B0F4         * MOV    AL,F4            ; povel pro uvolnˆn¡ kl vesnice
+C72A E81D00         CALL   C74A             ; vysl n¡ bajtu AL na kl vesnici
+
+; ------ n vrat registr–
+
+C72D 58           * POP    AX
+C72E FB             STI
+C72F C3             RET
+
+
+; -----------------------------------------------------------------------------
+;    vysl n¡ bajtu AL na port kl vesnice
+; -----------------------------------------------------------------------------
+
+C74A 8AE0         * MOV    AH,AL
+C74C E460           IN     AL,60                         ;'`'
+C74E E81101         CALL   C862
+C751 8AC4           MOV    AL,AH
+C753 E660           OUT    60,AL                         ;'`'
+C755 E8F900         CALL   C851
+C758 7404           JZ     C75E
+C75A B020           MOV    AL,20                         ;' '
+C75C E620           OUT    20,AL                         ;' '
+C75E E460         * IN     AL,60                         ;'`'
+C760 3CFA           CMP    AL,FA
+C762 B8FF00         MOV    AX,00FF
+C765 7502           JNZ    C769
+C767 33C0           XOR    AX,AX
+C769 C3           * RET
+
+
+
+; *****************************************************************************
+;
+;                    P©eru¨en¡ INT 16h - obsluha kl vesnice
+;
+; *****************************************************************************
+
+
+
+; ------ £schova registr–
+
+E82E 1E             PUSH   DS
+E82F 56             PUSH   SI
+E830 51             PUSH   CX
+
+; ------ p©¡prava registr–
+
+E831 BE4000         MOV    SI,0040
+E834 8EDE           MOV    DS,SI
+E836 8ACC           MOV    CL,AH            ; £schova ‡¡sla funkce
+E838 8D361A00       LEA    SI,[001A]        ; SI <- ‡tec¡ adresa z bufferu
+
+; ====== funkce 0 (vstup znaku z kl vesnice)
+
+; ------ test, je-li funkce 0
+
+E83C F6C4EF         TEST   AH,EF
+E83F 752B           JNZ    E86C
+
+E841 51             PUSH   CX
+E842 E8B2DE         CALL   C6F7             ; vysl n¡ indik tor– na kl vesnici
+E845 59             POP    CX
+
+; ----- test, zda je nˆjak˜ znak v bufferu
+
+E846 8B04         * MOV    AX,[SI]
+E848 3B4402         CMP    AX,[SI+02]
+E84B 7515           JNZ    E862
+
+; ------ zah jen¡ operace ‡ek n¡
+
+E84D FB             STI
+E84E B80290         MOV    AX,9002
+E851 CD15           INT    15
+
+; ------ ‡ek n¡ na zad n¡ znaku
+
+E853 FB           * STI
+E854 EB00           JMP    $+2
+E856 EB00           JMP    $+2
+E858 EB00           JMP    $+2
+E85A FA             CLI
+E85B 8B04           MOV    AX,[SI]          ; ‡tec¡ adresa z bufferu
+E85D 3B4402         CMP    AX,[SI+02]       ; je nˆco v bufferu ?
+E860 74F1           JZ     E853             ; nen¡ nic v bufferu
+
+; ------ vyjmut¡ znaku z bufferu
+
+E862 E89800       * CALL   E8FD             ; vyjmut¡ kl vesy z bufferu
+E865 E8AA00         CALL   E912             ; korekce k¢du kl vesy AX/funkce CL
+E868 72DC           JB     E846             ; nepovolen  kl vesa - dal¨¡
+E86A EB4F           JMP    E8BB
+
+; ====== funkce 1 (test znaku z kl vesnice)
+
+; ------ test, zda je funkce 1
+
+E86C F6C4EE       * TEST   AH,EE
+E86F 7524           JNZ    E895
+
+E871 51             PUSH   CX
+E872 E882DE         CALL   C6F7             ; vysl n¡ indik tor– na kl vesnici
+E875 59             POP    CX
+
+; ------ test znaku v bufferu
+
+E876 8B04         * MOV    AX,[SI]          ; ‡tec¡ adresa z bufferu
+E878 3B4402         CMP    AX,[SI+02]       ; je nˆco v bufferu ?
+E87B 96             XCHG   AX,SI            ; SI <- ‡tec¡ adresa
+E87C 8B34           MOV    SI,[SI]          ; SI <- znak v bufferu
+E87E 96             XCHG   AX,SI            ; AX <- znak v bufferu
+E87F 740D           JZ     E88E             ; nen¡ nic v bufferu
+
+; ------ test, zda je kl vesa povolena
+
+E881 9C             PUSHF
+E882 E88D00         CALL   E912             ; korekce k¢du kl vesy AX/funkce CL
+E885 7306           JNB    E88D             ; kl vesa plat¡ OK
+E887 9D             POPF
+E888 E87200         CALL   E8FD             ; vyjmut¡ kl vesy z bufferu
+E88B EBE9           JMP    E876             ; dal¨¡ test
+
+; ------ n vrat registr– s ponech n¡m registru p©¡znak–
+
+E88D 9D           * POPF
+E88E FB           * STI
+E88F 59             POP    CX
+E890 5E           * POP    SI
+E891 1F             POP    DS
+E892 CA0200         RETF   0002
+
+; ====== funkce 2 (test p©esmyka‡–)
+
+; ------ test, zda je funkce 2
+
+E895 F6C4ED       * TEST   AH,ED            ; je funkce 2 ?
+E898 7526           JNZ    E8C0             ; nen¡ funkce 2
+
+; ------ detekov n¡ p©esmyka‡–
+
+E89A F6C410         TEST   AH,10            ; je roz¨¡©en  funkce ?
+E89D 7419           JZ     E8B8             ; nen¡ roz¨¡©en  funkce
+E89F 8A261800       MOV    AH,[0018]        ; roz¨¡©en‚ p©esmyka‡e
+E8A3 80E47F         AND    AH,7F            ; nulov n¡ p©¡znaku INSERT
+E8A6 F6C404         TEST   AH,04            ; je kl vesa <SysRq> ?
+E8A9 7403           JZ     E8AE             ; nen¡ stisknuta kl vesa <SysRq>
+E8AB 80CC80         OR     AH,80            ; nastaven¡ p©¡znaku <SysRq>
+E8AE 80E4F3       * AND    AH,F3            ; nulov n¡ p©¡zn. <Pause> a <SysRq>
+E8B1 A09600         MOV    AL,[0096]        ; p©esmyka‡e 2
+E8B4 240C           AND    AL,0C            ; p©¡znaky prav˜ch p©esmyka‡–
+E8B6 0AE0           OR     AH,AL            ; p©id n¡ prav˜ch p©esmyka‡–
+E8B8 A01700       * MOV    AL,[0017]        ; stav p©esmyka‡–
+
+; ------ n vrat registr– bez ponech n¡ registru p©¡znak–
+
+E8BB 59           * POP    CX
+E8BC 5E             POP    SI
+E8BD 1F             POP    DS
+E8BE FB             STI
+E8BF CF             IRET
+
+; ====== funkce 3 (nastaven¡ rychlosti generov n¡ znak– kl vesnice)
+
+E8C0 80FC03       * CMP    AH,03
+E8C3 7520           JNZ    E8E5             ; nen¡ funkce 3
+E8C5 32E4           XOR    AH,AH
+E8C7 3C05           CMP    AL,05            ; je podfunkce 5 ?
+E8C9 75F0           JNZ    E8BB             ; nen¡ podfunkce 5
+
+E8CB F7C3E0FC       TEST   BX,FCE0          ; test p©ekro‡en¡ max. hodnot
+E8CF 75EA           JNZ    E8BB             ; je p©ekro‡en¡ maxim. hodnot
+
+E8D1 B0F3           MOV    AL,F3
+E8D3 E874DE         CALL   C74A             ; vysl n¡ povelu k nastav. rychlosti
+
+E8D6 B105           MOV    CL,05            ; po‡et rotac¡
+E8D8 8AC7           MOV    AL,BH
+E8DA D2E0           SHL    AL,CL            ; rotace inicial. prodlevy
+E8DC 0AC3           OR     AL,BL
+E8DE 50             PUSH   AX
+E8DF E868DE         CALL   C74A             ; parametry pro nastav. rychlosti
+E8E2 58             POP    AX
+E8E3 EBD6           JMP    E8BB
+
+; ====== funkce 5 (z pis znaku do bufferu kl vesnice)
+
+E8E5 80EC12       * SUB    AH,12
+E8E8 80FCF3         CMP    AH,F3            ; je funkce 5 ?
+E8EB 75CE           JNZ    E8BB             ; nen¡ funkce 5
+
+E8ED 59             POP    CX               ; n vrat CX
+E8EE E8E7DD         CALL   C6D8             ; z pis znaku do bufferu
+E8F1 7404           JZ     E8F7
+E8F3 33C0           XOR    AX,AX
+E8F5 EB99           JMP    E890
+E8F7 B80100       * MOV    AX,0001
+E8FA F9             STC
+E8FB EB93           JMP    E890
+
+; -----------------------------------------------------------------------------
+;    vyjmut¡ znaku z bufferu
+; -----------------------------------------------------------------------------
+
+E8FD 8B04         * MOV    AX,[SI]          ; ‡tec¡ adresa z bufferu
+E8FF 050200         ADD    AX,0002          ; zv˜¨en¡ ‡tec¡ adresy z bufferu
+E902 3B068200       CMP    AX,[0082]        ; je konec bufferu kl vesnice ?
+E906 7203           JB     E90B             ; nen¡ konec bufferu kl vesnice
+E908 A18000         MOV    AX,[0080]        ; za‡ tek bufferu kl vesnice
+E90B 8704         * XCHG   AX,[SI]          ; nov  ‡tec¡ adresa z bufferu
+E90D 96             XCHG   AX,SI            ; SI <- star  ‡tec¡ adresa z bufferu
+E90E 8B34           MOV    SI,[SI]          ; SI <- znak z bufferu
+E910 96             XCHG   AX,SI            ; AX <- znak z bufferu
+E911 C3             RET
+
+; -----------------------------------------------------------------------------
+;    korekce k¢du kl vesy AX podle ‡¡sla funkce CL (CY=zak zan  kl vesa)
+; -----------------------------------------------------------------------------
+
+; ------ rozli¨en¡, zda je roz¨¡©en  kl vesnice
+
+E912 F6C110         TEST   CL,10            ; je roz¨¡©en  kl vesnice ?
+E915 7520           JNZ    E937             ; je roz¨¡©en  kl vesnice
+
+; ------ korekce [Enter] na Enter
+
+E917 80FCE0         CMP    AH,E0            ; je [Enter] v numerick‚m poli ?
+E91A 750A           JNZ    E926             ; nen¡ [Enter] v numerick‚m poli
+E91C B41C           MOV    AH,1C            ; SCAN k¢d pro ENTER
+E91E 3C2F           CMP    AL,"/"           ; je zdvojen  kl vesa "/" ?
+E920 7527           JNZ    E949             ; nen¡ zdvojen  kl vesa "/"
+E922 B435           MOV    AH,35            ; SCAN k¢d pro kl vesu "/"
+E924 EB23           JMP    E949
+
+; ------ kontrola maxim ln¡ho SCAN k¢du kl vesy
+
+E926 80FC84       * CMP    AH,84            ; maxim ln¡ k¢d kl vesy
+E929 771C           JA     E947             ; SCAN k¢d kl vesy nepovolen
+
+; ------ korekce zvl ¨tn¡ ©idic¡ kl vesy na bˆ‘nou
+
+E92B 3CE0           CMP    AL,E0            ; je ©idic¡ kl vesa ?
+E92D 7508           JNZ    E937             ; nen¡ ©¡dic¡ kl vesa
+E92F 0AE4           OR     AH,AH            ; je to znak s ALT ?
+E931 7416           JZ     E949             ; je to znak s ALT
+E933 B000           MOV    AL,00            ; korekce na bˆ‘nou ©¡dic¡ kl vesu
+E935 EB12           JMP    E949
+
+; ------ kontrola, zda je zak zan  kl vesa
+
+E937 3CF0         * CMP    AL,F0            ; je kl vesa roz¨¡©en‚ kl vesnice ?
+E939 750E           JNZ    E949             ; nen¡
+E93B 80FC00         CMP    AH,00            ; je to znak s ALT ?
+E93E 7409           JZ     E949             ; je to znak s ALT
+E940 B000           MOV    AL,00            ; korekce na bˆ‘nou kl vesu
+E942 F6C110         TEST   CL,10            ; je roz¨¡©en  kl vesnice ?
+E945 7502           JNZ    E949             ; je to roz¨¡©en  kl vesnice
+
+E947 F9           * STC
+E948 C3             RET
+
+E949 F8           * CLC
+E94A C3             RET
+

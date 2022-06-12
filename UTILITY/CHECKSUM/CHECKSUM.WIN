@@ -1,0 +1,167 @@
+
+                                  +----------+
+                                  | CHECKSUM |
+                                  +----------+
+                            kontrolní souèet souborù
+
+Program CHECKSUM slouží k výpoètu kontrolních souètù souborù. Lze jej využít ke
+kontrole  správnosti  pøenosu  souborù  po  sériové  nebo  paralelní  lince, ke
+kontrole  napadení  souborù  viry  apod.  Kontrolní  souèet se poèítá polynomem
+metodou  EDC. Je vhodné spolu se soubory uchovávat též výpis jejich kontrolních
+souètù.  Ke kontrole skupiny souborù postaèí obvykle porovnat celkový kontrolní
+souèet souborù.
+
+Jako  parametr CHECKSUM lze zadat specifikaci souborù, jejichž kontrolní souèet
+se  má vypoèítat. Ve specifikaci souborù lze použít znaky "*" a "?" podle bìžné
+konvence  v DOS. Zadáním pouze adresáøe bez masky souborù (tj. text musí konèit
+koncovým  lomítkem  "\" nebo oddìlovaèem disku ":") se provede kontrolní souèet
+všech  souborù  v  zadaném  adresáøi. Bez zadání parametrù se provede kontrolní
+souèet souborù v aktivním adresáøi.
+
+Pøi  výpisu kontrolních souètù souborù se vypisuje jméno souboru, pøípona jména
+souboru,  velikost  souboru,  datum  a  èas  vytvoøení nebo modifikace souboru,
+atributy  souboru  a  kontrolní souèet souboru. Pod seznamem souborù se zobrazí
+poèet  souborù,  souèet  jejich  velikostí  a celkový kontrolní souèet souborù.
+Soubory  jsou  abecednì setøídìny. Pøesmìrováním výpisu do souboru (tj. zápisem
+napø.  CHECKSUM  >  CRC.TXT)  lze  vytvoøit textový soubor obsahující kompletní
+informace o souborech v adresáøi.
+
+===============================================================================
+      Program pro výpoèet kontrolního souètu EDC v programovacím jazyku C
+
+           - slouží jako ukázka algoritmu výpoètu kontrolního souètu
+===============================================================================
+/*
+                 Kontrolní souèet zadaných souborù EDC
+     Soubory se zadávají pøi vyvolání programu jako seznam souborù 
+                    s udáním jejich plné specifikace
+*/
+
+#include <stdio.h>      /* standardní vstup/výstup */
+#include <process.h>
+#include <io.h>
+
+#define BUF 128         /* vstupnì/výstupní buffer */
+
+main (argc, argv)       /* vstup do hlavní funkce */
+   int argc;            /* poèet souborù v povelovém øádku */
+   char *argv[];        /* vstupní povelový øádek */
+{
+   long int delka,cit;      /* délka souboru, èítaè bajtù */
+   unsigned char d,e,a,f;   /* registry kontrolního souètu */
+   FILE *fp, *fopen();
+   if(argc < 2)
+   {
+      printf ("Zadejte jméno souboru !\n");
+      exit(1);
+   }
+   while(--argc > 0)
+   {
+      if((fp=fopen(*++argv,"rb")) == NULL)
+      {
+         printf("Chyba otevøení souboru %s !\n",*argv);
+         exit(1);
+      }
+      delka=filelength(fileno(fp));
+      cit=0;
+      e=d=0xff;
+      while (cit++<delka)
+      {
+         a = fgetc(fp);
+         d = a ^= d;
+         a >>= 4;
+         d = a ^= d;
+         a = (a >> 3) | (a << 5);
+         f = a;
+         a &= 0x1f;
+         e = a ^= e;
+         a = f;
+         a = (a >> 1) | (a << 7);
+         a &= 0xf0;
+         e = a ^= e;
+         a = f & 0xe0;
+         a ^= d;
+         d = e;
+         e = a;
+      }
+      printf("Kontrolní souèet EDC souboru %s \t= %.2X%.2XH.\n",*argv,d,e);
+      fclose(fp);
+   }
+   return (0);
+}
+
+===============================================================================
+                  výpoèet kontrolního souètu EDC v assembleru
+
+Procedura  se  vyvolává  opakovanì  pro  každý  blok dat naètený ze souboru. Na
+poèátku  je  výchozí  hodnota pro výpoèet DX=0FFFFh. Výstupní hodnota pro jeden
+blok je vstupní hodnotou pro další blok, až je zpracován celý soubor.
+===============================================================================
+
+; -----------------------------------------------------------------------------
+;        Kontrolní souèet CRC bloku dat
+; -----------------------------------------------------------------------------
+; VSTUP: DS:SI=zaèátek bloku dat
+;        CX=poèet bajtù
+;        DX=vstupní hodnota kontrolního souètu
+; VÝSTUP:DX=výstupní hodnota kontrolního souètu
+;        DS:SI=následující adresa dat
+; -----------------------------------------------------------------------------
+
+CheckSum PROC      NEAR
+
+         push      ax
+         push      cx
+         push      di
+         jcxz      CheckSm2                 ; není žádný bajt
+         mov       di,cx                    ; poèet bajtù pro kontrolní souèet
+         cld                                ; smìr nahoru
+
+CheckSm1:lodsb                              ; a = fgetc(fp);
+         xor       al,dh                    ; d = a ^= d;
+         mov       dh,al
+         mov       cl,4
+         shr       al,cl                    ; a >>= 4;
+         xor       al,dh                    ; d = a ^= d;
+         mov       dh,al
+         mov       cl,3
+         ror       al,cl                    ; a = (a >> 3) | (a << 5);
+         mov       ch,al                    ; f = a;
+         and       al,1fh                   ; a &= 0x1f;
+         xor       al,dl                    ; e = a ^= e;
+         mov       dl,al
+         mov       al,ch                    ; a = f;
+         ror       al,1                     ; a = (a >> 1) | (a << 7);
+         and       al,0f0h                  ; a &= 0xf0;
+         xor       al,dl                    ; e = a ^= e;
+         mov       dl,al
+         mov       al,ch                    ; a = f & 0xe0;
+         and       al,0e0h
+         xor       al,dh                    ; a ^= d;
+         mov       dh,dl                    ; d = e;
+         mov       dl,al                    ; e = a;
+
+         dec       di
+         jnz       CheckSm1                 ; další bajt
+
+CheckSm2:pop       di
+         pop       cx
+         pop       ax
+         ret
+
+CheckSum ENDP
+
+===============================================================================
+
+CHECKSUM  vyžaduje  k  provozu  poèítaè  IBM  PC/XT/AT nebo plnì kompatibilní a
+operaèní systém DOS verze minimálnì 2.00.
+
+                  +-----------------------------------------+
+                  |                  GOLEM                  |
+                  | P.O.Box 66, 756 61 Rožnov pod Radhoštìm |
+                  |          tel/fax: (0651) 54044          |
+                  +-----------------------------------------+
+                  | Tento program je souèástí programového  |
+                  |      balíku DOS Manažer verze 1.50      |
+                  +-----------------------------------------+
+

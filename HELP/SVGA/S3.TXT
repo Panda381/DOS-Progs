@@ -1,0 +1,306 @@
+The entire S3 family are basically 8514/As with a VGA front-end.
+Hardwired Bit-Blt, fill and line drawfunctions. 
+
+
+  S3  86c911  -  1Mbyte, 1280x1024x16c, 1024x768x256c, 640x480x32kc
+  S3  86c911A -  Same as 924??. Corrects a bug in 1280 modes.
+  S3  86c924  -  Support for 24-bit modes.
+  S3  86c928  -  24bit color, 4MB D/VRAM 
+  S3  86c801  -  similar to '928, but limited to 2MB
+  S3  86c805  -  same as '801 but for Local Bus
+ 
+  S3  86c964     New VRAM 64bit chip. Max 8MB (1600x1200 32bit)
+  S3  86c864     Same as 964 with DRAM.
+
+
+  The S3 chip only works in AT and better units as it uses full
+  16 bit I/O addresses.
+
+  The S3 uses the following I/O addresses:
+     42E8h, 4AE8h, 82E8h, 86E8h, 8AE8h, 8EE8h, 92E8h, 96E8h, 9AE8h, 9EE8h
+
+  Please note that this may conflict with Com4 ports at 2E8h-2EFh !!!
+  The accelerator part of the S3 is similar to the 8514/A.
+
+
+3d4h index 0Eh (R/W):
+This appears to be the Hardware cursor ForeGround color ??
+
+3d4h index 0Fh (R/W):
+This appears to be the Hardware cursor background color ??
+
+3d4h index 30h (R/W): ID register
+bit 0-7  Chip ID:
+            81h  86c911
+            82h  86c911A/924
+            90h  86c928 C
+            91h  86c928 D
+        94h,95h  86c928 E
+            A0h  86c801/805 A or B
+        A2h-A4h  86c801/805 C
+            A5h  86c801/805 D
+            B0h  86c928PCI
+
+3d4h index 31h (R/W): Display Start
+bit   0  Set before writing bank register???
+      3  Set to enable access to video memory above 256k.
+    4-5  Bit 16-17 of the Display Start Address.
+
+3d4h index 32h (R/W):
+
+3d4h index 33h (R/W):
+
+3d4h index 34h (R/W): 
+bit   0  Set if address is multiplied with 4 (16color modes ?)
+      4  Set if 1024 bytes (pixels ?) wide screen
+
+3d4h index 35h (R/W): Bank number
+bit 0-3  64k bank number.
+
+3d4h index 36h (R/W):  Configuration Register 1
+bit 0-1  (801,805 & 928)  Bus width. 0=32bit EISA ,1=32bit Local Bus,
+              2=~bits (8??), 3=16bits ISA.
+      5  (911,924) Video memory. 0: 1Mb, 1: 512Kb
+    5-6  (801,805 & 928)  Video memory. 0=2Mb, 2=1Mb, 3=512Kb.
+
+Another source gives:
+      5  Set if only 512Kb, clear if more (1MB for 911,924)
+    6-7  (801,805,928) Video Memory:  0: 4MB, 1: 3MB, 2: 2MB, 3: 1MB
+
+3d4h index 38h (R/W): Extensions Enable
+bit 0-7  Writing 48h to this register enables the extended registers,
+         writing 0 disables them.
+
+3d4h index 39h (R/W): Extensions Enable 2
+bit 0-7  Write A5h to this register to unlock extensions.
+         Write 5Ah to disable
+
+3d4h index 3Ah (R/W):
+bit   3  Clear to reset dual display ??
+      7  (801,805,928) If set MEMCS16 is 16bits, else 8 bits.
+
+3d4h index 3Bh (R/W):
+
+3d4h index 3Ch (R/W):
+bit 0-7  Interlace mode frame offset (Typically half the horizontal total).
+
+3d4h index 40h (R/W):
+bit   0  If set enables 8514/a mode ??
+      3  (801,805 & 928)  If set Fast Write Buffer is ON.
+      6  (801,805 & 928)  If set Zero Waitstate is OFF (only valid if EISA
+                          bus).
+
+3d4h index 41h (R/W): Memory
+bit   4  Set if we have 1MByte, clear if we have 512KBytes.
+      6  Dual Display VGA test size. Set for 32K, clear for 64K
+         Note: this might be reversed for 80x/928 ????
+      7  Set to enable dual display
+
+3d4h index 42h (R/W):
+bit  0-1  I/O bits. on #9 cards connected to the ICD2061A clock chip
+     0-?  Clock Select bit 0-? (Really same as above, but different clock
+          hardware and pins).
+       5  If set mode is interlaced.
+
+3d4h index 43h (R/W):
+bit   1  This bit is output to the palette chip RS2 pin, which on advanced
+         DACs works as a 3rd address bit to the DAC registers at 3C6h-3C9h.
+      2  Bit 8 of the Display Offset Register (3d4h index 13h).
+      4  If set the '8514' registers use alternate addresses (x148h, x548h,
+         x948h and xD48h), if clear standard addresses (x2E8h, x6E8h, xAE8h
+         and xEE8h).
+      7  If set character clocks are 16 pixels wide rather than 8.
+
+3d4h index 45h (R/W):
+bit   0  Set to enable the HardWare Cursor.
+      1
+
+3d4h index 46h (R/W):  Cursor X-position high
+bit 0-7  Upper 8 bits of the HardWare Cursor X position.
+         Lower 8 bits are in index 47h. For 64k modes this value should be
+         twice the actual X co-ordinate.
+
+3d4h index 47h (R/W):  Cursor X-position low
+bit 0-7  Lower 8 bits of the HardWare Cursor X position.
+         Upper bits are in index 46h
+
+3d4h index 48h (R/W):  Cursor Y-position high
+bit 0-7  Upper 8 bits of the HardWare Cursor Y position.
+         Lower 8 bits are in index 49h
+
+3d4h index 49h (R/W):  Cursor Y-position low
+bit 0-7  Lower 8 bits of the HardWare Cursor Y position.
+         Upper bits are in index 48h
+
+3d4h index 4Ah (R/W):
+
+3d4h index 4Bh (R/W):
+
+3d4h index 4Ch (R/W):  Cursor Address high
+bit 0-7  Upper 8 bits of the address of the HardWare Cursor Map in units of
+         1024 bytes (256 bytes for planar modes). Lower bits are in index 4Dh
+         The cursor map is a 64x64 bitmap with 2 bits (A and B) per pixel.
+         The map is stored as one word (16 bits) of bit A, followed by one
+         word with the corresponding 16 B bits.
+         The bits are interpreted as:
+            A    B    Result
+            0    x    These results in a solid color (typically black or
+                      white), but the origin of the color is as yet
+                      undetermined. Probably connected to index 4Ah and 4Bh.
+            1    0    The screen data (transparent cursor)
+            1    1    The inverted screen data (XOR cursor)
+         For 64k color modes the cursor is stored as one byte (8 bits) of A
+         bits, followed by the 8 B-bits, and each bit in the cursor should be
+         doubled to provide a consistent cursor image.
+         3d4h index Eh and Fh appears to be the cursor fore & background color
+
+3d4h index 4Dh (R/W):  Cursor Address low
+bit 0-7  Lower 8 bits of the address of the HardWare Cursor Map.
+         Upper bits are in index 4Ch
+
+3d4h index 4Eh (R/W):  Cursor Hot-spot X
+
+3d4h index 4Fh (R/W):  Cursor Hot-spot Y
+
+3d4h index 50h (R/W):                                       (801/5 & 928 only)
+bit 6-7  Display width. 0: 1024, 1: 640, 2: 800, 3: 1280
+
+3d4h index 51h (R/W):                                       (801/5 & 928 only)
+bit   0  Display start address bit 18. bit 16-17 are in index 31h.
+    2-3  Bank register bits 4-5. Bits 0-3 are in 3d4h index 35h.
+Note: both index 38h and 39h must be enabled to access this register.
+
+3d4h index 53h (R/W):                                       (801/5 & 928 only)
+bit   4  Set to enable memory mapped registers
+
+3d4h index 55h (R/W):
+bit 0-1  Passed to the RS2 and RS3 pins on the RAMDAC, allowing access to all
+         8/16 registers on advanced RAMDACs.
+
+3d4h index 58h (R/W):  Linear Aperture Options
+bit   2
+
+3d4h index 59h (R/W):                                       (801/5 & 928 only)
+bit 0-1  Linear Memory Address bit 8-9. Bits 0-7 are in index 5Ah
+
+3d4h index 5Ah (R/W):                                       (801/5 & 928 only)
+bit 0-7  Linear Memory Address bit 0-7. Bits 8-9 are in index 59h.
+         This is the address the Video Memory is mapped at in 4MB units.
+
+3d4h index 5Eh (R/W):                                       (801/5 & 928 only)
+bit   0  Vertical Total bit 10h (3d4h index 6).
+      1  Vertical Display End bit 10h (3d4h index 12h).
+      2  Vertical Sync Start bit 10h (3d4h index 10h).
+
+
+  3d4h index 30h-3Ch and 40h-4Fh are used.
+  3d4h index 50h-63h are used in the 801/805/928.
+
+  82E8h (16) (R/W): CUR_Y
+  86E8h (16) (R/W): CUR_X
+  8AE8h (16) (R/W): DIAGY_STEP
+  8EE8h (16) (R/W): DIAGX_STEP
+  92E8h (16) (R/W): ERR_TERM
+  96E8h (16) (R/W): MAJ_AXIS/CURWIDTH
+  9AE8h (16) (W): CMD_REG
+  9AE8h (16) (R): GP_STAT
+  bit    8  Set when data is ready from the co-processor.
+
+  A2E8h (16) (R/W): BKGD_COLOR
+  A6E8h (16) (R/W): FRGD_COLOR
+  AAE8h (16) (R/W): WRT_MASK
+  B2E8h (16) (R/W): COLOR_CMP
+  B6E8h (16) (R/W): BKGD_MIX
+  BAE8h (16) (R/W): FRGD_MIX
+  BEE8h (16) (R/W): MULTIFUNC_CNTL
+  E2E8h (16) (R/W): PIX_TRANS
+
+
+  ID S3 chip:
+
+  wrinx(base,$38,0);    {disable extensions}
+  if not testinx2(base,$35,$F) then
+  begin
+    wrinx(base,$38,$48);
+    if testinx2(base,$35,$F) then
+    begin
+      __S3__
+      case rdinx(base,$30) of
+       $81:86c911
+       $82:86c911A or 86c924
+       $90:86c928 C
+       $91:86c928 D
+   $94,$95:86c928 E
+       $A0:86c801/5 A or B
+  $A2..$A4:86c801/5 C
+       $A5:86c801/5 D
+       $B0:86c928 PCI
+      end;
+    end;
+  end;
+ 
+
+  Video Modes (Diamond Stealth):
+       VESA:
+  54h        T  132   43   16
+  55h        T  132   25   16  
+       101h  G  640  480  256  P8
+  6Ah  102h  G  800  600   16  PL4
+       103h  G  800  600  256  P8
+       104h  G 1024  768   16  PL4
+       205h  G 1024  768  256  P8
+       206h  G 1280  960   16  PL4
+       208h  G 1280 1024   16  PL4
+       211h  G  640  480  64K  P16     Stealth 24 only
+       212h  G  640  480  16M  P24     Stealth 24 only
+       301h  G  640  480  32k  P15
+
+----------101DAA-------------------------------
+INT 10 - VIDEO - Diamond Stealth - Check for Stealth
+        AX = 1DAAh
+        BX = FDECh
+Return: AL = 01h  For Stealth VRAM
+             02h  For Stealth 24
+        AH = DACtype:
+               00h  Standard VGA DAC
+               11h  Highcolor DAC where bit 3 of the command register is
+                    not writable.
+               23h  SS2410 DAC
+               33h  Highcolor DAC without RS2 decoding
+               43h  Highcolor DAC with RS2 decoding
+        SI:DI -> BIOS version & Copyright string
+----------104FFF-----------------------------------
+INT 10 - VIDEO - S3                 - SET/RESET DUAL DISPLAY MODE
+        AX = 4FFFh
+        BX = Dual display mode
+              00h  Reset
+              01h  Set dual display, 32KB VGA test
+              02h  Set dual display, 64KB VGA test
+----------107F-------------------------------------
+INT 10 - VIDEO - Diamond Stealth/Stealth 24 - SET TEXT MODE
+        AH = 7Fh
+        BH = 00h  Set Color text mode
+             01h  Set Color text mode
+             02h  Set Monochrome text mode
+Note: Actually only bit 0-1 of BH are tested.
+----------107F00-4000------------------------------
+INT 10 - VIDEO - S3 80x/928 - GET S3 INFORMATION BLOCK
+        AX = 7F00h
+        BX = 4000h
+Return: AX = 007Fh if supported
+        DX:BX -> DAC set mode rutine
+Note: Might be implemented in Diamond Stealth 24 with BIOS version > 3.33
+----------107F00-4001------------------------------
+INT 10 - VIDEO - S3 80x/928 - GET LINEAR ADDRESS
+        AX = 7F00h
+        BX = 4001h
+Return: AX = 007Fh if supported
+        CX = current linear address base (high word)
+Note: Might be implemented in Diamond Stealth 24 with BIOS version > 3.33
+----------107F00-4002------------------------------
+INT 10 - VIDEO - S3 80x/928 - SET LINEAR ADDRESS
+        AX = 7F00h
+        BX = 4002h
+        CX = new linear address base (high word)
+Return: AX = 007Fh if supported
+Note: Might be implemented in Diamond Stealth 24 with BIOS version > 3.33

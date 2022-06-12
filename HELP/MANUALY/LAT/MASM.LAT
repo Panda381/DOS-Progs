@@ -1,0 +1,803 @@
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± º
+º ±±                                                                   ±± º
+º ±±           ÿM ÿA ÿS ÿM   ÿ-   ÿmÿaÿkÿrÿoÿaÿsÿsÿeÿmÿbÿlÿeÿr         ±± º
+º ±±                                                                   ±± º
+º ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+                            (c) Miroslav NØmeŸek
+
+    1.- évod
+
+    MASM je dvoupr…chodovì asembler generuj¡c¡ c¡lov‚ moduly kompatibiln¡ s
+c¡lovìmi  moduly vytvoıenìmi kompil tory vyçç¡ch programovac¡ch jazyk…. T¡m
+je  d na  mo§nost sestavovat £pln‚ programy na z kladØ kombinov n¡ c¡lovìch
+modul…   (relokovateln‚   k¢dy)  MASMu  s  c¡lovìmi  moduly  vygenerovanìmi
+jazykovìmi  kompil tory.  Relokovatelnì  c¡lovì  k¢d je soubor, v kter‚m je
+ka§d‚  instrukci Ÿi jin‚mu pı¡kazu pıiıazen offset od jeho segmentov‚ b ze.
+Sestavenì k¢d je mo§n‚ potom spojit pomoc¡ programu LINK a vytvoıit tak k¢d
+programu,  kterì lze ji§ zav‚st do pamØti. Relokovatelnì k¢d nav¡c znamen ,
+§e je mo§n‚ programy vytv ıet ve formØ modul…, z nich§ ka§dì lze sestavit a
+odladit samostatnØ.
+
+    V prvn¡m pr…chodu asembler:
+
+- vyhodnocuje pı¡kazy a rozvinuje pı¡kazy vol n¡ makroinstrukc¡
+- vypoŸ¡t v  velikost k¢du, kterì vygeneruje
+- zakl d   tabulku  symbol…,  v  n¡§  se  symbol…m,  promØnnìm,  n vØçt¡m a
+  makroinstrukc¡m pıiıazuj¡ hodnoty
+
+    V druh‚m pr…chodu asembler:
+
+- dosazuje za symboly, promØnn‚, n vØçt¡ a vìrazy hodnoty z tabulky symbol…
+- rozvinuje pı¡kazy vol n¡ makroinstrukc¡
+- zapisuje  relokovatelnì  c¡lovì k¢d do souboru, jeho§ jm‚no m  standardn¡
+  doplnØk .OBJ.
+
+
+    Dalç¡  vlastnost¡  makroasembleru je mo§nost zapsat k¢dy blok… programu
+zkr cenìm  povelem  (makroinstrukce)  -  napı.  pıi Ÿast‚m opakov n¡ tØchto
+blok… programu.
+
+
+
+
+    2.- Prvky asembleru
+
+
+    V asembleru lze pou§¡t tyto Ÿ¡seln‚ z klady:
+
+- dekadick‚ Ÿ¡slo (Ÿ¡slice 0 a§ 9, volitelnØ m…§e n sledovat p¡smeno D)
+- bin rn¡ Ÿ¡slo (Ÿ¡slice 0 nebo 1, n sleduje p¡smeno B)
+- oktalov‚ Ÿ¡slo (Ÿ¡slice 0 a§ 7, n sleduje p¡smeno O nebo Q)
+- hexadecim ln¡  Ÿ¡slo  (Ÿ¡slice  0  a§  9  nebo  p¡smena A a§ F, n sleduje
+  p¡smeno H; ıada mus¡ zaŸ¡nat v§dy Ÿ¡slic¡ 0 a§ 9)
+
+    Standardn¡  nebo  v  dan‚m  okam§iku  platnì  z klad  je  mo§n‚  zmØnit
+direktivou .RADIX. ImplicitnØ je Ÿ¡seln  soustava dekadick .
+
+
+
+
+    Lze pou§¡t tyto rozsahy celìch Ÿ¡sel:
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º         tvar           ³ bit… ³      rozsah     ³ poŸet platnìch Ÿ¡slic º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º bajt bez znam‚nka      ³   8  ³     0 a§ 255    ³        2 a§ 3         º
+º bajt se znam‚nkem      ³   8  ³   -128 a§ 127   ³        2 a§ 3         º
+º slovo bez znam‚nka     ³  16  ³    0 a§ 65535   ³        4 a§ 5         º
+º slovo se znam‚nkem     ³  16  ³ -32768 a§ 32767 ³        4 a§ 5         º
+º dvouslovo bez znam‚nka ³  32  ³ 0 a§ 4294967295 ³        9 a§ 10        º
+º dvouslovo se znam‚nkem ³  32  ³  -2147483647 a§ ³        9 a§ 10        º
+º                        ³      ³    2147483648   ³                       º
+º Ÿtyıslovo bez znam‚nka ³  64  ³   0 a§ 1.84E19  ³       19 a§ 20        º
+º Ÿtyıslovo se znam‚nkem ³  64  ³  -9e18 a§ 9e18  ³          18           º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+    znam‚nko se ulo§¡ do nejvyçç¡ho bitu Ÿ¡sla (napı. FFFFh = -1)
+
+    Re ln  Ÿ¡sla:
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º         tvar           ³ bit… ³      rozsah     ³   pıesnost mantisy    º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º jedn. pıesn. Microsoft ³  32  ³   3.0E-39 a§    ³   6 a§ 7 des. m¡st    º
+º                        ³      ³     1.7E38      ³                       º
+º dvoj. pıesn. Microsoft ³  64  ³   3.0E-39 a§    ³  16 a§ 17 des. m¡st   º
+º                        ³      ³     1.7E38      ³                       º
+º jedn. pıesn. IEEE      ³  32  ³  1.175E-38 a§   ³   7 a§ 8 des. m¡st    º
+º                        ³      ³    3.40E38      ³                       º
+º dvoj. pıesnost IEEE    ³  64  ³  2.23E-308 a§   ³   15 a§ 16 de. m¡st   º
+º                        ³      ³    1.80E308     ³                       º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+ 
+jednoduch  pıesnost Microsoft (znam‚nko: 0=kladn‚, 1=z porn‚ Ÿ¡slo)
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º 1 1 1 1 1 1 1 1 ³ 1 ³ 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 º
+º F E D C B A 9 8 ³ 7 ³ 6 5 4 3 2 1 0 F E D C B A 9 8 7 6 5 4 3 2 1 0 º
+ÌÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+º    exponent     ³zna³                                               º
+º     8 bit…      ³m‚n³         normalizovan  mantisa 23 bit…         º
+º (posunut¡ 129)  ³ko ³                                               º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+ 
+dvojn sobn  pıesnost Microsoft (znam‚nko: 0=kladn‚, 1=z porn‚ Ÿ¡slo)
+ÉÍÍÍÍÍÍÍÍÍÍÂÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º 33333333 ³ 3 ³ 3333333222222222222222211111111111111110000000000000000 º
+º FEDCBA98 ³ 7 ³ 6543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210 º
+ÌÄÄÄÄÄÄÄÄÄÄÅÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+º exponent ³zna³                                                         º
+º  8 bit…  ³m‚n³              normalizovan  mantisa 55 bit…              º
+º posun 129³ko ³                                                         º
+ÈÍÍÍÍÍÍÍÍÍÍÁÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+ 
+jednoduch  pıesnost IEEE (kr tk‚ re ln‚ Ÿ¡slo) (znam.:0=kladn‚, 1=z porn‚)
+ÉÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º 1 ³ 1 1 1 1 1 1 1 1 ³ 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 º
+º F ³ E D C B A 9 8 7 ³ 6 5 4 3 2 1 0 F E D C B A 9 8 7 6 5 4 3 2 1 0 º
+ÌÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+ºzna³    exponent     ³         normalizovan  mantisa 23 bit…         º
+ºm‚n³     8 bit…      ³   (normalizov na s implicitn¡m celoŸ¡selnìm   º
+ºko ³ (posunut¡ 127)  ³     bitem - v§dy 1 a za desetinnou teŸkou)    º
+ÈÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+Pozn.: Nula  je  reprezentov na  nastaven¡m  vçech bit… exponentu a mantisy
+       (signifikantu) na nulu.
+
+ 
+dvojn sobn  pıesnost IEEE (dlouh‚ re ln‚ Ÿ¡slo) (znam.:0=kladn‚,1=z porn‚)
+ÉÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º 3 ³ 33333333333 ³ 3333222222222222222211111111111111110000000000000000 º
+º F ³ EDCBA987654 ³ 3210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210 º
+ÌÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+ºzna³   exponent  ³           normalizovan  mantisa 52 bit…              º
+ºm‚n³   11 bit…   ³     (normalizov na s implicitn¡m celoŸ¡selnìm        º
+ºko ³  posun 1023 ³       bitem - v§dy 1 a za desetinnou teŸkou)         º
+ÈÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+Pozn.: Nula  je  reprezentov na  nastaven¡m  vçech bit… exponentu a mantisy
+       (signifikantu) na nulu.
+
+    Re ln   Ÿ¡sla  lze  vyjadıovat t‚§ v k¢dov‚m z pisu. K¢dovì z pis tvoı¡
+ıada  hexadecim ln¡ch Ÿ¡slic ukonŸen  p¡smenem R (ıada mus¡ zaŸ¡nat Ÿ¡slic¡
+0úa§ú9).  Hodnoty exponentu, znam‚nka atd. jsou uvnitı Ÿ¡sla vyj dıena jako
+bitov  pole (napı. 3F800000R znamen  1.0 pıi deklaraci DD). K¢dovì z pis je
+mo§n‚ definovat direktivami DD, DQ nebo DT.
+
+    Posledn¡m  typem  Ÿ¡sel jsou des¡tkov  Ÿ¡sla ve zhuçtØn‚m form tu. Tato
+Ÿ¡sla  se  ukl daj¡  do  10  bajt…  podle  pravidel  bin rn¡ho k¢du. ü dovØ
+nejvyçç¡   bit  pıedstavuje  znam‚nko  (1=z porn‚)  (napı.  DT  -1234567890
+odpov¡d  bin rn¡mu k¢du 80000000001234567890H).
+
+    Znakov  konstanta se skl d  z jedin‚ho znaku ASCII. üetØzcov  konstanta
+se skl d  z jednoho nebo v¡ce znak… k¢du ASCII. Tyto konstanty se uzav¡raj¡
+mezi znaky apostrofu '. Je-li souŸ st¡ ıetØzcov‚ konstanty apostrof, pak se
+zap¡çe dvakr t (napı. 'a', ''a'', '''nenalezen').
+
+    Identifik tor  je  kombinac¡  p¡smen,  Ÿ¡slic a speci ln¡ch znak…. Mal 
+p¡smena se automaticky pıeıazuj¡ na velk  (pokud nen¡ nastaven parametr /ML
+nebo /MX).
+
+    Vyhrazen   jm‚na  jsou  jm‚na, kter  ji§ maj¡ pıedem definovanì vìznam.
+KromØ mnemotechnickìch z pis… instrukc¡ patı¡ mezi vyhrazen  jm‚na:
+ÉÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍ»
+º .186   ³ CH     ³ ELSE   ³.ERRNDEF³ IFE    ³ MASK   ³ RECORD ³ THIS   º
+º .286c  ³ CL     ³ END    ³ .ERRNZ ³ IFIDN  ³ MOD    ³ REPT   ³ TITLE  º
+º .286p  ³ COMMENT³ ENDIF  ³ ES     ³ IFNB   ³ NAME   ³ .SALL  ³ TYPE   º
+º .287   ³ CREF   ³ ENDM   ³ EVEN   ³ IFNDEF ³ NE     ³ SEG    ³ .TYPE  º
+º .8086  ³ CS     ³ ENDP   ³ EXITM  ³ INCLUDE³ NEAR   ³ SEGMENT³ WIDTH  º
+º .8087  ³ CX     ³ ENDS   ³ EXTRN  ³ IRP    ³ NOT    ³ .SFCOND³ WORD   º
+º =      ³ DB     ³ EQ     ³ FAR    ³ IRPC   ³ OFFSET ³ SHL    ³ .XALL  º
+º AH     ³ DD     ³ EQU    ³ GE     ³ LABEL  ³ OR     ³ SHORT  ³ .XREF  º
+º AL     ³ DH     ³ .ERR   ³ GROUP  ³ .LALL  ³ ORG    ³ SHR    ³ .XLIST º
+º AND    ³ DI     ³ .ERR1  ³ GT     ³ LE     ³ %OUT   ³ SI     ³ XOR    º
+º ASSUME ³ DL     ³ .ERR2  ³ HIGH   ³ LENGTH ³ PAGE   ³ SIZE   ³        º
+º AX     ³ DQ     ³ .ERRB  ³ IF     ³ .LFCOND³ PROC   ³ SP     ³        º
+º BH     ³ DS     ³ .ERRDEF³ IF1    ³ .LIST  ³ PTR    ³ SS     ³        º
+º BL     ³ DT     ³ .ERRDIF³ IF2    ³ LOCAL  ³ PUBLIC ³ STRUC  ³        º
+º BP     ³ DW     ³ .ERRE  ³ IFB    ³ LOW    ³ PURGE  ³ SUBTTL ³        º
+º BX     ³ DWORD  ³ .ERRIDN³ IFDEF  ³ LT     ³ QWORD  ³ TBYTE  ³        º
+º BYTE   ³ DX     ³ .ERRNB ³ IFDIF  ³ MACRO  ³ .RADIX ³ .TFCOND³        º
+ÈÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍ¼
+
+
+
+
+
+
+
+
+    Zp…sob z pisu ı dku v makroasembleru:
+
+    Ka§dì  pı¡kaz, instrukce Ÿi direktiva je um¡stØna na samostatn‚m ı dku.
+Ka§dì  ı dek  m…§e zaŸ¡nat n vØçt¡m oznaŸuj¡c¡m m¡sto v programu nebo jm‚no
+promØnn‚. Na konci ı dku m…§e bìt um¡stØna za oddØlovaŸem ";" pozn mka.
+
+
+
+    3.- Operandy, oper tory a vìrazy
+
+    Operand  je  konstanta,  n vØçt¡,  promØnn   nebo jinì symbol, kterì se
+pou§¡v   v  instrukci  nebo  direktivØ pro oznaŸen¡ hodnoty nebo pamØœov‚ho
+m¡sta, s nimi§ se m  pracovat.
+
+Konstantov‚_operandy:
+
+- Ÿ¡slo - nepromØnn  hodnota ve tvaru konstanty
+- ıetØzec - obsahuje jeden nebo v¡ce znak… ASCII v apostrofech
+- identifik tor - konstanta definovan  pomoc¡ direktivy EQU nebo "="
+- vìraz - pı¡pustnì vìraz, kterì vyhodnocuje Ÿ¡slo nebo ıetØzcovou konst.
+
+Pı¡m‚_pamØœov‚_operandy:
+
+- reprezentuj¡  absolutn¡  pamØœov‚  adresy jednoho nebo v¡ce bajt… pamØti.
+  Syntaxe:    segment:offset   ; kde segment = CS, DS, SS nebo ES
+                                     offset = cel‚   Ÿ¡slo,   identifik tor
+                                              konstanty,  vìraz nebo symbol
+                                              (hodnota 0 a§ 65535)
+
+Relokovateln‚_operandy:
+
+- reprezentuj¡ pamØœov‚ adresy (segment a offset) instrukc¡ nebo dat.
+  Syntaxe:    symbol           ; kde symbol = n vØçt¡, jm‚no promØnn‚,
+                                              segmentu nebo skupiny
+
+Operand_lok ln¡ho_Ÿ¡taŸe:
+
+- reprezentuje okam§itou pozici v okam§it‚m segmentu
+  Syntaxe:    $                ; lok ln¡ Ÿ¡taŸ m  atributy n vØçt¡ NEAR
+
+
+Registrov‚_operandy:
+
+- adresuj¡ pı¡sluçn‚ registry procesoru AX,BX,...
+
+
+Operandy_s_b z¡:
+
+- pıedstavuj¡ pamØœov‚ adresy z visl‚ relat. na nØkter‚m b zov‚m registru.
+  Syntaxe 1:  [posunut¡]registr_nepı¡m‚_b ze
+  Syntaxe 2:  [b zovì_registr + posunut¡]
+  Syntaxe 3:  registr_nepı¡m‚_b ze.posunut¡
+  Syntaxe 4:  registr_nepı¡m‚_b ze + posunut¡
+                   kde posunut¡ = libovolnì pı¡mì operand
+                       b zovì_registr = BP (rel. v SS) nebo BX (rel. v DS)
+
+
+
+
+
+
+
+
+Operandy_s_indexem:
+
+- pıedstavuj¡ pamØœov‚ adresy, kter‚ jsou relativn¡ v…Ÿi index. registru
+  Syntaxe 1:  [posunut¡]registr_nepı¡m‚ho_indexu
+  Syntaxe 2:  [indexovì_registr + posunut¡]
+  Syntaxe 3:  registr_nepı¡m‚ho_indexu.posunut¡
+  Syntaxe 4:  registr_nepı¡m‚ho_indexu + posunut¡
+                   kde posunut¡ = libovolnì pı¡mì operand
+                       indexovì_registr = SI (v DS) nebo DI (v DS nebo ES)
+
+Operandy_s_b z¡_a_indexem:
+
+- reprezentuj¡ pamØœovou adresu, kter  je relativn¡ v…Ÿi kombinaci b zov‚ho
+  a indexov‚ho registru
+  Syntaxe 1:  [posunut¡]nepı¡mì_b zovì_registr registr_nepı¡m‚_b ze
+  Syntaxe 2:  [b zovì_registr + indexovì_registr + posunut¡]
+  Syntaxe 3:  [b zovì_registr + indexovì_registr]
+  Syntaxe 4:  ukazatel_nepı¡m‚_b ze + registr_nepı¡m‚ho_indexu + posunut¡
+
+
+Operandy_struktury:
+
+- reprezentuj¡ pamØœovou adresu jednoho Ÿlena struktury
+  Syntaxe:    promØnn .pole  ; kde promØnn  = jm‚no operandu struktury
+                                   pole = jm‚no pole uvnitı struktury
+
+Operandy_vØty:
+
+- operandy vØty se vztahuj¡ k hodnotØ typu vØty
+  Syntaxe:    jm‚no_vØty<[hodnota][,[hodnota]]...>
+                   kde jm‚no_vØty = jm‚no definov no direktivou RECORD
+                       hodnota = hodnota, kter  se m  um¡stit do pole vØty
+
+Operandy_pol¡_vØty:
+
+- urŸuj¡ polohu pole v jeho odpov¡daj¡c¡ vØtØ
+  Syntaxe:    jm‚no_pole_vØty
+    Pozn.: Vìsledkem   vyhodnocen¡   operandu   je   bitov   pozice  ı dovØ
+           nejni§ç¡ho  bitu v poli, kterou je mo§n‚ pou§¡t jako konstantovì
+           operand.
+
+
+Aritmetick‚_oper tory:
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   oper tor   ³                   vìznam                                 º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º      *       ³  n soben¡                                                º
+º      /       ³  celoŸ¡seln‚ dØlen¡                                      º
+º     MOD      ³  modulo - zbytek po celoŸ¡seln‚m dØlen¡                  º
+º     SHR      ³  posuv doprava (n sleduje poŸet posuv…)                  º
+º     SHL      ³  posuv doleva (n sleduje poŸet posuv…)                   º
+º   - (un rn¡) ³  zmØna znam‚nka                                          º
+º      +       ³  sŸ¡t n¡ (jeden z operand… nemus¡ bìt konstanta)         º
+º      -       ³  odeŸ¡t n¡ (levì operand nemus¡ bìt konstanta,           º
+º              ³  nebo oba operandy nemus¡ bìt konstanty                  º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+
+
+RelaŸn¡_oper tory:
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   oper tor   ³                   vìznam                                 º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º     EQ       ³  rovnost - vrac¡ TRUE, jsou-li si operandy rovny         º
+º     NE       ³  nerovnost - vrac¡ TRUE, jsou-li si operandy nerovny     º
+º     LT       ³  menç¡ ne§ - vrac¡ TRUE, je-li levì operand < ne§ pravì  º
+º     LE       ³  menç¡ nebo rovno - vrac¡ TRUE, je-li levì oper. <= pravìº
+º     GT       ³  vØtç¡ ne§ - vrac¡ TRUE, je-li levì oper. > pravì        º
+º     GE       ³  vØtç¡ nebo rovno - vrac¡ TRUE, je-li levì oper. >= pravìº
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+    Pozn.: TRUE=0ffffh (=-1), ELSE=0
+
+Logick‚_oper tory:
+ 
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   oper tor   ³                   vìznam                                 º
+ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+º     NOT      ³  logick‚ NOT (un rn¡) - vytv ı¡ dvojkovì doplnØk         º
+º     AND      ³  logick‚ AND - prov d¡ bitovØ operaci AND                º
+º     OR       ³  logick‚ OR - prov d¡ bitovØ operaci OR                  º
+º     XOR      ³  logick‚ XOR - prov d¡ bitovØ operaci XOR                º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+    Pozn.: Logick‚  operace  se  prov dØj¡  s  jednotlivìmi  bity operand…,
+           vìsledkem  operace  je absolutn¡ adresa. Nejjednoduçç¡m pı¡padem
+           jsou logick‚ stavy TRUE (hodnota -1) a FALSE (hodnota 0).
+
+Atributov‚_oper tory:
+
+- pıepisn‚ oper tory: pou§¡vaj¡  se  pro  pıepis (doŸasnou zmØnu) segmentu,
+                      offsetu,   typu   nebo  vzd lenosti  promØnnìch  nebo
+                      n vØçt¡
+    Pıepis segmentu:
+
+         Syntaxe 1:   segmentovì_registr:adresovì_vìraz
+                        kde segmentovì_registr = registr CS, DS, ES, SS
+
+         Syntaxe 2:   jm‚no_segmentu:adresovì_vìraz
+                        kde jm‚no_segmentu = jm‚no defin. direkt. SEGMENT
+
+         Syntaxe 3:   jm‚no_skupiny:adresovì_vìraz
+                        kde jm‚no_skupiny = jm‚no defin. direktivou GROUP
+
+         MASM  pıedpokl d ,  §e  n vØçt¡ jsou adresovateln  prostıednictv¡m
+         okam§it‚   hodnoty   registru   CS.   PromØnn‚   jsou   standardnØ
+         adresovateln‚  prostıednictv¡m  okam§it‚  hodnoty  v  registru DS,
+         popı.  ES  (c¡lov‚  ıetØzce)  nebo  SS  (b zovì registr BP). Je-li
+         operand  v jin‚m segmentu s nebyla-li pou§ita direktiva ASSUME, je
+         mo§n‚ oper tor pro pıepis segmentu pou§¡t.
+         ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍ»
+         º  typ pamØœov‚ promØnn‚ ³ standardn¡ ³ alternativn¡ ³ offset º
+         º                        ³ segm. reg. ³  segm. reg.  ³        º
+         ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍ¹
+         º  vyvol n¡ instrukce    ³     CS     ³      -       ³   IP   º
+         º  operace se z sobn¡kem ³     SS     ³      -       ³   SP   º
+         º  promØnn               ³     DS     ³  CS, ES, SS  ³   EA   º
+         º  ıetØzec (zdroj)       ³     DS     ³  CS, ES, SS  ³   SI   º
+         º  ıetØzec (c¡l)         ³     ES     ³      -       ³   DI   º
+         º  b zovì registr BP     ³     SS     ³  CS, DS, ES  ³   EA   º
+         ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍ¼
+           Pozn.: EA znamen  "efektivn¡ adresa"
+
+    PTR - pıepis typu pamØœov‚ promØnn‚ nebo vzd lenosti n vØçt¡:
+
+         Syntaxe:     atribut PTR vìraz
+
+         ÉÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+         º  atribut  ³                vìznam                 º
+         ÌÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+         º BYTE      ³ pamØœovì_vìraz dost v  atribut BYTE   º
+         º WORD      ³ pamØœovì_vìraz dost v  atribut WORD   º
+         º DWORD     ³ pamØœovì_vìraz dost v  atribut DWORD  º
+         º QWORD     ³ pamØœovì_vìraz dost v  atribut QWORD  º
+         º TBYTE     ³ pamØœovì_vìraz dost v  atribut TBYTE  º
+         º NEAR      ³ n vØçœovì_vìraz dost v  atribut NEAR  º
+         º FAR       ³ n vØçœovì_vìraz dost v  atribut FAR   º
+         ÈÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+         ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+         º      vìraz        ³             vìznam                         º
+         ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+         º pamØœovì_vìraz    ³ platnì vìraz (i jednoduch  promØnn ), jen§ º
+         º                   ³ se vyhodnocuje na pamØœovou adresu         º
+         º n vØçœovì_vìraz   ³ platnì vìraz (i jednoduch  promØnn ), jen§ º
+         º                   ³ se vyhodnocuje na adresu m¡sta, na nØ§ je  º
+         º                   ³ mo§n‚ odskoŸit nebo kter‚ lze volat        º
+         º registrovì_vìraz  ³ platnì vìraz obsahuj¡c¡ referenci na       º
+         º                   ³ registr, kterì je mo§n‚ vyhodnotit a§ pıi  º
+         º                   ³ bØhu programu                              º
+         º konstantovì_vìraz ³ platnì vìraz, kterì se vyhodnocuje na      º
+         º                   ³ celoŸ¡selnì konstantn¡ offset segm. reg.   º
+         ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+         Oper tor   PTR  slou§¡  pıedevç¡m  pro  dopıednou  referenci  typu
+         promØnn‚  nebo n vØçt¡ a pro pı¡stup k dat…m podle jin‚ho typu ne§
+         kterì je uveden v definici promØnn‚.
+
+
+    SHORT - pıepis atributu n vØçt¡ na vzd lenost NEAR:
+
+         Syntaxe:     SHORT n vØçt¡
+
+         Pıepisovì   oper tor  SHORT  pıepisuje  atribut  vzd lenosti  NEAR
+         n vØçt¡  jako  m¡sta skoku instrukce JMP. Prostıednictv¡m SHORT se
+         MASM  dozv¡,  §e  vzd lenost mezi pı¡kazem JMP a n vØçt¡m uvedenìm
+         jako  jeho  operand nen¡ vØtç¡ ne§ 127 bajt… v obou smØrech. Pokud
+         tato dopıedn  reference nen¡ pou§ita, vyhrad¡ se pro instrukci JMP
+         pıi  1.  pr…chodu  3 bajty a pokud je vzd lenost m¡sta skoku menç¡
+         ne§  127,  pou§ije  se  automaticky  pıi 2. pr…chodu instrukce JMP
+         SHORT doplnØna instrukc¡ NOP.
+
+    THIS - vytvoıen¡ operandu urŸit‚ho typu nebo vzd lenosti:
+
+         Syntaxe 1:   THIS vzd lenost
+                        kde vzd lenost = buÔ NEAR nebo FAR
+                      - vytv ı¡ operand s uvedenìm atributem vzd lenosti
+                        a offsetem rovnìm okam§it‚ hodnotØ lok. Ÿ¡taŸe
+
+         Syntaxe 2:   THIS typ
+                        kde typ = BYTE, WORD, DWORD, QWORD nebo TBYTE
+                      - vytv ı¡ operand s uvedenìm atributem typu
+                        a offsetem rovnìm okam§it‚ hodnotØ lok. Ÿ¡taŸe
+
+         Pı¡klady:      TAG EQU THIS BYTE     (= TAG LABEL BYTE)
+                        KONTROLA = THIS NEAR  (= KONTROLA LABEL NEAR)
+
+    HIGH, LOW - oper tory vìbØru bajtu:
+
+         Syntaxe 1:   HIGH vìraz
+                      - vybere a oddØl¡ horn¡ch 8 bit… slova nebo adresy
+
+         Syntaxe 2:   LOW vìraz
+                      - vybere a oddØl¡ doln¡ch 8 bit… slova nebo adresy
+
+
+- oper tory vracej¡c¡ hodnotu: tyto   oper tory   vrac¡   hodnoty  atribut…
+                               operand…,  kter‚  jsou  v  z pisu uvedeny za
+                               nimi,    ale   nepıepisuj¡   je.   Argumenty
+                               oper tor… jsou n vØçt¡ nebo promØnn‚.
+
+    SEG - vrac¡ hodnotu segmentu n vØçt¡ nebo promØnn‚:
+
+         Syntaxe 1:   SEG n vØçt¡
+         Syntaxe 2:   SEG promØnn 
+
+
+    OFFSET - vrac¡  hodnotu  offsetu  n vØçt¡ nebo promØnn‚ v segmentu nebo
+             skupinØ, kde je tato promØnn  nebo n vØçt¡ definov no
+
+         Syntaxe 1:   OFFSET n vØçt¡
+         Syntaxe 2:   OFFSET promØnn 
+
+
+    TYPE - vrac¡ poŸet bajt… typu promØnn‚ nebo n vØçt¡:
+
+         Syntaxe 1:   TYPE n vØçt¡
+                        vrac¡ oper tor NEAR (FFFFh) nebo FAR (FFFFh)
+         Syntaxe 2:   TYPE promØnn 
+                        vrac¡ n sleduj¡c¡ hodnoty
+                         BYTE     ->  1
+                         WORD     ->  2
+                         DWORD    ->  4
+                         QWORD    ->  8
+                         TBYTE    -> 10
+                         STRUC    -> poŸet bajt… deklarovanìch pomoc¡ STRUC
+
+    .TYPE - vrac¡ bajt popisuj¡c¡ m¢d promØnn‚ a pı¡znak, zda je extern¡:
+
+         Syntaxe:     .TYPE promØnn 
+
+                navr cenì bajt obsahuje tyto informace:
+         ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+         º bit 0 a 1:  ³  0 = m¢d je absolutn¡                        º
+         º             ³  1 = m¢d je z vislì na programu              º
+         º             ³  2 = m¢d je z vislì na datech                º
+         ÌÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+         º bit 5:      ³  0 = vìraz nen¡ definov n nebo je extern¡    º
+         º             ³  1 = vìraz je definov n                      º
+         ÌÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+         º bit 7:      ³  0 = vìraz je lok ln¡ nebo obecnì (public)   º
+         º             ³  1 = vìraz obsahuje extern¡ referenci        º
+         ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+          Pozn.: jsou-li nastaveny bity 5 i 7, je vìraz nespr vnì
+
+
+    LENGTH - vrac¡ poŸet jednotek typu promØnn‚:
+
+         Syntaxe:     LENGTH promØnn 
+
+              Je-li  promØnn  definov na jako vìraz DUP, potom LENGTH vrac¡
+              poŸet  jednotek typu, tj. Ÿ¡slo, kter‚ je uvedeno pıed prvn¡m
+              DUP  ve  vìrazu.  Nen¡-li  promØnn   definov na  pomoc¡  DUP,
+              navrac¡ se hodnota 1.
+
+
+    SIZE - vrac¡ celkovì poŸet bajt… pıiıazenìch promØnn‚:
+
+         Syntaxe:     SIZE promØnn 
+
+              SIZE je souŸinem hodnoty LENGTH a hodnoty TYPE.
+
+
+- vØtn‚ oper tory: VØtn‚  oper tory se pou§¡vaj¡ pro oddØlen¡ pol¡ ve vØtØ.
+                   VØtn‚  oper tory  se  definuj¡  pomoc¡ direktivy RECORD.
+                   VØta  m…§e  bìt  dlouh   a§  16 bit…, definuje se pomoc¡
+                   pol¡ o d‚lce 1 a§ 16 bit….
+    ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+    º   oper tor      ³                vìznam                           º
+    ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+    º jm‚no_pole_vØty ³ poŸet bit… od doln¡ho konce vØty k doln¡mu      º
+    º                 ³ konci pole (poŸet bit…, o nØ§ se mus¡ vØta      º
+    º                 ³ posunout vpravo k nejni§ç¡m bit…m vØty)         º
+    ÌÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+    º WIDTH pole|vØta ³ vrac¡ poŸet bit… pole nebo vØty                 º
+    ÌÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¹
+    º MASK jm‚no_pole ³ hodnota vØty v pı¡padØ, §e pole obsahuje svou   º
+    º                 ³ maxim ln¡ hodnotu a vçechna ostatn¡ pole jsou   º
+    º                 ³ nulov  (vçechny bity v poli obsahuj¡ 1, vçechny º
+    º                 ³ ostatn¡ bity obsahuj¡ 0)                        º
+    ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+Priorita_oper tor…:
+ 
+ ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º                  oper tory                º
+ ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹
+ º  LENGTH, SIZE, WIDTH, MASK, (), [], <>    º  nejvyçç¡ priorita
+ º  . (oper tor jm‚na-pole struktury)        º
+ º  : (segment)                              º
+ º  PTR, OFFSET, SEG, TYPE, THIS             º
+ º  HIGH, LOW                                º
+ º  +, - (un rn¡)                            º
+ º  *, /, MOD, SHL, SHR                      º
+ º  +, - (bin rn¡)                           º
+ º  EQ, NE, LT, LE, GT, GE                   º
+ º  NOT                                      º
+ º  AND                                      º
+ º  OR, XOR                                  º
+ º  SHORT, .TYPE                             º  nejni§ç¡ priorita
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+    Pozn.: Operace  se  stejnou  prioritou  se  uskuteŸåuj¡  zleva doprava.
+           Poıad¡ priority lze zmØnit pou§it¡m z vorek.
+
+
+
+
+
+
+    4.- Direktivy pro soubor instrukc¡ a pamØœov‚ direktivy
+
+    Zdrojovì  soubor  asembleru  mus¡  m¡t standardn¡ form t ASCII (tj. bez
+ı¡dic¡ch  znak…, ka§dì ı dek textu je ukonŸen dvojic¡ znak… CR-LF). Pı¡kazy
+je mo§n‚ ps t pomoc¡ velkìch i malìch p¡smen.
+
+    Pokud  nejsou  pou§ity  pıep¡naŸe /R nebo /E, jsou vçechna re ln  Ÿ¡sla
+zobrazov na  ve  form tu  Microsoft  (tj.  tak,  jak  jej pou§¡v  GWBASIC).
+Parametr  /R  vy§aduje  pou§it¡ koprocesoru, parametr /E vy§aduje spojen¡ s
+knihovnou MATH.LIB.
+
+
+Direktivy_pro_soubor_instrukc¡
+
+.8086, .8087
+
+    Direktiva  aktivizuje  sestaven¡  instrukc¡  pro  mikroprocesory 8086 a
+8088.  SouŸasnØ  zabraåuje  sestaven¡  instrukc¡, kter‚ pı¡sluç¡ procesor…m
+80186  a  80286. PodobnØ direktiva .8087 aktivizuje sestaven¡ instrukc¡ pro
+koprocesor 8087 pro pr ci s pohyblivou ı dovou teŸkou a zabraåuje sestaven¡
+instrukc¡, kter‚ pı¡sluç¡ koprocesoru 80287.
+
+
+.186
+
+    Direktiva  aktivizuje  instrukce  8086  a  kromØ  toho  i instrukce pro
+mikroprocesor 80186.
+
+
+.286 {C|P}
+
+    Direktiva  .286C  aktivizuje  sestaven¡  instrukc¡  8086  a nech nØnìch
+instrukc¡  80286  (shodn‚  s instrukcemi 80186). Direktiva .286P aktivizuje
+chr nØn‚ instrukce 80286 a instrukce 8086 a nechr nØn‚ instrukce 80286.
+
+
+.287
+
+    Direktiva   aktivizuje  sestaven¡  instrukc¡  pro  koprocesor  80287  s
+pohyblivou ı dovou teŸkou.
+
+
+PamØœov‚_direktivy
+
+
+ASSUME
+
+    ASSUME  informuje  asembler  o  tom, §e symboly v segmentu nebo skupinØ
+jsou pı¡stupn‚ prostıednictv¡m uveden‚ho segmentov‚ho registru.
+
+    Syntaxe 1: ASSUME segmentovì_registr:jm‚no_segmentu[,.....]
+                        kde segmentovì_registr = CS, DS, ES, SS
+                            jm‚no_segmentu = jm‚no segmentu nebo NOTHING
+                            (NOTHING=je nutn‚ ka§dì odkaz opatıit segm.)
+
+    Syntaxe 2: ASSUME NOTHING  - ruç¡ vçechna pıiıazen¡ registr…
+
+
+
+
+DB, DW, DD, DQ, DT, (DEFINE)
+
+    Direktivy  DEFINE  se  pou§¡vaj¡  pro  definov n¡  promØnnìch  nebo pro
+inicializaci Ÿ st¡ pamØt¡ (tj. ulo§en¡ hodnot).
+
+    Syntaxe: [jm‚no_promØnn‚] {DB|DW|DD|DQ|DT} vìraz[,vìraz]....
+
+    Je-li uvedeno voliteln‚ jm‚no_promØnn‚, definuj¡ direktivy DEFINE jm‚no
+jako  promØnnou.  M -li  jm‚no_promØnn‚ dvojteŸku, st v  se m¡sto promØnnou
+n vØçt¡m typu NEAR.
+
+    DB - pıidØluje jeden bajt (8 bit…)
+    DW - pıidØluje jedno slovo (16 bit… = 2 bajty)
+    DD - pıidØluje dvØ slova (32 bit… = 4 bajty)
+    DQ - pıidØluje Ÿtyıi slova (64 bit… = 8 bajt…)
+    DT - pıidØluje deset bajt…
+
+    Vìrazem m…§e bìt:
+- konstantn¡ vìraz
+- znak ? pro neurŸitou hodnotu (dosad¡ se 0)
+- adresovì vìraz (pouze pro DW a DD)
+- ıetØzec ASCII (pouze pro DB)
+- vìraz  DUP(?)  -  pokud  je tento typ vìrazu jedinìm argumentem definiŸn¡
+  direktivy,   vytvoı¡  se  neinicializovanì  blok  dat  slou§¡c¡  pouze  k
+  rezervaci m¡sta (t¡m se zmenç¡ velikost c¡lov‚ho souboru)
+- vìraz DUP(vìraz[,vìraz]...) - vytvoı¡ blok dat, ovçem inicializovanì
+
+
+ÿEÿNÿD
+
+    Syntaxe: END startovac¡_adresa
+
+    Pı¡kaz  END urŸuje konec programu. Za pı¡kazem END lze uv‚st startovac¡
+adresu  programu  (pıi  spojov n¡  modul…  m…§e tuto adresu obsahovat pouze
+jeden modul).
+
+
+ÿEÿQÿU
+
+    Syntaxe: jm‚no EQU vìraz
+
+    Pı¡kaz  EQU  pıiıazuje hodnotu vìrazu jm‚nu. Je-li vìraz extern¡ symbol
+nebo  m -li  jm‚no  ji§ hodotu, vznikne chyba. Jestli§e je tıeba v programu
+jm‚no  znovu  definovat,  pou§ije  se  m¡sto EQU znak rovn¡tka (=). V mnoha
+pı¡padech  se  EQU  pou§¡v   jako  n hrada jednoduch‚ho textu jako je napı.
+makroinstrukce.   Jako  vìraz  m…§e  bìt  pou§it  symbol  ("ALIAS"),  jm‚no
+instrukce  ("OPCODE"),  platnì  vìraz  (vyhodnocen¡  na hodnotu 0 a§ 65535)
+("TEXT") nebo jakìkoliv jinì prvek vŸetnØ textu ("TEXT").
+
+
+ÿ= (rovn¡tko)
+
+    Syntaxe: jm‚no = vìraz
+
+    Rovn¡tko  "="  se  pou§¡v   k nastaven¡ a nov‚mu pıedefinov n¡ symbolu.
+Vìrazem  mus¡  bìt platnì vìraz (vyhodnocen¡ na hodnotu 0 a§ 65535). Symbol
+je mo§n‚ znovu definovat.
+
+
+
+
+
+ÿEÿVÿEÿN
+
+    Syntaxe: EVEN
+
+    Direktivou  EVEN  se lokaŸn¡ Ÿ¡taŸ pıednastav¡ na sudou hranici, tj. na
+hranici,  kde  zaŸ¡n   slovo.  Pokud  nen¡  lokaŸn¡  Ÿ¡taŸ na sud‚ hranici,
+vygeneruje se instrukce NOP. Jestli§e se EVEN pou§ije pro segment zarovnanì
+na  hranici  bajtu,  vznikne chyba. Tato direktiva se pou§¡v  pıedevç¡m pro
+zrychlen¡  operac¡  s  pamØt¡,  neboœ  k  pıenosu slova postaŸ¡ pouze jeden
+pı¡stup k pamØti.
+
+
+ÿEÿXÿTÿRÿN
+
+    Syntaxe: EXTRN jm‚no:typ [,jm‚no:typ]...
+
+    Direktiva  oznaŸuje  proceduru  nebo funkci, kter  je souŸ st¡ jin‚ho v
+pamØti  ulo§en‚ho  modulu.  "jm‚no"  je  symbol, kterì je definov n v jin‚m
+modulu  jako PUBLIC. "typ" m…§e bìt jakìkoliv prvek n sleduj¡c¡ho seznamu a
+mus¡ bìt pro jm‚no platnìm typem:
+
+    - BYTE, WORD, DWORD, QWORD, TBYTE
+    - NEAR nebo FAR
+    - ABS pro Ÿist  Ÿ¡sla (implicitn¡ velikost WORD, ale i BYTE)
+
+    Je-li  direktiva  uvedena  se  segmentem,  pıedpokl d  se, §e je symbol
+um¡stØn  uvnitı  segmentu.  Nen¡-li segment zn m, potom se direktiva zap¡çe
+vnØ vçech segment… a pak se pou§ije buÔ
+            "ASSUMEúsegmentovì_registr:SEGújm‚no"
+nebo explicitn¡ segmentovì prefix.
+
+
+ÿGÿRÿOÿUÿP
+
+    Syntaxe: jm‚no GROUP jm‚no_segmentu[,jm‚no_segmentu]...
+
+    Direktiva  GROUP  sdru§uje  segmenty  uveden‚  za  GROUP  do skupiny se
+stejnìm jm‚nem. Pou§¡v  se k tomu, aby program LINK zjistil, kter‚ segmenty
+se  maj¡  do pamØti ulo§it souŸasnØ. Poıad¡ segment… pro zav dØn¡ do pamØti
+je  urŸeno pomoc¡ CLASS v direktivØ SEGMENT anebo poıad¡m, v nØm§ se c¡lov‚
+moduly  uvedou  v  odpovØdi na vìzvu programu LINK uv‚st seznam spojovanìch
+modul….  Vçechny  segmenty  v  GROUP  se mus¡ vej¡t do 64K pamØti (kontrolu
+prov d¡ LINK). Jako "jm‚no_segmentu" m…§e byt:
+
+    - jm‚no segmentu pıiıazen‚ direktivou SEGMENT
+    - vìraz: buÔ SEG promØnn  nebo SEG n vØçt¡
+
+
+ÿLÿAÿBÿEÿL
+
+    Syntaxe: jm‚no LABEL typ
+
+    Definov n¡m  jm‚na pomoc¡ LABEL dost v  asembler informaci o tom, §e m 
+okam§it‚mu  offsetu  pıiıadit  jm‚no uveden‚ v LABEL. Jako "typ" lze pou§¡t
+NEAR, FAR, BYTE, WORD, DWORD, QWORD, TWORD, jm‚no_struktury nebo jm‚no_vØty
+(pıiıad¡  jm‚nu  velikost  struktury  nebo vØty). Tato direktiva se pou§¡v 
+napı.  k  v¡cen sobn‚ definici prvku (napı. lze definovat slovo jako bajt a
+odkazovat se tak na nØj bez nutnosti pou§¡v n¡ PTR).
+
+
+
+
+ÿOÿRÿG
+
+    Syntaxe: ORG vìraz
+
+    Touto  direktivou  se  nastav¡ lokaŸn¡ Ÿ¡taŸ na hodnotu danou vìrazem a
+assembler  ulo§¡  vygenerovanì k¢d od t‚to hodnoty. Hodnota vìrazu mus¡ bìt
+absolutn¡.
+
+
+ÿPÿRÿOÿC
+
+    Syntaxe: jm‚no_procedury PROC [NEAR|FAR]
+                   .......
+             jm‚no_procedury ENDP
+
+    Direktiva  PROC  slou§¡  jako  prostıedek  strukturalizace programu pro
+zvìçen¡  jeho  pıehlednosti, oznaŸuje Ÿ st programu jako proceduru. Nen¡-li
+uveden typ, pou§ije se NEAR. Direktiva informuje, zda se budou pı¡kazy CALL
+a  RET  uvnitı  procedury pıekl dat jako typ FAR nebo NEAR. Procedury mohou
+bìt vz jemnØ vıazeny.
+
+
+ÿPÿUÿBÿLÿIÿC
+
+    Syntaxe: PUBLIC symbol[,symbol]....
+
+    Direktiva  se uv d¡ v ka§d‚m modulu, kterì obsahuje symboly pou§¡van‚ v
+ostatn¡ch  modulech.  Takto  definovan‚  symboly  jsou k dispozici ostatn¡m
+modul…m.
+
+
+ÿRÿEÿCÿOÿRÿD
+
+    Syntaxe: jm‚no_vØty RECORD jm‚no_pole:d‚lka[=vìraz][,jm‚no_pole: ....
+
+    VØta   je  urŸit‚  rozvr§en¡  bit…  v  pamØti,  kter‚  se  pou§¡v   pro
+form tov n¡ bajt… a slov na bitov‚ £rovn¡.
+
+
+
+
+
+
+
+
+
+
+
+
+ÿCÿOÿMÿMÿEÿNÿT
+
+Syntaxe: COMMENT omezovaŸ
+
+    Direktiva   COMMENT   slou§¡   k   oddØlen¡   n sleduj¡c¡  Ÿ sti  textu
+oúlibovoln‚m  poŸtu ı dk… (a§ po n sleduj¡c¡ znak omezovaŸe) jako pozn mky.
+Jako  omezovaŸ  lze  pou§¡t  libovolnì  pı¡pustnì  znak  kromØ  mezery nebo
+tabel toru.  N sleduj¡c¡ text je pova§ov n za pozn mku a§ do chv¡le, kdy je
+opØt nalezen znak omezovaŸe. T¡mto zp…sobem lze "vypnout" Ÿ sti programu.
+

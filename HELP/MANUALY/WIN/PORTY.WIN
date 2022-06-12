@@ -1,0 +1,2663 @@
+
++-------------------------------------------------------------------------+
+|                                                                         |
+|                                                                         |
+|                                 P o r t y                               |
+|                                                                         |
+|                                                                         |
++-------------------------------------------------------------------------+
+                            (c) Miroslav Nìmeèek
+
+Základní rozdìlení portù v poèítaèi:
+
+    * porty 0000H - 00FFH jsou rezerovvány pro pouití systémovou deskou
+    * porty 0100H - 03FFH jsou  dekódovány  na  I/O  sbìrnici  pro  pouití
+                          kartou adaptéru displeje
+    * porty 0400H a vıše nejsou pøístupné na systémové sbìrnici
+
+(Pozn.: V dalším bude pouíváno oznaèení I/O = vstupnì/vıstupní)
+
+
+
+Rozdìlení portù:
+
+      AT:          PC/XT:  kapitola:     popis:
+
+0000H - 001FH  0000H - 000FH  3   øadiè DMA #1, 8237A-5
+0020H - 003FH  0020H - 0021H  2   øadiè pøerušení #1, 8259A
+0040H - 005FH  0040H - 0043H  4   èasovaè 8253-5 (AT: 8254.2)
+               0060H - 0063H  5   programovatelnı periferní interface (PPI)
+                                  klávesnice, pøepínaèù vybavení, èasovaèe
+0060H - 006FH                 5   øadiè klávesnice 8042 (AT)
+0070H - 0071H                 6   hodiny   reálného   èasu,   pamì   CMOS,
+                                  maskování NMI (nemaskovatelné pøerušení)
+0080H                             tovární kontrolní diagnostickı bod
+0081H - 009FH  0080H - 0083H  3   DMA stránkovı registr 74LS612
+               00A0H              maska NMI (nemaskovatelné pøerušení)
+00A0H - 00BFH                 2   øadiè pøerušení #2, 8259A
+00C0H - 00DFH                 3   øadiè DMA #2, 8237A-5
+00F0H - 00FFH                14   matematickı koprocesor  8087,80287,80387
+
+0170H - 0177H                 7   øadiè druhého pevného disku AT
+01F0H - 01F7H                 7   øadiè prvního pevného disku AT
+0200H - 0207H  0200H - 020FH 13   herní I/O adaptér (joystick, A/D port)
+               0210H - 0217H 15   rozšiøující box XT
+0278H - 027FH  0278H - 027FH 11   paralelní port tiskárny #2 (#3 s DMA)
+02C0H - 02DFH  02C0H - 02DFH 10   porty EGA #2 (druhá EGA v systému)
+02F8H - 02FFH  02F8H - 02FFH 12   port asynchronního komunik. adaptéru #2
+0300H - 031FH                     karta prototypu
+               0320H - 0327H  7   øadiè pevného disku XT
+0370H - 0377H                 8   øadiè prunıch diskù 2 (AT)
+0378H - 037FH  0378H - 037FH 11   paralelní tiskárna #1 (#2 s DMA)
+0380H - 038FH  0380H - 038FH      øízení synchronní datové linky (SDLC)
+03A0H - 03AFH  03A0H - 03A9H      bisynchronní port #1
+03B0H - 03BFH  03B0H - 03BFH 10,11 adaptér monochrom. displeje/tiskárna #1
+03C0H - 03CFH  03C0H - 03CFH 10   porty EGA #1 (hlavní EGA v systému)
+03D0H - 03DFH  03D0H - 03DFH 9,10 porty CGA a EGA (MC 6845)
+03F0H - 03F7H  03F0H - 03F7H  8   øadiè prunıch diskù 1 XT,AT (NEC µPD765)
+03F8H - 03FFH  03F8H - 03FFH 12   port asynchronního adaptéru #1
+
+
+Rozdìlení do kapitol:
+
+ 1.- nastavení systémovıch pøepínaèù
+ 2.- øadiè pøerušení
+ 3.- øadiè DMA
+ 4.- èasovaè
+ 5.- klávesnice
+ 6.- pamì CMOS, maskování NMI
+ 7.- øadiè pevného disku
+ 8.- øadiè prunıch diskù
+ 9.- grafická karta CGA
+10.- grafická karta EGA (a MDA)
+11.- paralelní porty tiskáren
+12.- port assynchronního adaptéru
+13.- port herního I/O adaptéru
+14.- matematickı koprocesor
+15.- rozšiøující box XT
+
+
+
+
+    1 . -   N a s t a v e n í   s y s t é m o v ı c h   p ø e p í n a è ù
+
+
+    Pøepínaèe DIL poèítaèù PC a XT informují BIOS o vybavení poèítaèe a jak
+veliká pamì je nainstalována. Tyto pøepínaèe se ètou bìhem inicializaèního
+testu  POST  a  nastaví  se  podle  nich pøíznakové bity v tabulce vybavení
+poèítaèe  v  datovém  prostoru  BIOS  (tato  tabulka  na  adrese 0:0410H je
+programátorovi pøístupná pøes pøerušení INT 11H).
+
+    Na  pùvodním  PC  (64KB  pamìti  na základní desce; nìkdy se té nazıvá
+PC-1) byly na systémové desce umístìny dva pøepínaèe DIL, oznaèené jako SW1
+a SW2 (pozn.: pokud je pøepínaè v poloze ON, má signál hodnotu 0):
+
+                              +-----------+-------+-------+-------+-------+
+                              | pøepínaèe | 00(0) | 01(1) | 10(2) | 11(3) |
+             SW1              +---+---+---+-------+-------+-------+-------+
+ON   +1+2+3+4+5+6+7+8+  = 0   | 7 | 5 | 3 |  - -  |  - -  |  - -  |  - -  |
+     | | | | | | | | |        +---+---+---+-------+-------+-------+-------+
+     | | | | | | | | |  = 1   | 8 | 6 | 4 |  - -  |  - -  |  - -  |  - -  |
+OFF  +-+-+-+-+-+-+-+-+        +---+---+---+-------+-------+-------+-------+
+      | | | | | | | |   pøep.
+      | | | | | | +-+--> 7-8: disketovıch mechanik-1 (00=1;01=2;10=3;11=4)
+      | | | | +-+------> 5-6: aktivní mód displeje (rezer.,40zn,80zn,mono)
+      | | +-+----------> 3-4: RAM na systémové desce (16K, 32K, 48K, 64K)
+      | +-------------->  2:  matematickı koprocesor 8087 (OFF=je; ON=není)
+      +---------------->  1:  disketové mechaniky (OFF=jsou; ON=ádná)
+
+    Pouití  pøepínaèù  DIL  u  poèítaèe XT je podobné jako u PC s vyjímkou
+pozice  1,  která  aktivuje  cyklování inicializaèního tesu POST a musí bıt
+proto  vdy  v  poloze  OFF. Odlišné jsou té hodnoty systémové pamìti RAM,
+které  se  nastavují  pozicemi  3-4  pøepínaèe SW1 - hodnoty pamìti jsou (v
+odpovídajícím poøadí) 64K, 128K, 192K a 256K.
+
+
+          SW2 (PC-1)
+ON   +1+2+3+4+5+6+7+8+  = 0
+     | | | | | | | | |
+     | | | | | | | | |  = 1
+OFF  +-+-+-+-+-+-+-+-+
+      | | | | | | | |   pøep.
+      | | | | +-+-+-+--> 5-8: vdy v OFF
+      +-+-+-+----------> 1-4: celková RAM: pozice 4 = 256K (v OFF platí)
+                                           pozice 3 = 128K (v OFF platí)
+                                           pozice 2 =  64K (v OFF platí)
+                                           pozice 1 =  32K (v OFF platí)
+      Celková  kapacita pamìti vznikne souètem jednotlivıch pozic pøepínaèù
+      a  volby  z  SW1.  Napø.  512  KB: 3(SW1)=OFF; 4(SW1)=OFF; 1(SW2)=ON;
+      2(SW2)=OFF a 4(SW2)=OFF.
+
+    Pozdìjší  verze  PC  (nìkdy  nazıvané  PC-2)  mají  odlišnı BIOS, kterı
+interpretuje  pøepínaè SW2 ponìkud odlišnì (vıznam SW1 zùstává stejnı).
+
+          SW2 (PC-2)
+ON   +1+2+3+4+5+6+7+8+  = 0
+     | | | | | | | | |
+     | | | | | | | | |  = 1
+OFF  +-+-+-+-+-+-+-+-+
+      | | | | | | | |   pøep.
+      | | | | | +-+-+--> 6-8: vdy v OFF
+      +-+-+-+-+--------> 1-5: celková RAM: vıznam stejnı jako u PC-1, navíc
+                                           je pozice 5 = 512K (v OFF platí)
+                                          Maximální kapacita mùe bıt 640K.
+
+    Na poèítaèích PC a XT mùete zmìnit úèinek pøepínaèù zmìnou v nastavení
+tabulky  vybavení (adresa 0:0410H) a resetováním DOS. Pøedtím však nastavte
+obsah  adresy  0:0472H  na  1234H  (viz zavádìní operaèního systému, POST),
+potom proveïte INT 19H.
+
+    Pokud  bìhem provozu poèítaèe nastane chyba pamìti, nebo chcete zjistit
+skuteènou velikost pamìti, zkuste následující postup: Nastavte pøepínaèe na
+malou  velikost  pamìti (aby systém fungoval bez chyby), resetujte systém a
+po  zavedení  systému  zkuste  pøíkaz  CHKDSK  k  zjištìní,  zda je pamì v
+poøádku.  Pokud  ano,  zvìtšete nastavení velikosti pamìti a opakujte reset
+systému  a  kontrolu  pamìti.  To opakujte tak dlouho, a bude pøi kontrole
+pamìti hlášena chyba.
+
+    Pokud  se  vám  touto  cestou  podaøí zvıšit pomocí pøepínaèù DIL pamì
+poèítaèe nad 640K, BIOS bude sice šastnı, avšak DOS tuto operaci nepøeije
+(pøechodná èást COMMAND.COM se naète do nejvyšší èásti pamìti RAM).
+
+
+    Poèítaè  AT  nemá nastavování pomocí pøepínaèù DIL. Konfigurace systému
+je nastavena pomocí konfiguraèního programu SETUP, kterı je uloen v pamìti
+ROM,  vısledek  nastavení  se  uloí  do  pamìti  CMOS. Jediné nastavení se
+provádí  pomocí  propojovacích  mùstkù, tyto mùstky jsou však ji nastaveny
+továrnì  podle  konkrétního osazení systémové desky a není vhodné je mìnit.
+Ze  zajímavıch  mùstkù  lze  uvést  pouze  mùstek  J18,  kterı v poloze 1-2
+povoluje  pouití  druhé èásti 256K (pøi 512K na systémové desce), v poloze
+2-3  ji  blokuje. Dalším pøepínaèem AT je pøepínaè oznaèenı jako SW1, kterı
+urèuje  inicializaèní  adaptér  displeje  (pro  inicializaèní  test POST) v
+pøípadì, e data v CMOS jsou neplatná (napø. pøi vıpadku baterie). V poloze
+ON  (smìrem k zadnímu panelu) tento pøepínaè urèuje jako primární grafickou
+kartu  CGA,  v poloze OFF (smìrem k pøednímu panelu) oznaèuje jako primární
+grafickou kartu EGA. Nastavení pøepínaèù karty EGA - viz popis karty EGA.
+
+
+
+
+
+                    2 . -   Ø a d i è   p ø e r u š e n í
+
+
+
+
+Øadiè  pøerušení:
+
+
+Porty 0020H - 003FH: øadiè pøerušení #1 8259A
+---------------------------------------------
+
+    Inicializace øadièe pøerušení 8259A:
+
+ICW1: Inic. øídicí slovo - zapisuje se vdy jako první slovo na port 0020H:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+               | |   | +-> 0: nutno nastavit na 1
+               | |   +---> 1: 1=jednoduchı mód; 0=kaskádní mód (bude ICW3)
+               | +-------> 3: 1=spouštìní úrovní; 0=spouštìní hranou
+               +---------> 4: nutno nastavit na 1
+
+ICW2: Inic. øídicí slovo - zapisuje se bezprostøednì po ICW1 na port 0021H:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | |         0-2: nepouito, bity se dosadí automaticky
+         +-+-+-+-+-------> 3-7: bity 3 a 7 èísla pøerušení INT x
+
+ICW3: Inic.  øídicí  slovo - zapisuje se po ICW2 na port 0021H, pokud byl v
+      ICW1 nastaven bit 1 na 0 (=kaskádní mód):
+
+    Øadiè je jako MASTER:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | |
+         +-+-+-+-+-+-+-+-> 0-7: 1=je pøipojen SLAVE; 0=není SLAVE
+
+    Øadiè je jako SLAVE:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+                   | | |
+                   +-+-+-> 0-2: èíslo SLAVE (kam je pøipojen k MASTER)
+
+
+ICW4: Inic. øídicí slovo - zapisuje se po ICW2 resp. po ICW3 na port 0021H:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: nutno nastavit na 1
+         | | | | | | +---> 1: 1=autom. konec pøerušení; 0=pouije se EOI
+         | | | | | +-----> 2: (pouze pokud je bit 3=1): 1=MASTER; 0=SLAVE
+         | | | | +-------> 3: 1=buff. mód; 0=není buff. mód (bit 2 ignor.)
+         | | | +---------> 4: 1=spec. reim s úplnım vkládání (jen MASTER)
+         +-+-+-----------> 5-7: nutno nastavit na 0
+
+
+
+    Operaèní øídicí slova (v bìném provozu):
+
+OCW1: Oper. øídicí slovo - zapisuje se nebo ète z portu 0021H:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | |
+         +-+-+-+-+-+-+-+-> 0-7: pøerušení od vstupu: 1=zakázáno, 0=povoleno
+
+OCW2: Oper. øídicí slovo - zapisuje se na port 0020H:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit        (EOI=povel pro konec pøerušení)
+         | | | | | | | |
+         | | | | | +-+-+-> 0-2: úroveò pøerušení 0 a 7 (povely 60,C0 a E0)
+         | | | +-+-------> 3,4: nutno nastavit na 0
+         +-+-+-----------> 5-7: povel: 00=rotace v automat. EOI-nulování
+                                       20=nespecifikovanı EOI
+         | | |                         40=ádná operace
+         | | +>1=automat. mód EOI      60=EOI pro zadanou úroveò (0-7)
+         | +-->1=specifik. úroveò 0-7  80=rotace v automat. EOI-nastavení
+         +---->1=povel se tıká rotace  A0=rotace v nespecifik. módu EOI
+                                       C0=nastavení priority (0-7)
+                                       E0=rotace ve specif. módu EOI (0-7)
+
+
+
+
+
+Porty 00A0H - 00BFH: øadiè pøerušení #2 8259A
+---------------------------------------------
+
+00A0H - zápis: vyslání bajtu 20H - signalizace konce pøerušení IRQ 8-15
+00A1H - zápis/ètení: maskování  pøerušení  (bit  0  a  7  = 0 --> povolení
+                     pøerušení pro vstupy IRQ 8-15)
+
+
+Hardwarová  pøerušení:
+
+    poadavky pøerušení øadièe pøerušení #1:
+
+IRQ 0    - systémové hodiny (pøerušení 18.2 krát za sekundu) (INT 08H)
+IRQ 1    - pøerušení od klávesnice (INT 09H)
+IRQ 2    - zpìtnı bìh EGA, kaskádní poadavek pøerušení AT od #2 (INT 0AH)
+IRQ 3    - pøerušení od sériového portu COM2 (INT 0BH)
+IRQ 4    - pøerušení od sériového portu COM1 (INT 0CH)
+IRQ 5    - tiskárna LPT2, øadiè pevného disku XT (INT 0DH)
+IRQ 6    - øadiè prunıch diskù (INT 0EH)
+IRQ 7    - tiskárna LPT1 (INT 0FH)
+
+            (následující   pøerušení   jsou  kaskádnì  pøipojena  k  øadièi
+            pøerušení #1 pøes poadavek IRQ 2)
+
+IRQ 8    - CMOS èasovaè (1024 krát za sekundu) (INT 70H)
+IRQ 9    - (INT 71H)
+IRQ 10   - (INT 72H)
+IRQ 11   - (INT 73H)
+IRQ 12   - (INT 74H)
+IRQ 13   - pøerušení koprocesory 80287 a 80387 pøi chybì (INT 02H, INT 75H)
+IRQ 14   - øadiè pevného disku AT (INT 76H)
+IRQ 15   - (INT 77H)
+
+
+    Nemaskovatelné pøerušení NMI (INT 02H) nelze maskovat pøímo v porcesoru
+pomocí  instrukce  pro  zákaz  pøerušení. Proto je umonìno v poèítaèích PC
+maskovat  toto  pøerušení  hardwarovì  (pøerušení  NMI  je  v poèítaèích PC
+generováno pøi vzniku chyby parity pamìti a pøi vzniku chyby v matematickém
+koprocesoru).  U  poèítaèù  PC/XT  se  povolí  pøerušení  vysláním  bajtu s
+nastavenım  7.bitem  (=80H)  na  port  00A0H.  Vysláním bajtu s vynulovanım
+7.bitem  (=00H)  se pøerušení NMI zakáe. U poèítaèe AT se povolí pøerušení
+vysláním  bajtu s vynulovanım 7.bitem (=00) na port 0070H. Vysláním bajtu s
+nastavenım  7.bitem  (=80H hodnoty jsou tedy obrácenì ne u poèítaèù PC/XT)
+se pøerušení NMI zakáe (viz té pamì CMOS - maskování NMI).
+
+
+
+
+
+                          3 . -   Ø a d i è   D M A
+
+
+    DMA  (pøímı  pøístup do pamìti) je zpùsob pøenosu dat mezi pamìtí a I/O
+zaøízením  bez  úèasti  procesoru.  Tento  zpùsob  pøenosu  se pouívá pøi
+poadavku  rychlého  pøenosu velkého mnoství dat, jako je napø. pøenos dat
+mezi pamìtí a disketovou jednotkou nebo pevnım diskem.
+
+    Pùvodní  PC  podporoval  ètyøi  8-bitové  kanály  DMA,  pøes  20-bitovı
+adresovı prostor, s pouitím øadièe DMA Intel 8237A.
+
+   +---------+------------------------------------------------+
+   |kanál DMA|               pouití v PC a XT                |
+   +---------+------------------------------------------------+
+   |   0     |      obèerstvování pamìti (nejvyšší priorita)  |
+   |   1     |      nepouit                                  |
+   |   2     |      adaptér disketové jednotky                |
+   |   3     |      adaptér pevného disku (nejniší priorita) |
+   +---------+------------------------------------------------+
+
+    Systém  DMA poèítaèù AT je zaloen pro zvıšení kompatibility na systému
+DMA  poèítaèù  PC a XT. Ke ètyøem 8-bitovım kanálùm DMA poèítaèù PC pøidává
+AT  druhı  øadiè  DMA  8237A-5, kterı podporuje kanály 4-7 (ètyøi 16-bitové
+kanály).
+
+   +---------+------------------------------------------------+
+   |kanál DMA|               pouití v AT                     |
+   +---------+------------------------------------------------+----------+
+   |   0     |      volnı                                     |          |
+   |   1     |      øízení synchronní datové linky SDLC       | 8-bitové |
+   |   2     |      adaptér disketové jednotky                |  kanály  |
+   |   3     |      adaptér pevného disku                     |          |
+   +---------+------------------------------------------------+----------+
+   |   4     |      (øadiè 2) kaskáda pro øadiè 1             |          |
+   |   5     |      volnı                                     | 16-bitové|
+   |   6     |      volnı                                     |  kanály  |
+   |   7     |      volnı                                     |          |
+   +---------+------------------------------------------------+----------+
+
+
+
+Porty 0000H - 0007H: bázové adresy DMA a offsetové registry
+-----------------------------------------------------------
+
+    Všechny  registry jsou 16-bitové. Nejdøíve se ète/zapisuje niší bajt a
+potom  na  stejné  adrese  portu  vyšší bajt (viz té port 000CH - nulování
+klopného  obvodu ukazatele bajtù). Bázové adresy jsou offsetovány v stránce
+DMA.
+
+0000H - zápis: bázová adresa kanálu 0 DMA (té nastaví souèasnou adresu)
+        ètení: souèasná adresa kanálu 0 DMA          (obèerstvování)
+0001H - zápis: bázová adresa a èítaè slov kanálu 0 DMA     "
+        ètení: souèasnı stav èítaèe slov kanálu 0 DMA      "
+0002H - zápis: bázová adresa kanálu 1 DMA
+        ètení: souèasná adresa kanálu 1 DMA
+0003H - zápis: bázová adresa a èítaè slov kanálu 1 DMA
+        ètení: souèasnı stav èítaèe slov kanálu 1 DMA
+0004H - zápis: bázová adresa kanálu 2 DMA            (disketová jednotka)
+        ètení: souèasná adresa kanálu 2 DMA                "
+0005H - zápis: bázová adresa a èítaè slov kanálu 2 DMA     "
+        ètení: souèasnı stav èítaèe slov kanálu 2 DMA      "
+0006H - zápis: bázová adresa kanálu 3 DMA            (pevnı disk)
+        ètení: souèasná adresa kanálu 3 DMA                "
+0007H - zápis: bázová adresa a èítaè slov kanálu 3 DMA     "
+        ètení: souèasnı stav èítaèe slov kanálu 3 DMA      "
+
+
+
+Porty 00C0H - 00CFH: bázové registry 16-bitového DMA
+----------------------------------------------------
+
+    Kanály  0-3  pøenosu  DMA  pracují s 8-bitovım pøenosem dat (standardní
+PC).  U  poèítaèù  AT jsou doplnìny kanály 4-7 podporující 16-bitovı pøenos
+dat.  Pøenos pro tyto kanály zaèíná vdy na hranici slov a všechny adresy a
+èítaèe  pracují  pro 16-bitová slova (napø. bázová adresa 0123H se aktuálnì
+vztahuje na offset 0246H od zaèátku stránky v pøíslušném kanálu).
+
+00C0H - zápis: bázová a souèasná adresa kanálu 4 DMA (bity 1-16; bit0=0)
+        ètení: souèasná adresa kanálu 4 DMA
+00C2H - zápis: èítaè slov kanálu 4 DMA
+        ètení: souèasnı stav èítaèe slov kanálu 4 DMA
+00C4H - zápis: bázová a souèasná adresa kanálu 5 DMA (bity 1-16; bit0=0)
+        ètení: souèasná adresa kanálu 5 DMA
+00C6H - zápis: èítaè slov kanálu 5 DMA
+        ètení: souèasnı stav èítaèe slov kanálu 5 DMA
+00C8H - zápis: bázová a souèasná adresa kanálu 6 DMA (bity 1-16; bit0=0)
+        ètení: souèasná adresa kanálu 6 DMA
+00CAH - zápis: èítaè slov kanálu 6 DMA
+        ètení: souèasnı stav èítaèe slov kanálu 6 DMA
+00CCH - zápis: bázová a souèasná adresa kanálu 7 DMA (bity 1-16; bit0=0)
+        ètení: souèasná adresa kanálu 7 DMA
+00CEH - zápis: èítaè slov kanálu 7 DMA
+        ètení: souèasnı stav èítaèe slov kanálu 7 DMA
+
+
+
+Porty 0008H - 000FH: øízení DMA/stavové registry
+------------------------------------------------
+
+0008H - zápis: povelovı registr DMA
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: 1=monı pøenos DMA pamì-pamì (kan. 0<-->1)
+         | | | | | | +---> 1: 1=moné drení adresy kanálu 0
+         | | | | | +-----> 2: 1=blokování øadièe
+         | | | | +-------> 3: 1=volba kompresního èasovacího módu
+         | | | +---------> 4: 1=moná rotující priorita
+         | | +-----------> 5: 1=volba rozšíøeného zápisového módu;0=pozdní
+         | +-------------> 6: 1=aktivní úroveò DRQ high; 0=low
+         +---------------> 7: 1=aktivní úroveò DACK high; 0=low
+
+      - ètení: stavovı registr DMA
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         +-+++-+ +-+-+-+-> 0-3: kanál 0-3 ukonèil èítání
+            +------------> 4-7: kanál 0-3 poaduje obsluhu
+
+0009H - zápis: registr poadavku
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +-+-+-+-+-+++++++  bit
+                   | +-+-> 0-1: vıbìr kanálu 0-3 (00=0; 01=1; 10=2; 11=3)
+                   +----->  2:  1=nastaven bit poadavku kanálu; 0=resetov.
+
+000AH - zápis: registr maskovacího bitu
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +-+-+-+-+-+++++++  bit
+                   | +-+-> 0-1: vıbìr kanálu 0-3 (00=0; 01=1; 10=2; 11=3)
+                   +----->  2:  1=nastaven maskovací bit kanálu; 0=resetov.
+
+000BH - zápis: registr módu
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | | | +-+-> 0-1: volba kanálu 0-3 (00=0; 01=1; 10=2; 11=3)
+         | | | | +-+-----> 2-3: typ pøenosu (00=verif.; 01=zápis; 10=ètení)
+         | | | +--------->  4:  1=moná automatická inicializace
+         | | +----------->  5:  1=inkrementace adresy; 0=dekrement. adresy
+         +-+-------------> 6-7: 00=mód poadavku; 01=jednoduchı mód;
+                                10=blokovı pøenos; 11=kaskádní mód
+
+000CH - zápis: Vynulování  klopného obvodu ukazatele bajtù. Jakıkoliv zápis
+               na  tuto adresu vynuluje klopnı obvod ukazatele bajtù, take
+               pøi   pøíštím   zápisu  nìkterého  16-bitového  registru  je
+               zapisovanı  bajt dekódován jako niší bajt. Následující bajt
+               je vyšší bajt (pak opìt niší atd.).
+
+000DH - zápis: celkové nulování-jakıkoliv zápis na port nuluje øízení (musí
+               bıt znovu zinicializováno)
+      - ètení: pomocnı registr - poslední bajt pøi pøenosu pamì-pamì
+
+000EH - zápis: vynulování  maskovacího  registru  - jakıkoliv zápis na port
+               uvolní všechny 4 kanály
+
+000FH - zápis: maskování  kanálù  -  mae nebo maskuje nìkterı nebo všechny
+               kanály
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +-+-+-+-+++++++++ bit
+                 | | | +-> 0: 1=maska kanálu 0; (0=uvolnìnı; 1=blokovanı)
+                 | | +---> 1: 1=maska kanálu 1; (0=uvolnìnı; 1=blokovanı)
+                 | +-----> 2: 1=maska kanálu 2; (0=uvolnìnı; 1=blokovanı)
+                 +-------> 3: 1=maska kanálu 3; (0=uvolnìnı; 1=blokovanı)
+
+      - ètení: podpùrnı registr - poslední bajt pøi pøenosu pamì-pamì
+
+
+
+Porty 00D0H - 00DFH: øízení DMA/stavové registry pro 16-bitovı DMA
+------------------------------------------------------------------
+
+00D0H - zápis: povelovı registr DMA
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: 1=monı pøenos DMA pamì-pamì (kan. 4<-->5)
+         | | | | | | +---> 1: 1=moné drení adresy kanálu 4
+         | | | | | +-----> 2: 1=blokování øadièe
+         | | | | +-------> 3: 1=volba kompresního èasovacího módu
+         | | | +---------> 4: 1=moná rotující priorita
+         | | +-----------> 5: 1=volba rozšíøeného zápisového módu;0=pozdní
+         | +-------------> 6: 1=aktivní úroveò DRQ high; 0=low
+         +---------------> 7: 1=aktivní úroveò DACK high; 0=low
+
+      - ètení: stavovı registr DMA
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         +-+++-+ +-+-+-+-> 0-3: kanál 4-7 ukonèil èítání
+            +------------> 4-7: kanál 4-7 poaduje obsluhu
+
+00D2H - zápis: registr poadavku
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +-+-+-+-+-+++++++  bit
+                   | +-+-> 0-1: vıbìr kanálu 4-7 (00=4; 01=5; 10=6; 11=7)
+                   +----->  2:  1=nastaven bit poadavku kanálu; 0=resetov.
+
+00D4H - zápis: registr maskovacího bitu
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +-+-+-+-+-+++++++  bit
+                   | +-+-> 0-1: vıbìr kanálu 4-7 (00=4; 01=5; 10=6; 11=7)
+                   +----->  2:  1=nastaven maskovací bit kanálu; 0=resetov.
+
+00D6H - zápis: registr módu
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | | | +-+-> 0-1: volba kanálu 4-7 (00=4; 01=5; 10=6; 11=7)
+         | | | | +-+-----> 2-3: typ pøenosu (00=verif.; 01=zápis; 10=ètení)
+         | | | +--------->  4:  1=moná automatická inicializace
+         | | +----------->  5:  1=inkrementace adresy; 0=dekrement. adresy
+         +-+-------------> 6-7: 00=mód poadavku; 01=jednoduchı mód;
+                                10=blokovı pøenos; 11=kaskádní mód
+
+00D8H - zápis: Vynulování  klopného obvodu ukazatele bajtù. Jakıkoliv zápis
+               na  tuto adresu vynuluje klopnı obvod ukazatele bajtù, take
+               pøi   pøíštím   zápisu  nìkterého  16-bitového  registru  je
+               zapisovanı  bajt dekódován jako niší bajt. Následující bajt
+               je vyšší bajt (pak opìt niší atd.).
+
+00DAH - zápis: celkové nulování-jakıkoliv zápis na port nuluje øízení (musí
+               bıt znovu zinicializováno)
+      - ètení: pomocnı registr - poslední bajt pøi pøenosu pamì-pamì
+
+00DCH - zápis: vynulování  maskovacího  registru  - jakıkoliv zápis na port
+               uvolní všechny 4 kanály 4 a 7
+
+00DEH - zápis: maskování  kanálù  -  mae nebo maskuje nìkterı nebo všechny
+               kanály
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +-+-+-+-+++++++++ bit
+                 | | | +-> 0: 1=maska kanálu 4; (0=uvolnìnı; 1=blokovanı)
+                 | | +---> 1: 1=maska kanálu 5; (0=uvolnìnı; 1=blokovanı)
+                 | +-----> 2: 1=maska kanálu 6; (0=uvolnìnı; 1=blokovanı)
+                 +-------> 3: 1=maska kanálu 7; (0=uvolnìnı; 1=blokovanı)
+
+      - ètení: podpùrnı registr - poslední bajt pøi pøenosu pamì-pamì
+
+
+Porty 0080H - 008FH: stránkové registry DMA 74LS612
+---------------------------------------------------
+
+    Chcete-li nastavit poèáteèní adresu operací DMA, vyberte nejdøíve kanál
+tím,  e  provedete instrukci OUT (hodnota 00H a 0FH) na stránkovı registr
+(porty  0081H  -  0083H)  a  potom  nastavíte bázovou adresu (porty 0000H -
+0007H) pro pøíslušnı kanál. Stránkovı registr se nastaví 4-bitovou hodnotou
+reprezentující bity 16-19 20-bitové adresy DMA. Protoe bìná adresa èítaèe
+DMA  je  16-bitová  hodnota,  není  moné  provádìt  pomocí DMA pøenos pøes
+hranice 64K (tj. adresy 1000:0000, 2000:0000 atd.).
+
+0081H - stránkovı registr kanálu 2 - adresové bity 16-19 (disketovı DMA)
+0082H - stránkovı registr kanálu 3 - adresové bity 16-19 (pevnı disk)
+0083H - stránkovı registr kanálu 1 - adresové bity 16-19
+
+    Poèítaèe  AT  pouívají  pro  nastavení  adresy  stránky  všech  8 bitù
+stránkového registru. Je to z toho dùvodu, e AT pouívá 24-bitovı adresovı
+prostor.  Spodních  16  bitù  je nastaveno v adresovém registru kanálu DMA,
+vyšších 8 bitù je pouito ze stránkového registru. Velikost stránek je 128K
+(tj  64K  slov),  take  pøenosy  DMA nesmìjí pøekraèovat hranici 128K (tj.
+adresy 2000:0, 4000:0 atd.).
+
+0081H - stránkovı registr kanálu 2 - adresové bity 16-23 (disketovı DMA)
+0082H - stránkovı registr kanálu 3 - adresové bity 16-23 (pevnı disk)
+0083H - stránkovı registr kanálu 1 - adresové bity 16-23 (SDLC)
+0087H - stránkovı registr kanálu 0 - adresové bity 16-23
+0089H - stránkovı registr kanálu 6 - adresové bity 17-23
+008BH - stránkovı registr kanálu 5 - adresové bity 17-23
+008AH - stránkovı registr kanálu 7 - adresové bity 17-23
+008FH - refresh
+
+    Stránkovı  registr  na  adrese  0080H má u poèítaèe AT zvláštní funkci.
+SLouí   jako   diagnostickı  bod  a  jsou  do  nìj  støádány  chyby  bìhem
+inizializaèního testu POST.
+
+
+                           4 . -   È a s o v a è
+
+Porty 0040H - 005FH: èasovaè 8253-5 (AT: 8254.2)
+------------------------------------------------
+
+    Èasovaè  pouívá  svùj  vlastní  krystal o kmitoètu 14.31818 MHz, jeho
+kmitoèet  po  vydìlení  pøeddìlièkou  (dìlící  v  pomìru  1:12) na kmitoèet
+1.193182·MHz  slouí  jako  zdroj  hodinovıch impulsù èasovaèe (vstup CLK).
+Funkce  8254.2  u  AT  se liší oproti 8253 pøedevším vìtším poètem pøíkazù,
+které  umoòují  snadnìjší  zapamatování stavu èítaèe bìhem èítání a zpìtné
+ètení.
+
+0040H -  zápis: nastavení èítaèe 0
+         ètení: stav èítaèe 0
+
+          Vıstup  z  èítaèe 0 je pøiveden na vstup IRQ 0 øadièe pøerušení a
+pouívá se jako zdroj impulsù pro systémové hodiny (dìlící pomìr 65279).
+
+0041H -  zápis: nastavení èítaèe 1
+         ètení: stav èítaèe 1
+
+          Èítaè  1  slouí  ke generování signálu REFRESH pro obèerstvování
+         pamìti (dìlící pomìr 4866).
+
+0042H -  zápis: nastavení èítaèe 2
+         ètení: stav èítaèe 2
+
+          Vıstup z èítaèe 2 je pouit jako vıstup na vestavìnı reproduktor.
+         Vıstup  na  reproduktor se aktivuje pomocí portu 0061H (bity 0 a 1
+         musí bıt nastaveny na 1).
+
+              mov       bx,330         ; VSTUP - frekvence uvedená v Hz
+              mov       cx,40000       ; VSTUP - prodleva (pomocnı údaj)
+              mov       al,0b6h        ; povel pro nastavení kanálu 2
+              out       [43h],al       ; nastavení povelu
+              mov       dx,12h         ; vyšší slovo konstanty
+              mov       ax,34deh       ; niší slovo konstanty
+              div       bx             ; vıpoèet dìlícího pomìru
+              out       [42h],al       ; nastavení nišího bajtu dìlièky
+              mov       al,ah          ; vyšší bajt dìlièky
+              out       [42h],al       ; nastavení vyššího bajtu dìlièky
+              in        al,[61h]       ; souèasné nastavení portu 61h
+              or        al,3           ; nastavení bitù pro reproduktor
+              out       [61h],al       ; zapnutí zvukového vıstupu
+              loop      $              ; prodleva
+              and       al,0fch        ; vynulování ovládacích bitù
+              out       [61h],al       ; vypnutí zvukového vıstupu
+
+0043H -  zápis: volba módu èítaèe (ètení registru u 8253 není moné)
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | | | | +->  0:  1=èítá v kódu BCD, 0=èítá v binárním kódu
+         | | | | +-+-+---> 1-3: mód èítaèe:  000 - mód 0     (pøi práci
+         | | | |                             001 - mód 1      s pomocnım
+         | | | |                             x10 - mód 2      registrem
+         | | | |                             x11 - mód 3      jsou tyto
+         | | | |                             100 - mód 4        bity
+         | | | |                             101 - mód 5      bezvıznamné)
+         | | +-+---------> 4-5: 00 - operace   s  pomocnım  registrem  (pøi
+         | |                         ètení  stavu  èítaèe  se okamitı stav
+         | |                         èítaèe  uschovává v pomocném registru,
+         | |                         aby   jej   bylo   mono  pøeèíst  bez
+         | |                         zastavení èítaèe)
+         | |                    01 - ètení/zápis jen niší slabiky dìlièe
+         | |                    10 - ètení/zápis jen vyšší slabiky dìlièe
+         | |                    11 - ètení/zápis niší a potom vyšší slab.
+         +-+-------------> 6,7: volba èítaèe: (0 a 2, 3=neplatnı kód)
+
+         MÓD 0 - pøerušení  na  konci  èítání:  Vıstup  OUT  èítaèe  se  po
+                 ukonèení  èítání  pøeklopí  z  hodnoty L na úroveò H a do
+                 doby  nového  nastavení.  Pøi  zápisu  pøedvolby v prùbìhy
+                 èítání se po zápisu 1. slabiky probíhající èítání zastaví,
+                 po zápisu 2. slabiky se odstartuje nové èítání. Vstup GATE
+                 (pouze u èítaèe 2 - bit 0 portu 61h) povoluje èítání pouze
+                 pokud je na úrovni H.
+         MÓD 1 - monostabilní generátor: Vzestupná hrana vstupu GATE spustí
+                 vıstupní  impuls - vıstup OUT pøejde na úroveò L a zùstane
+                 v ní po dobu nastavenou pøedvolbou. Po této dobì se vıstup
+                 navrátí  zpìt  na  úroveò  H.  Jestlie byla bìhem impulsu
+                 vloena nová pøedvolba, délka impulsu se nezmìní (zmìní se
+                 a následující impuls). Prùbìnı stav èítaèe mùe bıt èten
+                 kdykoliv,  ani by to ovlivnilo generování impulsu. Impuls
+                 je moné znovu spouštìt i v dobì jeho trvání.
+         MÓD 2 - dìlení  frekvence:  Vıstup  OUT  bude  na úrovni L po dobu
+                 jedné   periody   hodinového   impulsu  CLK,  rozteè  mezi
+                 vıstupními  impulsy  odpovídá  dobì  nastavené  pøedvolbou
+                 èítaèe  (vıstupní  kmitoèet  OUT  je tedy N-krát menší ne
+                 hodinovı kmitoèet CLK). Jestlie byl obsah registru èítaèe
+                 zmìnìn mezi dvìmi vıstupními impulsy, probíhající vıstupní
+                 perioda  se nezmìní. Vstup GATE an úrovni L pøevede OUT na
+                 úroveò  H.  Vzestupná hrana GATE zahájí èítání z poèáteèní
+                 hodnoty  (lze  vyuít  k  synchronizaci èítaèe). Vıstup je
+                 také  neaktivní  (tj. na úrovni H) po dobu plnìní registru
+                 èítaèe pøedvolbou.
+         MÓD 3 - generování  obdélníkovıch  prùbìhù:  Mód  3 je stejnı jako
+                 mód·2  s  tím  rozdílem, e vıstup OUT bude na úrovni L po
+                 polovinu  doby  a na úrovni H po druhou polovinu doby. Pro
+                 liché èíslo N (pøedvolba) bude OUT o 1 takt déle na úrovni
+                 H.  Nová hodnota dìlièe se uplatní ji pøi dalším pùltaktu
+                 vıstupu OUT.
+         MÓD 4 - strobování ovládané programem: Po nastavení módu je OUT=H,
+                 po  zavedení  pøedvolby  zaène  èítat,  po doèítání pøejde
+                 vıstup  OUT  po dobu jedné periody CLK na úroveò L a vrátí
+                 se zpìt na úroveò H. Vstup GATE=L zastaví èítání.
+         MÓD 5 - strobování   oládané  obvodovì:  Èítaè  zahájí  èítání  po
+                 vzestupné  hranì  vstupu  GATE  (tj.  pøechod L -> H) a po
+                 doèítání  pøejde  vıstup  OUT po dobu jedné periody CLK na
+                 úroveò  L.  Nová  vzestupná  hrana  GATE  zahájí èítání od
+                 poèáteèní hodnoty i bìhem èítání.
+
+Pozn.: Zápis  hodnoty  0  jako  èasovací  konstanta  odpovídá  hodnotì  216
+       v·binárním nebo 104 v BCD kódu.
+
+
+
+
+                        5 . -   K l á v e s n i c e
+
+
+Porty 0060H - 006FH: øadiè klávesnice 8042
+------------------------------------------
+
+0060H - (program. periferní interface - kanál A) datovı registr klávesnice
+      - ètení: kód klávesy z klávesnice (rozšiøující kód klávesy)
+
+         IN AL,60H           ; ètení kódu klávesy
+
+        Viz  té  pøerušení  INT  09H  (pøerušení klávesnicí). Pøerušení je
+        vyvoláno  hardwarovì  signálem  IRQ 1 a je vyvoláno vdy pøi stisku
+        nebo pøi uvolnìní kterékoliv klávesy, resp. pøi jejím drení.
+
+0061H - (programovatelnı periferní interface PPI - kanál B)
+      - zápis: ovládání reproduktoru, klávesnice a kontroly pamìti a I/O
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: hradlování èasovaèe 2 (reproduktor)-+  1=zap
+         | | | | | | +---> 1: klíèování vıstupu na reproduktor ---+- 0=vyp
+         | | | | | +-----> 2: vdy = 0
+         | | | | +-------> 3: 1=ètení horních pøepínaèù; 0=dolní (viz 62H)
+         | | | +---------> 4: 0=moná kontrola parity RAM; 1=zákaz kontr.
+         | | +-----------> 5: 0=moná kontrola kanálu I/O
+         | +-------------> 6: 0=ponechání hodin klávesnice dole
+         +---------------> 7: 0=povolená klávesnice; 1=blokovaná klávesnice
+
+         Pozn.: data OR  03H ---> zapnutí reproduktoru
+                data AND FCH ---> vypnutí reproduktoru
+
+0062H - (programovatelnı periferní interface PPI - kanál C)
+      - ètení: ètení pøepínaèù DIL, èasovaèe, stavu kontrol pamìti a I/O
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | +-+-+-+-> 0-3: hodnota pøepínaèù DIL (viz vıpis vybavení)
+         | | | +--------->  4: vdy = 0
+         | | +----------->  5: 1=vıstup kanálu èasovaèe 2
+         | +------------->  6: 1=kontrola kanálu I/O
+         +--------------->  7: 1=vyskytla se chyba kontroly parity RAM
+
+0063H - (øídící registr módu programovatelného periferního interface PPI) -
+        tento  registr  nastavuje,  kterı  port  PPI  je  vstupní  a  kterı
+        vıstupní. BIOS zde nastaví hodnotu 99H (porty A a C jsou vstupní, B
+        je vıstupní).
+
+0064H - povelovı registr klávesnice AT (pouze pro AT !)
+      - tento  port komunikuje s 8042, kterı spouští øídící program on-chip
+        pro obsluhu klávesnice. Pøijímá kódy povelù a datové bajty.
+
+
+    Klávesnice   AT  (a  její  mikropoèítaèovı  interface  Intel  8042)  je
+programovatelná  a  je  mnohem  zajímavìjší  ne  klávesnice  PC ve "starém
+stylu".  S  pouitím  následujících  informací  mùete  nastavovat rychlost
+opakování klávesy a hrát hry s pouitím indikátorù LED na klávesnici.
+
+    Port  60H  je  urèen  pro zápis dat a je podporován pro kompatibilitu s
+døívìjšímy  modely.  Pokud  pøíklad  pouívající  port 64H nebude pracovat,
+zkuste pouít port 60H.
+
+    Port  64H je urèen pro zápis povelù a dat a pro ètení stavu klávesnice.
+Pøed  vysláním  povelu  na  klávesnici testuje BIOS její stav (IN AL,64H) a
+ubezpeèuje  se, e není stisknuta ádná klávesa nebo e vnitøní buffer není
+plnı atd. Je v tom malı risk, pokud jdete pøímo a vyšlete povel:
+
+         mov       al,kod_cmd               ; èíslo povelu pro klávesnici
+         out       64h,al                   ; vyslání povelu
+
+
+
+    Pro dvoudílné povely, jako napø. nastavení rychlosti opakování klávesy,
+je rozumné zaøadit mezi jednotlivé vıstupy malou prodlevu:
+
+         mov       al,kod_cmd               ; èíslo povelu pro klávesnici
+         out       64h,al                   ; vyslání povelu
+         mov       cx,2000h                 ; prodleva asi 10ms
+prodl:   loop      prodl                    ; prodleva mezi vıstupy OUT
+         mov       al,hodnota_dat           ; druhá èást povelu pro kláv.
+         out       64h,al                   ; vyslání druhé èásti povelu
+
+Povely pro ovládání klávesnice AT (vyšle se na port 64H):
+---------------------------------------------------------
+
+0FFH - reset klávesnice a start vnitøní diagnostiky
+0FEH - opakované vyslání posledního pøenosu
+0FDH - 0F7H - ádná funkce (NOP)
+0F6H - nastavení klávesnice na standardní hodnoty a pokraèování v testování
+0F5H - nastavení klávesnice na stand. hodnoty a zákaz testování klávesnice
+0F4H - uvolnìní  klávesnice.  Klávesnice  vyšle  'ACK' (potvrzení), vyèistí
+       buffer a zaène testování kláves
+0F3H - nastavení  rychlosti  generování  znakù a prodlevy. Nejdøíve vyšlete
+       bajt 0F3H (tento pøíkaz) a potom datovı bajt:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | +-+-+-+-+-> 0-4: nastavení rychlosti opakování znaku
+         | +-+-----------> 5-6: nastavení inicial. prodlevy pøed opakováním
+         |                      00=250ms; 01=500ms; 10=750ms; 11=1000ms
+         +--------------->  7:  je vdy nastaven na 0
+
+
+    Rychlosti generování znakù ve znacích za sekundu (bity 0-4):
++---------+-------------+---------+-------------+---------+-------------+
+| hodnota |  rychlost   | hodnota |  rychlost   | hodnota |  rychlost   |
++---------+-------------+---------+-------------+---------+-------------+
+|   00H   |    30.0     |   0BH   |   10.9      |   16H   |    4.3      |
+|   01H   |    26.7     |   0CH   |   10.0      |   17H   |    4.0      |
+|   02H   |    24.0     |   0DH   |    9.2      |   18H   |    3.7      |
+|   03H   |    21.8     |   0EH   |    8.6      |   19H   |    3.3      |
+|   04H   |    20.0     |   0FH   |    8.0      |   1AH   |    3.0      |
+|   05H   |    18.5     |   10H   |    7.5      |   1BH   |    2.7      |
+|   06H   |    17.1     |   11H   |    6.7      |   1CH   |    2.5      |
+|   07H   |    16.0     |   12H   |    6.0      |   1DH   |    2.3      |
+|   08H   |    15.0     |   13H   |    5.5      |   1EH   |    2.1      |
+|   09H   |    13.3     |   14H   |    5.0      |   1FH   |    2.0      |
+|   0AH   |    12.0     |   15H   |    4.6      |         |             |
++---------+-------------+---------+-------------+---------+-------------+
+
+    Klávesnice  je pøi inicializaci nastavena na inicializaèní prodlevu 1/2
+sekundy  (tj.  za pùl sekundy po stisku klávesy se zaènou generovat znaky s
+automatickım opakováním) a rychlost opakování znakù (pøi drení klávesy) 10
+znakù za sekundu. To je pøíliš pomalé. Datovı bajt 00H nastaví nejrychlejší
+stav - prodleva 1/4 sekundy a rychlost opakování 30 znakù za sekundu.
+
+0F2H - 0EFH - ádná funkce (NOP)
+0EEH - echo; diagnostická podpora. Jednoduše vyšle bajt 0EEH pøímo zpìt.
+0EDH - nastavení  svìtelnıch indikátorù LED. Nejdøíve vyšlete povelovı bajt
+       0EDH a potom vyšlete datovı bajt:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+                   | | +-> 0: signalizace Scroll Lock (1=svítí; 0=nesvítí)
+                   | +---> 1: signalizace Num Lock (1=svítí; 0=nesvítí)
+                   +-----> 2: signalizace Caps Lock (1=svítí; 0=nesvítí)
+
+    Bitové  pozice 0-2 korespondují s bity 4-6 bajtu pøíznakù klávesnice na
+adrese  0:0417H (BIOS) a se ètením stavu klávesnice INT 16H/sluba 02H nebo
+sluba  12H.  Pøi  nastavování  indikátorù LED je potøeba myslet na to, aby
+byly indikátory mìnìny souhlasnì s nastavením indikátorù v pamìti poèítaèe.
+Napø.  pokud  chcete  nastavit  èíselnou klávesnici do èísleného reimu (tj
+zapnut  mód  Num  Lock),  musíte nastavit bit 5 na adrese 0:0417H, ale také
+pøíslušnı indikátor LED (bit 1 zde popsaného bajtu).
+
+Pozn.: Pøi uvolnìní klávesy je vyslán z klávesnice orientaèní kód klávesy s
+       nastavenım 7.bitem kódu.
+
+
+
+
+    Orientaèní kódy kláves - pùvodní klávesnice PC/XT (83 a 84 kláves):
+
+    +-----+----+-------------------+   +-----+----+-------------------+
+    | 01H |  1 | Esc               |   | 2BH | 43 | \ |               |
+    | 02H |  2 | 1 !               |   | 2CH | 44 | Z                 |
+    | 03H |  3 | 2 @               |   | 2DH | 45 | X                 |
+    | 04H |  4 | 3 #               |   | 2EH | 46 | C                 |
+    | 05H |  5 | 4 $               |   | 2FH | 47 | V                 |
+    | 06H |  6 | 5 %               |   | 30H | 48 | B                 |
+    | 07H |  7 | 6 ^               |   | 31H | 49 | N                 |
+    | 08H |  8 | 7 &               |   | 32H | 50 | M                 |
+    | 09H |  9 | 8 *               |   | 33H | 51 | , <               |
+    | 0AH | 10 | 9 (               |   | 34H | 52 | . >               |
+    | 0BH | 11 | 0 )               |   | 35H | 53 | / ?               |
+    | 0CH | 12 | - _               |   | 36H | 54 | pravı Shift       |
+    | 0DH | 13 | + =               |   | 37H | 55 | Print Screen      |
+    | 0EH | 14 | Back space        |   | 38H | 56 | Alt               |
+    | 0FH | 15 | Tab               |   | 39H | 57 | mezerník          |
+    | 10H | 16 | Q                 |   | 3AH | 58 | Caps Lock         |
+    | 11H | 17 | W                 |   | 3BH | 59 | F1                |
+    | 12H | 18 | E                 |   | 3CH | 60 | F2                |
+    | 13H | 19 | R                 |   | 3DH | 61 | F3                |
+    | 14H | 20 | T                 |   | 3EH | 62 | F4                |
+    | 15H | 21 | Y                 |   | 3FH | 63 | F5                |
+    | 16H | 22 | U                 |   | 40H | 64 | F6                |
+    | 17H | 23 | I                 |   | 41H | 65 | F7                |
+    | 18H | 24 | O                 |   | 42H | 66 | F8                |
+    | 19H | 25 | P                 |   | 43H | 67 | F9                |
+    | 1AH | 26 | [ {               |   | 44H | 68 | F10               |
+    | 1BH | 27 | ] }               |   | 45H | 69 | Num Lock          |
+    | 1CH | 28 | Enter             |   | 46H | 70 | Scroll Lock       |
+    | 1DH | 29 | Ctrl              |   | 47H | 71 | Home          [7] |
+    | 1EH | 30 | A                 |   | 48H | 72 | kurzor nahoru [8] |
+    | 1FH | 31 | S                 |   | 49H | 73 | Page Up       [9] |
+    | 20H | 32 | D                 |   | 4AH | 74 | - (v numer. poli) |
+    | 21H | 33 | F                 |   | 4BH | 75 | kurzor vlevo  [4] |
+    | 22H | 34 | G                 |   | 4CH | 76 |               [5] |
+    | 23H | 35 | H                 |   | 4DH | 77 | kurzor vpravo [6] |
+    | 24H | 36 | J                 |   | 4EH | 78 | + (v numer. poli) |
+    | 25H | 37 | K                 |   | 4FH | 79 | End           [1] |
+    | 26H | 38 | L                 |   | 50H | 80 | kurzor dolù   [2] |
+    | 27H | 39 | ; :               |   | 51H | 81 | Page Down     [3] |
+    | 28H | 40 | " '               |   | 52H | 82 | Ins           [0] |
+    | 29H | 41 | ` ~               |   | 53H | 83 | Del           [.] |
+    | 2AH | 42 | levı Shift        |   |(54H)|(84)|(SysRq)            |
+    +-----+----+-------------------+   +-----+----+-------------------+
+
+    Klávesnice  AT  84  kláves  se  odlišuje od pùvodní klávesnice PC/XT 83
+kláves pouze pøidáním klávesy SysRq s kódem 54H (84).
+
+    Klávesnice  AT  101  kláves  má tøi oddìlená mapování orientaèních kódù
+kláves,  volená  pomocí portu 64H. V základní sadì kódù se mìní èi doplòují
+tyto kódy:
+
+    +-----+----+-------------------+
+    | 37H | 55 | * (v numer. poli) |
+    | 56H | 86 | zdvojená  \ |     |
+    | 57H | 87 | F11               |
+    | 58H | 88 | F12               |
+    +-----+----+-------------------+
+
+    Pomocí  druhého  mapování  se  generují  zdvojenì kódy kláves Ins, Del,
+Home,  End, Page Up, Page Down, kurzorové klávesy, Num Lock, / v numerickém
+poli,  Enter  v  numerickém  poli, pravı Ctrl, pravı Alt, Caps Lock, Scroll
+Lock  a  Pause.  Tyto  klávesy generují stejnı orientaèní kód jako u PC/XT,
+avšak je pomocí pøerušení rozlišeno, e se jedná o jiné klávesy.
+
+
+
+
+          6 . -   P a m ì    C M O S ,   m a s k o v á n í   N M I
+
+
+    Tøídy  poèítaèù AT obsahují hodiny reálného èasu napájené z vestavìnıch
+baterií  a  64-bajtovou  nízkopøíkonovou  pamì  CMOS  (tato  pamì  je pøi
+vypnutém poèítaèi napájena té z baterií).
+
+    Pamì  CMOS  obsahuje  rùzné  informace,  vèetnì  bìného  èasu a data,
+nastavení  hardwarové  konfigurace  a  stavovı bajt pro uzavøení (uzavírací
+bajt  se  pouívá  v mechanismu umoòujícím AT opakovanì startovat v místì,
+kde procesor program k ukonèení ochranného módu).
+
+    Pokud  uvidíte  bìhem inicializaèního testu POST hlášení "Run Setup" je
+to proto, e nìkterı hardware nemá uloen svùj záznam konfigurace nebo se v
+CMOS RAM vyskytly nìjaké jiné problémy.
+
+
+Porty 0070H - 0071H: pøístup k pamìti CMOS, maskování pøerušení NMI
+-------------------------------------------------------------------
+
+0070H - zápis: nastavení adresy CMOS (Bity 0 a 5: adr. 0 a 63; bit7: NMI)
+
+        U   poèítaèe   AT   slouí   tento   port   souèasnì   k  maskování
+        nemaskovatelného  pøerušení  NMI.  Jakıkoliv vıstup na tento port s
+        vynulovanım  bitem  èíslo  7 umoòuje nemaskovatelné pøerušení NMI;
+        nastavení  tohoto  bitu  zpùsobí  zákaz  pøerušení  NMI  (Maskování
+        pøerušení NMI u poèítaèe PC/XT - viz kapitola øadiè pøerušení).
+
+0071H - zápis: zápis dat do CMOS na adresu nastavenou pomocí OUT 70H,adr
+        ètení: ètení dat z CMOS z adresy nastavené pomocí OUT 70H,adr
+
+    Ke  ètení  bajtu  z  pamìti  CMOS vyšlete nejdøíve na port o adrese 70H
+adresu  pamìového  místa  CMOS,  které  má  bıt èteno nebo do kterého bude
+zapisováno,  potom  z  adresy  71H mùete èíst nebo na ni zapisovat data do
+CMOS na uvedené adrese.
+
+Pøíklad:                               ; ètení typu pevného disku
+         mov       al,12h              ; adresa údaje o disku = 12H
+         out       70h,al              ; nastavnení adresy CMOS na 12H
+         jmp       $+2                 ; malá prodleva k ustálení dat CMOS
+         in        al,71h              ; AL nyní obsahuje typ pevného disku
+
+    Adresy  10H  a  20H jsou chránìny metodou kontrolního souètu, aby bylo
+moné  detekovat,  kdy  jsou  baterie  vybité  nebo  byl  do pamìti zapsán
+neplatnı  zápis  konfigurace  (napø. kdy se "zabìhne" program a náhodou se
+provede instrukce OUT 71H - obvykle se zmìní nastavení pevného disku, které
+bylo  èteno  naposled).  Kontrolní  souèet  je  jednoduchı 16-bitovı souèet
+chránìnıch bajtù.
+
+    Pozn.: Další  informace  o  hodinách  reálného  èasu získáte v pøíruèce
+           Motorolla MC146818.
+
+
+Obsahy pamìti CMOS (zápis nebo ètení podle pøedchozího popisu):
+---------------------------------------------------------------
+Adresa CMOS:     Popis:
+
+00H    - hodiny reálného èasu - sekunda
+01H    - alarm - sekundy
+02H    - hodiny reálného èasu - minuta
+03H    - alarm - minuty
+04H    - hodiny reálného èasu - hodina
+05H    - alarm - hodina
+06H    - hodiny reálného èasu - den v tıdnu
+07H    - hodiny reálného èasu - den mìsíce
+08H    - hodiny reálného èasu - mìsíc
+09H    - hodiny reálného èasu - rok
+
+0AH    - stavovı registr hodin reálného èasu - A (ètení)
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | +-+-+-+-> 0-3: vıbìr rychlosti (nastaven na 0110)
+         | +-+-+---------> 4-6: 22-stupòová dìlièka (nastaveno na 010)
+         +---------------> 7: pøíznak prùbìného uloení (UIP) (0=ètení OK)
+
+0BH    - stavovı registr hodin reálného èasu - B (zápis)
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: moné uloení denního cyklu (0=standard) (0)
+         | | | | | | +---> 1: cyklus: 0=12; 1=24                       (1)
+         | | | | | +-----> 2: mód dat BCD: 1=binární; 0=BCD            (0)
+         | | | | +-------> 3: monı obdélníkovı prùbìh: 1=ano; 0=ne    (0)
+         | | | +---------> 4: moné pøerušení ukonèení dne: 1=ano; 0=ne(0)
+         | | +-----------> 5: moné pøerušení alarmem: 1=ano; 0=ne     (0)
+         | +-------------> 6: moné periodické pøerušení: 1=ano; 0=ne  (0)
+         +---------------> 7: pøíznak prùbìného uloení (UIP) (0=ètení OK)
+
+
+0CH    - stavovı registr hodin reálného èasu - C (ètení)
+       - stavové bity pøíznakù pøerušení
+
+0DH    - stavovı registr hodin reálného èasu - D (zápis)
+       - bit 7 = 1 pokud CMOS=RAM je pøipojena k napájení
+               = 0 idnikuje, e baterie je vybitá
+
+0EH    - stavovı bajt diagnostiky pøi vnitøní inicializaci systému (POST)
+         tento bajt ukládá POST pøi inicializaci systému
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: = 0
+         | | | | | | +---> 1: = 0
+         | | | | | +-----> 2: 1=èas neplatí (napø. není 30.únor)
+         | | | | +-------> 3: 1=špatnı pevnı disk (nelze z nìj zavést OS)
+         | | | +---------> 4: 1=velikost pamìti není správná
+         | | +-----------> 5: 1=záznam konfigurace není správnı
+         | +-------------> 6: 1=kontrolní souèet CMOS RAM nesouhlasí
+         +---------------> 7: 1=vybitá baterie CMOS RAM
+
+0FH    - stavovı bajt pøerušení
+         Tento  bajt  je èten pøi startu poèítaèe po resetu procesoru kvùli
+         správnému  urèení,  zda  byl  reset  pouit jako cesta k pøerušení
+         procesoru 80286 z ochranného módu.
+              0 = mìkkı reset (Ctrl-Alt-Del) nebo nevyjímeèné pøerušení
+              1 = pøerušení po urèení velikosti pamìti
+              2 = pøerušení po provedení testù pamìti
+              3 = pøerušení po chybì pamìti (kontrola parity 1 nebo 2)
+              4 = pøerušení s poadavkem zavadìèe systému
+              5 = pøerušení  instrukcí  FAR JMP (restart vnitøního øadièe a
+                  skok na adresu 0:[0467H])
+          6,7,8 = pøerušení po provedení testu ochranného módu
+              9 = pøerušení po provedení blokového pøesunu (INT 15H/sl.87H)
+             10 = pøerušení instrukcí FAR JMP (pøímı skok na 0:[0467H])
+
+10H    - typ disketové mechaniky
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit                                 0000 = ádná
+         | | | | +-+-+-+-> 0-3: první disketová mechanika -+-> 0001 = 360K
+         +-+-+-+---------> 4-7: druhá disketová mechanika -+   0000 = 1.2M
+
+11H    - rezervováno
+
+12H    - typ jednotky pevného disku (pro disk C: a D:, pokud je 1 a 14)
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | +-+-+-+-> 0-3: první pevnı disk (C:) -+-> 0000 = ádnı
+         +-+-+-+---------> 4-7: druhı pevnı disk (D:) -+   jinak= typ
+                                                           1111 = 19H/1AH
+
+    Pokud  je  pro  danı  disk  udána hodnota 1111 (tj. typ 15), je pro typ
+disku pouit údaj z adres 19H a 1AH pamìti CMOS.
+
+    Typy mechanik jsou pøeddefinovány v ROM-BIOS. Vektory INT 41H a INT 46H
+jsou  pøi  inicializaci  nastaveny  na tabulku ROM obsahující informace pro
+instalované  typy mechanik pevnıch diskù. Viz té Tabulka parametrù pevného
+disku.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++-------+----------+-------+-----------------+-------------+-----------+
+|  typ  |  válcù   |  hlav | pøedkompenzace  | pøistávací  | kapacita  |
+|       |          |       |zápisu (od stopy)|    zóna     |           |
++-------+----------+-------+-----------------+-------------+-----------+
+|   1   |   306    |    4  |      128        |    305      |   10MB    |
+|   2   |   615    |    4  |      300        |    615      |   21MB    |
+|   3   |   615    |    6  |      300        |    615      |   31MB    |
+|   4   |   940    |    8  |      512        |    940      |   64MB    |
+|   5   |   940    |    6  |      512        |    940      |   48MB    |
+|   6   |   615    |    4  |     FFFF        |    615      |   21MB    |
+|   7   |   462    |    8  |      256        |    511      |   31MB    |
+|   8   |   733    |    5  |     FFFF        |    733      |   31MB    |
+|   9   |   900    |   15  |     FFFF        |    901      |  151MB    |
+|  10   |   820    |    3  |     FFFF        |    820      |   21MB    |
+|  11   |   855    |    5  |     FFFF        |    855      |   36MB    |
+|  12   |   855    |    7  |     FFFF        |    855      |   51MB    |
+|  13   |   306    |    8  |      128        |    319      |   21MB    |
+|  14   |   733    |    7  |     FFFF        |    733      |   44MB    |
+|  15   |  (000)   |   (0) |     (000)       |   (000)     |  (00MB)   |
+|  16   |   612    |    4  |        0        |    663      |   21MB    |
+|  17   |   977    |    5  |      300        |    977      |   42MB    |
+|  18   |   977    |    7  |     FFFF        |    977      |   58MB    |
+|  19   |  1024    |    7  |      512        |   1023      |   61MB    |
+|  20   |   733    |    5  |      300        |    732      |   31MB    |
+|  21   |   733    |    7  |      300        |    732      |   42MB    |
+|  22   |   733    |    5  |      300        |    733      |   31MB    |
+|  23   |   306    |    4  |        0        |    336      |   10MB    |
+|  24   |   925    |    7  |        0        |    925      |   56MB    |
+|  25   |   925    |    9  |     FFFF        |    925      |   72MB    |
+|  26   |   754    |    7  |      754        |    754      |   46MB    |
+|  27   |   754    |   11  |     FFFF        |    754      |   72MB    |
+|  28   |   699    |    7  |      256        |    699      |   42MB    |
+|  29   |   823    |   10  |     FFFF        |    823      |   71MB    |
+|  30   |   918    |    7  |      918        |    918      |   55MB    |
+|  31   |  1024    |   11  |     FFFF        |   1024      |   98MB    |
+|  32   |  1024    |   15  |     FFFF        |   1024      |  133MB    |
+|  33   |  1024    |    5  |     1024        |   1024      |   44MB    |
+|  34   |   612    |    2  |      128        |    612      |   10MB    |
+|  35   |  1024    |    9  |     FFFF        |   1024      |   80MB    |
+|  36   |  1024    |    8  |      512        |   1024      |   71MB    |
+|  37   |   615    |    8  |      128        |    615      |   42MB    |
+|  38   |   987    |    3  |      987        |    987      |   25MB    |
+|  39   |   987    |    7  |      987        |    987      |   60MB    |
+|  40   |   820    |    6  |      820        |    820      |   42MB    |
+|  41   |   977    |    5  |      977        |    977      |   42MB    |
+|  42   |   981    |    5  |      981        |    981      |   42MB    |
+|  43   |   830    |    7  |      512        |    830      |   50MB    |
+|  44   |   830    |   10  |     FFFF        |    830      |   72MB    |
+|  45   |   917    |   15  |     FFFF        |    918      |  115MB    |
+|  46   |  (000)   |   (0) |     (000)       |   (000)     |  (00MB)   |
+|  47   |  1024    |    8  |        0        |      0      |   68MB    |
++-------+----------+-------+-----------------+-------------+-----------+
+
+Pozn.: Údaj  FFFF  ve  sloupci pøedkompenzace znamená, e pøedkompenzace se
+       nebude pouívat od ádné stopu.
+
+       Údaj  0 ve sloupci pøedkompenzace znamená, e se pøedkompenzace bude
+       pouívat pro všechny stopy (tj. od stopy 0).
+
+       Disk typu 1 je originální pevnı disk XT.
+
+       Disk typu 2 je standardní pevnı disk AT 20MB.
+
+       Typy 16-23 jsou pøipojeny do ROM-BIOSu od data 15.11.1985.
+
+       Pokud  je  typ  disku  15 (0FH) znamená to, e typ disku je uloen v
+       CMOS na adrese 19H (disk C:) nebo na adrese 1AH (disk D:).
+
+       Typ  disku  46  je  rezervován  a  nepouívá  se.  Disk  èíslo 47 je
+       uivatelsky definovanı disk.
+
+13H    - rezervováno
+
+
+
+
+
+
+
+
+
+14H    - bajt vybavení poèítaèe
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | | | | +->  0:  1=disketové jednotky jsou instalovány
+         | | | | | | +--->  1:  1=matematickı koprocesor je instalován
+         | | | | | +----->  2:
+         | | | | +------->  3:
+         | | +-+---------> 4-5: primární displej: 00 - ádnı nebo EGA
+         | |                                      01 - 40 pozic CGA
+         | |                                      10 - 80 pozic CGA
+         | |                                      11 - monochromní TTL
+         +-+-------------> 6-7: disketovıch mechanik - 1 (00=1; 01=2; atd.)
+
+15H    - základní pamì (niší bajt) -+->0100H=256K; 0200H=512K; 0280H=640K
+16H    - základní pamì (vyšší bajt) -+
+17H    - rozšíøená pamì nad 1M (niší bajt) -+->(v Kilobajtech, 0-3C00H)
+18H    - rozšíøená pamì nad 1M (vyšší bajt) -+  (viz INT 15H/sluba 88H)
+
+19H    - typ pevného disku 0 (C:), pokud je (CMOS adresa 12H & 0FH) = 0FH
+1AH    - typ pevného disku 1 (D:), pokud je (CMOS adresa 12H & F0H) = F0H
+
+1BH-2DH - rezervováno
+
+2EH    - kontrolní souèet CMOS - adresy 10H a 20H (vyšší bajt)
+2FH    - kontrolní souèet CMOS - adresy 10H a 20H (niší bajt)
+
+30H    - rozšíøená pamì nad 1M (niší bajt) -+->(v Kilobajtech, 0-3C00H)
+31H    - rozšíøená pamì nad 1M (vyšší bajt) -+  (viz INT 15H/sluba 88H)
+
+32H    - souèasné století v BCD (tj. 19H)
+
+33H    - všeobecné informace      bit7=instalována volba pamìti IBM 128K
+                                  bit6=pouito utilitou "Setup"
+
+34H-3FH - rezervováno. Zde mùete uloit na vìky své jméno.
+
+
+
+
+
+
+
+               7 . -   Ø a d i è   p e v n ı c h   d i s k ù
+
+
+
+    Mezi øadièi pevnıch diskù rùznıch poèítaèù jsou drobné odchylky a proto
+je  vhodné  ponechat  ovládání  pevného disku na systémovém firmware, které
+zamaskuje odlišnosti mezi jednotlivımi øadièi pevnıch diskù.
+
+
+    Øadiè  pevného  disku  poèítaèe  XT  dekóduje porty 320H a 327H. Øadiè
+generuje  pøerušení  úrovnì  5  (IRQ  5)  po  kadé  operaci (ètení, zápis,
+vystavení  atd.).  IRQ  5  je vektorován na pøerušení INT 0DH (které je té
+pøiøazeno  jako  ménì pouívané pøerušení IRQ pro LPT2). INT 0DH zakáe DMA
+pevného disku a navrátí øízení.
+
+
+Porty 0320H - 0327H: øadiè pevného disku poèítaèe XT
+----------------------------------------------------
+
+0320H  - datovı registr; zápis povelu, ètení statutu
+       - zápis: Do   tohoto   registru  je  vdy  zapisována  série  bajtù,
+                zapisované sekvenènì na tento port. Prvním bajtem je pøíkaz
+                pro   øadiè,  následují  parametrové  bajty  (a  5  bajtù)
+                popisující  hlavu, válec, sektor a øídící bajt mající rùzné
+                tvary definic, pøíliš obsáhlé pro tuto pøíruèku.
+       - ètení: Pokud  je  vyslána chyba (port 0321H, bit 1), mùete zapsat
+                do  tohoto  registru  pøíkazovou  sekvenci dotazu na stav a
+                potom  jej  ètyønásobnì èíst k obdrení veškerıch informací
+                od øadièe. První batj indikuje chybu.
+
+
+
+
+0321H  - zápis: reset øadièe pevného disku
+                Vıstupem bajtu 00H na tento port resetujete øadiè.
+       - ètení: stavovı registr øadièe
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+             |       +---> 1: 1=nastala chyba
+             +-----------> 5: 1=èíslo logické jednotky (disk 0 nebo disk 1)
+
+0322H  - zápis: generuje pulzy vıbìru øadièe
+                Jakıkoliv  vıstup  na  port  uvolòuje  øadiè. Pouijte pøed
+                povelem.
+
+0323H  - zápis: maskovací registr DMA a pøerušení
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+                     | +-> 0: 1=monı DMA; 0=nepouívat DMA
+                     +---> 1: 1=moné pøerušení po povelu øadièe (IRQ 5)
+
+
+
+    Øadiè  pevného disku poèítaèe AT je zaèlenìn do stejné adaptorové desky
+jako  øadiè  disketovıch mechanik. Jeho I/O porty, povely a stavové signály
+jsou odlišné od øadièe poèítaèe XT.
+
+
+Porty 01F0H - 01F7H: øadiè prvního pevného disku poèítaèe AT
+Porty 0170H - 0177H: øadiè druhého pevného disku poèítaèe AT
+------------------------------------------------------------
+
+    Øadiè  pevného  disku  AT  generuje  po  kadé  operaci  (ètení, zápis,
+vystavení,  atd.)  pøerušení  úrovnì  14  (IRQ  14). IRQ 14 je nastaveno na
+vektor  pøerušení  INT  76H,  pro které je akèní pøíznakovı bit nastaven na
+adrese 0:048EH. V dalším je uvádìn popis portu pouze øadièe prvního pevného
+disku, druhı disk se liší jen adresami portù.
+
+01F0H - datovı registr. Ètená/zapisovaná data z/do bufferu sektorù øadièe
+01F1H - zápis: zápis registru pøedkompenzace
+      - ètení: chybovı registr. Obsahuje bity posledního chybového stavu
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: 1=adresová znaèka dat nenalezena
+         | | | | | | +---> 1: 1=chyba stopy 0
+         | | | | | +-----> 2: 1=pøerušení povelu
+         | | | | +-------> 3: (vdy nastaven na 0)
+         | | | +---------> 4: 1=nenalezen identifikátor sektoru
+         | | +-----------> 5: (vdy nastaven na 0)
+         | +-------------> 6: 1=chyba ECC: neopravitelná chyba dat
+         +---------------> 7: 1=chybnı blok
+
+01F2H  - èítaè sektorù - ètení/zápis poètu sektorù pro provedení operace
+01F3H  - èíslo sektoru - ètení/zápis bìného/poèáteèního èísla log. sektoru
+01F4H  - válec (vyšší bajt; bity 0-1 jsou bity 8-9 10-bitového èísla válce)
+01F5H  - válec (niší bajt; bity 0-7 10-bitového èísla válce)
+01F6H  - disk a hlava - ètení/zápis: bity indikují hlavu a disk pro operaci
+
+01F7H  - zápis: povelovı registr
+              1xH = návrat na válec 0 (niší tetráda = rychlost krokování)
+              7xH = vystavení na danı válec (niší tetráda = rychl. krok.)
+              2xH = ètení sektoru (niší tetráda indikuje opakování a ECC)
+              3xH = zápis sektoru (niší tetráda indikuje opakování a ECC)
+              50H = formátování stopy
+              4xH = ovìøovací ètení (niší tetráda indikuje opakování)
+              90H = diagnóza
+              91H = nastavení  parametrù  (max.  poèet  hlav,  sektorù) pro
+                    zvolenı disk
+
+       - ètení: stavovı registr
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: 1=pøedchozí povel ukonèen chybou
+         | | | | | | +---> 1: index: n+staven na 1 pøi impulsu indexu
+         | | | | | +-----> 2: 1=opravená data (nastala chyba, korekce ECC)
+         | | | | +-------> 3: 1=poadavek dat (buffer èeká na data)
+         | | | +---------> 4: 1=vystavení ukonèeno
+         | | +-----------> 5: 1=chyba zápisu
+         | +-------------> 6: 1=disk pøipraven na vystavení (je-li bit 4=1)
+         +---------------> 7: 1=zaneprázdnìn (provádí povel)
+
+
+
+
+
+              8 . -   Ø a d i è   p r u  n ı c h   d i s k ù
+
+
+    Tento  popis  se  vztahuje k øadièi prunıch diskù (FDC), jeho hlavním
+prvkem  je  NEC  µPD765 (nebo kompatibilní èip FDC - jako I8272). Hodnoty v
+registrech  pro èasování (napø. rychlost krokování) platí pro hodiny øadièe
+8 Mhz.
+
+    Øadiè  prunıch diskù poèítaèe AT je umístìn na stejné kartì jako øadiè
+pevného  disku, avšak jinak je kompatibilní se standardním øadièem prunıch
+diskù  poèítaèù PC/XT (kromì nìkolika poznámek uvedenıch dále). Mezi hlavní
+rozdíly  patøí pøedevším to, e øadiè prunıch diskù poèítaèe AT je schopen
+vícenásobnıch  rychlostí  pøenosu  dat, avšak obsluhuje pouze dvì disketové
+mechaniky.
+
+    - øadiè prunıch diskù 1 dekóduje porty 03F0H a 03F7H
+    - øadiè prunıch diskù 2 dekóduje porty 0370H a 0377H (pouze AT)
+
+    Øadiè   prunıch   diskù  generuje  po  kadé  operaci  (ètení,  zápis,
+vystavení,  rekalibrace,  atd.)  pøerušení  úrovnì  6  (IRQ  6),  které  je
+vektorováno na INT 0EH a obsluhováno BIOSem.
+
+mechanika 5 1/4" 1.2 MB: otáèky 360/minutu (tj. 6 za sekundu)
+ostatní mechaniky: otáèky 300/minutu (tj. 5 za sekundu)
+
+
+Porty 03F0H - 03F7H: øadiè prunıch diskù 1
+-------------------------------------------
+
+    Øadiè  prunıch  diskù  2  není  popsán,  jeho  pøipojení je analogické
+pouití  portù  øadièe  1  (zmìní se pouze hodnoty portù z 03FxH na 037xH a
+oznaèení disketovıch mechanik A na C a B na D).
+
+03F2H  - zápis: registr èíslicového vıstupu
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++  bit
+          | | | | | | +-+-> 0-1: volba mechaniky 0-3 (AT nepouívá bit 1)
+          | | | | | +----->  2:  0=reset øadièe disket; 1=uvolnìní øadièe
+          | | | | +------->  3:  1=monı pøenos DMA disket a pøerušení
+          +-+-+-+---------> 4-7: zapnutí motorù disketovıch mechanik A-D
+                                 (AT nepouívá bity 6-7)
+
+03F4H  - ètení: hlavní stavovı registr MSR
+        +-+-+-+-+-+-+-+-+
+        |R|I|D|B|  DnB  |
+        +++++++++++++++++  bit
+         | | | | +-+-+-+-> 0-3: 1=disket. mech. zaneprázdnìny (vystavují)
+         | | | |                (AT nepouívá bity 2-3)
+         | | | |                - pokud je nìkterı bit nastaven, øadiè
+         | | | |                  nepøijímá povely pro ètení/zápis
+         | | | +--------->  4:  1=øadiè disket zaneprázdnìn (ètení/zápis)
+         | | +----------->  5:  1=není mód DMA; 0=mód DMA aktivní
+         | +------------->  6:  smìr toku dat: 1=FDC do CPU; 0=CPU do FDC
+         +--------------->  7:  1=dat. registr je pøipraven ke ètení/zápisu
+
+
+03F5H  - ètení/zápis: registr povelù/dat øadièe FDC
+         Tento  port se pouívá pro všechny pøíkazové operace øadièe. První
+         - povelovı bajt - je vıstup, potom následují parametry povelu jako
+         vıstup.  Po  provedení  operace je 0 nebo nìkolik vstupù navráceno
+         jako  vısledek  operace.  Všechny  pøenosy  pøes  tento  port musí
+         následovat za sebou ve správné posloupnosti.
+
+         Následující  vıpis  povelù pouívá BIOS pro své standardní funkce,
+         avšak nejsou zde popsány parametry následující za pøíkazem.
+
+         E6H - ètení dat (následuje 8 parametrù; navráceno 7 vısledkù)
+         C5H - zápis dat (následuje 8 parametrù; navráceno 7 vısledkù)
+         4DH - formátování stopy (následuje 5 param.; navráceno 7 vısledkù)
+         07H - rekalibrace (1 parametr; nenavrácen ádnı vısledek)
+         0FH - vystavení na stopu (1 parametr; nenavrácen ádnı vısledek)
+
+
+    Stavovı registr ST0
+         +-+-+-+-+-+-+-+-+
+         |RES|S|F|R|H|DSn|
+         +++++++++++++++++  bit
+          | | | | | | +-+-> 0-1: aktivní disketová mechanika 0-3
+          | | | | | +----->  2:  èíslo aktivní hlavièky (0-1)
+          | | | | +------->  3:  1=mechanika není pøipravena
+          | | | +--------->  4:  1=pøijat chybovı signál FAULT nebo
+          | | |                    nenalezena stopa 0 pøi rekalibraci
+          | | |                    (max. 77 stop)
+          | | +----------->  5:  1=vystavení na stopu ukonèeno
+          +-+-------------> 6-7: 00=úspìšné úkonèení operace
+                                 01=pøíkaz zahájen ale nedokonèen úspìšnì
+                                 10=chybnı pøíkaz (operace ani nezaèala)
+                                 11=v prùbìhu operace ztráta signálu READY
+
+    Stavovı registr ST1
+         +-+-+-+-+-+-+-+-+
+         |E|0|C|O|0|S|W|M|
+         +++++++++++++++++  bit
+          | | | | | | | +-> 0: 1=nelze nalézt adresovou znaèku
+          | | | | | | |          (mezi 2 indexy)
+          | | | | | | +--->  1:  1=bìhem zápisu ident.ochrana proti zápisu
+          | | | | | +----->  2:  1=øadiè nemùe nalézt zadanı sektor
+          | | | | +------->  3:  nevyuit - vdy nastaven na 0
+          | | | +--------->  4:  1=pøeteèení dat - CPU nestaèí odebírat
+          | | |                    (napø. øadiè DMA zaneprázdnìn)
+          | | +----------->  5:  1=chyba pøi ètení dat (chyba CRC)
+          | +------------->  6:  nevyuit - vdy nastaven na 0
+          +--------------->  7:  1=konec stopy (pøístup za poslední sektor)
+
+
+    Stavovı registr ST2
+         +-+-+-+-+-+-+-+-+
+         |0|M|E|C|S|S|B|M|
+         +++++++++++++++++  bit
+          | | | | | | | +->  0:  1=pøi ètení nenalezena adr.znaèka v datech
+          | | | | | | +--->  1:  1=èíslo stopy nesouhlasí - musí bıt 0ffh
+          | | | | | +----->  2:  1=pøi porovnání dat nenalezen sektor
+          | | | | +------->  3:  1=pøi porovnání dat byla data shodná
+          | | | +--------->  4:  1=èíslo stopy nesouhlasí
+          | | +----------->  5:  1=chyba v datovém poli sektoru (CRC)
+          | +------------->  6:  1=nalezenı sektor oznaèen jako "smazanı"
+          +--------------->  7:  nevyuit - vdy nastaven na 0
+
+
+    Stavovı registr ST3
+         +-+-+-+-+-+-+-+-+
+         |F|W|R|T|D|H|DSn|
+         +++++++++++++++++  bit
+          | | | | | | +-+-> 0-1: stav signálù volby jednotky (0-3)
+          | | | | | +----->  2:  stav signálu volby hlavièky (0-1)
+          | | | | +------->  3:  1=je pøipojena oboustranná mechanika
+          | | | +--------->  4:  1=nalezena stopa 0
+          | | +----------->  5:  1=disketová jednotka je pøipravena
+          | +------------->  6:  1=disketa má ochranu proti zápisu
+          +--------------->  7:  1=chybovı signál od disk. jednotky FAULT
+
+
+    SPECIFY - nastavení vnitøních èasovaèù
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0 0 1 1| = 03h (povel SPECIFY)
+         +-+-+-+-+-+-+-+-+
+
+         +-+-+-+-+-+-+-+-+
+         |  SRT  |  HUT  |
+         +++++++++++++++++  bit
+          | | | | +-+-+-+-> 0-3: èas od ukonèení operace R/W do odklopení
+          | | | |                hlavièky v 1/16 ms (16 a 240 ms)
+          +-+-+-+---------> 4-7: èas mezi kroky vystavovacího motorku
+                                 v 1 ms (1 ms a 16 ms)
+         +-+-+-+-+-+-+-+-+
+         |      HLT    |D|
+         +++++++++++++++++  bit
+          | | | | | | | +->  0:  1=není provoz DMA, 0=je provoz DMA
+          +-+-+-+-+-+-+---> 1-7: èas od pøiklopení hlavièky po zaèátek R/W
+                                 operace po 2 ms (2 a 254 ms)
+
+    RECALIBRATE - vystavení na stopu 0 (uvedení hlavièek na známou pozici)
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0 1 1 1| = 07h (povel RECALIBRATE)
+         +-+-+-+-+-+-+-+-+
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0 0|DSn|
+         +-+-+-+-+-+-+++++  bit
+                      +-+-> 0-1: èíslo mechaniky pro provedení rekalibrace
+
+
+    SEEK - vystavení hlavièek na zadanou stopu (motor musí bıt zapnut)
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 1 1 1 1| = 0fh (povel SEEK)
+         +-+-+-+-+-+-+-+-+
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0|H|DSn|
+         +-+-+-+-+-+++++++  bit
+                    | +-+-> 0-1: èíslo mechaniky pro provedení rekalibrace
+                    +----->  2:  vıbìr hlavièky (0-1)
+
+         +-+-+-+-+-+-+-+-+
+         |      NCN      |
+         +++++++++++++++++  bit
+          +-+-+-+-+-+-+-+-> 0-7: èíslo poadované stopy
+
+
+    READ ID - ètení prvního identifikaèního pole ze stopy
+              (umoòuje zjištìní èísla stopy z diskety)
+
+         +-+-+-+-+-+-+-+-+
+         |0|M|0 0 1 0 1 0| = 4ah (povel READ ID)
+         +-+++-+-+-+-+-+-+
+            +-------------> 0=kódování FM (nepouívá se), 1=kódování MFM
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0|H|DSn|
+         +-+-+-+-+-+++++++  bit
+                    | +-+-> 0-1: èíslo mechaniky pro provedení rekalibrace
+                    +----->  2:  vıbìr hlavièky (0-1)
+
+    Po provedení operace (ètení identifikaèního pole) se ète 7 bajtù:
+         +-+-+-+-+-+-+-+-+
+         |RES|S|F|R|H|DSn|   stavovı registr ST0
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |E|0|C|O|0|S|W|M|   stavovı registr ST1
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |0|M|E|C|S|S|B|M|   stavovı registr ST2
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     stopa     |   stopa
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     hlava     |   hlava (strana)
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     sektor    |   sektor
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     délka     |   délka sektoru (0=128 B, 1=256 B, ...)
+         +-+-+-+-+-+-+-+-+
+
+
+    READ DATA - ètení dat zadaného sektoru z nastavené stopy
+
+         +-+-+-+-+-+-+-+-+
+         |T|M|S|0 0 1 1 0| = 0E6h (povel READ DATA)
+         +++++++-+-+-+-+-+
+          | | +-----------> 1=pøeskoèí se vymazanı sektor, 0=nastaví se
+          | |                    bit6 registru ST2 a ukonèí se operace
+          | +-------------> 0=kódování FM (nepouívá se), 1=kódování MFM
+          +---------------> 1=operace se provede i na stranì 1 diskety
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0|H|DSn|
+         +-+-+-+-+-+++++++  bit
+                    | +-+-> 0-1: èíslo mechaniky pro provedení rekalibrace
+                    +----->  2:  vıbìr hlavièky (0-1)
+
+         +-+-+-+-+-+-+-+-+
+         |     stopa     |   stopa
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     hlava     |   hlava (strana)
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     sektor    |   sektor
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     délka     |   délka sektoru (0=128 B, 1=256 B, ...)
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |  konec stopy  |   èíslo posledního sektoru na stopì
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         | mezisekt. mez.|   mezisektorová mezera
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         | altern. délka |   poèet ètenıch bajtù, je-li zadaná délka = 0
+         +-+-+-+-+-+-+-+-+   (je-li délka zadaná, mùe bıt = 0ffh)
+
+    Po  pøeètení  kadého  sektoru  je  èíslo  sektoru v øadièi automaticky
+inkrementováno  a  øadiè  ète  následující  sektor.  Pøíkaz  musí bıt proto
+ukonèen signálem TC. Øadiè pøestane vysílat data do CPU avšak operaci ètení
+dokonèí a zkontroluje CRC.
+
+    Po provedení operace ètení dat se naète 7 bajtù jako u povelu READ ID.
+
+
+    WRITE DATA - zápis dat do zadaného sektoru na nastavené stopì
+
+         +-+-+-+-+-+-+-+-+
+         |T|M|S|0 0 1 0 1| = 0C5h (povel WRITE DATA)
+         +++++++-+-+-+-+-+
+          | | +-----------> 1=pøeskoèí se vymazanı sektor
+          | +-------------> 0=kódování FM (nepouívá se), 1=kódování MFM
+          +---------------> 1=operace se provede na obou stranách diskety
+
+    Ostatní postup je stejnı jako u povelu READ DATA.
+
+    Mezisektorové mezery:
++----------+--------+-------------------------+--------------------------+
+| kódování | sektor |        disketa 8"       |      disketa 5 1/4"      |
+|          |        |  ètení/zápis |  formát. |  ètení/zápis |  formát.  |
++----------+--------+--------------+----------+--------------+-----------+
+|          |  128 B |      7       |   1Bh    |      7       |     9     |
+|          |  256 B |     0Eh      |   2Ah    |     18h      |    30h    |
+|    FM    |  512 B |     1Bh      |   3Ah    |     46h      |    87h    |
+|          | 1024 B |     47h      |   8Ah    |     C8h      |    FFh    |
++----------+--------+--------------+----------+--------------+-----------+
+|          |  256 B |     0Eh      |   36h    |     0Ah      |    0Ch    |
+|   MFM    |  512 B |     1Bh      |   54h    |     2Ah      |    50h    |
+|          | 1024 B |     66h      |   74h    |     80h      |    F0h    |
++----------+--------+--------------+----------+--------------+-----------+
+
+
+    FORMAT TRACK - formátování stopy
+
+         +-+-+-+-+-+-+-+-+
+         |0|M|0|0 1 1 0 1| = 4dh (povel FORMAT TRACK)
+         +-+++-+-+-+-+-+-+
+            +-------------> 0=kódování FM (nepouívá se), 1=kódování MFM
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0|H|DSn|
+         +-+-+-+-+-+++++++  bit
+                    | +-+-> 0-1: èíslo mechaniky pro provedení rekalibrace
+                    +----->  2:  vıbìr hlavièky (0-1)
+         +-+-+-+-+-+-+-+-+
+         | délka sektoru |   øád délky sektoru (0=128, 1=256,...)
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         | poèet sektorù |   poèet sektorù na stopì
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |mezisekt.mezera|   délka mezisektorové mezery
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |  datovı vzor  |   datovı vzor (inicializaèní bajt dat - 0E5h)
+         +-+-+-+-+-+-+-+-+
+
+
+    Informace   k  zápisu  do  identifikaèního  pole  sektoru  je  dodávána
+procesorem  bìhem  formátování pro kadı sektor zvláš. Pro kadı sektor je
+nutno vyslat 4 bajty:
+                        - èíslo stopy
+                        - èíslo hlavy (strany)
+                        - èíslo sektoru
+                        - délka sektoru
+
+    Je  moné  naformátovat  disketu s libovolnım poøadím sektorù ("SKEW"),
+èím je moné zkrátit pøístupovou dobu na disketu.
+
+    Formátování   se  ukonèí  druhım  pøíchodem  indexu,  signálem  "FAULT"
+(otevøení dvíøek) nebo signálem "READY".
+
+    Po ukonèení formátování je navráceno 7 bajtù jako u povelu READ ID.
+
+
+    SENSE INTERRUPT STATUS - poskytnutí stavovıch informací
+                       (pouívá se té ke kontrole vystavení na pozici)
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 1 0 0 0| = 8 (povel SENSE INTERRUPT STATUS)
+         +-+-+-+-+-+-+-+-+
+
+    Povel navrátí 2 informaèní bajty:
+
+         +-+-+-+-+-+-+-+-+
+         |RES|S|F|R|H|DSn|   stavovı registr ST0 (k urèení smìru INT)
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |     stopa     |   aktuální pozice hlavièky
+         +-+-+-+-+-+-+-+-+
+
+
+
+    Pokud  byl  zadán  neplatnı  povel,  nastaví  se bity D6 a D7 v hlavním
+stavovém  registru na 1 a indikují, e je ve stavovém registru pøipraven ke
+ètení stavovı registr ST0 obsahující bajt 80h (= neplatnı pøíkaz).
+
+    Po  ukonèení  operací SEEK (vystavení) a RECALIBRATE (rekalibrace) musí
+bıt  vyslán  pøíkaz  SENSE  INTERRUPT STATUS, jinak kadı další pøíkaz bude
+povaován za neplatnı pøíkaz.
+
+    SENSE DRIVE STATUS - poskytnutí informací o mechanice
+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0 1 0 0| = 4 (povel SENSE DRIVE STATUS)
+         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+
+         |0 0 0 0 0|H|DSn|
+         +-+-+-+-+-+++++++  bit
+                    | +-+-> 0-1: èíslo mechaniky pro provedení rekalibrace
+                    +----->  2:  vıbìr hlavièky (0-1)
+
+    Povel navrátí jeden bajt - stavovı registr ST3:
+         +-+-+-+-+-+-+-+-+
+         |F|W|R|T|D|H|DSn|
+         +++++++++++++++++  bit
+          | | | | | | +-+-> 0-1: stav signálù volby jednotky (0-3)
+          | | | | | +----->  2:  stav signálu volby hlavièky (0-1)
+          | | | | +------->  3:  1=je pøipojena oboustranná mechanika
+          | | | +--------->  4:  1=nalezena stopa 0
+          | | +----------->  5:  1=disketová jednotka je pøipravena
+          | +------------->  6:  1=disketa má ochranu proti zápisu
+          +--------------->  7:  1=chybovı signál od disk. jednotky FAULT
+
+
+    INVALID - prázdnı povel
+
+    Všechny  ostatní pøíkazy jsou pouívány jako neplatné. Øadiè po pøijetí
+neplatného  povelu  ukonèí provádìnou operaci (negeneruje INT) a pøipraví k
+navrácení  registr  ST0  obsahující  bajt 80h indikující pøijetí neplatného
+pøíkazu.
+
+
+03F6H  - zápis (AT): registr pevného disku
+03F7H  - zápis (AT): disketovı øídící registr
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++  bit
+          | | | | | | +-+-> 0-1: rychlost pøenosu dat:     00=500 Kb/s;
+          | | | | | |            01=300 Kb/s; 10=250 Kb/s; 11=rezervováno
+          +-+-+-+-+-+-----> 2-7:
+
+         ètení: registr èíslicového vstupu - pouívá se pro diagnostiku
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++  bit
+          | | | | | | | +->  0:  1=vıbìr mechaniky 0
+          | | | | | | +--->  1:  1=vıbìr mechaniky 1
+          | | +-+-+-+-----> 2-5: vıbìr hlav 0-3 (bit 2 = hlava 0 atd.)
+          | +------------->  6:  1=zápisové hradlo
+          +--------------->  7:  1=signál vımìny diskety je ve stavu ON
+
+
+
+Struktura sektoru diskety:
+-------------------------
+Záhlaví - identifikátor sektoru (13 bajtù):
+  (6) synchronizaèní bajty 00h
+  (1) adresová znaèka identifikaèního pole
+  (1) èíslo válce (0...)
+  (1) èíslo strany (0...)
+  (1) èíslo sektoru (1...)
+  (1) délka sektoru (0=128, 1=256, 2=512, 3=1024, ...)
+  (2) kontrolní souèet záhlaví (poloky "èíslo válce" a "délka sektoru")
+
+Oddìlovací mezera (11 bajtù):
+  (11) identifikaèní oddìlovací mezera bajty 0FFh
+
+Datovı blok (9+X bajtù):
+  (6) synchronizaèní bajty 00h
+  (1) adresová znaèka datového pole
+      (pokud je na tomto místì nalezena adresová znaèka zrušenıch dat, jsou
+       data tohoto sektoru ignorována a øadiè ète následující sektor)
+  (X) vlastní data
+  (2) kontrolní souèet dat
+
+Datová mezera (27 bajtù):
+  (27) oddìlovací mezera mezi sektory
+
+
+Adresové znaèky slouí k identifikaci poèátku identifikaèního nebo datového
+pole.  Od  ostatních  dat  je  lze  rozlišit  pomocí chybìjících hodinovıch
+impulsù. Pouívají se celkem ètyøi rùzné adresové znaèky:
+    - indexová  adresová  znaèka  uvnitø  indexové  mezery  (tj.  mezera na
+      poèátku stopy)
+    - adresová znaèka identifikaèního pole
+    - adresová znaèka datového pole
+    - adresová znaèka zrušenıch dat (na zaèátku pole zrušenıch dat)
+                    | C     C     C     C     C     C     C     C
+                    | +--+  +--+  +--+  +--+  +--+  +--+  +--+  +--+
+         HODINY     | |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+                   -+-+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--
+                    |    1     1     0     0     0     0     1     0
+         DATA       | +-----------+                       +-----+
+      (bajt C2h)    | |           |                       |     |
+                   -+-+-----------+-----------------------+-----+------
+                    | C  1  C  1  C  0  C  0  C  0  C  0  C  1  C  0
+       FM modulace  | |  |  |  |  |     |     |     |     |  |  |
+                    | |  |  |  |  |     |     |     |     |  |  |
+                   -+-+--+--+--+--+-----+-----+-----+-----+--+--+-------
+                    | C  1  C  1  C  0  C  0  C  0  C  0  C  1  C  0
+      MFM modulace  |    |     |        |     |     |        |
+                    |    |     |        |     |     |        |
+                   -+----+-----+--------+-----+-----+--------+----------
+
+    U  modulace MFM se nahrávají hodinové pulsy jen tam, kde by byla dlouhá
+mezera  mezi impulsy - mezi dva nulové datové bity se vkládá jeden hodinovú
+puls.
+
+
+                9 . -   G r a f i c k á   k a r t a   C G A
+
+
+Porty 03D0H - 03DFH: port grafické karty CGA
+--------------------------------------------
+
+    CGA  je barevnı grafickı adaptér (Color/Graphics Adapter CGA). Grafická
+karta  CGA  je  vystavìna  kolem  integrovaného grafického øadièe Motorolla
+6845 (CRT controller chip).
+
+    CGA dekóduje porty 03D0H a 03DFH (aktuálnì pouívá 03D2H a 03DCH)
+
+    Pozn.: Tyto   porty  jsou  pro  zvıšení  kompatibility  pøekryty  porty
+           grafické  karty  EGA.  Kromì nìkolika vyjímek jsou informace CGA
+           aplikovány i na EGA.
+
+           Podle  starších  pøíruèek  k  CGA  by  mìla  karta CGA generovat
+           hardwarové  pøerušení  IRQ  2  pøi vertikálním zatemòovacím bìhu
+           paprsku obrazovky. Tuto monost však CGA nikdy nemìla.
+
+           BIOS  ukládá  obraz  hodnot  portù  pro  ovládání  karty  CGA do
+           datového  prostoru  BIOS.  Pokud  chcete zmìnit jeden bit portu,
+           pøeètìte  hodnotu  portu  na této adrese, nastavte bit, proveïte
+           instrukci OUT a ulote novou hodnotu zpìt do promìnné.
+
+03D4H  - zápis: vıbìr   øídícího   registru  CRT.  Pouijte  tento  port  k
+                nastavení  nìkterého  z  18  registrù  øadièe CRT. Proveïte
+                instrukci   vıstupu  èísla  registru  na  port  03D4H  (OUT
+                03D4H,AL)  následovanou  ètením  dat nebo zápis dat na port
+                03D5H.
+
+03D5H  - øídící  registr  øadièe CRT. Po vıbìru registru pomocí portu 03D4H
+         lze  pøes  tento  port  èíst  nebo  pøes  nìj  zapisovat  data  do
+         nastaveného vnitøního registru øadièe CRT.
+
+       - zápis: vıznam registrù øadièe displeje CRT je následující:
++-----+-------------------------------------------------------------------+
+| reg.|                        vıznam                                     |
++-----+-------------------------------------------------------------------+
+| 00H | celková délka horizontální synchronizace ve znakovıch taktech     |
+| 01H | poèet zobrazenıch znakù na øádek                                  |
+| 02H | horizontální synchroniz. pozice (vystøedìní obrazu vodorovnì)     |
+| 03H | šíøka vertik. a horizont. synchron. pulsù (kadı 4 bity)          |
+| 04H | celkovı poèet vertikálních øádkù znakù                            |
+| 05H | vertikální pøizpùsobení (snímkování 50 nebo 60 Hz)                |
+| 06H | poèet zobrazenıch vertikálních øádkù znakù                        |
+| 07H | vertikální synchronizaèní pozice (vystøedìní obrazu svisle)       |
+| 08H | mód prokládání (bity 4 a 5) a zpìtného bìhu (bity 6 a 7)          |
+| 09H | adresa maximální pomocné linky (poèet linek na znak)              |
+| 0AH | poèáteèní linka kurzoru                                           |
+| 0BH | koneèná linka kurzoru                                             |
+| 0CH | poèáteèní adresa videopamìti-zaèátek zobraz. stránky (vyšší bajt) |
+| 0DH |               -  "  -   (niší bajt)                              |
+| 0EH | adresa kurzoru (vyšší bajt)                                       |
+| 0FH | adresa kurzoru (niší bajt)                                       |
+| 10H | adresa svìtelného pera (vyšší bajt)                               |
+| 11H | adresa svìtelného pera (niší bajt)                               |
++-----+-------------------------------------------------------------------+
+
+       - ètení: Registry 0CH a 11H lze èíst.
+
+
+
+
+
+
+
+03D6H  - zápis: registr volby módu (Pozn.:BIOS ukládá nastavenou hodnotu na
+                adresu 0:0465H)
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+             | | | | | +-> 0: šíøka (textové módy): 0=40 znakù; 1=80 znakù
+             | | | | +---> 1: 1=monı grafickı mód; 0=textovı mód
+             | | | +-----> 2: 1=zákaz Color Burst pro slokovı monitor
+             | | +-------> 3: 1=monı videosignál; 0=zákaz sloek (èerná)
+             | +---------> 4: bodové rozlišení: 0=320 bodù/2 bity; 1=640/1
+             +-----------> 5: 1=moné blikání textu; 0=intenzita pozadí
+
+03D8H  - zápis: registr volby barev
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+             | | +-------> 0-3: barva: text.mód - okolí; graf.mód - pozadí
+             | +--------->  4:  intenzita: tex.mód - pozadí; graf. - body
+             +----------->  5:  modrá: vıbìr graf. palet  (1 pøidá modrou)
+
+03DAH  - ètení: stavovı registr
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+                 | | | +-> 0: zpìtnı bìh: 1=displej ve zpìtném bìhu
+                 | | +---> 1: 1=svìtelné pero je aktivováno
+                 | +-----> 2: 1=spínaè svìtelného pera je otevøen
+                 +-------> 3: 1=probíhá vertikální synch. puls.
+         Pozn.: Zápis  dat bìhem vertikálního synchronizaèního pulsu (bit 3
+                nastaven na 1) nezpùsobí "snìení" obrazu.
+
+03DBH  - ètení/zápis: libovolnı vıstup vymae registr svìtelného pera
+03DCH  - ètení/zápis: libovolnı vıstup nastaví registr svìtelného pera
+
+
+
+
+
+
+       1 0 . -   G r a f i c k á   k a r t a   E G A   ( a   M D A )
+
+    Grafická  karta  EGA  (Enhanced  Graphics  Adapter)  je  kompatibilní s
+kartami  CGA  (Color/Graphics  Adapter) a MDA (Monochrome Display Adapter),
+avšak má mnoho dalšího vybavení, které ji pøedurèuje k pouití v nejširších
+aplikacích.
+
+    Mezi její pøednosti patøí:
+
+    - vyšší rozlišitelnost v textovıch i grafickıch reimech
+    - grafické módy na monochromním monitoru
+    - softwarovì definovatelné fonty znakù v textovıch módech
+    - spoleèné zobrazení více fontù najednou
+    - 64 barev v textovıch nebo grafickıch módech
+    - jemné rolování obrazu (bodové rolování)
+    - hardwarovì øízeno rozdìlení obrazovky
+    - do videopamìti je moné zapisovat bez nebezpeèí "snìení" obrazu
+
+    EGA dekóduje porty ve dvou oblastech:
+
+    EGA #1 dekóduje porty 03C0H a 03DFH (kvùli sluèitelnosti s kartou CGA)
+    EGA #2 dekóduje porty 02C0H a 02DFH (druhá karta EGA v systému)
+
+    Pro sluèitelnost s graf. kartou MDA dekóduje EGA porty 03B0H - 03BFH
+
+
+    EGA  generuje  na zaèátku vertikálního zpìtného bìhu pøerušení úrovnì 2
+(IRQ  2),  které  má  nastaven vektor pøerušení INT 0AH. Pøi pouití tohoto
+pøerušení  mìjte  na mysli, e AT pouívá IRQ 2 jako kaskádní poadavek pro
+celou tøídu pøerušení (IRQ 8-15).
+
+Pozn.: BIOS  ukládá  obraz  hodnot  nastavení  registrù øadièe CRT a jinıch
+       informací EGA do datového prostoru EGA. Pokud chcete zmìnit nìkterou
+       hodnotu  nastavenou  na  portu,  pøeètìte hodnotu uloenou v tabulce
+       promìnnıch karty EGA, nastavte bit, proveïte vıstup na port a ulote
+       do promìnné novou hodnotu.
+
+
+
+
+
+
+
+Porty 03B0H - 03BFH: port grafické karty MDA
+Porty 03C0H - 03DFH: port grafické karty EGA #1
+Porty 02C0H - 02DFH: port grafické karty EGA #2
+-----------------------------------------------
+
+03C0H  - zápis: port adresy a dat øadièe (ATC)
+              proveïte IN  al,03DAH            ; nastavení módu adresy ATC
+                       OUT 3C0H,èíslo_registru ; volba registru ATC
+                       OUT 3C0H,hodnota        ; uloení hodnoty do reg.
+              pozn.: bity 0-4: nastavení registru ATC
+                     bit 5: 1=moné zobrazení; 0=nastavení registru
+
+         Po vıbìru registru proveïte vıstup dat na port 03C0H:
+
+    reg.00H-0FH    registry palet: nastavení barev podle atributù
+              +-+-+-+-+-+-+-+-+
+              |7 6 5 4 3 2 1 0|
+              +++++++++++++++++ bit
+                   | | | | | +-> 0: R èervená (intenzita 2/3)
+                   | | | | +---> 1: G zelená  (intenzita 2/3)
+                   | | | +-----> 2: B modrá   (intenzita 2/3)
+                   | | +-------> 3: b modrá'  (intenzita 1/3)
+                   | +---------> 4: g zelená' (intenzita 1/3)
+                   +-----------> 5: èervená'  (intenzita 1/3)
+               bit 3 slouí té pro emulaci podtrení MDA
+               bit 4 slouí té pro emulaci intenzity CGA
+
+    reg.10H   øízení módu
+              +-+-+-+-+-+-+-+-+
+              |7 6 5 4 3 2 1 0|
+              +++++++++++++++++ bit
+                       | | | +-> 0: 1=grafickı mód; 0=textovı mód
+                       | | +---> 1: 1=atributy MDA; 0=barevné atributy
+                       | +-----> 2: 1=9.bod je 8.bod pro znaky
+                       |            0=9.bod znakù jako barva pozadí
+                       +-------> 3: 1=blikání textu; 0=4-bitové pozadí
+
+    reg.11H   nastavení barvy okolí (podobnì jako registr palet)
+
+    reg.12H   moné roviny barev
+              +-+-+-+-+-+-+-+-+
+              |7 6 5 4 3 2 1 0|
+              +++++++++++++++++  bit
+                   | | +-+-+-+-> 0-3: uvolnìní rovin 0-3
+                   +-+---------> 4-5: videostatut multiplexu
+                                      00=R&B; 01=b&G, 10=r&g, 11=nepouit
+
+    reg.13H   posuv horizontálních bodù
+              Poèet bodù, o které jsou data rotována vlevo. Platí bity 0-3.
+
+03C2H  - zápis: rùzné øídící funkce
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++  bit
+         | | | | | | | +->  0:  1=volba 3BxH (MDA); 0=volba 3DxH (CGA)
+         | | | | | | +--->  1:  1=moná RAM; 0=blokování RAM
+         | | | | +-+-----> 2-3: takt bodù:00=14MHZ;01=16MHz;10=ext.;11=rez.
+         | | | +--------->  4:  1=rozšiøující vıstup; 0=internì
+         | | +----------->  5:  stránkovı bit pro lichı/sudı mód
+         | +------------->  6:  polarita hor.zpìt.bìhu: 1=negat.; 0=pozit.
+         +--------------->  7:  polarita vert.zpìt.bìhu: 1=negat.; 0=pozit.
+
+03C4H  - zápis: registr adresy následnosti
+03C5H  - zápis: registr dat následnosti
+              proveïte OUT 03C4H,èíslo_registru; potom OUT 03C5H,data
+
+    reg.00H   reset následnosti (bity 0-1 indikují asynchr./synchr.reset)
+    reg.01H   mód taktování
+              +-+-+-+-+-+-+-+-+
+              |7 6 5 4 3 2 1 0|
+              +++++++++++++++++ bit
+                       | | | +-> 0: 1=8 bodù na znak; 0=9 bodù na znak
+                       | | +---> 1: šíøka linky displeje 1=nízká; 0=široká
+                       | +-----> 2: 1=mìnit kadı znak; 0=kadı druhı znak
+                       +-------> 3: takt bodù: 1=pùlenı; 0=normální
+
+    reg.02H   maskovací mapa: bity 0-3 umoòují zápis do bitù rovin 0-3
+    reg.03H   volba mapy znakù:
+                   bity 0-1 volí mapu B (atributovı bit 3=0)
+                   bity 2-3 volí mapu A (atribotuvı bit 3=1)
+
+    reg.04H   mód pamìti:
+              +-+-+-+-+-+-+-+-+
+              |7 6 5 4 3 2 1 0|
+              +++++++++++++++++ bit
+                         | | +-> 0: 1=textovı generátor znakù; 0=grafickı
+                         | +---> 1: 1=EGA RAM > 64K; 0=64K
+                         +-----> 2: 1=sekvenèní; 0=lichá/sudá (jako v CGA)
+
+03CAH  - zápis: grafická pozice 2 (pro EGA musí bıt 0)
+03CCH  - zápis: grafická pozice 1 (pro EGA musí bıt 1)
+
+03CEH  - zápis: grafickı adresovı registr 1 a 2
+03CFH  - zápis: registr dat øadièe grafiky
+              proveïte OUT 03CEH,èíslo_registru; potom OUT 03CFH,data
+
+    reg.00H   nastavení/resetování. Bity 0-3 volí roviny zápisového módu 00
+    reg.01H   moné nastavení/resetování
+    reg.02H   porovnání barev. Bity 0-3 volí barvy pro ètecí mód 01H
+    reg.03H   rotace dat a volba funkce pro zápisovı mód 00H
+              bity 0-2: nastavení poètu rotací pro zápisovı mód 00H
+              bity 3-4: volba funkce pro zápisové módy 00H a 02H
+                        00=beze zmìny; 01=AND; 10=OR; 11=XOR
+    reg.04H   volba ètecí mapy. Bity 0-2 volí èíslo mapy pro ètecí mód 00H
+    reg.05H   registr módu
+              +-+-+-+-+-+-+-+-+
+              |7 6 5 4 3 2 1 0|
+              +++++++++++++++++  bit
+                   | | | | +-+-> 0-1: zápisovı mód 0-2
+                   | | | +----->  2:  podmínky testu
+                   | | +------->  3:  mód ètení: 1=porovn. barev, 0=urèené
+                   | +--------->  4:  1=pouít liché/sudé adresování RAM
+                   +----------->  5:  1=pouít rozlišení CGA (2 bity/bod)
+    reg.06H   rùzné grafické øídící pøíkazy
+              +-+-+-+-+-+-+-+-+
+              |7 6 5 4 3 2 1 0|
+              +++++++++++++++++  bit
+                       | | | +->  0:  1=grafika; 0=monı text. gener. znakù
+                       | | +--->  1:  1=zmìna liché mapy po sudé
+                       +-+-----> 2-3: mapování pamìti pro CPU
+                                      00=A000H (128K);   01=A000H (64K)
+                                      10=B000H (32K MDA);11=B800H (32K CGA)
+    reg.07H   zákaz maskování barev
+              bity 0-3 vyjímají roviny z porovnáv. logiky ve ètecím módu 01
+    reg.08H   bitová  mask.  Bity  0-7  volí bity, které budou maskovány ve
+              všech rovinách.
+
+03B4H nebo 03D4H  - zápis: vıbìr øídícího registru CRT. Pouijte tento port
+                           k  nastavení nìkterého z 18 registrù øadièe CRT.
+                           Proveïte  instrukci  vıstupu  èísla  registru na
+                           port    03B4H    nebo   03D4H   (OUT   03B4H,AL)
+                           následovanou  ètením  dat nebo zápis dat na port
+                           03B5H nebo 03D5H.
+
+03B5H nebo 03D5H  - øídící  registr  øadièe  CRT. Po vıbìru registru pomocí
+                    portu  03B4H  nebo  03D4H lze pøes tento port èíst nebo
+                    pøes   nìj  zapisovat  data  do  nastaveného  vnitøního
+                    registru øadièe CRT.
+
+    Pozn.: Bit  0 portu 03C0H nastavuje, kterı pár adres portù bude pouit.
+           (normálnì je pro MDA adresa 03BxH a pro CGA adresa 03DxH).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       - zápis: vıznam registrù øadièe displeje CRT je následující:
++-----+-------------------------------------------------------------------+
+| reg.|                        vıznam                                     |
++-----+-------------------------------------------------------------------+
+| 00H | celková délka horizontální synchronizace ve znakovıch taktech     |
+| 01H | poèet zobrazenıch znakù na øádek                                  |
+| 02H | poèátek horizontálního zatemnìní (poèet znakù)                    |
+| 03H | konec horizontálního zatemnìní (bity 0-4:jsou šíøka zatemnìní;    |
+|     |                                 bity 5-6:monı posuv 0 a 3)      |
+| 04H | poèátek horizontálního zpìtného bìhu (znaková pozice)             |
+| 05H | konec horizontálního zpìtného bìhu (bity 0-4:šíøka horizontálního |
+|     |    zpìtného bìhu; bity 5-6:prodleva zpìtného bìhu 0-3 znakovıch   |
+|     |    taktù; bit 7: 1=poèáteèní plocha na liché adrese; 0=sudé       |
+| 06H | poèet zobrazenıch vertikálních linek celkem                       |
+| 07H | bit 8 pro jisté registry CRT (jejich adresy se udávají 9-bitovì):|
+|     |       +-+-+-+-+-+-+-+-+                                           |
+|     |       |7 6 5 4 3 2 1 0|                                           |
+|     |       +++++++++++++++++ bit                                       |
+|     |            | | | | | +-> 0: vertikálních linek celkem (CRTC reg.6)|
+|     |            | | | | +---> 1: konec vertikál. zobraz. (CRTC reg.12H)|
+|     |            | | | +-----> 2: zaèát. vertik. zpìtného bìhu (reg.10H)|
+|     |            | | +-------> 3: zaèátek vertik. zatemnìní (reg. 15H)  |
+|     |            | +---------> 4: porovnání øádky (reg.18H)             |
+|     |            +-----------> 5: pozice kurzoru (reg.0AH)              |
+| 08H | pøednastavení první linky øádku po vertikálním zpìtném bìhu       |
+| 09H | adresa maximální pomocné linky (poèet linek na znak)              |
+| 0AH | poèáteèní linka kurzoru                                           |
+| 0BH | koneèná linka kurzoru                                             |
+| 0CH | poèáteèní adresa videopamìti-zaèátek zobraz. stránky (vyšší bajt) |
+| 0DH |               -  "  -   (niší bajt)                              |
+| 0EH | adresa kurzoru (vyšší bajt)                                       |
+| 0FH | adresa kurzoru (niší bajt)                                       |
+| 10H | zápis:zaèátek vertikálního zpìtného bìhu                          |
+| 11H | zápis:konec vertikálního zpìtného bìhu (bity 0-3: šíøka zpìtného  |
+|     |       bìhu v linkách; bit 4: 0=nulování vertik.pøerušení;         |
+|     |       bit 5: 0=moné vertikální pøerušení IRQ 2                   |
+| 12H | konec zobrazení ve vertikálním smìru (linka)                      |
+| 13H | vystøedìní obrazu ve vertikálním zmìru                            |
+| 14H | poloha podtrení (bity 0-5 jsou èísla linek)                      |
+| 15H | zaèátek vertikálního zatemnìní (linek)                            |
+| 16H | konec vertikálního zatemnìní (linek)                              |
+| 17H | øízení módu                                                       |
+|     |       +-+-+-+-+-+-+-+-+                                           |
+|     |       |7 6 5 4 3 2 1 0|                                           |
+|     |       +++++++++++++++++ bit                                       |
+|     |        | | | | | | | +-> 0: 0=mód kompatibilní s graf. adres. CGA |
+|     |        | | | | | | +---> 1: volba èítaèe pomocnıch øádkù          |
+|     |        | | | | | +-----> 2: horiz.zpìtnı bìh: 1=dvojitı vert.zp.b.|
+|     |        | | | | +-------> 3: 1=pouít znakové hodiny/2 pro refresh |
+|     |        | | | +---------> 4: 1=nucená vysoká impedance vıstupu     |
+|     |        | | +-----------> 5: mód pøepínání adres                   |
+|     |        | +-------------> 6: 1=bajtovı adresovı mód; 0=slovní adr. |
+|     |        +---------------> 7: 0=hardwarovı reset; 1=normální operace|
+| 18H | porovnání linek - pouívá se pro operace s rozdìlenou obrazovkou  |
++-----+-------------------------------------------------------------------+
+
+03BAH nebo 03DAH - zápis: bity 0-1 øídí doplòující øídící vıstupy FC0 a FC1
+                 - ètení: stavovı registr (jako MDA-03BAH nebo CGA-03DAH)
+
+    Pozn.: Bit  0  portu  03C0H nastavuje, která adresa portu bude pouita.
+           (normálnì je pro MDA adresa 03BxH a pro CGA adresa 03DxH).
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+                 | | | +-> 0: zpìtnı bìh: 1=displej ve zpìtném bìhu
+                 | | +---> 1: 1=svìtelné pero je aktivováno
+                 | +-----> 2: 1=spínaè svìtelného pera je otevøen
+                 +-------> 3: 1=probíhá vertikální synch. puls.
+         Pozn.: U  karty  EGA není potøeba provádìt synchronizaci zápisu do
+                video RAM s vertikálním zpìtnım bìhem.
+
+03BBH nebo 03DBH  - zápis: libovolnı vıstup vymae registr svìtelného pera
+03BCH nebo 03DCH  - zápis: libovolnı vıstup nastaví registr svìtelného pera
+
+    Pozn.: Bit  0 portu 03C0H nastavuje, kterı pár adres portù bude pouit.
+           (normálnì je pro MDA adresa 03BxH a pro CGA adresa 03DxH).
+
+
+
+
+Nastavení pøepínaèù DIL na kartì EGA
+------------------------------------
+
+    Na  zadní  stranì grafické karty EGA je umístìno nìkolik pøepínaèù DIL,
+na  kterıch  je  mono  nastavit,  kterı monitor je pøipojen ke kartì EGA a
+které  jiné  adaptéry  (pokud  nìjaké  jsou) jsou ve stejné dobì umístìny v
+systému.  Nastavení  pøepínaèù  je  uloeno  té  v  datovém  prostoru BIOS
+(prostor dat EGA).
+
+    Je  tøeba  dbát na to, aby nebyl nikdy pøipojen monochromatickı monitor
+IBM  (typ TTL) k adaptéru EGA, dokud nebudou nastaveny pøepínaèe správnì na
+tento   monitor.   Chybné   nastavení  pøepínaèù  zpùsobí  fyzické  znièení
+monitoru·!
+
+    V    následujících    tabulkách    jsou    jako   "primární"   oznaèeny
+adaptéry/monitory,  které  jsou  pøipojeny  jako první po zapnutí poèítaèe.
+Jako  "sekundární"  jsou  oznaèeny volitelné adaptéry/monitory, které mohou
+bıt pøipojeny k systému jako druhé.
+
+    Barevnı monitor ECM je Enhanced Color Monitor (zvìtšenı bar. monit.).
+
+
+ON  +4+3+2+1+
+    | | | | | primární je EGA spojená s barevnım monitorem 40x25 znakù
+    | | | | | sekundární je karta MDA
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je EGA spojená s barevnım monitorem 80x25 znakù
+    | | | | | sekundární je karta MDA
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je EGA spojená s barevnım monit. ECM (emulace CGA)
+    | | | | | sekundární je karta MDA
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je EGA spojená s barev. monit. ECM (vyšší rozlišení)
+    | | | | | sekundární je karta MDA
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je EGA spojená s monochromatickım monitorem
+    | | | | | sekundární je karta CGA spojená s barevnım monitorem 40x25
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je EGA spojená s monochromatickım monitorem
+    | | | | | sekundární je karta CGA spojená s barevnım monitorem 80x25
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je karta MDA
+    | | | | | sekundární je karta EGA spojená s barevnım monitorem 40x25
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je karta MDA
+    | | | | | sekundární je karta EGA spojená s barevnım monitorem 80x25
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je karta MDA
+    | | | | | sekundární je karta EGA spojená s monitorem ECM (emulace CGA)
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je karta MDA
+    | | | | | sekundární je karta EGA spojená s monitorem ECM (lepší rozl.)
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je karta CGA spojená s barevnım monitorem 40x25
+    | | | | | sekundární je karta EGA spojená s monochromatickım monitorem
+OFF +-+-+-+-+
+
+ON  +4+3+2+1+
+    | | | | | primární je karta CGA spojená s barevnım monitorem 80x25
+    | | | | | sekundární je karta EGA spojená s monochromatickım monitorem
+OFF +-+-+-+-+
+
+    Mùstky  EGA:  na  kartì  EGA  jsou  umístìny  tøi  propojovací  mùstky,
+umoòující další doplòující nastavení karty EGA.
+
+    +P1-+
+  1 |+ÿ+| Podporuje barevnı monitor ECM (640x350 bodù a 64 barev)
+  2 |+ÿ+|
+  3 | ÿ |
+    +---+
+
+    +P1-+
+  1 | ÿ |
+  2 |+ÿ+|
+  3 |+ÿ+| Podporuje pouze barevnı monitor (640x200 bodù a 16 barev)
+    +---+
+
+    Mùstel P2 je pøipojení pro svìtelné pero.
+
+    +P3-+
+  1 |+ÿ+| Nastavení I/O portu EGA na 03xxH (normální nastavení)
+  2 |+ÿ+|
+  3 | ÿ |
+    +---+
+
+    +P3-+
+  1 | ÿ |
+  2 |+ÿ+|
+  3 |+ÿ+| Nastavení I/O portu EGA na 02xxH (nepodporuje EGA BIOS)
+    +---+
+
+
+
+         1 1 . -   P a r a l e l n í   p o r t y   t i s k á r e n
+
+Porty 0378H - 037FH: paralelní port #1 tiskárny
+Porty 0278H - 027FH: paralelní port #2 tiskárny
+Porty 03B0H - 03BFH: monochromatickı displej/paralelní port #3 tiskárny
+-----------------------------------------------------------------------
+
+    ROM-BIOS podporuje a tøi paralelní porty tiskáren, které jsou oznaèeny
+jako  LPT1  - LPT3. Bìhem inicializaèního testu pøi zapnutí poèítaèe (POST)
+testuje BIOS tyto porty v tomto poøadí:
+
+  1.- 03BCH - nalezeno pøipojení monochromního displeje k portu/tiskárna #3
+  2.- 0378H - adaptér paralelního portu tiskárny #1
+  3.- 0278H - adaptér paralelního portu tiskárny #2
+
+    a pøiøadí portùm oznaèení jako LPT1-LPT3, tak jak jsou nalezeny. Ukládá
+adresy  portù  podle  vısledku  testu od adresy 0:0408H (adresy paralelních
+portù tiskáren).
+
+    Sluba  BIOS  INT 17H umoòuje plnou podporu a 4 tiskáren. K pøipojení
+ètvrté  tiskárny  musíte  umístit  její bázovou adresu do datového prostoru
+BIOS jako slovo na adresu 0:0410H.
+
+
+    Popisy  portù  jsou uvádìny pouze pro adresy 0378H-037FH; ostatní porty
+jsou analogické.
+
+0378H-037FH Adaptér paralelního portu tiskárny #1 (LPT1)
+              03BCH je bázová adresa monochromního displeje
+              0278H je bázová adresa adaptéru paralelního portu tiskárny #2
+
+0378H  - data tiskárny
+       - zápis: vyslání bajtu na tiskárnu
+       - ètení: ètení posledního vyslaného bajtu na tiskárnu
+
+
+037AH  - øízení tiskárny
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: +Strobe (pin 1)         (1 = vyslání bajtu)
+         | | | | | | +---> 1: +AUTO LineFeed (pin 14) (1 = autom.LF po CR)
+         | | | | | +-----> 2: -INIT (pin 16)          (0 = reset tiskárny)
+         | | | | +-------> 3: +SLCT IN (pin 17)       (1 = vybere tiskárnu)
+         | | | +---------> 4: +moné pøerušení (hardwarové pøerušení, kdy
+         | | |                                  signál -ACK jde k nule)
+         | | +-----------> 5: vdy = 0
+         | +-------------> 6: vdy = 0
+         +---------------> 7: vdy = 0
+
+    Generovaná pøerušení:    LPT1 ---> IRQ 7 (INT 0FH)
+                             LPT2 ---> IRQ 5 (INT 0DH)
+
+0379H  - statut tiskárny (pouze ètení portu)
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: vdy = 0
+         | | | | | | +---> 1: vdy = 0
+         | | | | | +-----> 2: vdy = 0
+         | | | | +-------> 3: -ERROR (pin 15)(0=tiskárna signalizuje chybu)
+         | | | +---------> 4: +SLCT (pin 13) (1=tiskárna je vybrána)
+         | | +-----------> 5: +PE (pin 12)   (1=v tiskárnì není papír)
+         | +-------------> 6: -ACK (pin 10)  (0=pøipravena na další znak)
+         +---------------> 7: -BUSY (pin 11) (0=zaneprázdn.,OFF-LINE,chyba)
+
+
+
+
+     1 2 . -   P o r t   a s s y n c h r o n n í h o   a d a p t é r u
+
+
+    Prostor  dat  BIOS  obsahuje  vıpis  bázovıch  adres  a ètyø sériovıch
+(komunikaèních)  portù  COM.  Bìhem  inicializaèního  testu  POST testuje a
+inicializuje BIOS porty COM1 a COM2.
+
+    - adaptér portu COM1 dekóduje porty 03F8H a 03FFH (IRQ 4 / INT 0CH)
+    - adaptér portu COM2 dekóduje porty 02F8H a 02FFH (IRQ 3 / INT 0BH)
+
+    Pøerušení  ROM  BIOS  INT 14H bude pracovat s kterımkoliv z tìchto ètyø
+portù,  pokud uloíte bázovou adresu portu do tabulky portù COM zaaèínající
+na  adrese  0:0400H.  Je  nutné,  aby  ádné dva adaptéry nesdílely stejnou
+adresu nebo jinak nebudou pracovat.
+
+Porty 03F8H - 03FFH: port asynchronního adaptéru COM1
+-----------------------------------------------------
+
+    Analogicky pracují registry adaptéru COM2.
+
+03F8H  - zápis: registr úschovy pøenášenıch dat - 8 bitù znaku k vyslání
+       - ètení: registr pøijímacího bufferu - 8 bitù pøijatého znaku
+Pro DLAB=1:
+       - zápis: registr   dìlièky  -  niší  bajt  (pokud  DLAB=1,  tj.  po
+                instrukci  OUT  03FBH,80H).  Po operaci OUT 03FBH,80H tento
+                port  obsahuje  niší bajt dìlièky taktu. Spoleènì s vyšším
+                bajtem   (port   03F9H)  tvoøí  16-bitovou  hodnotu,  která
+                nastavuje rychlost pøenosu dat:
+                +-----------+-----------+-----------+-----------+
+                |    baud   |  dìlièka  |    baud   |  dìlièka  |
+                +-----------+-----------+-----------+-----------+
+                |    110    |   1040    |    1200   |    96     |
+                |    150    |    768    |    2400   |    48     |
+                |    300    |    384    |    4800   |    24     |
+                |    600    |    192    |    9600   |    12     |
+                +-----------+-----------+-----------+-----------+
+03F9H  - zápis: registr povolení pøerušení (DLAB=1)
+                +-+-+-+-+-+-+-+-+
+                |7 6 5 4 3 2 1 0|
+                +++++++++++++++++ bit
+                 | | | | | | | +-> 0: 1=moné pøerušení pøi pøíjmu dat
+                 | | | | | | +---> 1: 1=moné pøer. pøi prázdném vys. buff.
+                 | | | | | +-----> 2: 1=moné pøer. stavem pøijímací linky
+                 | | | | +-------> 3: 1=moné pøer. stavem modemu
+                 | | | +---------> 4: vdy = 0
+                 | | +-----------> 5: vdy = 0
+                 | +-------------> 6: vdy = 0
+                 +---------------> 7: vdy = 0
+       - zápis: registr   dìlièky  -  vyšší  bajt  (pokud  DLAB=1,  tj.  po
+                instrukci  OUT  03FBH,80H).  Po operaci OUT 03FBH,80H tento
+                port  obsahuje  vyšší bajt dìlièky taktu. Spoleènì s niším
+                bajtem   (port   03F8H)  tvoøí  16-bitovou  hodnotu,  která
+                nastavuje rychlost pøenosu dat.
+
+
+
+
+
+
+
+
+03FAH  - ètení: identifikaèní  registr  pøerušení. Pokud nastane pøerušení,
+                ètìte  tento  registr,  pokud  chcete zjistit, co zpùsobilo
+                pøerušení.
+                +-+-+-+-+-+-+-+-+
+                |7 6 5 4 3 2 1 0|
+                +++++++++++++++++  bit
+                 | | | | | | | +->  0:  1=nenastalo ádné pøerušení
+                 | | | | | +-+---> 1-2: 00=pøerušení stavem pøijímací linky
+                 | | | | |                 vzniká  pøi pøeteèení, paritì,
+                 | | | | |                 chybì rámu nebo pøi pøerušení.
+                 | | | | |                 Resetování ètením stavu linky
+                 | | | | |                 (port 03FDH)
+                 | | | | |              01=pøijatá data platná (resetování
+                 | | | | |                 ètením pøijím. bufferu 03F8H)
+                 | | | | |              10=vysílací buffer prázdnı (reset
+                 | | | | |                 zápisem do vysíl. bufferu 03F8H)
+                 | | | | |              11=stav modemu. Vzniká pøi zmìnì
+                 | | | | |                 signálù CTS, DSR, RI nebo RLSD.
+                 | | | | |                 Reset ètením stavu modemu 03FEH.
+                 | | | | +------->  3:  vdy = 0
+                 | | | +--------->  4:  vdy = 0
+                 | | +----------->  5:  vdy = 0
+                 | +------------->  6:  vdy = 0
+                 +--------------->  7:  vdy = 0
+
+03FBH  - ètení/zápis: øídící registr linky
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++  bit
+          | | | | | | +-+-> 0-1: délka slova: 00=5; 01=6; 10=7; 11=8
+          | | | | | +----->  2:  stop-bity: 0=1, 1=2
+          | | | +-+-------> 3-4: parita: x0=ádná; 01=lichá; 11=sudá
+          | | +----------->  5:  parita znaku (BIOS nepouívá)
+          | +------------->  6:  moné øízení BREAK; 1=zaèátek vysílání 0s
+          +--------------->  7:  DLAB (pøístupovı bit k registru dìlièky)
+                                 - urèuje mód portù 03F8H a 03F9H pro nast.
+                                  (pokud je DLAB=1, je pøístup k dìlièce)
+
+03FCH  - zápis: øídící registr modemu
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++ bit
+          | | | | | | | +-> 0: 1=aktivace -DTR (-data terminal ready)
+          | | | | | | |          (informuje, e èeká na pøíjem znaku)
+          | | | | | | +---> 1: 1=aktivace -RTS (-request to send)
+          | | | | | |            (má pøipraven znak k vyslání)
+          | | | | | +-----> 2: 1=aktivace -OUT1 (uivatelskı vıstup)
+          | | | | +-------> 3: 1=aktivace -OUT2 (uivatelskı vıstup)
+          | | | +---------> 4: 1=aktivace zpìtné smyèky pro diagnostiku
+          | | +-----------> 5: vdy = 0
+          | +-------------> 6: vdy = 0
+          +---------------> 7: vdy = 0
+
+03FDH  - ètení: stavovı registr linky
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++ bit
+          | | | | | | | +-> 0: 1=data pøipravena (DR) (reset ètením dat)
+          | | | | | | +---> 1: 1=chyba pøeteèení (OE): pøedch. znak ztracen
+          | | | | | +-----> 2: 1=chyba parity (PE): reset ètením st.linky
+          | | | | +-------> 3: 1=chyba rámu (FE): špatnı stop-bit ve znaku
+          | | | +---------> 4: 1=indikace break (BI): pøijata dlouhá mezera
+          | | +-----------> 5: 1=vysílací registr prázdnı (OK k vysílání)
+          | +-------------> 6: 1=vysílaè prázdnı. Nevysílá ádná data.
+          +---------------> 7: vdy = 0
+         Pozn.: Pøi povoleném pøerušení (03F9H) zpùsobí bity 1-4 pøerušení.
+
+03FEH  - ètení: stavovı registr modemu
+         +-+-+-+-+-+-+-+-+
+         |7 6 5 4 3 2 1 0|
+         +++++++++++++++++ bit
+          | | | | | | | +-> 0: 1=zmìna stavu DCTS (Delta Clear To Send)
+          | | | | | | +---> 1: 1=zmìna stavu DDSR (Delta Data Set Ready)
+          | | | | | +-----> 2: 1=aktivní zvuková signalizace TERI
+          | | | | |              (Trailing Edge Ring Indicator)
+          | | | | +-------> 3: 1=zmìna st. DDCD (Delta Data Carrier Detect)
+          | | | +---------> 4: 1=CTS (Clear To Send) je aktivní
+          | | +-----------> 5: 1=DSR (Data Set Ready) je aktivní
+          | +-------------> 6: 1=signalizace RI (Ring Indikator) je aktivní
+          +---------------> 7: 1=DCD (Data Carrier Detect) je aktivní
+         Pozn.: Pøi povoleném pøerušení (03F9H) zpùsobí bity 0-3 pøerušení.
+
+
+        1 3 . -   P o r t   h e r n í h o   I / O   a d a p t é r u
+
+
+Port 0201H: port herního I/O adaptéru (joystickovı port)
+--------------------------------------------------------
+
+    Port 0201H je oznaèen jako port herního adaptéru nebo joystickovı port.
+Není  podporován  modulem  ROM-BIOS poèítaèù PC/XT, ale BIOS AT - pøerušení
+INT 15H/sluba 84H umoòuje snadné pouití interface pro tento adaptér.
+
+    Jde  pøedevším  o  analogovì/digitální konvertor, kterı mùe bıt pouit
+vìdeckımi  mìøícími pøístroji a jinımi zaøízeními, která obsahují analogovı
+(odporovı)  vstup  na  interface. Umoòuje pouít a ètyøi èíslicové vstupy
+(data  zap/vyp,  jako  je  napø. stisk tlaèítka) a a ètyøi odporové vstupy
+(jako  jsou  X-souøadnice  joysticku  nebo hodnota teploty z elektronického
+teplomìru).
+
+    Hodnota obdrená instrukcí IN z portu 0201H má strukturu:
+
+        +-+-+-+-+-+-+-+-+
+        |7 6 5 4 3 2 1 0|
+        +++++++++++++++++ bit
+         | | | | | | | +-> 0: Ax -+
+         | | | | | | +---> 1: Ay  +-> souøadnice (odporové, èasovì
+         | | | | | +-----> 2: Bx  |               závislé vstupy)
+         | | | | +-------> 3: By -+
+         | | | +---------> 4: A1 -+
+         | | +-----------> 5: A2  +-> tlaèítka/spouštìní (èíslicové vstupy)
+         | +-------------> 6: B1  |
+         +---------------> 7: B2 -+
+
+    Oznaèení:  A=joystick  A;  B=joystick  B; x,y = souøadnice X a Y; 1,2 =
+               tlaèítka joysticku 1 a 2.
+
+    Vstupy z tlaèítek (digitální vstupy) mùete èíst tímto zpùsobem:
+
+         mov       dx,201h             ; adresa portu
+         out       dx,al               ; inicializace øízení (AL=cokoliv)
+         in        al,dx               ; ètení bitù 4-7 tlaèítek (0=stisk)
+
+    Joysticky,  ovladaèe,  mìøící  pøístroje  (odporové  vstupy) jsou èteny
+mìøením  doby,  po  kterou  jsou  bity  X  nebo Y po instrukci OUT·0201H,xx
+nastaveny na hodnotu 1.
+
+    Ètení samostatnıch odporovıch vstupù (pøíklad - souøad. X joysticku A):
+
+         mov       dx,0201h            ; adresa portu
+         out       dx,al               ; inicializace øízení (AL=cokoliv)
+         mov       cx,-1               ; nastavení èítaèe odporu
+opet:    in        al,dx               ; ètení nastavení
+         inc       cx                  ; èítaè
+         test      al,1                ; pøešel ji bit souøadnice X na 0 ?
+         jnz       opet                ; èekání dokud je bit souø. X = 1
+
+    Hodnota  prodlevy  nastøádaná  v  registru  CX  bude  indikovat  pozici
+souøadnice X joysticku A. Tato hodnota je relativní a závisí na koeficientu
+pøevodu  celého pøevodního øetìzce, tj. pøevodu polohy na interval a mìøení
+délky intervalu. Pro pøesnìjší pøevod je lepší pouít hardwarového èasovaèe
+(odtraní i vliv pøerušení na pøevod).
+
+
+
+
+           1 4 . -   M a t e m a t i c k ı   k o p r o c e s o r
+
+
+Porty 00F0H - 00FFH: matematickı koprocesor
+-------------------------------------------
+
+00F0H  - AT: vynulování registru 80287 (OUT 00F0H,0).
+
+00F1H  - AT: reset   80287   (OUT   00F1H,0);  koprocesor  je  resetován  z
+             chránìného módu do reálného módu.
+
+00F8H-00FCH  - AT: data  80287;  80286  vysílá  operaèní  kódy a operandy a
+                   pøijímá vısledky operací
+
+
+
+
+
+                1 5 . -   R o z š i ø u j í c í   b o x   X T
+
+
+Porty 0210H - 0217H: rozšiøující box XT
+---------------------------------------
+
+0210H  - øídící port rozšiøujícího boxu XT
+0213H  - povolení rozšiøujícího boxu XT
+0215H  - registr datové sbìrnice rozšiøujícího boxu XT
+       - adresovı registr rozšiøujícího boxu XT (višší bajt)
+0216H  - adresovı registr rozšiøujícího boxu XT (niší bajt)
+

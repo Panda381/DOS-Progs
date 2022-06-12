@@ -1,0 +1,393 @@
+                                  
+                                
+                                ; ************************************************
+                                ; 
+                                ;             C A R O V Y     K O D
+                                ;
+                                ; ************************************************
+                                
+                                
+                                	.z80
+                                
+                                ; definice konstant
+                                
+  0000                          ROM	equ	0		; zacatek ROM
+  1800                          RAM	equ	1800h		; zacatek RAM
+  007C                          PIO	equ	7ch		; baz. adresa PIO
+  1000                          TYPROM	equ	1000h		; delka pameti ROM
+  0400                          TYPRAM	equ	400h		; delka pameti RAM
+                                
+  0348                          vyp	equ	840		; konst.vypnuti 
+  3B98                          indik	equ	15000+256	; citac indikace
+  0014                          prodmx	equ	20		; max. prodleva H 
+  0FA0                          delay	equ	4000		; prodleva zap/vyp 
+  0C00                          prod1	equ	0c00h		; prodleva znaku
+  2C00                          prod2	equ	2c00h		; prodleva mezery
+  0008                          mezer	equ	8		; mezer pri vystupu
+                                
+  007C                          PIOAD	equ	PIO+0		; PIO-kanal A data
+  007D                          PIOBD	equ	PIO+1		; PIO-kanal B data
+  007E                          PIOAC	equ	PIO+2		; PIO-kanal A riz.
+  007F                          PIOBC	equ	PIO+3		; PIO-kanal B riz.
+                                
+                                
+                                ; definice adres v pameti RAM
+                                
+  1800                          uklad	equ	RAM		; uklad. adresa 2B
+  1802                          cteni	equ	RAM+2		; cteci adresa 2B
+  1804                          par	equ	RAM+4		; param. dekod.1B
+                                				; b0: smer dekod.
+                                				;	0 = primy
+                                				;	1 = zpetny
+                                
+                                ; data pouzivana pro kod CKN:
+  1805                          kod	equ	RAM+5		; kod zaznamu 1B
+  1806                          delka	equ	RAM+6		; delka zaznamu 1B
+  1807                          kodad	equ	RAM+7		; adresa kodu 2B
+                                
+  1840                          stack	equ	RAM+64		; zasobnik
+  1840                          text	equ	RAM+64		; buf.textu 
+  19FC                          kontxt	equ	RAM+TYPRAM-204h ; konec buf.txt.+1
+  19FC                          timer1	equ	RAM+TYPRAM-204h	; refer.konst.c.2B
+  19FE                          timer2	equ	RAM+TYPRAM-202h	; refer.konst.m.2B
+  1A00                          buff	equ	RAM+TYPRAM-200h ; buffer imp. 512B
+  1C00                          konec	equ	RAM+TYPRAM	; konec RAM + 1
+                                
+                                
+                                	org	ROM		; zacatek ROM
+                                
+                                
+                                ; ************************************************
+                                ;Š                                ;		cyklus vnitrnich testu
+                                ;
+                                ; ************************************************
+                                
+                                
+                                
+                                ; ------------------------------------------------
+                                ;        inicializace parametru snimace
+                                ; ------------------------------------------------
+                                
+  0000'                         start:				; zacatek ROM
+                                
+                                				; start programu
+  0000'   3E 0F'                	ld	a,high intert	; tabulka prerus.
+  0002'   ED 47                 	ld	i,a
+  0004'   ED 5E                 	im	2		; mod preruseni 2
+  0006'   DD 21 1800            	ld	ix,RAM		; tabulka RAM
+  000A'   31 0FF4'              	ld	sp,stack1 	; navrat.adresa 1
+  000D'   21 0111'              	ld	hl,tabini	; tabulka inicial.
+  0010'   01 037E               	ld	bc,3*256+PIOAC
+  0013'   ED B3                 	otir			; inicial. PIO-A
+  0015'   01 027F               	ld	bc,2*256+PIOBC 
+  0018'   ED B3                 	otir			; inicial. PIO-B
+                                
+                                
+                                ; ------------------------------------------------
+                                ; zapnuti sondy a nastaveni preruseni na data
+                                ; zaroven se nastavi citac pro citani doby
+                                ; pro vypnuti sondy, je-li sonda v klidu
+                                ; ------------------------------------------------
+                                
+                                
+  001A'                         aktiv:				; aktivace sondy
+  001A'   E1                    	pop	hl		; zruseni navratu
+                                
+  001B'   3E 24                 	ld	a,24h
+  001D'   D3 7C                 	out	(PIOAD),a	; zapnuti sondy	
+  001F'   21 0FA0               	ld	hl,delay	; prodleva zapnuti
+  0022'   2B                    delay1:	dec	hl		; prodleva pro
+  0023'   7C                    	ld	a,h		;   zapnuti sondy
+  0024'   B5                    	or	l
+  0025'   20 FB                 	jr	nz,delay1
+  0027'   3E 97                 	ld	a,97h		; urov.LOW=mezera
+  0029'   D3 7E                 	out	(PIOAC),a	; povoleni prerus.
+  002B'   3E FE                 	ld	a,0feh		; prerus.bitem 0
+  002D'   D3 7E                 	out	(PIOAC),a	; (prerus.daty) 
+  002F'   AF                    	xor	a
+  0030'   D3 7D                 	out	(PIOBD),a	; port B
+  0032'   CD 0172'              	call	insret		; instrukce RETI
+  0035'   31 1840               aktiv1:	ld	sp,stack	; zasobnik
+                                
+  0038'   DB 7C                 	in	a,(PIOAD)	; volba kodu
+  003A'   07                    	rlca
+  003B'   07                    	rlca
+  003C'   E6 03                 	and	3
+  003E'   47                    	ld	b,a		; cislo volby kodu
+  003F'   04                    	inc	b
+  0040'   11 0046               	ld	de,70		; delka tabulky kodu
+  0043'   21 02FA'              	ld	hl,kody-70	; tabulka kodu
+  0046'   19                    aktkod:	add	hl,de
+  0047'   10 FD                 	djnz	aktkodŠ  0049'   E5                    	push	hl
+  004A'   FD E1                 	pop	iy		; zacatek kodu
+                                
+  004C'   21 0348               	ld	hl,vyp		; konst.vypnuti
+  004F'   3E F8'                	ld	a,low interd	; vstup dat
+  0051'   D3 7E                 	out	(PIOAC),a	; vektor preruseni
+  0053'   FB                    	ei			; povoleni prerus.
+                                
+                                
+                                ; ------------------------------------------------
+                                ; test pameti ROM - kontrolni soucet pro 
+                                ; kontrolu je ulozen na adrese ROM+TYPROM-2 (ukla-
+                                ; da se sem pri programovani pameti pomoci progra-
+                                ; matoru BPE jako kontr. soucet Dirck-Johannsonuv
+                                ; kod chyby je <carka>-<tecka>
+                                ; ------------------------------------------------
+                                
+                                
+  0054'                         tstrom:				; test ROM
+  0054'   D9                    	exx			; citac indik. HL'
+  0055'   21 0000'              	ld	hl,start	; zacatek pameti
+  0058'   01 0FFE               	ld	bc,chksum-start	; delka pameti
+  005B'   AF                    	xor	a		; vynul.registru 
+  005C'   57                    	ld	d,a
+  005D'   17                    tstro1:	rla
+  005E'   CB 12                 	rl	d
+  0060'   CE 00                 	adc	a,0
+  0062'   AE                    	xor	(hl)
+  0063'   ED A1                 	cpi
+  0065'   EA 005D'              	jp	pe,tstro1	; dalsi byte
+  0068'   5F                    	ld	e,a
+  0069'   2A 0FFE'              	ld	hl,(chksum)	; ref.kontr.soucet
+  006C'   ED 52                 	sbc	hl,de
+  006E'   11 0401               	ld	de,401h		; kod chyby
+  0071'   C2 00E1'              	jp	nz,error 	; chyba kontr.souc.
+                                
+                                
+                                ; ------------------------------------------------
+                                ; test pameti RAM - provadi se destruktivne 
+                                ; zapisem vzorku dat do pameti 55,00,AA,FF
+                                ; a jejich kontrolou pres cely adresovy prostor
+                                ; - chrani se pouze citac pro vypnuti CITAC
+                                ; kod chyby je <tecka>-<carka>
+                                ; ------------------------------------------------
+                                
+                                
+  0074'                         tstram:				; test RAM
+  0074'   21 1800               	ld	hl,RAM  	; zacatek RAM
+  0077'   11 1801               	ld	de,RAM+1
+  007A'   01 03FF               	ld	bc,TYPRAM-1 	; delka RAM
+  007D'   36 00                 	ld	(hl),0		; prvni vzorek
+  007F'   ED B0                 	ldir			; vymazani RAM
+                                
+  0081'   11 5500               	ld	de,5500h	; testovaci vzorek
+  0084'   21 1800               tstra1:	ld	hl,RAM		; zacatek RAM
+  0087'   01 0400               	ld	bc,TYPRAM	; delka RAM
+  008A'   7E                    tstra2:	ld	a,(hl)
+  008B'   BB                    	cp	e		; kontrola obsahu
+  008C'   20 50                 	jr	nz,ramerr	; chyba RAM
+  008E'   72                    	ld	(hl),d		; novy obsah
+  008F'   7E                    	ld	a,(hl)Š  0090'   BA                    	cp	d		; kontrola obsahu
+  0091'   20 4B                 	jr	nz,ramerr	; chyba RAM
+  0093'   23                    	inc	hl
+  0094'   0B                    	dec	bc
+  0095'   78                    	ld	a,b
+  0096'   B1                    	or	c
+  0097'   20 F1                 	jr	nz,tstra2	; dalsi byte
+  0099'   7B                    	ld	a,e
+  009A'   5A                    	ld	e,d
+  009B'   2F                    	cpl
+  009C'   57                    	ld	d,a
+  009D'   7B                    	ld	a,e
+  009E'   B7                    	or	a
+  009F'   20 E3                 	jr	nz,tstra1	; dalsi vzorek
+                                
+                                
+                                ; ------------------------------------------------
+                                ; test portu PIO - provadi kontrolni cteni 
+                                ; datovych registru - zda je port pristupny
+                                ; kod chyby je <carka>-<carka>
+                                ; ------------------------------------------------
+                                
+                                
+  00A1'                         tstpio:				; test portu
+  00A1'   DB 7C                 	in	a,(PIOAD)	; data PIO-A
+  00A3'   E6 0C                 	and	0ch
+  00A5'   FE 04                 	cp	4
+  00A7'   11 0404               	ld	de,404h
+  00AA'   20 35                 	jr	nz,error	; chyba
+  00AC'   DB 7D                 	in	a,(PIOBD)	; data PIO-B
+  00AE'   B7                    	or	a
+  00AF'   20 30                 	jr	nz,error	; chyba
+                                
+                                
+                                ; ------------------------------------------------
+                                ; dekrementace citace vypnuti sondy
+                                ; je-li dosazeno 0 citace (tj.doba vypnuti sondy),
+                                ; je sonda vypnuta a preruseni od PIO-A je nasta-
+                                ; veno na preruseni od signalu aktivace /AKT
+                                ; a na adresu aktivace AKTIV
+                                ; ------------------------------------------------
+                                
+                                
+  00B1'   D9                    	exx			; cit. vypnuti HL'
+  00B2'   7C                    	ld	a,h
+  00B3'   B5                    	or	l
+  00B4'   CA 0054'              	jp	z,tstrom	; cekani na aktiv.
+  00B7'   2B                    	dec	hl		; dekrementace 
+  00B8'   7C                    	ld	a,h
+  00B9'   B5                    	or	l
+  00BA'   C2 0054'              	jp	nz,tstrom	; neni 0 citace
+                                
+                                				; vypnuti sondy
+  00BD'   F3                    	di
+  00BE'   3E 07                 	ld	a,7
+  00C0'   D3 7E                 	out	(PIOAC),a	; zakaz preruseni
+  00C2'   3E 04                 	ld	a,4
+  00C4'   D3 7C                 	out	(PIOAD),a	; vypnuti sondy
+                                
+  00C6'   11 0FA0               	ld	de,delay	; prodleva vypnuti
+  00C9'   1B                    delay2:	dec	de		; pro ustaleniŠ  00CA'   7A                    	ld	a,d		; signalu sondy
+  00CB'   B3                    	or	e
+  00CC'   20 FB                 	jr	nz,delay2
+                                
+  00CE'   3E 97                 	ld	a,97h
+  00D0'   D3 7E                 	out	(PIOAC),a	; prerus.aktivaci
+  00D2'   3E FD                 	ld	a,0fdh
+  00D4'   D3 7E                 	out	(PIOAC),a	; prerus.aktivaci
+  00D6'   3E F6'                	ld	a,low intera	; prerus.aktivaci
+  00D8'   D3 7E                 	out	(PIOAC),a	; port PIO-A riz.
+  00DA'   FB                    	ei			; povoleni prerus.
+  00DB'   C3 0054'              	jp	tstrom		; pokrac.testu
+                                
+                                
+                                ; ------------------------------------------------
+                                ; program pro vystup chyboveho hlaseni
+                                ; v registru D je ulozen prvni znak kodu
+                                ; v registru E je ulozen druhy znak kodu
+                                ; ------------------------------------------------
+                                
+  00DE'   11 0104               ramerr:	ld	de,104h		; chyba RAM
+                                
+                                
+  00E1'                         error:				; indikace chyby
+  00E1'   F3                    	di			; zakaz preruseni
+  00E2'   42                    err6:	ld	b,d		; prvni prvek	
+  00E3'   3E 24                 	ld	a,24h		; zap.sondy
+  00E5'   D3 7C                 err5:	out	(PIOAD),a	; zapnuti sondy
+  00E7'   21 3B98               err2:	ld	hl,indik	; citac indikace
+  00EA'   2D                    err1:	dec	l
+  00EB'   20 FD                 	jr	nz,err1
+  00ED'   25                    	dec	h
+  00EE'   20 FA                 	jr	nz,err1
+  00F0'   10 F5                 	djnz	err2		; dalsi cast prvku
+  00F2'   EE 20                 	xor	20h		; zmena vystupu
+  00F4'   04                    	inc	b		; delka mezery
+  00F5'   CB 6F                 	bit	5,a		; vystup. bit
+  00F7'   28 EC                 	jr	z,err5		; nasleduje mezera
+  00F9'   43                    	ld	b,e		; druhy prvek
+  00FA'   D3 7C                 err7:	out	(PIOAD),a	
+  00FC'   21 3B98               err3:	ld	hl,indik	; citac indikace
+  00FF'   2D                    err4:	dec	l
+  0100'   20 FD                 	jr	nz,err4
+  0102'   25                    	dec	h
+  0103'   20 FA                 	jr	nz,err4
+  0105'   10 F5                 	djnz	err3		; dalsi cast prvku
+  0107'   EE 20                 	xor	20h		; zmena vystupu
+  0109'   06 08                 	ld	b,8		; velka mezera
+  010B'   CB 6F                 	bit	5,a		; vystup. bit
+  010D'   28 EB                 	jr	z,err7		; je velka mezera
+  010F'   18 D1                 	jr	err6		; opakovani indik.
+                                
+                                
+                                ; ------------------------------------------------
+                                ;        tabulka pro inicializaci portu
+                                ; ------------------------------------------------
+                                
+                                
+  0111'   FF                    tabini:	db	0ffh		; port A = bitovy
+                                				;   vstup/vystup
+                                Š  0112'   D3                    	db	0d3h		; bity 0,1,4,6,7 =
+                                				;   vstupy, 
+                                				;   bity 2,3,5 =
+                                				;   vystupy
+                                
+  0113'   07                    	db	7		; zakaz preruseni
+                                 
+                                
+  0114'   3F                    	db	3fh		; port B = bytovy
+                                				;   vystup
+                                
+  0115'   03                    	db	3		; zakaz preruseni
+                                		
+                                 
+                                
+                                
+                                ; ************************************************
+                                ; 	
+                                ;  	   Inicializace a vystup textu
+                                ; 
+                                ; ************************************************
+                                
+                                
+                                ; ------------------------------------------------
+                                ; inicializace dat pro vstup ze sondy pri prvnim
+                                ; vstupu (vystupni buffer textu je prazdny)
+                                ; ------------------------------------------------
+                                
+                                
+  0116'                         datini:				; data - inic.
+  0116'   E1                    	pop	hl		; zruseni navratu
+  0117'   21 1840               	ld	hl,text		; buffer textu
+  011A'   22 1800               	ld	(uklad),hl	; ukladaci adresa
+  011D'   22 1802               	ld	(cteni),hl	; cteci adresa
+  0120'   CD 0166'              	call	zazn0		; vstup dat
+                                
+                                
+                                ; ------------------------------------------------
+                                ;       vystup dat zaznamenanych v pameti
+                                ; ------------------------------------------------
+                                
+  0123'   FB                    	ei
+  0124'   F3                    output:	di
+  0125'   ED 5B 1800            	ld	de,(uklad)	; adresa uklad.
+  0129'   2A 1802               	ld	hl,(cteni)	; adresa cteni
+  012C'   E5                    	push	hl		; adresa cteni
+  012D'   B7                    	or	a
+  012E'   ED 52                 	sbc	hl,de		; poc.znaku textu
+  0130'   E1                    	pop	hl		; adresa cteni
+  0131'   CA 0035'              	jp	z,aktiv1	; neni zadny znak
+  0134'   23                    	inc	hl		; zvyseni adresy
+  0135'   E5                    	push	hl		; adresa cteni
+  0136'   11 19FC               	ld	de,kontxt	; konec buff.textu
+  0139'   B7                    	or	a
+  013A'   ED 52                 	sbc	hl,de		; kontrola konce
+  013C'   E1                    	pop	hl		; adresa cteni
+  013D'   38 03                 	jr	c,outp1		; neni konec
+  013F'   21 1840               	ld	hl,text		; zac.text.buff.
+  0142'   22 1802               outp1:	ld	(cteni),hl	; nova adr.cteni
+  0145'   D9                    	exx
+  0146'   21 0124'              	ld	hl,output	; navratova adresaŠ  0149'   E5                    	push	hl		; navrat z vystupu
+  014A'   FD 6E 44              	ld	l,(iy+68)
+  014D'   FD 66 45              	ld	h,(iy+69)
+  0150'   E5                    	push	hl		; podpr. vystupu
+  0151'   D9                    	exx 
+  0152'   5E                    	ld	e,(hl)		; znak k vystupu
+  0153'   FB                    	ei
+  0154'   16 00                 	ld	d,0
+  0156'   7B                    	ld	a,e		; znak k vystupu
+  0157'   3C                    	inc	a		; znak + 1, nast.Z
+  0158'   C9                    	ret			; skok do podpro-
+                                				; gramu pro vystup
+                                
+                                
+                                ; ------------------------------------------------
+                                ;         zaznam dat pri vystupu textu
+                                ; ------------------------------------------------
+                                
+                                
+  0159'   E5                    zaznam:	push	hl		; preruseni
+  015A'   D5                    	push	de
+  015B'   C5                    	push	bc
+  015C'   F5                    	push	af
+  015D'   CD 0166'              	call	zazn0		; vstup impulsu
+  0160'   F1                    	pop	af
+  0161'   C1                    	pop	bc
+  0162'   D1                    	pop	de
+  0163'   E1                    	pop	hl
+  0164'   FB                    	ei
+  0165'   C9                    	ret			; navrat k vystupu
+                                
+                                
+

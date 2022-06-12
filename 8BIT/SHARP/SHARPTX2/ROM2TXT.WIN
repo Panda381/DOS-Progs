@@ -1,0 +1,1192 @@
+                                - 35 -
+0986    LD   A,20
+0988    OR   A
+0989    SCF
+098A    RET
+
+        data tisku
+
+098B    DEFW 'FILENAME'+0D
+
+        wait ~3.4 ms
+                A=0, F=Z,NC,P,PO
+
+0996    PUSH BC
+0997    LD   B,15
+0999    CALL 0A4A       ;wait 0.23 ms
+099C    DJNZ 0999       ;opakuj 21*
+099E    POP  BC
+099F    RET
+
+        data tisku
+
+09A0    DEFW 'LOADING'+0D
+
+        wait ~1.33 ms
+                A=0, F=Z,NC,P,PO
+
+09A9    LD   A,73
+09AB    DEC  A
+09AC    JP   NZ,09AB
+09AF    RET
+
+        naètení do Acc právì zmáèklou klávesu ve video-kódu s
+        blikáním kursoru
+                AF=?
+
+09B0    NOP
+09B1    NOP
+09B2    NOP
+09B3    PUSH HL
+09B4    CALL 09B2       ;inicializace pøed blikáním kursoru
+09B7    CALL 057E       ;blikání kursoru s kontrolou klávesnice
+09BA    JR   NZ,09B7    ;ještì je nìco zmáèklé => opakuj
+09BC    CALL 057E       ;blikání kursoru s kontrolou klávesnice
+09BF    JR   Z,09BC     ;není nic zmáèklé
+09C1    LD   H,A        ;H=videokód zmáèklé klávesy
+09C2    CALL 0996       ;wait ~3.4 ms
+09C5    CALL 08CA       ;naètení zmáèklé klávesy ve video-kódu
+09C8    PUSH AF
+09C9    CP   H          ;porovnání s pøedchozí klávesou
+09CA    POP  HL         ;nyní zmáèklá klávesa do H
+09CB    JP   NZ,09BC    ;zmáèklé klávesy byly rùzné
+09CD    PUSH HL         ;pøeètení zmáèklé klávesy do Acc
+09CE    POP  AF
+09CF    CALL 05F0       ;navrácení znaku pod kursorem do VRAM
+09D2    POP  HL
+09D3    RET
+
+                                - 36 -
+
+        vynulování 800 bytù pamìti od HL
+                BC=0,HL=HL+BC,A=0,F=Z,NC,P,PO
+
+09D4    XOR  A
+
+        vyakumulátorování 800 bytù pamìti od HL
+                BC=0,HL=HL+BC,A=0,F=Z,NC,P,PO
+
+09D5    LD   BC,0800
+
+        vyakumulátorování BC bytù pamìti od HL
+                BC=0,HL=HL+BC,A=0,F=Z,NZ,P,PO
+
+09D8    PUSH DE
+09D9    LD   D,A        ;D=püvodní Acc,Acc bude pouit pro
+                        ;kontrolu prùbìhü
+09DA    LD   (HL),D     ;uloení D na adresu HL
+09DB    INC  HL         ;zvìtšení adresy
+09DC    DEC  BC         ;zmenšení poèítadla
+09DD    LD   A,B
+09DE    OR   C          ;kontrola nulovosti poèítadla
+09DF    JR   NZ,09DA    ;není nulové => opakuj
+09E1    POP  DE
+09E2    RET
+
+        blikání kursoru 1.5 Hz; pøed skokem nutno uloit znak
+        kursoru i pod kursorem do systémovıch promìnnıch
+                -
+
+09E3    PUSH AF
+09E4    PUSH HL
+09E5    LD   A,(E002)   ;naètení signálu pro blikání kursoru
+09E8    RLCA
+09E9    RLCA
+09EA    JR   C,097B     ;signå aktivní => vyma kursor a navra
+                        ;znak pod ním
+09EC    LD   A,(1192)   ;naètení znaku kursoru
+09EF    CALL 0FB1       ;naètení do  HL posici kursoru
+09F2    LD   (HL),A     ;uloení znaku kursoru do VRAM
+09F3    POP  HL         ;návrat
+09F4    POP  AF
+09F5    RET
+
+        jiné adresy pro start podprogramu pro blikání kursoru
+
+09F6-FE NOP
+09FF    JR   09E3
+
+        zápis nulového bitu na magn. (zápis 1 a 0 dlouhé .2 ms)
+                -
+
+0A01    PUSH AF
+0A02    LD   A,3
+0A04    LD   (E003),A   ;vyslání jednièkového signálu na magn.
+
+                                - 37 -
+
+0A07    CALL 0759       ;wait .1 ms
+0A0A    CALL 0759       ;wait .1 ms
+0A0D    LD   A,2
+0A0F    LD   (E003),A   ;zápis nulového signálu na magnetofon
+0A12    CALL 0759       ;wait .1 ms
+0A15    CALL 0759       ;wait .1 ms
+0A18    POP  AF
+0A19    RET
+
+        zápis jednièkového bitu (zápis 1 a 0 s délkou 1.3 ms)
+
+
+0A1A    PUSH AF
+0A1B    LD   A,3
+0A1D    LD   (E003),A   ;vyslání jednièkového signálu na magn.
+0A20    CALL 09A9       ;wait 1.3 ms
+0A23    LD   A,2
+0A25    LD   (E003),A   ;zápis nulového signálu na magnetofon
+0A28    CALL 09A9       ;wait 1.3 ms
+0A2B    POP  AF
+0A2C    RET
+
+        test funkèních kláves (8.øádek klávesnice)
+                vısledné nadstavení AF dle následující tabulky:
+
+                        Acc Cy Z  S  P/V
+                        ~~~~~~~~~~~~~~~~~
+        NIC             7F  0  0  0  0
+        ESC             3F  0  0  0  1
+        CTRL (+ESC)     20  1  0  0  0
+        SHIFT (+CRTL)   40  1  0  1  ?
+        BREAK (+CRTL)   0   0  1  0  1
+                pro nevìdoucí podotıkám, e BREAK je SHIFT+ESC
+
+0A2D-31 NOP
+0A32    LD   A,(F8)
+0A34    LD   (E000),A   ;aktivace 8.øádku klávesnice
+0A37    NOP
+0A38    LD   A,(E001)   ;naètemí zmáèklıch kláves
+0A3B    OR   A          ;nulování Cy
+0A3C    RRA             ;kontrola SHIFT
+0A3D    JP   C,0980     ;SHIFT není zmáèklı
+0A40    RLA             ;kontrola ESC
+0A41    RLA
+0A42    JR   NC,0A48    ;je zmáèklé => BREAK
+0A44    LD   A,40       ;je jen SHIFT popø. CTRL
+0A46    SCF
+0A47    RET
+
+0A48    XOR  A          ;BREAK
+0A49    RET
+
+                                - 38 -
+
+        wait .23 ms
+                A=0,F=Z,NC,P,PO
+
+0A4A    LD  A,36
+0A4C    JP  0762        ;odeèítání A a k nule
+
+        vstup z klávesnice do BC z najvyššiho øádku klávesnice
+        nejniší bit
+                AF=?,BC=dle tabulky
+
+                        B    C          reg C:
+        BREAK           88   -          bit  C7    :0
+        NIC             00   -          bity C6-C3 :è.øady(0-7)
+        SHIFT           40   -          bity C2-C0 :è.bitu(0-7)
+        CTRL            20   -
+        klávesa         B7=1 viz dále
+                        pokud je napø SHIFT + klávesa je
+                        samozøejmì B=C0
+
+0A4F    NOP
+0A50    PUSH DE
+0A51    PUSH HL
+0A52    XOR  A
+0A53    LD   B,F8       ;zaèíná se 8.øádkem
+0A55    LD   D,A        ;nulování D
+0A56    CALL 0A32       ;test funkèních kláves
+0A59    JR   NZ,0A5F    ;není BREAK
+0A5B    LD   D,88       ;BREAK
+0A5D    JR   0A73       ;návrat
+
+0A5F    JR   NC,0A66    ;není SHIFT ani CTRL
+0A61    LD   D,A        ;D=40(20) dle SHIFT nebo CTRL
+0A62    JR   0A66       ;ètení ostatních kláves
+
+0A64    SET  7,D        ;nìco je zmáèklé => nadstav 7 bit
+0A66    DEC  B          ;zmenši èíslo øádku klávesnice o 1
+0A67    LD   A,B
+0A68    LD   (E000),A   ;aktivuj tento øádek klávesnice
+0A6B    CP   EF 
+0A6D    JR   NZ,0A77    ;pokud nebyl aktivován ji poslední,
+                        ;pak èti klávesy
+0A6F    CP   F8         ;normálnì nesmysl,jen po úpravách pro
+                        ;ètení F1-F5
+0A71    JR   Z,0A66     ;pokud aktivován náhodou 8, pak èti
+                        ;niší øádky
+0A73    LD   B,D        ;dej do B vısledek
+0A74    POP  HL         ;návrat
+0A75    POP  DE
+0A76    RET
+
+                                - 39 -
+
+0A77    LD   A,(E001)   ;naètení zmáèklıch kláves
+0A7A    CPL             ;negace
+0A7B    OR   A
+0A7C    JR   Z,0A66     ;v této øadì nic zmáèklé
+0A7E    LD   E,A        ;uloení zmáèklıch kláves do E
+0A7F    LD   H,8        ;8 bitù= poèítadlo poøadového bitu
+                        ;zmáèklé klávesy
+0A81    LD   A,B
+0A82    AND  0F         ;A=èíslo sloupce klávesnice
+0A84    RLCA
+0A85    RLCA
+0A86    RLCA
+0A87    LD   C,A        ;na bitech C6-C3 èislo sloupce klávesn.
+0A88    LD   A,E        ;obnovení zmáèklıch kláves
+0A89    DEC  H          ;zmenšení poøadového èisla bitù
+0A8A    RRCA            ;hledání zmáèklé klávesy
+0A8B    JR   NC,0A89    ;opakuj, dokud nenajdena
+0A8D    LD   A,H        ;naètení poøadového èisla bitu do Acc
+0A8E    ADD  A,C        ;bitovı souèet s èíslem sloupce klávesn.
+0A8F    LD   C,A        ;vısledek do C
+0A90    JR   0A64       ;opakuj ètení dalších øad klávesnice
+                        ;(nadstav B7)
+
+        následuje tabulka video znakù pro pøevod z ASCII na
+        video-kódy a naopak
+
+adresa| odpovídající  video-kód| poø.èíslo| odpovídající ASCII
+
+0A92    F0 F0 F0 F3 F0 F5 F0 F0    00   ;
+0A9A    F0 F0 F0 F0 F0 F0 F0 F0    08   ;
+0AA2    F0 C1 C2 C3 C4 C5 C6 F0    10   ; pohyb kursoru
+0AAA    F0 F0 F0 F0 F0 F0 F0 F0    18   ;
+0AB2    00 61 62 63 64 65 66 67    20   ; !"#$%&'
+0ABA    68 69 6B 6A 2F 2A 2E 2D    28   ;()*+,-./
+0AC2    20 21 22 23 24 25 26 27    30   ;01234567
+0ACA    28 29 4F 2C 51 2B 57 49    38   ;89:;<=>?
+0AD2    55 01 02 03 04 05 06 07    40   ;@ABCDEFG
+0ADA    08 09 0A 0B 0C 0D 0E 0F    48   ;HIJKLMNO
+0AE2    10 11 12 13 14 15 16 17    50   ;PQRSTUVW
+0AEA    18 19 1A 52 59 54 50 45    58   ;XYZ[\]^_
+0AF2    C7 C8 C9 CA CB CC CD CE    60   ;
+0AFA    CF DF E7 E8 E5 E9 EC ED    68   ;následují
+0B02    D0 D1 D2 D3 D4 D5 D6 D7    70   ; grafické
+0B0A    D8 D9 DA DB DC DD DE C0    78   ;  znaky
+0B12    80 BD 9D B1 B5 B9 B4 9E    80   ;
+0B1A    B2 B6 BA BE 9F B3 B7 BB    88   
+0B22    BF A3 85 A4 A5 A6 94 87    90   
+0B2A    88 9C 82 98 84 92 90 83    98   
+0B32    91 81 9A 97 93 95 89 A1    A0
+0B3A    AF 8B 86 96 A2 AB AA 8A    A8   
+0B42    8E B0 AD 8D A7 A8 A9 8F    B0   
+0B4A    8C AE AC 9B A0 99 BC B8    B8   
+
+                        - 40 -
+
+0B52    40 3B 3A 70 3C 71 5A 3D    C0   
+0B5A    43 56 3F 1E 4A 1C 5D 3E    C8   
+0B62    5C 1F 5E 5E 37 7B 7F 36    D0   
+0B6A    7A 7E 33 4B 4C 1D 6C 5B    D8   
+0B72    78 41 35 34 74 30 38 75    E0   
+0B7A    39 4D 6F 6E 32 77 76 72    E8   
+0B82    73 47 7C 53 31 4E 6D 48    F0   
+0B8A    46 7D 44 1B 58 79 42 60    F8   
+
+        první podprogram blikání kursoru: uloení znaku kursoru
+        a znaku pod kursorem na systémové promìnné
+                A=FF,F=NC,Z,P,PO
+
+0B92    LD   HL,1192    ;adresa syst. promìnné pro znak kursoru
+0B95    LD   (HL),EF    ;znak kursoru v textovém reimu
+0B97    LD   A,(1170)   ;naètení syst. promìnné pro graf. reim
+0B9A    RRCA            ;test nultého bitu této promìnné
+0B9B    JR   C,0BA0     ;je jednièkovı => grafickı reim
+0B9D    RRCA            ;test prvního bitu této proménné
+0B9E    JR   NC,0BA2    ;pokud je jednièkovı => grafickı reim
+0BA0    LD   (HL),FF    ;znak kursoru v grafickém reimu
+0BA2    LD   A,(HL)     ;naètení znaku kursoru
+0BA3    PUSH AF         ;uloení znaku kursoru
+0BA4    CALL 0FB1       ;naètení do HL pozici kursoru
+0BA7    LD   A,(HL)     ;naètení znaku z VRAM, znaku pod kurs.
+0BA8    LD   (118E),A   ;uloení tohoto znaku na syst. promìnou
+0BAB    POP  AF         ;vyzvednutí znaku kursoru
+0BAC    LD   (HL),A     ;uloení znaku kursoru do VRAM
+0BAD    XOR  A          ;reset signálu pro blikání kursoru
+0BAE    LD   HL,E000
+0BB1    LD   (HL),A
+0BB2    CPL
+0BB3    LD   (HL),A
+0BB4    RET
+
+        znak kursoru = 'C', inicializaèní program pøed blikáním
+        kursoru : pøed vstupem musí bıt HL=1192
+                A=FF,F=NC,Z,P,PO
+
+0BB5    LD   (HL),43    ;uloení 'C'
+0BB7    JR   0BA2       ;inicializace systémovıch promìnnıch
+
+        pøevod ASCII znaku na video-kód
+                AF=?
+
+0BB9    PUSH BC
+0BBA    PUSH HL
+0BBB    LD   HL,0A92    ;adresa oøevodní tabulky
+0BBE    LD   C,A        ;BC=obsah Acc
+0BBF    LD   B,0
+0BC1    ADD  HL,BC      ;pøiètení kódu k poèát. adrese tabulky
+0BC2    LD   A,(HL)     ;pøeètení odpovídajícího kódu
+0BC3    JR   0BE0       ;návrat
+
+                                - 41 -
+
+        data tisku ?
+
+0BC5    DEFW 'V 1.0A'+0D
+
+        pøevod display-kódu na ASCII
+                AF=?
+
+0BCB-CD NOP     
+0BCE    PUSH BC
+0BCF    PUSH HL
+0BD0    PUSH DE
+0BD1    LD   HL,0A92    ;adresa pøevodní tabulky
+0BD4    LD   D,H        ;tatá adresa do DE
+0BD5    LD   E,L
+0BD6    LD   BC,100     ;délka tabulky
+0BD9    CPIR            ;vyhledání stejného byte
+0BDB    JR   Z,0BE3     ;znak nalezen
+0BDD    LD   A,F0       ;znak nenalezen => kód F0
+0BDF    POP  DE         ;návrat
+0BE0    POP  HL
+0BE1    POP  BC
+0BE2    RET
+
+0BE3    OR   A          ;nulování Cy
+0BE4    DEC  HL         ;navrácení adresy na pøedchozí byte
+0BE5    SBC  HL,DE      ;odeètení poèáteèní adresy
+0BE7    LD   A,L        ;vısledné poøadové èíslo =
+                        ;odpovídající ASCII znak
+0BE8    JR   0BDF       ;návrat
+
+        náslesují tabulky video-kódù pro jednotlivé reimy
+        klávesnice.
+
+        Pro úplnost pøidávám struktoru klávesnice:
+
+                BLANK GRAPH libra ALPHA TAB   ;     :     CR
+                Y     Z     @     [     ]
+                Q     R     S     T     U     V     W     X
+                I     J     K     L     M     N     O     P
+                A     B     C     D     E     F     G     H
+                1     2     3     4     5     6     7     8
+                \     ~     -     SP    0     9     ,     .
+                INST  DEL   UP    DOWN  RIGHT LEFT  ?     /
+
+        reim: jen kåavesa
+
+0BEA    BF  CA  58  C9  F0  2C  4F  CD
+0BF2    19  1A  55  52  54  F0  F0  F0
+0BFA    11  12  13  14  15  16  17  18
+0C02    09  0A  0B  0C  0D  0E  0F  10
+0C0A    01  02  03  04  05  06  07  08
+0C12    21  22  23  24  25  26  27  28
+0C1A    59  50  2A  00  20  29  2F  2E
+0C22    C8  C7  C2  C1  C3  C4  49  2D
+        
+                                        - 42 -
+        
+        
+                reim: SHIFT + klávesa
+        
+        0C2A    BF  CA  1B  C9  F0  6A  6B  CD
+        0C32    99  9A  A4  BC  40  F0  F0  F0
+        0C3A    91  92  93  94  95  96  97  98
+        0C42    88  8A  8B  8C  8D  8E  8F  90
+        0C4A    81  82  83  84  85  86  87  88
+        0C52    61  62  63  64  65  66  67  68
+        0C5A    80  A5  2B  00  60  69  51  57
+        0C62    C6  C5  C2  C1  C3  C4  5A  45
+        
+                reim: SHIFT + klávesa v grafice
+        
+        0C6A    BF  F0  E5  C9  F0  42  B6  CD
+        0C72    75  76  B2  D8  4E  F0  F0  F0
+        0C7A    3C  30  44  71  79  DA  38  6D
+        0C82    7D  5C  5B  B4  1C  32  B0  D6
+        0C8A    53  6F  DE  47  34  4A  4B  72
+        0C92    37  3E  7F  7B  3A  5E  1F  BD
+        0C9A    D4  9E  D2  00  9C  A1  CA  B8
+        0CA2    C8  C7  C2  C1  C3  C4  BA  DB
+        
+                reim: CTRL + klávesa
+        
+        0CAA    F0  F0  F0  F0  F0  F0  F0  F0
+        0CB2    F0  5A  F0  F0  F0  F0  F0  F0
+        0CBA    C1  C2  C3  C4  C5  C6  F0  F0
+        0CC2    F0  F0  F0  F0  F0  F0  F0  F0
+        0CCA    F0  F0  F0  F0  F0  F0  F0  F0
+        0CD2    F0  F0  F0  F0  F0  F0  F0  F0
+        0CDA    F0  F0  F0  F0  F0  F0  F0  F0
+        0CE2    F0  F0  F0  F0  F0  F0  F0  BF
+        
+                reim: klávesa v grafice
+        
+        0CE9    BF  F0  CF  C9  F0  B5  4D  CD
+        0CF1    35  77  D7  B3  B7  F0  F0  F0
+        0CF9    7C  70  41  31  39  A6  78  DD
+        0D01    3D  5D  6C  56  1D  33  D5  B1
+        0D09    46  6E  D9  48  74  43  4C  73
+        0D11    3F  36  7E  3B  7A  1E  5F  A2
+        0D19    D3  9F  D1  00  9D  A3  D0  B9
+        0D21    C6  C5  C2  C1  C3  C4  BB  BE
+        
+                dump - vıpis pamìti od zadané adresy
+        
+        0D29    CALL 013D       ;4 ASCII adresované DE naète do HL
+                                ;nejde => skok na 00AD
+        0D2C    CALL 02A6       ;DE=DE+4
+        0D2F    PUSH HL         ;uloení poèáteèní adresy vıpisu
+        0D30    CALL 0410       ;4 ASCII adresované DE pøevede do HL
+                                ;nejde => SCF
+        
+                                        - 43 -
+        
+        0D33    POP  DE         ;naètení do DE poèáteèní adresu vıpisu
+        0D34    JR   C,0D88     ;koneèná adresa není udána
+        0D36    EX   DE,HL      ;HL=poèáteèní, DE=koncová adresa vıpisu
+        0D37    LD   B,8        ;na 1 øádek 8 bytù
+        0D39    LD   C,17       ;rozdíl souøadnic tisku èísla a ASCII
+        0D3B    CALL 05FA       ;tisk obsahu HL na následující øádek 
+        0D3E    CALL 03B1       ;tisk mezery a obsahu (HL)
+        0D41    INC  HL         ;zvìtšení adresy
+        0D42    PUSH AF         ;ulo A=(HL)
+        0D43    LD   A,(1171)   ;naètení X-ové souøadnice kursoru
+        0D46    ADD  A,C        ;pøiètení C = pozice tisku ASCII
+        0D47    LD   (1171),C   ;uloení vypoètené souøadnice
+        0D4A    POP  AF         ;vyzvednutí A=(HL)
+        0D4B    CP   20         ;pokud menší 32 =' ',pak tisk '.'
+        0D4D    JR   NC,0D51    ;není netisknutelné ASCII
+        0D4F    LD   A,2E       ;='.'
+        0D51    CALL 0BB9       ;pøevod ASCII na video-znak
+        0D54    CALL 096C       ;uloení Acc do VRAM
+        0D57    LD   A,(1171)   ;navrácení X-ové souøadnice spìt na
+                                ;tisk èísel
+        0D5A    INC  C
+        0D5B    SUB  C
+        0D5C    LD   (1171),A
+        0D5F    DEC  C          ;zmenšení rozdílu vzdálenosti mezi
+        0D60    DEC  C          ;tiskem èísel a odpovídajících ASCII
+        0D61    DEC  C
+        0D62    PUSH HL
+        0D63    SBC  HL,DE      ;kontrola poslední adresy
+        0D65    POP  HL
+        0D66    JR   Z,0D85     ;je poslední => návrat na 00AD
+        0D68    LD   A,F8
+        0D6A    LD   (E000),A   ;aktivace 8.øádku klávesn.(funkèní kl.)
+        0D6D    NOP
+        0D6E    LD   A,(E001)   ;naètení zmáèklıch kláves
+        0D71    CP   FE         ;porovnání
+        0D73    JR   NZ,0D78    ;pokud zmáèkı SHIFT => wait
+        0D75    CALL 0DA6       ;wait 1/50 s
+        0D78    DJNZ 0D3E       ;opakuj 8* na celı øádek
+        0D7A    CALL 08CA       ;naètení zmáèklıch kláves ve video-kódu
+        0D7D    OR   A
+        0D7E    JR   Z,0D7A     ;je zmáèklı mezerník=> opakuj ètení kl.
+        0D80    CALL 0A32       ;test funkèních kláves
+        0D83    JR   NZ,0D37    ;není BREAK =>opakuj
+        0D85    JP   00AD       ;návrat
+        
+        0D88    LD   HL,00A0    ;délka tisku bude 00A0h
+        0D8B    ADD  HL,DE      ;pøiètení délky k poèátení adresy
+        0D8C    JR   0D36       ;tisk s novì vypoètenou délkou
+        
+                                -44-
+
+        wait 1/50 s
+                -
+
+0D8E-A5 NOP
+0DA6    PUSH AF
+0DA7    LD   A,(E002)
+0DAA    RLCA            ;naètení vertikálního zatem. impulsu
+0DAB    JR   NC,0DA7    ;je v 0
+0DAD    LD   A,(E002)
+0DB0    RLCA            ;naètení vertikálního zatem. impulsu
+0DB1    JR   C,0DAD     ;je v 1
+0DB3    POP  AF
+0DB4    RET
+
+        uloení Acc do Vram s kontrolou spojitosti øádkù a
+        jejich nadstevením
+                -
+
+0DB5    PUSH AF
+0DB6    PUSH BC
+0DB7    PUSH DE
+0DB8    PUSH HL
+0DB9    CALL 0FB1       ;naètení do HL pozici kursoru
+0DBC    LD   (HL),A     ;uloení Acc do Vram
+0DBD    LD   HL,(1171)  ;naètení souøadnic kursoru
+0DC0    LD   A,L
+0DC1    CP   27         ;=39
+0DC3    JR   NZ,0DD0    ;X-ová souøadnice není 39 => nebyl
+                        ;pøechod na novı øádek
+0DC5    CALL 02F3       ;do Acc s Cy poèátku øádkù
+0DC8    JR   C,0DD0     ;øádky ji spojeny
+0DCA    EX   DE,HL      ;do HL adresa promìné spojitosti
+0DCB    LD   (HL),1     ;nadstavení spojitosti øádkù
+0DCD    INC  HL
+0DCE    LD   (HL),0
+0DD0    LD   A,C3
+0DD2    JR   0DE0       ;posun kursoru v pravo
+
+        kontrola ALPHA/GRAPH
+                A=CA, F=NC,Z pokud graph, C,NZ pokud ALPHA
+
+0DD4    LD   A,(1170)   ;naètení znaku ze systémové promìnné
+0DD7    CP   1          ;kontrola
+0DD9    LD   A,CA
+0DDB    RET
+
+        øízení dle Acc
+                -
+
+0DDC    PUSH AF
+0DDD    PUSH BC
+0DDE    PUSH DE
+0DDF    PUSH HL
+
+                                - 45 -
+
+0DE0    LD   B,A
+0DE1    AND  F0
+0DE3    CP   C0         ;kontrola zadání znaku
+0DE5    JR   NZ,0E02    ;není Cx => návrat
+0DE7    XOR  B          ;navrácení spodní pooviny Acc
+0DE8    RLCA            ;násobení 2
+0DE9    LD   C,A        ;BC=A
+0DEA    LD   B,0
+0DEC    LD   HL,0EAA    ;adresa tabulky adres
+0DEF    ADD  HL,BC      ;pøiètení kódu k tabulce
+0DF0    LD   E,(HL)     ;naètení adresu
+0DF1    INC  HL
+0DF2    LD   D,(HL)
+0DF3    LD   HL,(1171)  ;naètení polohy kursoru
+0DF6    EX   DE,HL
+0DF7    JP   (HL)       ;skok na najdenou adresu
+
+        posun kursoru dole, podprogram k 0DDC
+                -
+
+0DF8    EX   DE,HL      ;HL=poloha kursoru
+0DF9    LD   A,H        ;A=Y-ová
+0DFA    CP   18         ;=24
+0DFC    JR   Z,0E23     ;je poslední øádek => scroll
+0DFE    INC  H          ;zvìtšení Y-ové souøadnice
+0DFF    LD   (1171),HL  ;uloení vısledku na syst. promìnné
+0E02    JP   0EE5       ;návrat
+
+        posun kursoru nahoru,podprogram k 0DDC
+                -
+
+0E05    EX   DE,HL      ;HL=poloha kursoru
+0E06    LD   A,H        ;Acc=Y-ová
+0E07    OR   A          ;kontrola nulovosti
+0E08    JR   Z,0E02     ;souøadnice je nulová => nelze
+0E0A    DEC  H          ;zmenšení Y-ové souøadnice o 1
+0E0B    JR   0DFF       ;zápis vısledku na syst. promìnné
+
+        posun kursoru vpravo, podprogram k 0DDC
+                -
+
+0E0D    EX   DE,HL      ;HL=poloha kursoru
+0E0E    LD   A,L        ;Acc=X-ová
+0E0F    CP   27         ;=39
+0E11    JR   NC,0E16    ;konec øádku
+0E13    INC  L          ;zvìtšení souøadnice
+0E14    JR   0DFF       ;uloení vısledku na syst. promìnné
+
+        pøechod kursoru na následující øádek
+
+0E16    LD   L,0        ;vynulování X-ové souøadnice
+0E18    INC  H          ;zvìtšení Y-ové souøadnice
+
+                                - 46 -
+
+0E19    LD   A,H
+0E1A    CP   19         ;=25
+0E1C    JR   C,0DFF     ;zápis vısledku na syst. promìnné
+0E1E    LD   H,18       ;konec obrazovky => scroll
+0E20    LD   (1171),HL  ;zápis na syst. promìnné
+0E23    JR   0E6D       ;scroll
+
+        posun kursoru vlevo, podprogram k 0DDC
+                -
+
+0E25    EX   DE,HL      ;HL=poloha kursoru
+0E26    LD   A,L        ;Acc=X-ová
+0E27    OR   A          ;kontrola nulovosti
+0E28    JR   Z,0E2D     ;souøadnice nolová => pøechod na
+                        ;pøedchozí øádek
+0E2A    DEC  L          ;zmenšení souøadnice o 1
+0E2B    JR   0DFF       ;zápis vısledku na syst. promìnné
+
+        pøesun kursoru na pøedchozí øádek
+
+0E2D    LD   L,27       ;=39
+0E2F    DEC  H          ;zmenšení Y-ové souøadnice
+0E30    JP   P,0E0B     ;zápis vısledku na syst. promìnné
+0E33    LD   H,0        ;nelze pounout na pøedchozí
+0E35    LD   (1171),HL  ;zápis vısledku na syst. promìnné
+0E38    JR   0E02       ;návrat
+
+        CLR, podprogram k 0DDC
+                -
+0E3A    LD   HL,1173
+0E3D    LD   B,1B
+0E3F    CALL 0FD8       ;vynulování promìnıch pro spojitost
+                        ;øádkù
+0E42    LD   HL,D000
+0E45    CALL 09D4       ;vynulování VRAM (D000-D800)
+0E48    LD   A,71       ;barva písma a pozadí
+0E4A    CALL 09D5       ;inicializace INK a PAPER
+
+        HOME,podprogram k 0DDC
+                -
+
+0E4D    LD   HL,0       ;vynulování souøadnic
+0E50    JR   0DFF       ;zápis vısledku na syst. promìné
+
+        tisk CR, posun kursoru na následující øádek
+        podprogram k 0DDC
+                -
+0E52-59 NOP
+0E5A    CALL 02F3       ;uloení do Acc a Cy spojitosti øádkù
+0E5D    RRCA
+0E5E    JR   NC,0E16    ;následující øádek není s tímto spojen
+                        ;=> posun kursoru na následující øádek
+
+                                - 47 -
+
+0E60    LD   L,0        ;vynulování X-ové souøadnice kursoru
+0E62    INC  H          ;zvìtšení Y-ové souøadnice
+
+zde se nachází první chyba v ROM: chybí instrukce LD   A,H
+(pokud jsou poslední 2 øádku spojeny a kursor je na
+pøedposledním øádku,po tisku CR se dostane kursor mimo
+obrezovku.)
+
+0E63    CP   18
+0E65    JR   Z,0E6A     ;scroll
+0E67    INC  H          ;zvìtšení Y-ové souøadnice
+0E68    JR   0DFF       ;uloení vısledku na syst. promìnné
+
+        scroll, srotování obrazovky; podprogram k 0DDC
+                -
+
+0E6A    LD   (1171),HL  ;uloení souø. kursoru,nepovinná instr.
+0E6D    LD   BC,03C0    ;délka rotované oblasti
+0E70    LD   DE,D000    ;poèátek VRAM, znaky
+0E73    LD   HL,D028    ;poèátek následujícího øádku
+0E76    PUSH BC         ;uloení délky
+0E77    LDIR            ;rotace znakù
+0E79    POP  BC         ;vyavednití délky
+0E7A    PUSH DE         ;uloení poèátku posledního øádku
+0E7B    LD   DE,D800    ;poèátek VRAM, barvy
+0E7E    LD   HL,D828    ;paèátek následujícího øádku
+0E81    LDIR            ;rotace barev
+0E83    LD   B,28       ;=40 =1 øádek
+0E85    EX   DE,HL      ;do HL poèátek posledního øádku
+0E86    LD   A,71       ;ink/paper
+0E88    CALL 0FDD       ;obarvení posledního øádku
+0E8B    POP  HL         ;naètení poèátku posledního øádku znakù
+0E8C    LD   B,28       ;délka 1. øádku
+0E8E    CALL 0FD8       ;vymazání posledního øádku znakù
+0E91    LD   BC,001A    ;délka syst. promìnıch spojitosti øádkù
+0E94    LD   DE,1173    ;poèátek  tìchto promìnıch
+0E97    LD   HL,1174    ;následující pozice
+0E9A    LDIR            ;rotace promìnıch spojitosti øádkù
+0E9C    LD   (HL),0     ;vynulování poslední promìné
+0E9E    LD   A,(1173)   ;naètení první promìnné
+0EA1    OR   A          ;kontrola nulovosti
+0EA2    JR   Z,0EE5     ;je nulová => konec
+0EA4    LD   HL,1172    ;adresa Y-ové souøadnice
+0EA7    DEC  (HL)       ;zmenšení Y-ové souøadnice
+0EA8    JR   0E6D       ;nová rotace
+
+        tabulka odskokovıch adres pro podprogram 0DDC:
+
+0EAA    DEFW 0E6D       ;C0 => scroll
+0EAC    DEFW 0DF8       ;C1 => DOWM
+0EAE    DEFW 0E05       ;C2 => UP
+
+                                - 48 -
+
+0EB0    DEFW 0E0D       ;C3 => RIGHT
+0EB2    DEFW 0E25       ;C4 => LEFT
+0EB4    DEFW 0E4D       ;C5 => HOME
+0EB6    DEFW 0E3A       ;C6 => CLR
+0EB8    DEFW 0EF8       ;C7 => DEL
+0EBA    DEFW 0F38       ;C8 => INST
+0EBC    DEFW 0EE1       ;C9 => ALPHA
+0EBE    DEFW 0EEE       ;CA => GRAPH
+0EC0    DEFW 0EE5       ;CB => návrat
+0EC2    DEFW 0EE5       ;CC => návrat
+0EC4    DEFW 0E5A       ;CD => CR
+0EC6    DEFW 0EE5       ;CE => návrat
+0EC8    DEFW 0EE5       ;CF => návrat
+
+        INST - vloení mezery,èást podprogramu 0F38,kterı
+        je podprogramem 0DDC
+                -
+
+0ECA    SET  3,H        ;nadstavení pozice kursoru na barvy
+0ECC    LD   A,(HL)     ;pøenos znak
+0ECD    INC  HL
+0ECE    LD   (HL),A
+0ECF    DEC  HL
+0ED0    RES  3,H        ;nadstavení pozice kursoru na znaky
+0ED2    LDD             ;pøenos barev se zmenšením BC a HL a DE
+0ED4    LD   A,C        ;kontrola nulovosti BC
+0ED5    OR   B
+0ED6    JR   NZ,0ECA    ;dobud není nulové
+0ED8    EX   DE,HL      ;naètení do DE souøadnice kursoru
+0ED9    LD   (HL),0     ;vynulování znaku (mezera)
+0EDB    SET  3,H        ;nadstavení posice kursoru na barvy
+0EDD    LD   (HL),71    ;inicializace barev
+0EDF    JR   0EE5       ;návrat
+
+        ALPHA, podprogram k 0DDC
+                -
+
+0EE1    XOR  A
+0EE2    LD   (1170),A   ;vynulování syst. promìnné ALPHA/GRAPH
+0EE5    POP  HL
+0EE6    POP  DE
+0EE7    POP  BC
+0EE8    POP  AF
+0EE9    RET
+
+        GRAPH, podprogram k 0DDC; pokud ji grafickı reim =>
+        tisk pamáèka (ASCII =63)
+                -
+
+0EEA-D  NOP
+0EEE    CALL 0DD4       ;kontrola ALPHA/GRAPH
+0EF1    JP   Z,0DB9     ;ji je grafickı reim => tisk panáèka
+0EF4    LD   A,1
+0EF6    JR   0EE2       ;nadstavení 1 do syst. promìnné
+
+                                - 49 -
+
+        DEL, vymazání znaku; podprogram k 0DDC
+                -
+
+0EF8    EX   DE,HL      ;HL = poloha kursoru
+0EF9    LD   A,H        ;Acc = Y-ová
+0EFA    OR   L
+0EFB    JR   Z,0EE5     ;kursor v základní poloze => návrat
+0EFD    LD   A,L        ;Acc = X-ová
+0EFE    OR   A          ;kontrola nulovosti
+0EFF    JR   NZ,0F0E    ;X-ová souøadnice není nulová
+0F01    CALL 02F3       ;naètení do Acc a Cy spojitosti øádkù
+0F04    JR   C,0F0E     ;øádek je spojen s pøedchozím
+0F06    CALL 0FB1       ;naètení do HL pozici kursoru
+0F09    DEC  HL
+0F0A    LD   (HL),0     ;vymazání pøedchoího znaku
+0F0C    JR   0F33       ;posun kursoru vlevo
+
+0F0E    CALL 02F3       ;naètení do Acc a Cy spojitosti øádkù
+0F11    RRCA
+0F12    LD   A,28       ;=40 =1 øádek
+0F14    JR   NC,0F17    ;øádek není spojen s následujícím
+0F16    RLCA            ;Acc=80 =2 øádky
+0F17    SUB  L          ;odeètení od vısledku X-ové souøadnice
+0F18    LD   B,A        ;vısledek do B
+0F19    CALL 0FB1       ;naètení do HL pozise kursoru
+0F1C    LD   A,(HL)     ;vyzvednutí znaku pod kursorem
+0F1D    DEC  HL
+0F1E    LD   (HL),A     ;uloení tohoto znaku o posici blíe
+0F1F    INC  HL
+0F20    SET  3,H        ;nadstavení HL do VRAM pro barvy
+0F22    LD   A,(HL)     ;vyzvednutí barvy
+0F23    DEC  HL
+0F24    LD   (HL),A     ;uloení o posici blíe
+0F25    RES  3,H
+0F27    INC  HL         ;pøesun na následující znak
+0F28    INC  HL
+0F29    DJNZ 0F1C       ;opakuj B*
+0F2B    DEC  HL
+0F2C    LD   (HL),0     ;vloení mezery na konec textu
+0F2E    SET  3,H
+0F30    LD   HL,71
+
+zde je druhá chyba ROM: namísto instrukce LD  HL,71 by mìlo
+bıt LD   (HL),71 pro inicializaci barev na konci textu
+(barva na konci øádku se posouvá s textem dál, ale taky
+zùstává na konci øádku)
+
+0F33    LD   A,C4       ;kód pro posun kursoru vlevo
+0F35    JP   0DE0       ;provedení tohoto posunu
+
+                                - 50 -
+
+        INST-vloení mezery; podprogram k 0DDC
+                -
+
+0F38    CALL 02F3       ;naètení do Acc a Cy spojitosti øádkù
+0F3B    RRCA
+0F3C    LD   L,27       ;=39
+0F3E    LD   A,L
+0F3F    JR   NC,0F42    ;následující øádek není spojen s tímto
+0F41    INC  H          ;zvìtšení Y-ové souøadnice
+0F42    CALL 0FB4       ;pøepoèet HL na pozici kursoru
+0F45    PUSH HL         ;uloení vypoètené posice kursoru
+0F46    LD   HL,(1171)  ;naètení polohy kusoru
+0F49    JR   NC,0F4D    ;následující øadek nespojen s tímto
+0F4B    LD   A,4F       ;=79 = 2ádky
+0F4D    SUB  L          ;odeètení skuteèné X-ové souøadnice
+0F4E    LD   B,0
+0F51    POP  DE         ;naètení do DE koneèné posice kursoru
+0F52    JR   Z,0EE5     ;souøadnice kursoru je na konci øadku
+                        ;=> nelze vloit další mezeru
+0F54    LD   A,(DE)     ;naètení posledního znaku øádku
+0F55    OR   A
+0F56    JR   NZ,0EE5    ;není mezera => text není kde posunout
+0F58    LD   H,D        ;HL = pozice pøedposledního znaku
+0F59    LD   L,E
+0F5A    DEC  HL
+0F5B    JP   0ECA       ;srotování dané oblasti
+
+        save, podprogram 00AD
+
+0F5E    CALL 013D       ;4 ASCII adresované DE pøevede do HL,
+                        ;pokud nelze => skok na 00AD
+0F61    LD   (1104),HL  ;uloení poèáteèní adresy programu
+0F64    LD   B,H        ;naètení této adresy do BC
+0F65    LD   C,L
+0F66    CALL 02A6       ;DE=DE+4
+0F69    CALL 013D       ;4 ASCII adresované DE pøevede do HL,
+                        ;pokud nelze => skok na 00AD
+0F6C    SBC  HL,BC      ;odeètení koncové adresy od poèáteèní
+0F6E    INC  HL         ;=> vypoètení délky
+0F6F    LD   (1102),HL  ;uloení délky programu
+0F72    CALL 02A6       ;DE=DE+4
+0F75    CALL 013D       ;4 ASCII adresované DE pøevede do HL,
+                        ;pokud nelze => skok na 00AD
+0F78    LD   (1106),HL  ;uloení startovací adresy
+0F7B    CALL 9          ;pøesun kursoru na další øádek
+0F7E    LD   DE,098B
+0F81    RST  18         ;tisk 'FILEMANE? '
+0F82    CALL 012F       ;naètení øádku od 11A3
+0F85    CALL 02A6       ;pøeskoèení textu FILENAME? (DE=DE+9)
+0F88    CALL 02A6
+0F8B    LD   HL,10F1    ;adresa názvy programu
+0F8E    INC  DE
+
+                                - 51 -
+
+0F8F    LD   A,(DE)     ;pøesun názvu programu od adresy 10F1
+0F90    LD   (HL),A
+0F91    INC  HL
+0F92    CP   0D
+0F94    JR   NZ,0F8E    ;opakuj dokud není konec názvu
+0F96    LD   A,1        ;typové èíslo programu =01
+0F98    LD   (10F0),A   ;uloení typového èísla
+0F9B    CALL 0436       ;nahraje hlavièku programu
+0F9E    JP   C,0107     ;BREAK!
+0FA1    CALL 0475       ;nahraje tìlo programu
+0FA4    JP   C,0107     ;BREAK!
+0FA7    CALL 9          ;pøesun kursoru na následující øádek
+0FAA    LD   DE,0942
+0FAD    RST  18         ;tisk 'OK!'
+0FAE    JP   00AD       ;návrat
+
+        naètení HL do posice kursoru
+                HL=?
+
+0FB1    LD   HL,(1171)  ;naètení souøadnic kursoru
+
+        pøevod HL na posici kursoru
+                HL=?
+
+0FB4    PUSH AF
+0FB5    PUSH BC
+0FB6    PUSH DE
+0FB7    PUSH HL
+0FB8    POP  BC         ;naètení souøadnic kursoru do BC
+0FB9    LD   DE,0028    ;=40 = 1 øádek
+0FBC    LD   HL,CFD8    ;=D000H-40  = poè. VRAM-1 øádek
+0FBF    ADD  HL,DE      ;pøiètení 40 posic
+0FC0    DEC  B
+0FC1    JP   P,0FBF     ;opakuj dle Y-ové souøadnice
+0FC4    LD   B,0
+0FC6    ADD  HL,BC      ;pøiètení X-ové souøadnice
+0FC7    POP  DE
+0FC8    POP  BC
+0FC9    POP  AF
+0FCA    RET
+
+        verify, podprogram 00AD
+
+0FCB    CALL 0588       ;verify tìla programu
+0FCE    JP   C,0107     ;chyba nebo BREAK
+0FD1    LD   BC,0942
+0FD4    RST  18         ;tisk OK!
+0FD5    JP   00AD       ;návratB
+
+                                - 52 -
+
+        vynulování B bytù pamìti od HL
+                A=0, F=?, B=0, HL=HL+B
+
+0FD8    XOR  A          ;nulování Acc
+0FD9    JR   0FDD       ;zaplnìní B bytù pamìti od HL   Acc
+
+        zaplnìní B bytù pamìti od HL hodnotou FF
+                A=FF, F=?, B=0, HL=HL+B
+
+0FDB    LD   A,FF
+
+        zaplnìní B bytù pamìti od HL akumulátorem
+                F=?, B=0, HL=HL+B
+
+0FDD    LD   (HL),A
+0FDE    INC  HL
+0FDF    DJNZ,0FDD       ;opakuj B*
+0FE1    RET
+
+        hledá 100 bytù pilotního tónu
+                AF=?
+
+0FE2    PUSH BC
+0FE3    PUSH DE
+0FE4    PUSH HL
+0FE5    LD   BC,E001    ;pro ètení klávesnice
+0FE8    LD   DE,E002    ;pro ètení magnetofonu
+0FEB    LD   H,64       ;=100
+0FED    CALL 0601       ;èeká na nábìnou hranu jednièky
+0FF0    JR   C,0FDD     ;BREAK!
+0FF2    CALL 0A4A       ;wait .23 ms
+0FF5    LD   A,(DE)
+0FF6    AND  20         ;naètení signálu z magnetofonu
+0FF8    JR   NZ,0FEB    ;bit byl jednièkovı
+0FFA    DEC  H
+0FFB    JR   NZ,0FED    ;opakuj 100*
+0FFD    JP   069B       ;návrat
+
+                                - 53 -
+
+SEZNAM SYSTÉMOVİCH PROMÌNNİCH POUÍVANİCH  ROM-MONITOREM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1038-3A promìnná pro skok pøi pøerušení (JP 03D8)
+103B-EF zásobník
+10EF    první byte zásobníku => TOS
+10F0-6F hlavièka programu, která obsahuje:
+        10F0    typové èíslo programu
+        10F1-   název programu umístìného 0D
+        1102    délka programu
+        1104    poèáteèní adresa programu
+        1106    startovací adresa programu
+        1108-6F cokoli
+1170    normální/grafickı reim
+1171    X-ová souøadnice kursoru
+1172    Y-ová souøadnice kursoru
+1173-8D spojitosti øádkù
+118E    znak pod kursorem
+1192    znak kursoru
+1194    promìná pro tabelaci
+1195    délka znaèky programu
+1197    kontrolní souèet programu
+1199    kontrolní souèet programu
+119B    AM/PM
+119C    chod hodin => F0
+119D    pípání pøi stisku kláves on/off
+119E    tempo hudby
+119F    délka tónu
+11A0    oktáva
+11A1-2  frekvence hudby
+11A3-F3 pøíkazovı øádek
+1
+
+
+SEZNAM POUITELNİCH PODPROGRAMÙ
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+práce s klávesnicí
+~~~~~~~~~~~~~~~~~~
+pøeètení znaku z klávesnice v ASCII do Acc      ....... 001B
+                                                        08BD
+naètení znaku z klávesnice ve vide-kódu  .............. 08C8-CA
+naètení z klávesnice do pamìti od DE textovı øadek  ... 0003
+                                                        07E6
+naètení z klávesnice do pamìti od 11A3 textovı øádek .. 012F
+test øídících kláves (SHIFT,ESC,CTRL)   ............... 001E
+blikání kursoru s kontrolou klávesnice  ............... 057E
+blikání kursoru 1.5 Hz ................................ 09E3
+                                                        09F6-FF
+naètení do Acc právì zmáèklou klávesu s blik. kursoru . 09B0
+vstup z klávesnice do BC .............................. 0A4C
+vstup z klávesnice s pøedchozím waitem ................ 0830
+test funkèních kláves (CTRL,ESC,SHIFT) ................ 0A2D-32
+kontrola ALPHA/GRAPH .................................. 0DD4
+
+                                - 54 -
+
+podprogramy tisku
+~~~~~~~~~~~~~~~~~
+tisk ASCII znaku v akumulátoru  ....................... 0012
+                                                        0932-35
+tisk ASCII v Acc bez øídících znakù ................... 0947
+tisk ASCII v C bez øídících znakù ..................... 0946
+tisk video-znaku v Acc ................................ 094A
+tisk video-znaku v Acc s kontrolou promìnné tabelace... 094A
+uloení Acc do Vram ................................... 0DB5
+tisk mezery do pozice kursoru  ........................ 000C
+                                                        091F
+tabelace mezerami po 10 znacích   ..................... 000F
+                                                        0924
+øízení dle Acc ........................................ 0DDC
+tisk øetìzce adresovaného DE a ukonèeného 0D (CR)  .... 0015
+                                                        0886-93
+tisk øetìzce adresovaného DE ,øídící znaky netiskne  .. 0018
+                                                        08A1
+pøesun kursoru na následující øádek   ................. 0006
+pøesun kursoru na následující øádek, pokud ji nebylo . 0009
+                                                        0916-18
+naètení spojitosti okolních øádkù ..................... 02F3
+tisk mezery a obsahu pam. buòky (HL)  ................. 03B1
+tisk obsahu pam. buòky (HL)  .......................... 03B4
+tisk obsahu reg. páru HL  ............................. 03BA
+tisk obsahu reg. páru HL na následujícím øádku ........ 05FA
+tisk obsahu akumulátoru ............................... 03C1
+tisk obsahu spodní poloviny Acc ....................... 03CF
+navrátí znak pod kursorem do VRAM ..................... 05F0
+                                                        097B
+naètení do HL posici kursoru   ........................ 0FB1
+pøepoèet HL (souàadnice kursoru) na posici kursoru .... 0FB4
+
+práce s magnetofonem
+~~~~~~~~~~~~~~~~~~~~
+nahraje hlavièku (10F0-) na pásek  .................... 0021
+                                                        0436
+nahraje tìlo dle hlavièky na pásek  ................... 0024
+                                                        0475
+nahraje hlavièku z pásky a uloí od adresy 10F0-  ..... 0027
+                                                        04D6
+nahraje pamì dle hlavièky z pásky   .................. 002A
+                                                        04F8
+verifikace nahranıch dat  ............................. 002D
+                                                        0587-88
+verifink dat po najdení pilotního tónu a znaèky ....... 05AD
+rutina LOAD ,návrat na 00AD  .......................... 0111
+rutina SAVE , návrat na 00AD .......................... 0F5E
+nahrání dat bez pilotního tónu a znaèky na magnetofon . 048A
+nahrání dat bez pilotního tónu a znaèky z magnetofonu . 050E
+èakání na nábìnou hranu jednièkového signálu ......... 0601
+nahrání 1 byte z magnetofonu, na 1197 souèet .......... 0620-24
+
+                                - 55 -
+
+zápis Acc na nagnetofon ............................... 0767
+zápis nulového bitu na nagn.  ......................... 0A01
+zápis jednièkového bitu na magnetofon  ................ 0A1A
+hledání pilotního tónu se znaèkou dle L ............... 0658-5B
+zápis pilotního tónu a znaèky dle E  .................. 077A
+hledání 100 bytù pilotního tónu ....................... 0FE2
+vıpoèet kontrolního souètu programu ................... 071A
+rozbìh motoru ......................................... 069F
+10* pokus o  rozbìh motoru ............................ 06FF
+
+hudební programy
+~~~~~~~~~~~~~~~~
+hraní hudby odresované DE a ukonèení 0D   ............. 0030
+                                                        01C7
+nadstavení tempa hraní hudby dle Acc   ................ 0041
+                                                        02E5
+BEEP -pípnutí asi 880 Hz  ............................. 003E
+                                                        0577
+zvuk o frekvenci 1.108405MHz/(11A1-11A2)  ............. 0044
+                                                        02AB
+ukonèí hraní hudby od popdprogramu 0044 ............... 0047
+                                                        02BE
+
+práce s pøerušením (mìøení èasu)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+nadstavení èasu dle Acc a DE   ........................ 0033
+                                                        0308
+pøeète èas do Acc a DE  ............................... 003B
+                                                        0356
+pøerušovací program, zmìna AM/PM   .................... 0038
+                                                        038D
+                                                        1038
+
+inicializaèní programy
+~~~~~~~~~~~~~~~~~~~~~~
+inicializace systému a skok na 00AD,E800 nebo 0000..... 004A
+inicializace 8255  .................................... 073E
+inicializace syst. promìnnıch pøed blikáním kursoru ... 0B92
+
+skokové programy
+~~~~~~~~~~~~~~~~
+skok na adresu 0000 RAM   ............................. 005B
+skok dle 4 ASCII adresovanıch DE, pokud nelze => 00AD . 00F3
+pokud na adrese je E000 00 pak skok na E000,jinak 00AD  00FF
+pokud je na adrese HL 00 pak skok dle HL,jinak 00AD ... 0102
+skok na 00AD s tiskem 'CHECK SUM ERROR' pokud A<>2 .... 0107
+skok na 00AD s tiskem 'CHECK SUM ERROR' pokud ZF ...... 0109
+skok na 00AD s tiskem 'CHECK SUM ERROR' ............... 010B
+
+pøevodní programy
+~~~~~~~~~~~~~~~~~
+pøevod ASCII na video-kód ............................. 0BB9
+pøevod display na ASCII ............................... 0BCB-CE
+
+                                - 56 -
+
+pøevod 4 ASCII adresované DE do HL, nelze => 00AD ..... 013D
+pøevod 4 ASCII adresované DE do HL, nelze => SCF ...... 040C-10
+pøevod 2 ASCII adresovanıch DE do Acc,nelze => SCF .... 041F
+pøevod spodních 4 bitù Acc na ASCII  .................. 03DA
+pøevod ASCII v Acc na èíslo , nelze => SCF  ........... 03E5
+                                                        03F5-F9
+
+waity
+~~~~~
+wait B*1/35s   ........................................ 02D5
+wait B*1/35s s kontrolou BREAK ........................ 02C8
+wait .11 ms  .......................................... 0748-58
+wait .1 ms ............................................ 0760
+wait 3.4 ms ........................................... 0996
+wait 1.33 ms  ......................................... 09A9
+wait .23 ms  .......................................... 0A4A
+wait 1/50 s ........................................... 0D8E-A6
+
+data tisku
+~~~~~~~~~~
+CHECK SUM ER.           0147
+l PLAY                  03FB
+l RECORD                0402
+WRITING                 0467
+**  MONITOR 1Z-013B  ** 06E7
+OK!                     0942
+FILENAME                098B
+LOADING                 09A0
+V 1.0A                  0BC5
+
+data tisku pro tiskárnu
+~~~~~~~~~~~~~~~~~~~~~~~
+01,09,09,09     =80 znakù na øádek .................... 09D5
+01,09,09,0B     =40 znakù na øádek .................... 0470
+
+práce s tiskárnou
+~~~~~~~~~~~~~~~~~
+tisk akumulátoru na tiskárnì  ......................... 018F
+tisk øetìzce adresovaného DE, ukonèeného 0D na tiskárnì 01A5
+
+ostatní
+~~~~~~~
+vynulování 800 bytù pamìti od HL  ..................... 09D4
+vyakumulátorování 800 bytù pamìti od HL  .............. 09D5
+vyakumulátorování BC bytù pamìti od HL  ............... 09D5
+vynulování B bytù pamìti od HL ........................ 0FD8
+zaplnìní B bytù pamìti od HL hodnotou FF .............. 0FDB
+vyakumulorování B bytù pamìti od HL .................. 0FDD
+systémovı program umoòující L,S,V,J,D,M,P,B  ......... 00AD
+
+
+

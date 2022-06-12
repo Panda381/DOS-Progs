@@ -1,0 +1,3325 @@
+ 
+
+
+
+;========================================================================
+;
+;                               G E N M A C
+;
+; program pro generovani zdrojoveho textu pro M80 ze souboru typu .COM
+;
+;========================================================================
+
+
+
+
+
+
+          .z80
+
+pocpoz    equ  80
+pocrad    equ  24
+advram    equ  0f800h
+
+base:     dw   100h      ; basova adresa programu
+strt:     dw   100h      ; startovaci adresa programu
+
+
+
+start:    ld   sp,stack
+          ld   de,txtuv
+          ld   c,9
+          call 5         ; tisk uvodniho textu
+          ld   de,80h
+          ld   a,(de)
+          ld   c,a
+          inc  de
+          ld   hl,fcbcom
+          call rdjmen
+          jr   nc,gen0
+gener2:   ld   de,txter2      ; hlaseni NENI ZDROJOVY SOUBOR
+          ld   c,9
+          call 5
+          jp   0
+gen0:     call outsp
+          cp   ","
+          jr   nz,gen1
+          inc  de
+gen1:     ld   hl,fcbmac
+          call rdjmen
+          jr   nc,gen2
+          push de
+          push bc
+          ld   hl,fcbcom
+          ld   de,fcbmac
+          ld   bc,9
+          ldir
+          pop  bc
+          pop  de
+gen2:     call outsp
+          cp   ","
+          jr   nz,gen3
+          inc  de
+gen3:     ld   hl,fcbpar
+          call rdjmen
+          jr   nc,gen4
+          push de
+          push bc
+          ld   hl,fcbcom
+          ld   de,fcbpar
+          ld   bc,9
+          ldir
+          pop  bc
+          pop  de
+gen4:     call outsp
+          jr   c,gen5
+          ld   de,txter1
+          ld   c,9
+          call 5
+          jp   0
+gen5:     ld   hl,adrend
+          ld   (adrcom),hl
+          ld   (adrdma),hl    ; nastaveni ukladaci adresy
+          ld   hl,fcbcom
+          ld   (adrfcb),hl    ; nastaveni adresy fcb
+          call loaddt         ; zaznam programu COM
+          jp   c,gener2       ; hlaseni NENI ZDROJOVY PROGRAM
+          ld   hl,(adrdma)
+          ld   (adrvek),hl    ; zacatek vektoru programu
+          ld   de,(adrcom)
+          or   a
+          sbc  hl,de          ; delka programu
+          srl  h
+          rr   l
+          srl  h
+          rr   l
+          srl  h
+          rr   l
+          inc  hl
+          inc  hl
+          inc  hl
+          inc  hl             ; delka/8 + 3
+          push hl
+          pop  bc
+          ld   hl,(adrvek)
+          add  hl,bc
+          ld   (adrpar),hl
+          push bc
+          call tstend
+          pop  bc
+          jp   c,0
+          ld   hl,(adrvek)
+          push hl
+          pop  de
+          inc  de
+          ld   (hl),0
+          ldir                ; vymazani vektoru
+          ld   hl,(adrvek)
+          ld   (adrdma),hl
+          ld   hl,fcbpar
+          ld   (adrfcb),hl
+          call loaddt         ; zaznam parametru PAR
+          ld   hl,(adrdma)
+          ld   (adrtop),hl
+          jr   c,gen63       ; soubor zaznamenan 
+          ld   de,(adrpar)
+          call cphlde
+          jr   nc,gen6
+gen63:    ld   de,fcbpar      ; soubor nenalezen
+          ld   c,19
+          call 5              ; zruseni stareho souboru
+          ld   de,fcbpar
+          ld   c,22
+          call 5              ; zalozeni noveho souboru PAR
+          ld   de,fcbpar
+          ld   c,16
+          call 5              ; uzavreni PAR
+          ld   hl,(adrpar)
+          push hl
+          ld   bc,80h
+          add  hl,bc
+          ld   (adrtop),hl
+          call tstend
+          pop  hl
+          jp   c,0
+          ld   b,128
+gen60:    ld   (hl),0
+          inc hl
+          djnz gen60          ; vymazani prvniho sektoru dat
+gen6:                        
+          ld   hl,(adrcom)
+          ld   (rdadr),hl
+          call adrlog
+          push hl
+          pop  ix             ; v IX ulozena implicitni log.adresa
+gen7:     ld   de,txtuv2      ; nabidka
+          ld   c,9
+          call 5
+          ld   de,txtuv3
+          ld   c,9
+          call 5              ; tisk VOLNA PAMET
+          ld   de,(adrtop)
+          ld   hl,(6)
+          or   a
+          sbc  hl,de
+          call tskwrd
+          ld   a,"h"
+          call tskznk
+          call tskcr          ; tisk volne pameti
+          call tskcr
+vstup:    ld   sp,stack
+          call inpclr
+          ld   de,txtpov
+          call tstext         ; tisk POVEL:
+          ld   a,1
+          call inptx1         ; vstup prikazoveho retezce
+          jp   z,genb
+          call rdznk
+          jr   c,vstup
+          cp   "L"
+          jp   z,inadr
+          cp   "E"
+          jp   z,vstpen
+          cp   "P"  
+          jp   z,vstpag
+          cp   "A"
+          jp   z,vsta
+          cp   "T"
+          jp   z,vstb
+          cp   3
+          jp   z,vstpez
+          cp   "D"
+          jp   z,datas
+          cp   "C"
+          jp   z,coms
+          cp   "H"
+          jp   z,hexs
+          cp   "I"
+          jp   z,isos
+          cp   ";"
+          jp   z,vstta
+          cp   "*"
+          jp   z,vsttb
+          cp   " "
+          jp   z,gen7
+          jr   vstup
+
+pagel:    db   0         ; delka stranky
+
+vstpag:   ld   de,txtpag
+          call tstext
+          ld   a,4
+          call inptx1
+          call rdword
+          jp   c,vstup
+          ld   a,h
+          or   a
+          jp   nz,vstup
+          ld   a,l
+          ld   (pagel),a
+          jp   vstup
+txtpag:   db   "    Delka stranky (HEX) : $",160
+
+
+prvst0:   push hl             ; prideleni poznamky:HL adresa,                
+          push de
+          ld   (labpri),a
+          call txtask
+          inc  hl
+          push bc
+          ld   b,0
+          jr   c,prvst2
+          ld   de,inpbff+2
+prvst1:   ld   a,(hl)
+          and  7fh
+          ld   (de),a
+          inc  b
+          bit  7,(hl)
+          inc  hl
+          inc  de
+          jr   z,prvst1
+prvst2:   ld   a,b
+          ld   (inpbff+1),a
+          pop  bc
+          pop  de
+          pop  hl
+          ret
+
+
+vstta:    call inadre
+          jp   c,vstup
+          ld   de,txttxt
+          call tstext
+          ld   a,1fh
+          call prvst0
+          ld   a,255
+          call inptx1
+          dec  de
+          inc  c
+          ld   a,1fh
+          ld   (de),a
+vstta1:   call pridtx
+          jp   vstup
+
+
+vsttb:    call inadre
+          jp   c,vstup
+          ld   de,txttxt
+          call tstext
+          ld   a,1eh
+          call prvst0
+          ld   a,255
+          call inptx1
+          dec  de
+          inc  c
+          ld   a,1eh
+          ld   (de),a
+vsttb1:   call pridtx
+          jp   vstup
+
+
+
+hexs:     call inadre
+          jp   c,vstup
+          push hl
+          ld   de,inpbff+1
+          ld   c,1
+          ld   a,1dh
+          ld   (de),a
+          call pridtx
+          ld   hl,(adrpar)
+          ld   (adrpr5),hl
+          pop  hl
+          ld   de,inpbff+2
+          ld   a,80h
+          ld   (de),a
+          dec  de
+          ld   a,1ch
+          ld   (de),a
+          ld   c,2
+          call pridtx
+          jp   vstup
+
+isos:     call inadre
+          jp   c,vstup
+          ld   de,inpbff+1
+          ld   c,1
+          ld   a,1ch
+          ld   (de),a
+          push hl
+          call pridtx
+          ld   hl,(adrpar)
+          ld   (adrpr5),hl
+          pop  hl
+          ld   de,inpbff+2
+          ld   a,80h
+          ld   (de),a
+          dec  de
+          ld   a,1dh
+          ld   (de),a
+          ld   c,2
+          call pridtx
+          jp   vstup
+
+
+
+datas:    call inadre
+          jp   c,vstup
+          call adrfyz
+          xor  a
+          call setbit
+          jp   vstup
+
+coms:     call inadre
+          jp   c,vstup
+          call adrfyz
+          scf
+          call setbit
+          jp   vstup
+
+inadre:   ld   de,txtadr
+          call tstext
+          ld   a,10
+          call inptx1
+          scf
+          ret  z   
+          call rdadre
+          ret  c
+          xor  a
+          ret
+
+vstb:     call inadre
+          jp   c,vstup
+          call adrfyz
+          call tskcr
+          call gentra
+          jp   vstup
+
+badznk:   push bc
+          push hl
+          push de
+          ld   b,0
+badzn1:   ld   e,0ffh
+          push bc
+          ld   c,6
+          call 5
+          pop  bc
+          djnz badzn1
+          pop  de
+          pop  hl
+          pop  bc
+          ret
+
+vsta:     call inadre
+          jp   c,vstup
+          ld   de,txtnav
+          call tstext
+          ld   a,6
+          call inptx1
+          push hl
+          push de
+          push bc
+          call labhld
+          pop  bc
+          pop  de
+          pop  hl
+          jr   c,vsta1        ; hlaseni NAVESTI EXISTUJE
+          push de
+          call inpclr
+          call badznk
+          ld   hl,txter8
+          call tsktxt
+          pop  hl
+          push bc
+          ld   b,c
+vsta6:    ld   a,(hl)
+          inc  hl
+          call tskznk
+          djnz vsta6
+          pop  bc
+          ld   hl,txter9
+          call tsktxt
+          call badznk
+          ld   a,1
+          call inptx1
+          jp   vstup
+vsta1:    call pridlb
+          jp   vstup
+pridlb:   ld   a,h
+          or   l
+          ret  z
+          push hl             ; prideleni navesti:HL adresa,                
+          call labask         ; DE - adr.navesti, C - pocet znaku
+          jr   c,pridl2
+          push bc
+          push de             ; adresa navesti
+          push hl             ; adresa zaznamu
+          pop  de
+          dec  de
+          dec  de             ; zacatek zaznamu
+pridl1:   bit  7,(hl)
+          inc  hl
+          jr   z,pridl1
+          push hl             ; nasledujici zaznam
+          push de
+          ex   de,hl
+          ld   hl,(adrtop)
+          or   a
+          sbc  hl,de
+          push hl
+          pop  bc
+          pop  de
+          pop  hl
+          jr   z,pridl3
+          jr   nc,pridld
+pridl3:   ld   bc,4
+pridld:   ldir
+          ld   (adrtop),de
+          pop  de
+          pop  bc
+pridl2:   pop  hl
+          ld   a,c
+          or   a
+          ret  z
+          push bc        ; pocet znaku
+          push de        ; adresa navesti 
+          ex   de,hl     ; v DE adresa 
+          ld   hl,(adrpar)
+pridl4:   ld   a,(hl)
+          inc  hl
+          or   (hl)
+          inc  hl
+          jr   z,pridl7
+          dec  hl
+          ld   a,d
+          cp   (hl)
+          jr   nz,pridl5
+          dec  hl
+          ld   a,e
+          cp   (hl)
+          inc  hl
+pridl5:   inc  hl
+          jr   c,pridl7
+pridl6:   bit  7,(hl)
+          inc  hl
+          jr   z,pridl6
+          jr   pridl4
+pridl7:   push bc        ; v C pocet znaku
+          push de        ; v DE adresa
+          push hl        ; v HL adresa mista ve vektoru
+          pop  de
+          dec  de
+          dec  de        ; zacatek zaznamu navesti
+          ld   b,0
+          add  hl,bc     ; nova adresa zaznamu
+          push de
+          push hl
+          ld   hl,(adrtop)
+          or   a
+          sbc  hl,de
+          push hl
+          pop  bc        ; v BC pocet bytu k presunuti
+          pop  de        ; nova adresa zaznamu
+          pop  hl        ; stara adresa zaznamu
+          jr   z,pridlc
+          jr   nc,pridla  
+pridlc:   ld   bc,4
+pridla:   add  hl,bc
+          dec  hl
+          ex   de,hl
+          add  hl,bc
+          call tstend
+          jp   c,vstup
+          ld   (adrtop),hl
+          dec  hl
+          ex   de,hl
+          lddr
+          inc  hl
+pridl9:   pop  de        ; adresa
+          ld   (hl),e
+          inc  hl
+          ld   (hl),d
+          inc  hl
+          pop  bc        ; pocet znaku
+          pop  de        ; adresa navesti
+          ex   de,hl
+          ld   b,0
+          ldir
+          ex   de,hl
+          dec  hl
+          set  7,(hl)
+          inc  hl
+          pop  bc
+          or   a
+          ret
+
+pridtx:   ld   a,h
+          or   l
+          ret  z
+          push hl             ; prideleni poznamky:HL adresa,                
+          ld   a,(de)
+          ld   (labpri),a
+          call txtask         ; DE - adr.poznamky, C - pocet znaku
+          jr   c,pridt2
+          push bc             ; vypusteni stareho zaznamu
+          push de             ; adresa navesti
+          push hl             ; adresa zaznamu
+          pop  de
+          dec  de
+          dec  de             ; zacatek zaznamu
+pridt1:   bit  7,(hl)
+          inc  hl
+          jr   z,pridt1
+          push hl             ; nasledujici zaznam
+          push de
+          ex   de,hl
+          ld   hl,(adrtop)
+          or   a
+          sbc  hl,de
+          push hl
+          pop  bc
+          pop  de
+          pop  hl
+          jr   z,pridt3
+          jr   nc,pridtd
+pridt3:   ld   bc,4
+pridtd:   ldir
+          ld   (adrtop),de
+          pop  de
+          pop  bc
+pridt2:   pop  hl
+          ld   a,c
+          cp   2
+          ret  c
+          push bc        ; pocet znaku
+          push de        ; adresa navesti 
+          ex   de,hl     ; v DE adresa 
+          ld   hl,(adrpar)
+pridt4:   ld   a,(hl)
+          inc  hl
+          or   (hl)
+          inc  hl
+          jr   z,pridt7
+          dec  hl
+          ld   a,d
+          cp   (hl)
+          jr   nz,pridt5
+          dec  hl
+          ld   a,e
+          cp   (hl)
+          inc  hl
+pridt5:   inc  hl
+          jr   c,pridt7
+pridt6:   bit  7,(hl)
+          inc  hl
+          jr   z,pridt6
+          jr   pridt4
+pridt7:   push bc        ; v C pocet znaku
+          push de        ; v DE adresa
+          push hl        ; v HL adresa mista ve vektoru
+          pop  de
+          dec  de
+          dec  de        ; zacatek zaznamu textu
+          ld   b,0
+          add  hl,bc     ; nova adresa zaznamu
+          push de
+          push hl
+          ld   hl,(adrtop)
+          or   a
+          sbc  hl,de
+          push hl
+          pop  bc        ; v BC pocet bytu k presunuti
+          pop  de        ; nova adresa zaznamu
+          pop  hl        ; stara adresa zaznamu
+          jr   z,pridtc
+          jr   nc,pridta  
+pridtc:   ld   bc,4
+pridta:   add  hl,bc
+          dec  hl
+          ex   de,hl
+          add  hl,bc
+          ld   (adrtop),hl
+          dec  hl
+          ex   de,hl
+          lddr
+          inc  hl
+pridt9:   pop  de        ; adresa
+          ld   (hl),e
+          inc  hl
+          ld   (hl),d
+          inc  hl
+          pop  bc        ; pocet znaku
+          pop  de        ; adresa textu
+          ex   de,hl
+          ld   b,0
+          ldir
+          ex   de,hl
+          dec  hl
+          set  7,(hl)
+          inc  hl
+          pop  bc
+          or   a
+          ret
+
+txtask:   ld   a,h
+          or   l
+          scf
+          ret  z
+          push de        ; dotaz na text podle adresy
+          push bc
+          push hl
+          ex   de,hl
+          ld   hl,(adrpar)
+txtas1:   push de
+          ld   de,(adrtop)
+          call cphlde
+          pop  de
+          jr   nc,txtas4
+          ld   a,(hl)
+          inc  hl
+          or   (hl)
+          dec  hl
+          jr   z,txtas4
+          ld   a,e
+          cp   (hl)
+          inc  hl
+          jr   nz,txtas2
+          ld   a,d
+          cp   (hl)
+          inc  hl
+          jr   nz,txtas3
+          ld   a,(hl)
+          ld   b,a
+          ld   a,(labpri)
+          cp   b
+          jr   nz,txtas3
+txtas5:   or   a
+          pop  de
+          pop  bc
+          pop  de
+          ret
+txtas2:   inc  hl
+txtas3:   bit  7,(hl)
+          inc  hl
+          jr   z,txtas3
+          jr   txtas1
+txtas4:   pop  hl
+          pop  bc
+          pop  de
+          scf
+          ret
+
+
+
+
+
+labpri:   db   1eh            ; priznak pro hledani navesti
+txten:    db   "     Konec ? (A=ano) : $"
+txtzru:   db   "     Zrusit ??!! (A=ano) : $"
+
+txter8:   db   15h,"Navesti $",160
+txter9:   db   " jiz existuje ! $",160
+adtrs:    db   13,10,10,"Cekejte, probiha trasovani programu !",13,10,"$"
+adtr2:    db   13,10,10,"Cekejte, probiha zaznam programu !",13,10,"$"
+txttr4:   db   "    Tisknout v abs.kodu ? (A=ano) : $"
+
+gentra:   push hl
+          pop  ix             ; adresa programu v HL a IX
+          ld   de,0
+          push de
+gent1:    call rdbit          ; trasovani programu
+          jp   c,gent5        ; snizeni adres - bylo trasovano
+          scf
+          call setbit         ; nastaveni priznaku 
+          push hl
+          call longb
+          pop  hl
+          ld   a,(hl)         ; byte instrukce
+          cp   0c9h
+          jp   z,gent5        ; snizeni adres - RET
+          cp   0e9h
+          jp   z,gent5        ; snizeni adres - JP (HL)
+          cp   0edh
+          jr   nz,gentc1
+          inc  hl
+          ld   a,(hl)
+          dec  hl
+          and  0f7h
+          cp   45h
+          jp   z,gent5        ; snizeni adres - RETN,RETI
+          and  0c7h
+          cp   43h
+          jp   z,gentc3       ; adresa DDW
+          jp   gent10
+gentc1:   cp   0c3h
+          jp   z,gent3        ; nova adresa  - JP a
+          cp   0cdh
+          jp   z,gent2        ; zvyseni adres - CALL a
+          cp   10h
+          jp   z,gent6        ; zvyseni adres - DJNZ e
+          cp   18h
+          jp   z,gent4        ; nova adresa - JR e
+          cp   0ddh
+          jr   z,gentcd
+          cp   0fdh
+          jr   nz,gentce
+gentcd:   inc  hl
+          ld   a,(hl)
+          dec  hl
+          cp   21h
+          jp   z,gentc4
+          jp   gent10
+gentce:   and  0f7h
+          cp   32h
+          jp   z,gentc2       ; adresa DDB
+          cp   22h
+          jp   z,gentc3       ; adresa DDW
+          and  0e7h
+          cp   20h
+          jp   z,gent6        ; zvyseni adres - JR podm,e
+          and  0c7h
+          cp   0c2h           ; zvyseni adres - JP podm,a
+          jp   z,gent2
+          cp   0c4h 
+          jp   z,gent2        ; zvyseni adres - CALL podm,a
+          ld   a,(hl)
+          and  0cfh
+          cp   1
+          jp   z,gentc4       ; adresa DTB
+gent10:   inc  hl
+          inc  ix
+          djnz gent10
+          jp   gent1
+gentc2:   ld   de,adrddb
+          jr   gentc5
+gentc3:   ld   de,adrddw
+          jr   gentc5
+gentc4:   ld   de,adrdtb
+gentc5:   push hl
+          push bc
+          ld   l,(ix+1)
+          ld   h,(ix+2)
+          call adrfyz
+          jr   c,gentc6
+          call adrlog
+          ld   c,6
+          call nastl
+gentc6:   pop  bc
+          pop  hl
+          jp   gent10
+
+
+
+
+gent6:    inc  hl             ; zvyseni adres relativne
+          djnz gent6
+          push hl
+gent4:    push ix             ; nova adresa relativne
+          pop  hl
+          ld   e,(ix+1)
+          ld   d,0
+          inc  hl
+          inc  hl
+          add  hl,de
+          bit  7,e
+          jr   z,gent41
+          dec  h
+gent41:   push hl
+          pop  ix
+          push hl
+          call adrlog
+          jp   c,gent5
+          ld   de,adrlbl
+          call nastl
+          pop  hl
+          jp   gent1
+gent2:    inc  hl             ; zvyseni adres
+          djnz gent2
+          push hl
+gent3:    ld   l,(ix+1)       ; nova adresa
+          ld   h,(ix+2)
+          call adrfyz
+          jr   c,gent5
+          push hl
+          call adrlog
+          ld   de,adrlbl
+          call nastl
+          pop  hl
+          push hl
+          pop  ix
+          jp   gent1
+gent50:   pop  hl
+gent5:    pop  hl             ; snizeni adres
+          push hl
+          pop  ix
+          ld   a,h
+          or   l
+          jp   nz,gent1
+          ret
+
+adrlbl:   db   4,"lab000$"
+adrdtb:   db   4,"tbl000$"
+adrddb:   db   4,"byt000$"
+adrddw:   db   4,"wrd000$"
+pozn1:    dw   0              ; poznamka k adrese - nadpis
+pozn2:    dw   0              ; poznamka k insrukci
+
+
+
+
+nastl:    ld   a,h
+          or   l
+          ret  z
+          push bc             ; nastavi navesti v DE na adresu HL
+          push hl
+          push de
+          ld   a,(de)
+          ld   c,a
+          inc  de
+          call labask
+          pop  de
+          pop  hl
+          jr   nc,nastle
+          push hl
+nastl0:   push de
+          ld   a,(de)
+          inc  de
+          inc  de
+          inc  de
+          inc  de
+          ld   c,a
+          cp   5
+          jr   z,nastk1
+          cp   4
+          jr   z,nastm1
+          or   a
+          inc  de
+          inc  de
+          ld   a,(de)
+          inc  a
+          cp   ":"
+          ccf  
+          jr   nc,nastl1
+          ld   a,"0"
+nastl1:   ld   (de),a
+          dec  de
+          ld   a,(de)
+          adc  a,0
+          cp   ":"
+          ccf
+          jr   nc,nastl2
+          ld   a,"0"
+nastl2:   ld   (de),a
+          dec  de
+          ld   a,(de)
+          adc  a,0
+          ld   (de),a
+          ld   c,6
+nastl3:   dec  de
+          dec  de
+          dec  de
+          dec  de
+          ld   a,c
+          ld   (de),a
+          inc  de
+          call labhld
+          pop  de
+          jr   nc,nastl0
+          pop  hl
+          ld   a,(de)
+          inc  de
+          ld   c,a
+          call pridlb
+nastle:   pop  bc
+          ret
+          
+nastk1:   inc  de
+          ld   a,(de)
+          inc  a
+          cp   ":"
+          ccf
+          jr   nc,nastk2
+          ld   a,"0"
+nastk2:   ld   (de),a
+          dec  de
+          ld   a,(de)
+          adc  a,0
+          cp   ":"
+          ccf
+          ld   c,5
+          jr   nc,nastk3
+          ld   a,"1"
+          ld   c,6
+nastk3:   ld   (de),a
+          jp   nastl3
+nastm1:   ld   a,(de)
+          inc  a
+          cp   ":"
+          ld   c,4
+          jr   c,nastm2
+          ld   a,"1"
+          ld   c,5
+nastm2:   ld   (de),a
+          jp   nastl3
+
+
+rdadre:   call outsp
+          ret  c
+          cp   "."
+          jr   z,rdadrg
+          cp   "0"
+          ret  c
+          call labhld
+          jr   nc,rdadrf
+          call rdword
+          ret  c
+rdadrf:   ld   (zaznad),hl
+rdadrg:   ld   hl,(zaznad)
+          ret
+
+zaznad:   dw   0
+
+txtz80:   db   ".z8","0"+128
+txtequ:   db   "eq","u"+128
+txtend:   db   "en","d"+128
+txtor1:   db   "org",160
+vsss0:    db   0
+
+
+
+
+
+vstpez:   ld   de,txtzru
+          call tstext
+          ld   a,1
+          call inptx1
+          jp   z,vstup
+          call rdznk
+          cp   "A"
+          jp   z,0
+          jp   vstup
+
+vstpen:   ld   de,txten       ; ukonceni prace
+          call tstext
+          ld   a,1
+          call inptx1
+          jp   z,vstup
+          call rdznk
+          cp   "A"
+          jp   nz,vstup
+          xor  a
+          ld   (vsss0),a
+          ld   de,txttr4
+          call tstext
+          ld   a,1
+          call inptx1
+          call tskcr
+          call rdznk
+          cp   3
+          jp   z,vstup
+          cp   "A"
+          jr   nz,vsss3
+          ld   a,1
+          ld   (vsss0),a
+vsss3:    ld   c,13
+          call 5
+          ld   hl,(adrvek)    ; zaznam vektoru parametru
+          ld   (adrdma),hl
+          ld   de,fcbpar
+          ld   c,19
+          call 5              ; zruseni stareho souboru
+          ld   hl,0
+          ld   (fcbpar+32),hl
+          ld   de,fcbpar
+          ld   c,22
+          call 5              ; zalozeni noveho souboru
+vstpe1:   ld   de,(adrdma)
+          ld   c,26
+          call 5              ; nastaveni adresy DMA
+          ld   de,fcbpar
+          ld   c,21
+          call 5              ; zapis sektoru
+          or   a
+          jp   nz,vstpee
+          ld   hl,(adrdma)
+          ld   bc,80h
+          add  hl,bc
+          ld   (adrdma),hl
+          ld   de,(adrtop)
+          call cphlde
+          jr   c,vstpe1
+          ld   de,fcbpar
+          ld   c,16
+          call 5              ; uzavreni souboru PAR
+          ld   de,adtr2
+          call tstext
+          ld   de,fcbmac
+          ld   c,19
+          call 5              ; zruseni stareho souboru
+          ld   de,fcbmac
+          ld   c,22
+          call 5              ; zalozeni noveho souboru
+          ld   hl,80h
+          ld   (adrdma),hl
+          xor  a
+          ld   (uklcit),a
+          ld   (tskzn0),a
+          ld   (fcbmac+12),a
+          ld   (fcbmac+32),a
+          ld   de,80h
+          ld   c,26
+          call 5
+          ;ld   hl,tbtab2
+          ;ld   (tablad+1),hl
+          ld   hl,fcbmac
+          ld   (adrfcb),hl
+          ld   hl,(adrcom)
+          ld   (rdadr),hl
+          ld   hl,(adrpar)
+          ld   (nxtadr),hl
+          ld   (adrpr5),hl
+          ld   a,1dh
+          ld   (prizn5),a
+          call tskcr
+          ld   a,8
+          call tabul0
+          ld   hl,txtz80
+          call tsktxt
+          call tskcr
+          call tskcr
+          ld   a,8
+          call tabul0
+          ld   hl,txtor1
+          call tsktxt
+          ld   a,5
+          call tabul0
+          ld   hl,(base)
+          call tskcis
+          ld   a,1
+          ld   (tskzn0),a
+          ld   hl,(base)
+          call tskwrd
+          xor  a
+          ld   (tskzn0),a
+          call tskcr
+          call tskcr
+sgeno:    ld   hl,0
+          ld   (pozn1),hl
+          ld   (pozn2),hl
+          ld   hl,(rdadr)     ; vypis pameti
+          ld   de,(adrvek)
+          call cphlde
+          jp   nc,vstpek
+          call inpzn0
+          cp   3
+          jp   z,vstp2e
+sgen1:    ld   a,(prizn3)
+          or   a
+          jr   z,sgeng
+          xor  a
+          ld   (prizn3),a
+          ld   hl,txtodd
+          call tsktxt
+          call tskcr
+sgeng:    ld   hl,(rdadr)
+          push hl
+          call tskspc
+          call adrlog
+          ld   a,(vsss0)
+          or   a
+          jr   z,sgss1
+          push hl
+          call tskwrd
+
+          ld   a,1
+          ld   (tskzn0),a
+          rept 4
+          ld   a,8
+          call tskznk
+          endm
+          call tskwrd
+          xor  a
+          ld   (tskzn0),a
+
+          ld   a,":"
+          call tskznk
+          ld   a,5
+          call tabul0
+          ld   hl,(rdadr)
+          call rdbit
+          jr   nc,sgss3
+          call longb
+          ld   hl,(rdadr)
+sgss4:    ld   a,(hl)
+          inc  hl
+          call tskbyt
+          call tskspc
+          djnz sgss4
+sgss3:    ld   a,12
+          call tabul0
+          pop  hl
+sgss1:    call labnxt
+          jr   c,sgeng1
+          call tsktxt
+sgss2:    ld   a,":"
+          call tskznk
+sgeng1:   pop  hl
+          push hl
+          call adrlog
+          ld   a,1eh
+          ld   (labpri),a
+          call txtask
+          jr   c,sgent2
+          inc  hl             ; tisk poznamky k adrese
+          ld   a,17
+          call tabul0
+          ld   a,";"
+          call tskznk
+          call tskspc
+          call tsktxt
+          call tskcr
+          ld   a,(vsss0)
+          or   a
+          jr   z,sgent2
+          ld   a,17
+          call tabul0
+sgent2:   pop  hl
+          ld   a,8
+          call tabul0
+          push hl
+          pop  ix             ; adresa pro preklad
+          call rdbit
+          jp   c,sgenm
+sgen3a:   push hl             ; tisk dat
+          ld   hl,txtdb
+          call tsktxt
+          ld   a,5
+          call tabul0
+          pop  hl
+          ld   a,(hl)
+          call testas
+          jr   c,sgens        ; tisk DB v ASCII
+          ld   a,34
+          call tskznk
+sgens2:   ld   a,(hl)
+          call testas
+          jr   c,sgens4
+          inc  hl
+          ld   (rdadr),hl
+sgens5:   call tskznk
+          cp   "$"
+          jr   z,sgens4
+          call rdbit
+          jr   c,sgens4
+          push hl
+          call adrlog
+          call labnxt
+          pop  hl
+          jr   nc,sgens4
+          ld   a,(pozice)
+          cp   pocpoz-4
+          jr   nc,sgens4
+          cp   pocpoz-15
+          jr   c,sgens2
+          ld   a,(hl)
+          cp   32
+          jr   nz,sgens2
+sgens4:   ld   a,34
+          call tskznk
+          jp   sgenr
+sgenn:    ld   a,(hl)         ; tisk DB v HEX
+          call testas
+          jp   nc,sgenr
+          ld   a,","
+          call tskznk
+sgens:    ld   a,(hl)
+          inc  hl
+          ld   (rdadr),hl
+sgens1:   push hl
+          ld   l,a
+          ld   h,0
+          call tskcis
+          pop  hl
+          call rdbit
+          jp   c,sgenr
+          push hl
+          call adrlog
+          call labnxt
+          pop  hl
+          jp   nc,sgenr
+          ld   a,(pozice)
+          cp   pocpoz-8
+          jr   c,sgenn
+          jp   sgenr
+sgenm:    call longb
+          ld   hl,(rdadr)
+          push hl
+          ld   hl,(nxtadr)
+          push hl
+          ld   hl,(rdadr)
+          push bc
+          jr   sgenm2
+sgenm1:   push hl
+          call adrlog
+          call labnxt
+          pop  hl
+          jr   nc,sgenm3
+          push hl
+          call rdbit
+          pop  hl
+          jr   nc,sgenm2
+sgenm3:   pop  bc
+          pop  hl
+          ld   (nxtadr),hl
+          pop  hl
+          jp   sgen3a
+sgenm2:   inc  hl
+          djnz sgenm1
+          ld   (rdadr),hl
+          pop  bc
+          pop  hl
+          ld   (nxtadr),hl
+          pop  hl
+          push hl
+sgena2:   pop  hl
+          push ix
+          call disas
+          pop  hl
+          jr   c,sgenc
+sgenr:    push hl
+          call adrlog
+          ld   a,1fh
+          ld   (labpri),a
+          call txtask
+          jr   nc,sgenr1
+          ld   hl,(pozn2)
+          ld   a,h
+          or   l
+          jr   z,sgenr2
+          ld   a,1eh
+          ld   (labpri),a
+          call txtask
+          jr   c,sgenr2
+sgenr1:   inc  hl
+          ld   a,12
+          call tabul0
+          ld   a,";"
+          call tskznk
+          call tskspc
+          call tsktxt
+sgenr2:   pop  hl
+          call tskcr
+          jr   c,sgenc
+          jp   sgeno
+sgenc:    ld   de,txter6
+          ld   c,9
+          call 5
+sgenf:    jp   vstup
+
+
+          jp   0
+vstpee:   ld   de,txter4
+          call tstext
+vstp2e:   ld   a,1
+          ld   (tskzn0),a
+          xor  a
+          ld   (vsss0),a
+          ;ld   hl,tbtab1
+          ;ld   (tablad+1),hl
+          ld   de,fcbpar
+          ld   c,16
+          call 5
+          ld   de,fcbmac
+          ld   c,16
+          call 5
+          jp   vstup
+vstpek:   call tskcr
+          call tskcr
+          call tskcr
+          ld   hl,0
+          ld   (rdadr),hl
+          ld   hl,(adrpar)
+          ld   (nxtadr),hl
+vstpk2:   ld   hl,(rdadr)
+          push hl
+          inc  hl
+          ld   (rdadr),hl
+          ld   a,h
+          or   l
+          pop  hl
+          jr   z,vstpk3
+          call labnxt
+          jr   c,vstpk2
+          push hl
+          ld   hl,(rdadr)
+          call adrfyz
+          jr   c,vstpk4
+          ld   a,";"
+          call tskznk
+          call tskspc
+vstpk4:   pop  hl
+          call tsktxt
+          ld   a,":"
+          call tskznk
+          ld   a,10
+          call tabul0
+          ld   hl,txtst1
+          call tsktxt
+          ld   hl,(rdadr)
+          call tskcis
+          call tskcr
+          jr   vstpk2
+vstpk3:   call tskcr
+          ld   a,8
+          call tabul0
+          ld   hl,txtend
+          call tsktxt
+          ld   a,5
+          call tabul0
+          ld   hl,(strt)
+          call tsklb
+          call tskcr
+          ld   a,1ah
+          call tskznk
+          ld   de,fcbmac
+          ld   c,21
+          call 5              ; zapis posledniho sektoru
+          ld   de,fcbmac
+          ld   c,16
+          call 5              ; uzavreni souboru
+          jp   0
+
+txtst1:   db   "set",160
+
+
+
+
+
+
+
+inadr:    call inadre
+          jp   c,vstup
+          push hl
+          call adrfyz
+          pop  de
+          jp   c,vstup
+          push de
+          pop  ix
+          ld   (rdadr),hl
+          call inpclr
+          call tskcr
+genb:     ld   a,(pagel)
+          ld   b,a
+          ld   hl,(adrpar)
+          ld   (nxtadr),hl
+          ld   (adrpr5),hl
+          ld   a,1dh
+          ld   (prizn5),a
+          call inpclr
+geno:     ld   hl,0           ; vypis pameti
+          ld   (pozn1),hl
+          ld   (pozn2),hl
+          ld   hl,(rdadr)
+          ld   de,(adrvek)
+          call cphlde
+          jp   nc,vstup
+          call inpzn0
+          jp   nz,vstup
+          push bc
+          ld   a,(prizn3)
+          or   a
+          jr   z,geng
+          xor  a
+          ld   (prizn3),a
+          ld   hl,txtodd
+          call tsktxt
+          call tskcr
+geng:     ld   hl,(rdadr)
+          call adrlog
+          call tskwrd
+          ld   a,":" 
+          call tskznk
+          ld   a,5
+          call tabul0
+          ld   hl,(rdadr)
+          push hl
+          pop  ix             ; adresa pro preklad
+          call rdbit
+          jp   c,genm
+geng3a:   push hl             ; vypis DB
+          ld   a,17
+          call tabul0
+          ;ld   a,"|"
+          ;call tskznk
+          ;call tabul
+          call adrlog
+          call labnxt
+          jr   c,genet
+          call tsktxt
+          ld   a,":"
+          call tskznk
+genet:    ld   a,8
+          call tabul0
+          push hl
+          push ix
+          pop  hl
+          call adrlog
+          ld   a,1eh
+          ld   (labpri),a
+          call txtask
+          jr   c,genet2
+          inc  hl
+          ld   a,17
+          call tabul0
+          ld   a,";"
+          call tskznk
+          call tskspc
+          call tsktxt
+          call tskcr
+          ld   a,25
+          call tabul0
+          ;ld   a,"|"
+          ;call tskznk
+genet2:   pop  hl
+          ld   hl,txtdb
+          call tsktxt
+          ld   a,5
+          call tabul0
+          ld   b,8
+          pop  hl
+          ld   a,(hl)
+          call testas
+          jr   c,gens         ; tisk DB v ASCII
+          ld   a,34
+          call tskznk
+gens2:    ld   a,(hl)
+          call testas
+          jr   c,gens4
+          inc  hl
+          ld   (rdadr),hl
+gens5:    call tskznk
+          cp   "$"
+          jr   z,gens4
+          call rdbit
+          jr   c,gens4
+          push hl
+          call adrlog
+          call labnxt
+          pop  hl
+          jr   nc,gens4
+          ld   a,(pozice)
+          cp   pocpoz-4
+          jr   nc,gens4
+          cp   pocpoz-15
+          jr   c,gens2
+          ld   a,(hl)
+          cp   32
+          jr   nz,gens2
+gens4:    ld   a,34
+          call tskznk
+          jp   genr
+genn:     ld   a,(hl)         ; tisk DB v HEX kodu
+          call testas
+          jp   nc,genr
+          ld   a,","
+          call tskznk
+gens:     ld   a,(hl)
+          inc  hl
+          ld   (rdadr),hl
+gens1:    push hl
+          ld   l,a
+          ld   h,0
+          call tskcis
+          pop  hl
+          call rdbit
+          jp   c,genr
+          push hl
+          call adrlog
+          call labnxt
+          pop  hl
+          jp   nc,genr
+          djnz genn
+          jp   genr
+genm:     call longb          ; delka instrukce
+          ld   hl,(rdadr)
+          push hl
+          ld   hl,(nxtadr)
+          push hl
+          ld   hl,(rdadr)
+          push bc
+          call adrlog
+          jr   genm2
+genm1:    push hl
+          call labnxt
+          pop  hl
+          jr   nc,genm3
+          push hl
+          call adrfyz
+          call rdbit
+          pop  hl
+          jr   nc,genm2
+genm3:    pop  bc
+          pop  hl
+          ld   (nxtadr),hl
+          pop  hl
+          jp   geng3a
+genm2:    inc  hl
+          djnz genm1
+          pop  bc
+          pop  hl
+          ld   (nxtadr),hl
+          pop  hl
+;          push hl
+          push bc
+gend:     ld   a,(hl)
+          inc  hl
+          call tskbyt
+          call tskspc
+          djnz gend           ; tisk bytu instrukce
+          ld   a,12
+          call tabul0
+          pop  bc
+;          pop  hl
+;          ld   a,"["
+;          call tskznk
+;geni:     ld   a,(hl)
+;          inc  hl
+;          cp   20h
+;          jr   c,genj
+;          cp   7fh
+;          jr   c,genk
+;genj:     ld   a,32
+;genk:     call tskznk
+;          djnz geni
+;          ld   a,"]"
+;          call tskznk
+          ld   (rdadr),hl
+;          call tabul
+          ;ld   a,"|"
+          ;call tskznk
+          push ix
+          pop  hl
+          call adrlog
+          call labnxt
+          jr   c,genla
+          call tsktxt
+          ld   a,":"
+          call tskznk
+genla:    ld   a,8
+          call tabul0
+          push hl
+          push ix
+          pop  hl
+          call adrlog
+          ld   a,1eh
+          ld   (labpri),a
+          call txtask
+          jr   c,genla2
+          inc  hl
+          ld   a,17
+          call tabul0
+          ld   a,";"
+          call tskznk
+          call tskspc
+          call tsktxt
+          call tskcr
+          ld   a,25
+          call tabul0
+          ;ld   a,"|"
+          ;call tskznk
+genla2:   pop  hl
+          push ix
+          call disas
+          pop  hl
+          jr   c,genc
+genr:     push hl
+          call adrlog
+          ld   a,1fh
+          ld   (labpri),a
+          call txtask
+          jr   nc,genr1
+          ld   hl,(pozn2)
+          ld   a,h
+          or   l
+          jr   z,genr2
+          ld   a,1eh
+          ld   (labpri),a
+          call txtask
+          jr   c,genr2
+genr1:    inc  hl
+          ld   a,12
+          call tabul0
+          ld   a,";"
+          call tskznk
+          call tskspc
+          call tsktxt
+genr2:    pop  hl
+          call tskcr
+          jr   c,genc
+          pop  bc
+          ld   a,b
+          or   a
+          jp   z,geno
+          dec  b
+          jp   nz,geno
+          jp   vstup
+genc:     ld   de,txter6
+          ld   c,9
+          call 5
+          pop  bc
+genf:          
+
+          jp   vstup
+
+labhld:                       ; nalezeni navesti podle jmena
+                              ; v DE adresa jmena navesti
+          push hl             ; v C pocet znaku navesti
+          ld   hl,(adrpar)
+labhl1:   push de
+          ld   de,(adrtop)
+          call cphlde
+          jr   nc,labhl4
+          ld   e,(hl)
+          inc  hl
+          ld   d,(hl)
+          inc  hl
+          ld   a,e
+          or   d
+          jr   z,labhl4
+          ex   de,hl
+          ex   (sp),hl        ; ulozeni prectene adresy
+          ex   de,hl
+          push bc
+          push de        ; zasobnik - adresa;pocet znaku;adresa navesti
+labhl5:   ld   a,c
+          or   a
+          jr   z,labhl6
+          ld   a,(de)
+          inc  de
+          dec  c
+          cp   32
+          jr   z,labhl6
+          bit  7,(hl)
+          jr   nz,labhl7
+          cp   (hl)
+          inc  hl
+          jr   z,labhl5
+          jr   labhl6
+labhl7:   or   128
+          cp   (hl)
+          jr   nz,labhl6
+          call rdznk
+          jr   c,labhl8
+          cp   33
+          jr   nc,labhl6
+labhl8:   pop  hl
+          pop  hl
+          pop  hl
+          inc  sp
+          inc  sp
+          or   a
+          ret
+labhl6:   pop  de
+          pop  bc
+          inc  sp
+          inc  sp
+labhl3:   bit  7,(hl)
+          inc  hl
+          jr   z,labhl3
+          jr   labhl1
+labhl4:   pop  de
+          pop  hl
+          scf
+          ret
+
+
+labask:   push de        ; nalezeni navesti podle adresy
+          push hl
+          ex   de,hl
+          ld   hl,(adrpar)
+labas1:   push de
+          ld   de,(adrtop)
+          call cphlde
+          pop  de
+          jr   nc,labas4
+          ld   a,(hl)
+          inc  hl
+          or   (hl)
+          dec  hl
+          jr   z,labas4
+          ld   a,e
+          cp   (hl)
+          inc  hl
+          jr   nz,labas2
+          ld   a,d
+          cp   (hl)
+          inc  hl
+          jr   nz,labas3
+          ld   a,(hl)
+          cp   32
+          jr   c,labas3
+          or   a
+          pop  de
+          pop  de
+          ret
+labas2:   inc  hl
+labas3:   bit  7,(hl)
+          inc  hl
+          jr   z,labas3
+          jr   labas1
+labas4:   pop  hl
+          pop  de
+          scf
+          ret
+
+nxtadr:   dw   0         ; adresa dalsiho navesti
+
+
+labnxt:   push de        ; nalezeni dalsiho navesti podle adresy v HL
+          push hl
+          ex   de,hl
+          ld   hl,(nxtadr)
+labnx1:   push de
+          ld   de,(adrtop)
+          call cphlde
+          pop  de
+          jr   nc,labnx4
+          ld   a,(hl)
+          inc  hl
+          or   (hl)
+          jr   z,labnx4
+          ld   a,d
+          cp   (hl)
+          jr   z,labnx5
+          jr   nc,labnx2
+          jr   labnx4
+labnx5:   ld   a,e
+          dec  hl
+          cp   (hl)
+          inc  hl
+          inc  hl
+          jr   z,labnx6
+          jr   nc,labnx3
+          jr   labnx4
+labnx6:   ld   a,(hl)
+          cp   32
+          jr   c,labnx3
+          or   a
+          pop  de
+          pop  de
+          ret
+labnx2:   inc  hl
+labnx3:   bit  7,(hl)
+          inc  hl
+          jr   z,labnx3
+          ld   (nxtadr),hl
+          jr   labnx1
+labnx4:   pop  hl
+          pop  de
+          scf
+          ret
+
+
+
+
+
+inpclr:   push af
+          push hl
+          push bc
+          push de
+          ld   e,18h
+          ld   c,2
+          call 5
+          pop  de
+          pop  bc
+          pop  hl
+          pop  af
+          ret
+
+inptxt:   ld   a,255
+inptx1:   ld   de,inpbff+2
+          push bc
+          ld   b,a
+          ld   c,0 
+inptx2:   call inpzn0
+          jr   z,inptx2
+          cp   13
+          jr   z,inptx4
+          cp   8
+          jr   z,inptx5
+          cp   3
+          jp   z,inptx6
+          cp   18h
+          jr   z,inptx3
+          cp   15h
+          jr   z,inptx7
+          cp   32
+          jr   c,inptx2
+          cp   7fh
+          jr   z,inptx5
+          jr   nc,inptx2
+          ld   (de),a
+inptx8:   inc  de
+          inc  c
+          call outzn0
+          ld   a,(inpbff+1)
+          cp   c
+          jr   nc,inptx9
+          ld   a,c
+          ld   (inpbff+1),a
+inptx9:   djnz inptx2
+inptx4:   ld   a,c
+          pop  bc
+          or   a
+          ld   c,a
+          ld   (inpbff+1),a
+          ld   de,inpbff+2
+          ret
+inptx5:   ld   a,c
+          or   a
+          jr   z,inptx2
+          inc  b
+          dec  c
+          dec  de
+          ld   a,8
+          call outzn0
+          ld   a,32
+          call outzn0
+          ld   a,8
+          call outzn0
+          jr   inptx2
+inptx7:   ld   a,(inpbff+1)
+          dec  a
+          cp   c
+          jr   c,inptx2
+          ld   a,(de)
+          jr   inptx8
+inptx3:   ld   a,c
+          or   a
+          jr   z,inptx2
+          inc  b
+          dec  c
+          dec  de
+          ld   a,8
+          call outzn0
+          ld   a,32
+          call outzn0
+          ld   a,8
+          call outzn0
+          jr   inptx3
+inptx6:   ld   de,inpbff+2
+          pop  bc
+          ld   (de),a
+          ld   c,1
+          ld   a,1
+          ld   (inpbff+1),a
+          or   a
+          ret
+
+outzn0:   push hl
+          push bc
+          push de
+          push af
+          ld   e,a
+          ld   c,6
+          call 5
+          pop  af
+          pop  de
+          pop  bc
+          pop  hl
+          ret
+
+inpzn0:   push bc
+          push de
+          push hl
+          ld   c,6
+          ld   e,255
+          call 5
+          or   a
+          pop  hl
+          pop  de
+          pop  bc
+          ret
+inpzn5:   push bc
+          push de
+          push hl
+          ld   c,11
+          call 5
+          or   a
+          pop  hl
+          pop  de
+          pop  bc
+          ret
+
+
+adrlog:   push de             ; prepocet fyzicke adresy na logickou
+          ld   de,(adrcom)
+          or   a
+          sbc  hl,de
+          ld   de,(base)
+          add  hl,de
+          call cphlde
+          jr   c,adrlg2
+          push hl
+          ld   hl,(adrvek)
+          push de
+          ld   de,(adrcom)
+          sbc  hl,de
+          pop  de
+          add  hl,de
+          ex   de,hl
+          pop  hl
+          call cphlde
+          ccf
+adrlg2:   pop  de        ; priznak CY - adresa mimo program
+          ret
+
+tstext:   push hl
+          push bc
+          push de
+          push af
+          ld   c,9
+          call 5
+          pop  af
+          pop  de
+          pop  bc
+          pop  hl
+          ret
+
+adrfyz:   push de             ; prepocet logicke adresy na fyzickou
+          ld   de,(base)
+          or   a
+          sbc  hl,de
+          ld   de,(adrcom)
+          add  hl,de
+          call cphlde
+          jr   c,adrfz2
+          ld   de,(adrvek)
+          call cphlde
+          ccf
+adrfz2:   pop  de        ; priznak CY - adresa mimo program
+          ret
+
+
+citbuf:   ds   1         ; citac bufferu
+ukbuff:   ds   2         ; ukazatel text.bufferu
+txtodd:   db   "; ......................................................$"
+
+adrpr5:   dw   0         ; adresa ukazatele ASCII
+prizn5:   dw   0         ; priznak ASCII
+
+
+
+
+testas:   ld   a,(hl)
+          cp   32
+          ret  c
+          cp   7fh
+          ccf
+          ret  c
+          cp   34
+          scf
+          ret  z
+
+ascnxt:   push de        ; zjisteni priznaku ASCII
+          push hl
+          call adrlog
+          ex   de,hl
+          ld   hl,(adrpr5)
+ascnx1:   push de
+          ld   de,(adrtop)
+          call cphlde
+          pop  de
+          jr   nc,ascnx4
+          ld   a,(hl)
+          inc  hl
+          or   (hl)
+          jr   z,ascnx4
+          ld   a,d
+          cp   (hl)
+          jr   z,ascnx5
+          jr   nc,ascnx2
+          jr   ascnx4
+ascnx5:   ld   a,e
+          dec  hl
+          cp   (hl)
+          inc  hl
+          inc  hl
+          jr   z,ascnx6
+          jp   nc,ascnx3
+          jr   ascnx4
+ascnx6:   ld   a,(hl)
+          cp   1ch
+          jr   z,ascnx7
+          cp   1bh
+          jr   z,ascnx7
+          cp   1dh
+          jp   nz,ascnx3
+ascnx7:   ld   (prizn5),a
+          dec  hl
+          dec  hl
+          ld   (adrpr5),hl
+          jr   ascnx4
+
+ascnx2:   inc  hl
+ascnx3:   ld   a,(hl)
+          cp   1ch
+          jr   z,ascnx9
+          cp   1dh
+          jr   z,ascnx9
+          cp   1bh
+          jr   nz,ascnx8
+ascnx9:   ld   (prizn5),a
+ascnx8:   bit  7,(hl)
+          inc  hl
+          jr   z,ascnx8
+          ld   (adrpr5),hl
+          jr   ascnx1
+ascnx4:   pop  hl
+          pop  de
+          ld   a,(prizn5)
+          cp   1dh
+          scf
+          ld   a,(hl)
+          ret  nz
+          ld   a,(hl)
+          or   a
+          ret
+
+
+
+
+
+
+
+rdbit:    push hl             ; precteni bitu z HL do CY
+          push bc   
+          push de
+          ld   de,(adrcom)    ; zacatek programu
+          or   a
+          sbc  hl,de          ; relativni adresa
+          ld   a,l
+          and  7
+          ld   b,a
+          sra  h
+          rr   l
+          sra  h
+          rr   l
+          sra  h
+          rr   l
+          ld   de,(adrvek)
+          add  hl,de          ; prvek vektoru
+          ld   a,(hl)
+          inc  b
+rdbit1:   rrca
+          djnz rdbit1
+          pop  de
+          pop  bc
+          pop  hl
+          ret
+
+setbit:   push hl             ; nastaveni bitu HL na CY
+          push bc   
+          push de
+          push af
+          ld   de,(adrcom)    ; zacatek programu
+          or   a
+          sbc  hl,de          ; relativni adresa
+          ld   a,l
+          and  7
+          inc  a
+          ld   b,a
+          ld   c,a
+          sra  h
+          rr   l
+          sra  h
+          rr   l
+          sra  h
+          rr   l
+          ld   de,(adrvek)
+          add  hl,de          ; prvek vektoru
+          ld   a,(hl)
+          or   a
+stbit1:   rra
+          djnz stbit1
+          ld   b,a
+          pop  af
+          ld   a,b
+          ld   b,c
+rdbit2:   rla
+          djnz rdbit2
+          ld   (hl),a
+          pop  de
+          pop  bc
+          pop  hl
+          ret
+   
+
+
+
+
+txtuv2:   db   13,10,"N A B I D K A  : ",13,10,10
+          db   "T - trasovani programu",13,10
+          db   "L - vypis programu",13,10 
+          db   "<ET>dalsi stranka programu",13,10
+          db   "P - nastaveni delky stranky",13,10
+          db   "A - nastaveni navesti assembleru",13,10
+          db   "D - priznak dat",13,10
+          db   "C - priznak instrukce",13,10
+          db   "H - priznak dat HEX",13,10
+          db   "I - priznak  dat ISO-ASCII",13,10
+          db   "* - poznamka k adrese",13,10
+          db   "; - poznamka k instrukci",13,10
+          db   "E - ukonceni editace",13,10
+          db   "^C- preruseni editace bez ulozeni parametru",13,10
+          db   "? - vypis nabidky",13,10
+          db   13,10,"$"
+
+txtuv3:   db   "Volna pamet : $"
+txtpov:   db   "Povel : $"
+txtadr:   db   "       Adresa : $"
+txtnaz:   db   "       Jmeno : $"
+txtnav:   db   "       Navesti : $"
+txttxt:   db   "       Text: $"
+          db   0,0,0,0
+inpbff:   db   255,0 
+          db   80h,0
+          ds   253 
+adrcom:   dw   adrend    ; adresa zacatku ulozeneho programu
+adrvek:   dw   adrend    ; adresa vektoru programu
+adrpar:   dw   adrend    ; adresa zacatku tabulky parametru
+adrtop:   dw   adrend    ; adresa konce tabulky parametru
+pocchb:   dw   0         ; pocet chyb v parametrech
+adrdma:   dw   80h       ; adresa DMA pro ukladani dat
+adrfcb:   dw   fcbmac    ; adresa FCB pro vystup dat
+ukladr:   dw   80h       ; ukladaci adresa pro vystup dat
+uklcit:   db   0         ; citac ukladanych dat
+rdadr:    dw   adrend    ; cteci adresa programu
+prizn1:   db   0         ; priznak prefixu DD,FD
+prizn2:   db   0         ; priznak prefixu ED,CB
+prizn3:   db   0         ; priznak oddelovace
+;tbtab1:   db   0,7,20,27,29,37,42,54,64,70  ; tabulatory
+;tbtab2:   db   1,11,16,31,36,41,51,61,71,80
+pozice:   db   0         ; pozice
+lastab:   db   0         ; stary tabelator
+
+
+tabul:    push bc  
+          ld   c,a
+          ld   a,8
+          call tabul0
+          ld   a,c
+          pop  bc
+          ret
+
+tabul0:   push bc
+          ld   b,a
+          ld   a,(lastab)
+          add  a,b
+          ld   (lastab),a
+          ld   b,a
+tabul1:   ld   a,(pozice)
+          cp   b
+          jr   nc,tabul2
+          ld   a,32
+          call tskznk
+          jr   tabul1
+tabul2:   pop  bc
+          ret          
+
+;tabul:    push af        ; tabulator
+;          push hl
+;          push bc
+;tablad:   ld   hl,tbtab1 
+;          ld   b,10
+;          ld   a,(pozice) 
+;tabul1:   cp   (hl)
+;          inc  hl
+;          jr   c,tabul2
+;          djnz tabul1
+;tabul3:   pop  bc
+;          pop  hl
+;          pop  af
+;          ret
+;tabul2:   dec  hl
+;tabul4:   ld   a,32 
+;          call tskznk
+;          ld   a,(pozice)
+;          cp   (hl)
+;          jr   c,tabul4
+;          jr   tabul3
+
+
+
+longb:    ld   b,4
+          ld   a,(hl)
+          inc  hl
+          cp   0ddh
+          jr   z,longdd
+          cp   0fdh
+          jr   z,longdd
+          cp   0edh
+          jr   z,longed
+          cp   0cbh
+          jr   z,longcb
+          dec  hl
+          dec  b
+          cp   0c3h
+          ret  z
+          cp   0cdh
+          ret  z
+          and  0cfh
+          cp   1
+          ret  z
+          ld   a,(hl)
+          dec  b
+          dec  b
+          and  0f7h
+          ret  z
+          inc  b
+          cp   0d3h
+          ret  z
+          inc  b
+          and  0e7h
+          cp   22h
+          ret  z
+          and  0c7h
+          cp   0c2h
+          ret  z
+          cp   0c4h
+          ret  z
+          dec  b
+          or   a
+          ret  z
+          cp   6
+          ret  z
+          cp   0c6h
+          ret  z
+          dec  b
+          ret
+longdd:   ld   a,(hl)
+          cp   0edh
+          jr   z,longed
+          cp   0cbh
+          jr   z,longce
+          cp   36h
+          ret  z
+          cp   21h
+          ret  z
+          cp   22h
+          ret  z
+          cp   2ah
+          ret  z
+          dec  b
+          cp   34h
+          ret  z
+          cp   35h
+          ret  z
+          and  0f8h
+          cp   70h
+          ret  z
+          ld   a,(hl)
+          and  0c7h
+          cp   46h
+          ret  z
+          cp   86h
+          ret  z
+          dec  b
+          ret
+
+longde:   inc  b
+longed:   ld   a,(hl)
+          and  0c7h
+          cp   43h
+          ret  z
+longcb:   dec  b
+          dec  b
+          ret
+longce:   inc  hl
+          inc  hl
+          ld   a,(hl)
+          and  7 
+          cp   6
+          ret  z
+          dec  b
+          ret
+
+loaddt:   ld   de,(adrfcb)    ; otevreni souboru
+          ld   c,15
+          call 5
+          cp   4
+          ccf
+          ret  c
+loadd1:   ld   de,(adrdma)
+          ld   c,26
+          call 5              ; nastaveni adresy DMA
+          ld   hl,(adrdma)
+          ld   bc,80h
+          add  hl,bc
+          call tstend    ; test prekroceni pameti
+          jp   c,0
+          push hl
+          ld   de,(adrfcb)
+          ld   c,20 
+          call 5              ; precteni sektoru
+          pop  hl
+          or   a
+          jr   z,loadd2
+          ld   de,(adrfcb)
+          ld   c,16
+          call 5              ; uzavreni souboru
+          xor  a
+          ret
+loadd2:   ld   (adrdma),hl
+          jr   loadd1
+
+tstend:   push de        ; test konce pameti
+          ld   de,(6)
+          call cphlde
+          ccf
+          pop  de
+          ret  nc
+          push bc
+          push hl
+          push de
+          ld   de,txter5
+          ld   c,9
+          call 5
+          pop  de
+          pop  hl
+          pop  bc
+          scf
+          ret
+
+
+disas:    ld   hl,tab0
+          push ix
+          pop  iy
+          xor  a
+          ld   (prizn1),a
+          ld   (prizn2),a
+          ld   a,(ix+0)
+          cp   0c3h
+          jr   z,disas0
+          cp   0c9h
+          jr   z,disas0
+          cp   18h
+          jr   z,disas0
+          cp   0e9h
+          jr   nz,disas1
+disas0:   ld   (prizn3),a
+disas1:   cp   0ddh
+          jr   z,disas2
+          cp   0fdh
+          jr   nz,disas3
+disas2:   ld   (prizn1),a
+          inc  ix
+          ld   a,(ix+0)
+          cp   0e9h
+          jr   nz,disas3
+          ld   (prizn3),a
+disas3:   cp   0edh
+          jr   nz,disas4
+          ld   hl,tabed
+          ld   (prizn2),a
+          ld   a,(ix+1)
+          cp   45h
+          jr   z,disash
+          cp   4dh
+          jr   nz,disas5
+disash:   ld   (prizn3),a
+          jr   disas5
+disas4:   cp   0cbh
+          jr   nz,disas6
+          ld   hl,tabcb
+          ld   (prizn2),a
+          ld   a,(prizn1)
+          or   a
+          jr   z,disas5
+          inc  ix
+disas5:   inc  ix
+disas6:   ld   b,(hl)         ; nastaveni poctu bloku
+          inc  hl
+disas7:   push bc
+          ld   b,(hl)         ; nastaveni poctu slov
+          inc  hl
+          ld   a,(ix+0)
+          and  (hl)           ; maskovani 
+          inc  hl
+disas8:   cp   (hl)
+          inc  hl
+          jr   z,disasc       ; nalezeno
+disas9:   bit  7,(hl)
+          inc  hl
+          jr   z,disas9       ; konec slova
+          djnz disas8         ; dalsi slovo
+          pop  bc
+          djnz disas7         ; dalsi blok
+          ld   de,txtdb
+          call tsktxt
+          ret  c
+          ld   a,";"
+          call tskznk
+          ret  c
+          ld   a,"?"
+          call tskznk
+          ret  c
+          call tskznk
+          ret
+disasc:   pop  bc
+          call tskkod
+          ret
+
+tskkod:   ld   a,(hl)
+          and  7fh
+          cp   33
+          jr   nc,tskkd2 
+          push hl
+          ld   hl,tbskok
+          add  a,a
+          add  a,l
+          ld   l,a
+          jr   nc,tskkd1
+          inc  h
+tskkd1:   ld   a,(hl)
+          inc  hl
+          ld   h,(hl)
+          ld   l,a
+          call jphl
+          pop  hl
+          jr   tskkd5
+tskkd2:   call tskznk
+          ret  c
+tskkd5:   ld   a,(hl)
+          inc  hl
+          and  128
+          jr   z,tskkod
+          xor   a
+tskkde:   ret
+
+jphl:     jp   (hl)
+
+txthl:    db   "h","l"+128
+txtdd:    db   "i","x"+128
+txtfd:    db   "i","y"+128
+txthl1:   db   "(hl",")"+128
+txtdd1:   db   "(ix",8,")"+128
+txtfd1:   db   "(iy",8,")"+128
+txthl2:   db   "(hl",")"+128
+txtdd2:   db   "(ix",9,")"+128
+txtfd2:   db   "(iy",9,")"+128
+
+tbskb:    db   8,7
+          db   0,"b"+128
+          db   1,"c"+128
+          db   2,"d"+128
+          db   3,"e"+128
+          db   4,"h"+128
+          db   5,"l"+128
+          db   6,93h
+          db   7,"a"+128
+tbskc:    db   8,38h
+          db   0,"b"+128
+          db   8,"c"+128
+          db   10h,"d"+128
+          db   18h,"e"+128
+          db   20h,"h"+128
+          db   28h,"l"+128
+          db   30h,93h
+          db   38h,"a"+128
+tbskd:    db   4,30h
+          db   0,"b","c"+128
+          db   10h,"d","e"+128
+          db   20h,92h
+          db   30h,"s","p"+128
+tbske:    db   4,30h
+          db   0,"b","c"+128
+          db   10h,"d","e"+128
+          db   20h,92h
+          db   30h,"a","f"+128
+tbskf:    db   8,38h
+          db   0,"n","z"+128
+          db   8,"z"+128
+          db   10h,"n","c"+128
+          db   18h,"c"+128
+          db   20h,"p","o"+128
+          db   28h,"p","e"+128
+          db   30h,"p"+128
+          db   38h,"m"+128
+tbskb1:   db   8,38h
+          db   0,"add a",","+128
+          db   8,"adc a",","+128
+          db   10h,"sub",0a0h
+          db   18h,"sbc a",","+128
+          db   20h,"and",0a0h
+          db   28h,"xor",0a0h
+          db   30h,"or",0a0h
+          db   38h,"cp",0a0h
+tbskb6:   db   4,18h
+          db   0,"i"+128
+          db   8,"d"+128
+          db   10h,"i","r"+128
+          db   18h,"d","r"+128
+
+tbskb7:   db   "inc",0a0h
+tbskb8:   db   "dec",0a0h
+
+
+skokb7:   ld   hl,tbskb7
+          jp   tskkod
+skokb8:   ld   hl,tbskb8
+          jp   tskkod
+
+
+skokb0:   ld   a,(ix+0)
+          and  38h
+skokc0:   ld   l,a
+          ld   h,0  
+          jp   tskcis
+
+skokb5:   ld   a,(ix+0)
+          and  38h
+          rrca
+          rrca
+          rrca
+          jr   skokc0
+
+
+skokb2:   ld   a,(prizn1)
+          or   a
+          ld   hl,txthl
+          jp   z,tskkod
+          cp   0ddh
+          ld   hl,txtdd
+          jp   z,tskkod
+          cp   0fdh
+          ld   hl,txtfd
+          jp   z,tskkod
+          or   a
+          ret
+
+
+
+skokb3:   ld   a,(prizn1)
+          or   a
+          ld   hl,txthl1
+          jp   z,tskkod
+          cp   0ddh
+          ld   hl,txtdd1
+          jp   z,tskkod
+          cp   0fdh
+          ld   hl,txtfd1
+          jp   z,tskkod
+          or   a
+          ret
+
+skokb4:   ld   a,(prizn1)
+          or   a
+          ld   hl,txthl2
+          jp   z,tskkod
+          cp   0ddh
+          ld   hl,txtdd2
+          jp   z,tskkod 
+          cp   0fdh
+          ld   hl,txtfd2
+          jp   z,tskkod
+          or   a
+          ret
+          jp   z,tskkod 
+          cp   0fdh
+          ld   hl,txtfd2
+          jp   z,tskkod
+          or   a
+          ret
+
+     
+
+skokb:    ld   hl,tbskb
+          jr   tskreg
+skokc:    ld   hl,tbskc
+          jr   tskreg
+skokd:    ld   hl,tbskd
+          jr   tskreg
+skoke:    ld   hl,tbske
+          jr   tskreg
+skokf:    ld   hl,tbskf
+          jr   tskreg
+skokb1:   ld   hl,tbskb1
+          jr   tskreg
+skokb6:   ld   hl,tbskb6
+
+tskreg:   ld   b,(hl)         ; nastaveni poctu slov
+          inc  hl
+          ld   a,(ix+0)
+          and  (hl)           ; maskovani 
+          inc  hl
+tskr01:   cp   (hl)
+          inc  hl
+          jp   z,tskkod       ; nalezeno
+tskr02:   bit  7,(hl)
+          inc  hl
+          jr   z,tskr02       ; konec slova
+          djnz tskr01         ; dalsi slovo
+          scf
+          ret
+
+tbskok:   dw   tskkde    ; 0  
+          dw   skok1     ; 1  adresa programu LBL...
+          dw   skok2     ; 2  adresa tabulky DTB...
+          dw   skok3     ; 3  adresa bytu DDB...
+          dw   skok4     ; 4  adresa slova DDW...
+          dw   skok5     ; 5  relativni adresa LBL...
+          dw   skok6     ; 6  data1 (OR d)
+          dw   skok7     ; 7  data 2 (LD (HL),d)
+          dw   skok8     ; 8  index 1 (LD A,(IX+d))
+          dw   skok9     ; 9  index 2 (RES 4,(IX+d))
+          dw   skoka     ; a  port
+          dw   skokb     ; b  registr 1
+          dw   skokc     ; c  registr 2
+          dw   skokd     ; d  dvojregistr 1
+          dw   skoke     ; e  dvojregistr 2
+          dw   skokf     ; f  podminka
+          dw   skokb0    ; 10 adresa RST
+          dw   skokb1    ; 11 aritmet. operace
+          dw   skokb2    ; 12 registr HL
+          dw   skokb3    ; 13 registr (HL)
+          dw   skokb4    ; 14 registr RES (IX+e)
+          dw   skokb5    ; 15 cislo bitu
+          dw   skokb6    ; 16 parametr LDIR
+          dw   skokb7    ; 17 INC 
+          dw   skokb8    ; 18 DEC 
+          dw   tskkde    ; 19
+          dw   tskkde    ; 1a
+          dw   tskkde    ; 1b
+          dw   tskkde    ; 1c
+          dw   tskkde    ; 1d
+          dw   tskkde    ; 1e
+          dw   tskkde    ; 1f
+          dw   tabul     ; 20 tabulator
+
+          
+
+
+skoka:    ld   l,(ix+1)
+          ld   h,0
+          jp   tskcis
+skok9:    ld   l,(ix-1)
+          jr   skok83
+skok8:    ld   l,(ix+1)
+skok83:   ld   h,0
+          bit  7,l
+          ld   a,"+"
+          jr   nz,skok81
+skok82:   call tskznk
+          ret  c
+          jp   tskcis
+skok81:   ld   a,l
+          neg
+          ld   l,a
+          ld   a,"-"
+          jr   skok82
+ 
+skok7:    ld   l,(ix+1)
+          ld   h,0
+          ld   a,(prizn1)
+          or   a
+          jr   z,tskcia
+          ld   a,(ix+0)
+          cp   36h
+          jr   nz,tskcia
+          ld   l,(ix+2)
+          jr   tskcia
+       
+skok6:    ld   l,(ix+1)
+          ld   h,0
+tskcia:   ld   a,h
+          or   a
+          jp   nz,tskcis
+          ld   a,l
+          push hl
+          push ix
+          pop  hl
+          inc  hl
+          call testas+1
+          pop  hl
+          jp   c,tskcis
+          ld   a,34
+          call tskznk
+          ld   a,l
+          call tskznk
+          ld   a,34
+          jp   tskznk
+
+
+skok5:    push ix
+          pop  hl
+          inc  hl
+          inc  hl
+          ld   de,(adrcom)
+          or   a
+          sbc  hl,de
+          ld   de,(base)
+          add  hl,de
+          ld   e,(ix+1)
+          ld   d,0
+          add  hl,de
+          bit  7,e
+          jr   z,tsklb
+          dec  h
+          jr   tsklb
+
+skok4:
+skok3:
+skok2:
+skok1:    ld   l,(ix+1)
+          ld   h,(ix+2)
+tsklb:    push hl
+          ld   a,1eh
+          ld   (labpri),a
+          call txtask
+          pop  hl
+          jr   c,tsklb1
+          ld   (pozn2),hl
+tsklb1:   ;ld   a,(vsss0)
+          ;or   a
+          ;jp   nz,tskwrd
+          call labask
+          jp   nc,tsktxt
+tskcis:   ld   a,h
+          and  0f0h
+          jr   z,tskcs2
+          cp   0a0h
+          jr   c,tskcs1 
+          xor  a
+          call tskhex
+          ret  c
+tskcs1:   call tskwrd
+tskcs0:   ret  c
+          ld   a,"h"
+          jp   tskznk
+tskcs2:   ld   a,h
+          and  0fh
+          jr   z,tskcs4
+          cp   0ah
+          jr   c,tskcs3
+          xor  a
+          call tskhex
+          ret  c
+tskcs3:   ld   a,h
+          and  0fh
+tskcs7:   call tskhex
+          ret  c
+tskcs8:   ld   a,l
+          call tskbyt
+          jr   tskcs0
+tskcs4:   ld   a,l
+          and  0f0h
+          jr   z,tskcs5 
+          cp   0a0h
+          jr   c,tskcs8
+          xor  a
+          jr   tskcs7
+tskcs5:   ld   a,l
+          and  0fh
+          cp   0ah
+          jr   c,tskcs6
+          xor  a
+          call tskhex
+          ret  c
+tskcs6:   ld   a,l
+          and  0fh
+          call tskhex
+          ret  c
+          cp   10
+          ccf
+          ret  nc
+          ld   a,"h"
+          jp   tskznk
+
+txtdb:    db   "d","b"+128
+
+
+tab0:
+          db   4                        ; pocet bloku
+          db   37,0ffh
+          db   0,"nop",160           ; NOP
+          db   10h,"djnz ",85h          ; DJNZ
+          db   20h,"jr nz,",85h         ; JR NZ,e
+          db   30h,"jr nc,",85h         ; JR NC,e
+          db   2,"ld (bc),","a"+128     ; LD (BC),A
+          db   12h,"ld (de),","a"+128   ; LD (DE),A
+          db   22h,"ld (",4,"),",92h    ; LD (a),HL
+          db   32h,"ld (",3,"),","a"+128; LD (a),A
+          db   7,"rlca",160          ; RLCA
+          db   17h,"rla",160         ; RLA
+          db   27h,"daa",160         ; DAA
+          db   37h,"scf",160         ; SCF
+          db   8,"ex af,af","'"+128     ; EX AF,AF'
+          db   18h,"jr ",85h            ; JR e
+          db   28h,"jr z,",85h          ; JR Z,e
+          db   38h,"jr c,",85h          ; JR C,e
+          db   10,"ld a,(bc",")"+128    ; LD A,(BC)
+          db   1ah,"ld a,(de",")"+128   ; LD A,(DE)
+          db   2ah,"ld ",12h,",(",4,")"+128  ; LD HL,(a)
+          db   3ah,"ld a,(",3,")"+128   ; LD A,(a)
+          db   0fh,"rrca",160        ; RRCA
+          db   1fh,"rra",160         ; RRA
+          db   2fh,"cpl",160         ; CPL
+          db   3fh,"ccf",160         ; CCF
+          db   76h,"halt",160        ; HALT
+          db   0c3h,"jp ",81h           ; JP a
+          db   0d3h,"out (",10,"),","a"+128  ; OUT (d),A
+          db   0e3h,"ex (sp),",92h      ; EX (SP),HL
+          db   0f3h,"di",160         ; DI
+          db   0c9h,"ret",160        ; RET
+          db   0d9h,"exx",160        ; EXX
+          db   0e9h,"jp (",12h,")"+128  ; JP (HL)
+          db   0f9h,"ld sp,",92h        ; LD SP,HL
+          db   0dbh,"in a,(",10,")"+128 ; IN A,(d)
+          db   0ebh,"ex de,",92h         ; EX DE,HL
+          db   0fbh,"ei",160         ; EI
+          db   0cdh,"call ",81h         ; CALL a
+
+          db   2,0c0h
+          db   40h,"ld ",12,",",8bh     ; LD r2,r1
+          db   80h,11h,8bh              ; arop r1
+
+          db   6,0cfh
+          db   1,"ld ",13,",",82h       ; LD drg1,a
+          db   3,17h,8dh                ; INC drg1
+          db   9,"add ",12h,",",8dh     ; ADD HL,drg1
+          db   0bh,18h,8dh              ; DEC drg1
+          db   0c1h,"pop ",8eh          ; POP drg2
+          db   0c5h,"push ",8eh         ; PUSH drg2
+          
+          db   8,0c7h
+          db   4,17h,8ch                ; INC rg2 
+          db   5,18h,8ch                ; DEC rg2
+          db   6,"ld ",12,",",87h       ; LD rg2,d
+          db   0c0h,"ret ",8fh          ; RET podm
+          db   0c2h,"jp ",15,",",81h    ; JP podm,a
+          db   0c4h,"call ",15,",",81h  ; CALL podm,a
+          db   0c6h,11h,86h             ; arop d
+          db   0c7h,"rst ",90h          ; RST adr
+
+
+tabed:    db   4
+          db   12,0ffh
+          db   44h,"neg",160
+          db   45h,"retn",160
+          db   46h,"im ","0"+128
+          db   56h,"im ","1"+128
+          db   47h,"ld i,","a"+128
+          db   57h,"ld a,","i"+128
+          db   67h,"rrd",160
+          db   4dh,"reti",160
+          db   5eh,"im ","2"+128
+          db   4fh,"ld r,","a"+128
+          db   5fh,"ld a,","r"+128
+          db   6fh,"rld",160
+          
+          db   2,0c7h
+          db   40h,"in ",12,",(c",")"+128
+          db   41h,"out (c),",8ch
+
+          db   4,0cfh
+          db   42h,"sbc hl,",8dh
+          db   4ah,"adc hl,",8dh
+          db   43h,"ld (",4,"),",8dh
+          db   4bh,"ld ",0dh,",(",4,")"+128
+
+          db   4,0e7h
+          db   0a0h,"ld",16h,160
+          db   0a1h,"cp",16h,160
+          db   0a2h,"in",16h,160
+          db   0a3h,"ot",16h,160
+
+tabcb:    db   4
+          db   8,0ffh
+          db   6,"rlc ",94h
+          db   0eh,"rrc ",94h
+          db   16h,"rl ",94h
+          db   1eh,"rr ",94h
+          db   26h,"sla ",94h
+          db   2eh,"sra ",94h
+          db   36h,"sli ",94h
+          db   3eh,"srl ",94h
+
+          db   3,0c7h
+          db   46h,"bit ",15h,",",94h
+          db   86h,"res ",15h,",",94h
+          db   0c6h,"set ",15h,",",94h
+
+          db   8,0f8h
+          db   0,"rlc ",8bh
+          db   8,"rrc ",8bh
+          db   10h,"rl ",8bh
+          db   18h,"rr ",8bh
+          db   20h,"sla ",8bh
+          db   28h,"sra ",8bh
+          db   30h,"sli ",8bh
+          db   38h,"srl ",8bh
+
+          db   3,0c0h
+          db   40h,"bit ",15h,",",8bh
+          db   80h,"res ",15h,",",8bh
+          db   0c0h,"set ",15h,",",8bh
+
+cphlde:   push bc
+          ld   c,a
+          ld   a,h
+          cp   d
+          jr   nz,cphld1
+          ld   a,l
+          cp   e
+cphld1:   ld   a,c
+          pop  bc
+          ret
+
+
+
+tskspc:   push af        ; tisk mezery
+          ld   a,32
+          call tskznk
+tsksp1:   jr   c,tskspe
+          pop  af
+          or   a
+          ret
+tskspe:   pop  af
+          scf
+          ret
+
+tsktxt:   push hl
+          push de
+          push bc
+tsktx1:   ld   a,(hl)
+          cp   "$"
+          jr   z,tsktx3
+          bit  7,a
+          jr   z,tsktx4
+          and  07fh
+          call tskznk
+          jr   tsktx2
+tsktx4:   call tskznk
+          jr   c,tsktx2
+          inc  hl
+          jr   tsktx1
+tsktx3:   xor  a
+tsktx2:   pop  bc
+          pop  de
+          pop  hl
+          ret
+
+
+
+
+tskcr:    push af        ; tisk noveho radku
+          ld   a,13
+          call tskznk
+          jr   c,tskspe
+          ld   a,10
+          call tskznk
+          jr   tsksp1
+          
+tskwrh:   call tskwrd
+          ret  c
+          ld   a,"H"
+          call tskznk
+          ret
+
+tskbth:   call tskbyt
+          ret  c
+          ld   a,"H"
+          call tskznk
+          ret
+
+
+tskwrd:   push af        ; tisk slova HEX
+          ld   a,h
+          call tskbyt
+          jr   c,tskhx2
+          ld   a,l
+          call tskbyt
+          jr   c,tskhx2
+          pop  af
+          or   a
+          ret
+
+
+
+tskbyt:   push af        ; tisk bytu HEX
+          rrca
+          rrca
+          rrca
+          rrca
+          call tskhex
+          jr   c,tskhx2
+          pop  af
+tskhex:   push af        ; tisk znaku HEX
+          and  0fh
+          add  a,"0"
+          cp   ":"
+          jr   c,tskhx1
+          add  a,27h
+tskhx1:   call tskznk
+          jr   c,tskhx2
+          pop  af
+          or   a
+          ret
+tskhx2:   pop  af
+          scf
+          ret
+
+tskznk:   push hl
+          push bc
+          push de
+          push ix
+          push iy
+tskzn0:   db   1         ; instrukce LD BC,data (pro vetveni programu)
+          jr   tskzn1
+          push af
+          cp   9
+          jr   nz,tskzes
+tskza5:   ld   a,32
+          call tskznk
+          ld   a,(pozice)
+          and  7
+          jr   nz,tskza5
+          pop  af
+          jr   tskza2
+tskzes:   ld   c,6
+          ld   e,a
+          call 5         ; tisk znaku na konzole
+          pop  af
+          call pozznk
+tskza2:   or   a
+          jr   tskzne
+tskzn1:   push af
+          ld   a,(uklcit)
+          cp   128
+          jr   c,tskzn3
+          ld   de,(adrfcb)
+          ld   c,21 
+          call 5         ; zapis sektoru
+          or   a
+          jr   z,tskzn2
+          ld   de,txter4
+          ld   c,9
+          call 5         ; hlaseni DISK PLNY
+          jp   vstup
+tskzn2:   ld   hl,80h
+          ld   (ukladr),hl
+          xor  a
+          ld   (uklcit),a
+          ld   de,81h
+          ld   bc,7fh
+          ld   (hl),a
+          ldir           ; vymazani sektoru
+tskzn3:   inc  a
+          ld   (uklcit),a
+          pop  af   
+          ld   hl,(ukladr)
+          ld   (hl),a
+          inc  hl
+          ld   (ukladr),hl
+          call pozznk
+          or   a
+tskzne:   pop  iy
+          pop  ix
+          pop  de
+          pop  bc
+          pop  hl
+          ret
+
+pozznk:   push af
+          cp   8
+          jr   nz,pozzn1
+pozzn0:   ld   a,(pozice)
+          or   a
+          jr   z,pozzne
+          dec  a
+          ld   (pozice),a
+          jr   pozzne
+pozzn1:   cp   9
+          jr   nz,pozzn2
+          ld   a,(pozice)
+          and  0f8h
+          add  a,8
+          jr   pozzn6
+pozzn2:   cp   12
+          jr   z,pozzn4
+          cp   13
+          jr   z,pozzn4
+          cp   24
+          jr   z,pozzn4
+          cp   07fh
+          jr   z,pozzn0
+          ld   a,(pozice)
+          inc  a
+pozzn6:   cp   pocpoz
+          jr   c,pozzn5
+pozzn4:   xor  a
+          ld   (lastab),a
+pozzn5:   ld   (pozice),a
+pozzne:   pop  af
+          ret
+
+
+
+rdjmen:   call outsp          ; podprogram pro cteni jmena souboru
+          call rdznk
+          ret  c
+          ld   b,a            ; ulozeni prvniho znaku
+          call rdznk
+          dec  de
+          inc  c
+          inc  hl
+;          jr   c,rdjmn0
+          cp   ":"
+          ld   a,b
+          jr   nz,rdjmn1
+          dec  de
+          inc  c
+          cp   "A"
+          ret  c
+          cp   "E"
+          ccf
+          ret  c
+          inc  de
+          dec  c
+          inc  de
+          dec  c
+          dec  hl
+          sub  "@"
+          ld   (hl),a
+          inc  hl
+          call outsp
+rdjmn0:   call rdznk
+          ret  c
+rdjmn1:   dec  de
+          inc  c
+          cp   ","
+          scf
+          ret  z
+          inc  de
+          dec  c
+          ld   b,7 
+          ld   (hl),a
+          inc  hl
+rdjmn2:   call rdznk
+          ccf
+          ret  nc
+          dec  de
+          inc  c
+          cp   ","
+          ret  z
+          cp   " "
+          ret  z
+          inc  de
+          dec  c
+          cp   "."
+          jr   z,rdjmn3
+          ld   (hl),a
+          inc  hl
+          djnz rdjmn2
+          jr   rdjmn4
+rdjmn3:   inc  hl
+          djnz rdjmn3
+rdjmn4:   ld   b,3
+rdjmn5:   call rdznk
+          jr   c,rdjmn6
+          dec  de
+          inc  c
+          cp   "," 
+          jr   z,rdjmn6
+          cp   " "
+          jr   z,rdjmn6
+          inc  de
+          dec  c
+          ld   (hl),a
+          inc  hl
+          djnz rdjmn5
+          or   a
+          ret
+rdjmn6:   ld   (hl),32
+          inc  hl
+          djnz rdjmn6
+          or   a
+          ret
+
+rdword:   ld   b,0
+          ld   hl,0
+          call rdhex
+          ret  c
+rdwrd1:   ld   l,a
+          inc  b
+          call rdhex
+          ccf   
+          ret  nc
+          add  hl,hl
+          add  hl,hl
+          add  hl,hl
+          add  hl,hl
+          or   l
+          jr   rdwrd1
+
+rdhex:    call rdznk
+          ret  c
+          inc  c
+          dec  de
+          cp   "0"
+          ret  c
+          cp   "G"
+          ccf
+          ret  c
+          cp   ":"
+          jr   c,rdhex1
+          cp   "A"
+          ret  c
+rdhex1:   inc  de
+          dec  c
+          sub  "0"
+          cp   10
+          jr   c,rdhex2
+          sub  7
+rdhex2:   or   a
+          ret
+
+
+rdznk:    ld   a,c       ; precteni znaku z textoveho bufferu
+          or   a
+          scf
+          ret  z
+          ld   a,(de)
+          inc  de
+          dec  c
+          cp   61h
+          jr   c,rdznk1
+          cp   7ah
+          jr   nc,rdznk1
+          sub  20h
+rdznk1:   or   a
+          ret
+
+outsp:    call rdznk     ; vypousteni mezer z bufferu
+          ret  c
+          cp   " "
+          jr   z,outsp
+          dec  de
+          inc  c
+          or   a
+          ret
+
+txtuv:    db   13,10,10," GENMAC  V1.0   *TESLA Roznov* ",13,10,"$"
+txter1:   db   13,10,"CHYBA ZADANI !     ",13,10,"$"
+txter2:   db   13,10,"NENI ZDROJOVY SOUBOR ! (.COM) ",13,10,"$"
+txter3:   db   13,10,"NENALEZEN SOUBOR PARAMETRU ! (.PAR) ",13,10,"$"
+txter4:   db   13,10,"DISK JE PLNY !   ",13,10,"$"
+txter5:   db   13,10,"LITUJI, PAMET NEDOSTACUJE ! ",13,10,"$",128
+txter6:   db   13,10,"error data   ",13,10,"$"
+
+fcbcom:   db   0              ; cislo stanice
+          db   "        "     ; jmeno zdrojoveho programu
+          db   "COM"          ; typ souboru
+          db   0              ; cast souboru EX
+          db   0,0
+          db   0              ; pocet zaznamu souboru
+          db   0,0,0,0,0,0,0,0; cisla bloku
+          db   0,0,0,0,0,0,0,0
+          db   0              ; cislo zaznamu NR
+          db   0,0,0          ; absolutni cislo zaznamu
+          
+fcbpar:   db   0              ; cislo stanice
+          db   "        "     ; jmeno souboru parametru
+          db   "PAR"          ; typ souboru
+          db   0              ; cast souboru EX
+          db   0,0
+          db   0              ; pocet zaznamu souboru
+          db   0,0,0,0,0,0,0,0; cisla bloku
+          db   0,0,0,0,0,0,0,0
+          db   0              ; cislo zaznamu NR
+          db   0,0,0          ; absolutni cislo zaznamu
+
+fcbmac:   db   0              ; cislo stanice
+          db   "        "     ; jmeno textoveho souboru
+          db   "MAC"          ; typ souboru
+          db   0              ; cast souboru EX
+          db   0,0
+          db   0              ; pocet zaznamu souboru
+          db   0,0,0,0,0,0,0,0; cisla bloku
+          db   0,0,0,0,0,0,0,0
+          db   0              ; cislo zaznamu NR
+          db   0,0,0          ; absolutni cislo zaznamu
+
+
+          ds   100           ; zasobnik
+          
+stack:
+          ds   20
+
+
+
+adrend:
+
+          end  start
+

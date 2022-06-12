@@ -1,0 +1,421 @@
+
+AX=0000  BX=0000  CX=680F  DX=0000  SP=0200  BP=0000  SI=0000  DI=0000  
+DS=20FE  ES=20FE  SS=27AF  CS=20FE  IP=0100   NV UP EI PL NZ NA PO NC 
+
+; ------ kontrola pamˆti
+
+0100 B81B0A         MOV    AX,0A1B          ; velikost programu v odstavc¡ch
+0103 BA9A06         MOV    DX,069A
+0106 050E21    **** ADD    AX,210E          ; konec programu po rozbalen¡
+0109 3B060200       CMP    AX,[0002]        ; je p©ete‡en¡ konce pamˆti ?
+010D 731A           JNB    0129             ; je p©ete‡en¡ pamˆti
+
+; ------ posun z sobn¡ku nahoru
+
+010F 2D2000         SUB    AX,0020          ; rezerva pro z sobn¡k
+0112 FA             CLI
+0113 8ED0           MOV    SS,AX            ; segment z sobn¡ku
+0115 FB             STI
+
+; ------ p©esun zavadˆ‡e nahoru
+
+0116 2D1900         SUB    AX,0019          ; segment pro zavadˆ‡ programu
+0119 8EC0           MOV    ES,AX            ; nov  adresa zavadˆ‡e programu
+011B 50             PUSH   AX               ; nov  adresa zavadˆ‡e programu
+011C B9C300         MOV    CX,00C3          ; d‚lka zavadˆ‡e ve slovech
+011F 33FF           XOR    DI,DI            ; nov  c¡lov  adresa
+0121 57             PUSH   DI               ; nov  c¡lov  adresa
+0122 BE4401         MOV    SI,0144          ; pokra‡ov n¡ zavadˆ‡e
+0125 FC             CLD
+0126 F3A5           REPZ   MOVSW            ; p©esun zavadˆ‡e nahoru
+0128 CB             RETF                    ; skok na zavadˆ‡
+
+; ------ chyba - nedostatek pamˆti
+
+0129 B409         * MOV    AH,09
+012B BA3201         MOV    DX,0132          ; text chyby
+012E CD21           INT    21               ; zobrazen¡ textu
+0130 CD20           INT    20               ; chybov˜ n vrat
+
+0132                db     'Not enough memory$'
+
+; ------ odsun dat nahoru
+
+0144 FD             STD                     ; bude dek¢dov n¡ smˆrem dol–
+0145 8CDB           MOV    BX,DS            ; segment PSP
+0147 53             PUSH   BX               ; £schova segmentu PSP
+0148 83C32D         ADD    BX,+2D
+014B 03DA           ADD    BX,DX
+014D 8CCD           MOV    BP,CS
+014F 8BC2           MOV    AX,DX
+0151 80E40F         AND    AH,0F
+0154 B104           MOV    CL,04
+0156 8BF2           MOV    SI,DX
+0158 D3E6           SHL    SI,CL
+015A 8BCE           MOV    CX,SI
+015C D1E9           SHR    CX,1
+015E 4E             DEC    SI
+015F 4E             DEC    SI
+0160 8BFE           MOV    DI,SI
+0162 2BE8           SUB    BP,AX
+0164 2BD8           SUB    BX,AX
+0166 8EC5           MOV    ES,BP
+0168 8EDB           MOV    DS,BX
+016A F3             REPZ
+016B A5             MOVSW                   ; odsun dat nahoru
+
+; -----------------------------------------------------------------------------
+; Diagram k¢dov n¡          (1 bit)
+; ----------------         ÚÄÄÄÂÄÄÄ¿
+;                          ³ 0 ³ 1 ³
+;                          ÀÄÂÄÁÄÂÄÙ
+;       ÚÄÄÄÄÄ(1 bajt)ÄÄÄÄÄÄÄÙ   ÀÄÄÄÄ(2 bity)ÄÄÄ¿
+;ÚÄÄÄÄÄÄÁÄÄÄÄÄÄÄ¿      ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+;³ p©enos bajtu ³   ÚÄÄÁÄÄÄ¿                  (1 bit)
+;³  beze zmˆny  ³   ³stav 0³            ÚÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+;ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ   ÀÄÄÂÄÄÄÙ      ÚÄÄÄÄÄÁÄÄÄÄÄ¿         ³        ÚÄÄÄÄÁÄÄÄÄÄÄ¿
+;                ÚÄÄÄÄÄÁÄÄÄÄÄÄ¿   ³stav 2,4,5 ³      (1 bit)     ³ stav 10   ³
+;                ³ d‚lka = 3  ³   ÀÄÄÄÄÄÂÄÄÄÄÄÙ  ÚÄÄÄÄÄÄÁÄÄÄÄÄÄÄ¿ÀÄÄÄÄÂÄÄÄÄÄÄÙ
+;                ÀÄÄÄÄÄÂÄÄÄÄÄÄÙ ÚÄÄÄÄÄÄÄÁÄÄÄÄÄÄ¿ ³d‚lka = 6 a‘ 9³     ³
+;                      ³        ³d‚lka = 2,4,5 ³ ÀÄÄÄÄÄÄÂÄÄÄÄÄÄÄÙ  (1 bajt)
+;                      ³        ÀÄÄÄÄÄÄÄÂÄÄÄÄÄÄÙ        ³    ÚÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄ¿
+;                      ³                ³               ³    ³d‚lka 10 a‘ 264 ³
+;      d‚lka = 265     ³                ³               ³    ÀÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÙ
+;   ÚÄÄÄÄÄÄÄÄÄÄÄ<ÄÄÄÄÄ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+;   ³                                   ³
+;   ³       ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+;   ³       ³       (1 bit)  ÚÄÄÄÄÄÄÄ¿
+;   ³       ³          ³     ³    (3 bity)
+;   ³       ³      ÚÄÄÄÅÄÄÄ¿ ³       ÃÄÄÄÄÄÄÄÄÄÄÄ¿
+;   ³       ³      ³ 1 ³ 0 ³ ³ ÚÄÄÄÄÄÁÄÄÄÄ¿   (1 bit)
+;   ³       ³      ÀÄÂÄÁÄÂÄÙ ³ ³stav 0, 1 ³      ÃÄÄÄÄÄÄÄÄÄÄ¿
+;   ³       ³        ³   ÀÄÄÄÙ ÀÄÄÄÄÄÂÄÄÄÄÙÚÄÄÄÄÄÁÄÄÄÄÄÄÄ¿  ³
+;   ³       ³        ³         ÚÄÄÄÄÄÁÄÄÄÄ¿³ stav 4 a‘ 7 ³  ³
+;   ³       ³        ³         ³HIGH = 1,2³ÀÄÄÄÄÄÄÂÄÄÄÄÄÄÙ  ³
+;   ³       ³   ÚÄÄÄÄÁÄÄÄÄÄ¿   ÀÄÄÄÄÄÂÄÄÄÄÙÚÄÄÄÄÄÄÁÄÄÄÄÄÄ¿  ³
+;   ³       ³   ³ HIGH = 0 ³         ³     ³HIGH = 3 a‘ 6³(1 bit)
+;   ³       ³   ÀÄÄÄÄÂÄÄÄÄÄÙ         ³     ÀÄÄÄÄÄÄÂÄÄÄÄÄÄÙ  ÃÄÄÄÄÄÄÄÄÄ¿
+;   ³ ÚÄÄÄÄÄÁÄÄÄÄÄ¿  ³               ³            ³ ÚÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄ¿ ³
+;   ³ ³ d‚lka = 2 ³  ³               ³            ³ ³stav 10h a‘ 16h³ ³
+;   ³ ³ HIGH  = 0 ³  ³               ³            ³ ÀÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÙ ³
+;   ³ ÀÄÄÄÄÄÂÄÄÄÄÄÙ  ³               ³            ³ ÚÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄ¿ ³
+;   ³       ³        ³               ³            ³ ³HIGH = 7 a‘ 0dh³ ³
+;   ³       ³        ³               ³            ³ ÀÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÙ ³
+;   ³       ³        ³               ³            ³         ³      (1 bit)
+;   ³       ³        ³               ³            ³         ³         ³
+;   ³       ³        ³               ³            ³         ³ ÚÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄ¿
+;   ³       ³        ³               ³            ³         ³ ³HIGH=0eh a‘ 1fh³
+;   ³       ³        ³               ³            ³         ³ ÀÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÙ
+;   ³       ÀÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÙ
+;   ³                            ³
+;   ³                  (1 bajt) = offset LOW
+;   ³                            ³
+;   ³                  ÚÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄ¿
+;   ³                  ³ opakov n¡ ©etˆzce ³
+;   ³                  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+; konec
+;
+
+; ------ p©¡prava k dek¢dov n¡
+
+016C FC             CLD
+016D 8EDD           MOV    DS,BP            ; segment se zak¢dovan˜m programem
+016F 07             POP    ES               ; segment PSP
+0170 06             PUSH   ES
+0171 BF0001         MOV    DI,0100          ; ukl dac¡ adresa
+0174 33F6           XOR    SI,SI            ; ‡tec¡ adresa zak¢dovan˜ch dat
+0176 AD             LODSW                   ; na‡ten¡ slova p©¡znak–
+0177 95             XCHG   AX,BP            ; BP <- slovo p©¡znak–
+0178 BA1000         MOV    DX,0010          ; po‡et bit– slova p©¡znak–
+017B EB2C           JMP    01A9             ; za‡ tek dek¢dov n¡
+017D 90             NOP
+
+; ------ dal¨¡ slovo p©¡znak– pro druh˜ bit p©¡znak–
+
+017E AD           * LODSW
+017F 95             XCHG   AX,BP
+0180 B210           MOV    DL,10
+0182 EB35           JMP    01B9
+
+; ------ dal¨¡ slovo p©¡znak– pro t©et¡ bit p©¡znak–
+
+0184 AD           * LODSW
+0185 95             XCHG   AX,BP
+0186 B210           MOV    DL,10
+0188 EB36           JMP    01C0
+
+; ------ dal¨¡ slovo p©¡znak– pro ‡tvrt˜ bit p©¡znak–
+
+018A AD             LODSW
+018B 95             XCHG   AX,BP
+018C B210           MOV    DL,10
+018E EB3B           JMP    01CB
+
+0190 AD             LODSW
+0191 95             XCHG   AX,BP
+0192 B210           MOV    DL,10
+0194 EB5D           JMP    01F3
+
+0196 AD             LODSW
+0197 95             XCHG   AX,BP
+0198 B210           MOV    DL,10
+019A EB5E           JMP    01FA
+
+019C AD             LODSW
+019D 95             XCHG   AX,BP
+019E B210           MOV    DL,10
+01A0 EB5F           JMP    0201
+
+; ------ nov‚ slovo p©¡znak– pro prvn¡ bit p©¡znak–
+
+01A2 AD           * LODSW
+01A3 95             XCHG   AX,BP
+01A4 B210           MOV    DL,10
+01A6 7208           JB     01B0
+
+; -----------------------------------------------------------------------------
+;    p©enos bajtu beze zmˆny
+; -----------------------------------------------------------------------------
+
+; ------ p©enos bajtu beze zmˆny
+
+01A8 A4           * MOVSB                   ; p©enos bajtu beze zmˆny
+
+; ------ prvn¡ bit p©¡znak–
+
+01A9 D1ED         * SHR    BP,1             ; p©¡znak
+01AB 4A             DEC    DX               ; ‡¡ta‡ bit– slova p©¡znak–
+01AC 74F4           JZ     01A2             ; jsou ji‘ v¨echny bity p©¡znak–
+01AE 73F8           JNB    01A8             ; je p©enos bajtu beze zmˆny
+
+; -----------------------------------------------------------------------------
+;    d‚lka ©etˆzce k opakov n¡
+; -----------------------------------------------------------------------------
+
+; ------ druh˜ bit p©¡znak–
+
+01B0 33C9         * XOR    CX,CX            ; p©ednastaven¡ po‡tu bajt–
+01B2 33DB           XOR    BX,BX            ; st©ada‡ bit– p©¡znak–
+01B4 D1ED           SHR    BP,1             ; dal¨¡ bit p©¡znak–
+01B6 4A             DEC    DX
+01B7 74C5           JZ     017E             ; jsou ji‘ v¨echny p©¡znaky - dal¨¡
+01B9 D1D3         * RCL    BX,1             ; £schova p©¡znaku do BX
+
+; ------ t©et¡ bit p©¡znak–
+
+01BB D1ED           SHR    BP,1             ; dal¨¡ bit p©¡znak–
+01BD 4A             DEC    DX
+01BE 74C4           JZ     0184             ; jsou ji‘ v¨echny p©¡znaky - dal¨¡
+01C0 D1D3         * RCL    BX,1             ; £schova p©¡znaku do BX
+
+; ------ stav "0" - kr tk‚ opakov n¡ 3 bajty
+
+01C2 85DB           TEST   BX,BX            ; je stav "0" ?
+01C4 7417           JZ     01DD             ; je stav "0"
+
+; ------ ‡tvrt˜ bit p©¡znak–
+
+01C6 D1ED           SHR    BP,1             ; dal¨¡ bit p©¡znak–
+01C8 4A             DEC    DX               ; ‡¡ta‡ bit– slova p©¡znak–
+01C9 74BF           JZ     018A             ; jsou ji‘ v¨echny bity p©¡znak–
+01CB D1D3         * RCL    BX,1             ; dal¨¡ bit offsetu
+
+; ------ stav "2" a‘ "5" - st©edn¡ d‚lka opakov n¡ 2, 4 nebo 5 bajt–
+
+01CD 80FB06         CMP    BL,06            ; je stav "2" a‘ "5" ?
+01D0 720B           JB     01DD             ; st©edn¡ d‚lka opakov n¡
+
+; ------ p t˜ bit p©¡znak– - stav "0ch" a‘ "0fh" - dlouh‚ opakov n¡ 6 a‘ 9 bajt–
+
+01D2 D1ED           SHR    BP,1             ; dal¨¡ bit p©¡znak–
+01D4 4A             DEC    DX               ; ‡¡ta‡ bit– slova p©¡znak–
+01D5 7504           JNZ    01DB             ; nejsou je¨tˆ v¨echny bity p©¡znak–
+01D7 AD             LODSW                   ; na‡ten¡ dal¨¡ho slova p©¡znak–
+01D8 95             XCHG   AX,BP            ; BP <- nov‚ slovo p©¡znak–
+01D9 B210           MOV    DL,10            ; nov˜ po‡et bit– p©¡znak–
+01DB D1D3         * RCL    BX,1             ; dal¨¡ bit offsetu
+
+; ------ d‚lka ©etˆzce k opakov n¡
+
+01DD 2E8A8F5E01     MOV    CL,CS:[BX+015E]  ; = tabulka d‚lek 02A2h
+01E2 80F90A         CMP    CL,0A            ; je velmi dlouh‚ opakov n¡ ?
+01E5 7474           JZ     025B             ; je velmi dlouh‚ opakov n¡
+
+; -----------------------------------------------------------------------------
+;    vzd lenost opakov n¡
+; -----------------------------------------------------------------------------
+
+; ------ d‚lka 2 nebo bit "1" - velmi bl¡zk‚ opakov n¡ - offset HIGH = 0
+
+01E7 33DB         * XOR    BX,BX            ; BX <- 0 offset HIGH
+01E9 83F902         CMP    CX,+02           ; jsou 2 bajty ?
+01EC 742A           JZ     0218             ; shoda 2 bajt– - bl¡zk‚ opakov n¡
+01EE D1ED           SHR    BP,1
+01F0 4A             DEC    DX
+01F1 749D           JZ     0190
+01F3 7223         * JB     0218             ; "1" - bl¡zk‚ opakov n¡
+
+; ------ bit p©¡znak–
+
+01F5 D1ED           SHR    BP,1
+01F7 4A             DEC    DX
+01F8 749C           JZ     0196
+01FA D1D3         * RCL    BX,1
+
+; ------ bit p©¡znak–
+
+01FC D1ED           SHR    BP,1
+01FE 4A             DEC    DX
+01FF 749B           JZ     019C
+0201 D1D3         * RCL    BX,1
+
+; ------ bit p©¡znak–
+
+0203 D1ED           SHR    BP,1
+0205 4A             DEC    DX
+0206 7504           JNZ    020C
+0208 AD             LODSW
+0209 95             XCHG   AX,BP
+020A B210           MOV    DL,10
+020C D1D3         * RCL    BX,1
+
+; ------ stav 0 a‘ 1 - bl¡zk‚ opakov n¡ s offsetem HIGH 1 a‘ 2
+
+020E 80FB02         CMP    BL,02
+0211 7315           JNB    0228             ; stav 2 a‘ 7
+                                            ; jinak offset HIGH 1 a 2
+
+; ------ kopie (opakov n¡) ©etˆzce
+
+0213 2E8ABF6E01   * MOV    BH,CS:[BX+016E]  ; = tabulka 02b2h - offset HIGH
+0218 AC           * LODSB                   ; offset LOW
+0219 8AD8           MOV    BL,AL            ; offset LOW
+021B 56             PUSH   SI               ; £schova SI
+021C 8BF7           MOV    SI,DI            ; adresa ukazatele
+021E 2BF3           SUB    SI,BX            ; adresa shodn‚ho ©etˆzce
+0220 FA             CLI                     ; z kaz p©eru¨en¡
+0221 F3             REPZ
+0222 26A4           MOVSB  ES:              ; kopie shodn‚ho ©etˆzce
+0224 FB             STI                     ; povolen¡ p©eru¨en¡
+0225 5E             POP    SI               ; n vrat SI
+0226 EB81           JMP    01A9             ; dal¨¡ dekomprese
+
+; ------ st©edn¡ opakov n¡ s offsetem HIGH 3 a‘ 6
+
+0228 D1ED         * SHR    BP,1             ; dal¨¡ bit p©¡znak–
+022A 4A             DEC    DX
+022B 7504           JNZ    0231             ; nejsou v¨echny bity
+022D AD             LODSW                   ; dal¨¡ slovo p©¡znak–
+022E 95             XCHG   AX,BP            ; BP <- slovo p©¡znak–
+022F B210           MOV    DL,10            ; nov˜ ‡¡ta‡ bit– p©¡znak–
+0231 D1D3         * RCL    BX,1             ; rotace bitu p©¡znak– do BX
+0233 80FB08         CMP    BL,08            ; stav 4 a‘ 7
+0236 72DB           JB     0213             ; 4 a‘ 7 = offset HIGH 3 a‘ 6
+                                            ; jinak stav 8 a‘ 0fh
+
+; ------ vzd len‚ opakov n¡ s offsetem HIGH 7 a‘ 0dh
+
+0238 D1ED           SHR    BP,1             ; dal¨¡ bit p©¡znak–
+023A 4A             DEC    DX
+023B 7504           JNZ    0241
+023D AD             LODSW
+023E 95             XCHG   AX,BP
+023F B210           MOV    DL,10
+0241 D1D3         * RCL    BX,1
+0243 80FB17         CMP    BL,17            ; stav 10h a‘ 16h
+0246 72CB           JB     0213             ; 10h a‘ 16h = offset 7 a‘ 0dh
+                                            ; jinak stav 17h a‘ 1fh
+
+; ------ velmi vzd len‚ opakov n¡ HIGH 0eh a‘ 1fh
+
+0248 D1ED           SHR    BP,1             ; dal¨¡ bit p©¡znak–
+024A 4A             DEC    DX
+024B 7504           JNZ    0251
+024D AD             LODSW
+024E 95             XCHG   AX,BP
+024F B210           MOV    DL,10
+0251 D1D3         * RCL    BX,1             ; stav 2eh a‘ 3fh
+0253 81E3DF00       AND    BX,00DF          ; korekce na 0eh a‘ 1fh
+0257 86DF           XCHG   BL,BH            ; BH <- offset HIGH
+0259 EBBD           JMP    0218             ; p©enos dat
+
+; ------ stav 10 - velmi dlouh‚ opakov n¡ ©etˆzce 10 a‘ 264 bajt–
+
+025B AC             LODSB                   ; d‚lka ©etˆzce
+025C 02C8           ADD    CL,AL
+025E 80D500         ADC    CH,00
+0261 3CFF           CMP    AL,FF            ; je konec souboru ?
+0263 7582           JNZ    01E7
+
+; -----------------------------------------------------------------------------
+;                       relokace polo‘ek
+; -----------------------------------------------------------------------------
+
+; ------ p©¡prava k relokaci polo‘ek
+
+0265 5B             POP    BX               ; segment adresy PSP
+0266 8BEB           MOV    BP,BX            ; segment adresy PSP
+0268 83C310         ADD    BX,+10           ; reloka‡n¡ segment
+
+; ------ p©¡prava segmentu k relokaci polo‘ek
+
+026B 33C0         * XOR    AX,AX            ; AX <- 0
+026D AC             LODSB                   ; po‡et polo‘ek k relokaci v segm.
+026E 91             XCHG   AX,CX            ; CX <- po‡et polo‘ek k relokaci
+026F E30E           JCXZ   027F             ; nen¡ ‘ dn  polo‘ka-start programu
+0271 AD             LODSW                   ; offset segmentu k relokaci
+0272 03C3           ADD    AX,BX            ; segment za‡ tku programu
+0274 8EC0           MOV    ES,AX            ; segment bloku k relokaci
+
+; ------ relokace polo‘ek programu v jednom segmentu
+
+0276 AD           * LODSW                   ; na‡ten¡ offsetu relokovan‚ polo‘ky
+0277 97             XCHG   AX,DI            ; DI <- offset relokovan‚ polo‘ky
+0278 26011D         ADD    ES:[DI],BX       ; relokace polo‘ky
+027B E2F9           LOOP   0276             ; relokace dal¨¡ polo‘ky
+027D EBEC           JMP    026B             ; relokace dal¨¡ho segmentu
+
+; -----------------------------------------------------------------------------
+;    inicializace registr– a skok do programu
+; -----------------------------------------------------------------------------
+
+; ------ inicializace registr– SS:SP a CS:IP
+
+027F AD           * LODSW                   ; offset segmentu z sobn¡ku SS
+0280 03C3           ADD    AX,BX            ; alokace adresy segmentu z sobn¡ku
+0282 FA             CLI
+0283 8ED0           MOV    SS,AX            ; nov˜ segment z sobn¡ku
+0285 AD             LODSW                   ; offset z sobn¡ku
+0286 8BE0           MOV    SP,AX            ; nov˜ offset z sobn¡ku
+0288 FB             STI
+0289 AD             LODSW                   ; offset segmentu CS
+028A 03D8           ADD    BX,AX            ; alokace adresy segmentu CS
+028C 53             PUSH   BX               ; £schova CS do z sobn¡ku
+028D AD             LODSW                   ; offset adresy za‡ tku programu IP
+028E 50             PUSH   AX               ; £schova IP do z sobn¡ku
+
+; ------ inicializace registr–
+
+028F 8EC5           MOV    ES,BP            ; n vrat p–vodn¡ho PSP
+0291 8EDD           MOV    DS,BP            ; n vrat p–vodn¡ho PSP
+0293 33C0           XOR    AX,AX            ; AX <- 0
+0295 8BD8           MOV    BX,AX            ; BX <- 0
+0297 8BC8           MOV    CX,AX            ; CX <- 0
+0299 8BD0           MOV    DX,AX            ; DX <- 0
+029B 8BE8           MOV    BP,AX            ; BP <- 0
+029D 8BF0           MOV    SI,AX            ; SI <- 0
+029F 8BF8           MOV    DI,AX            ; DI <- 0
+02A1 CB             RETF                    ; skok do p–vodn¡ho programu
+
+                                            ; tabulka d‚lek (adresa 015eh)
+02A2                db     3,0              ; 0,1
+                    db     2,10,4,5,0,0,0,0,0,0 ; 2 a‘ 0bh
+                    db     6,7,8,9          ; 0ch,0dh,0eh,0fh
+
+                                            ; tabulka offset– (adresa 016eh)
+02b2                db     1,2,0,0          ; 0,1
+                    db     3,4,5,6,0,0,0,0,0,0,0,0 ; 4 a‘ 7
+                    db     7,8,9,0ah,0bh,0ch,0dh ; 10h a‘ 16h
+
+02C0  00 00 07 08 09 0A 0B 0C-0D 00 00 00 00 00 00 00  ................
+

@@ -1,0 +1,88 @@
+
+                    Grafický driver programu KONTEXT
+                    --------------------------------
+
+         Driver  se natahuje do pamìti jako bìžný datový soubor. Služby
+driveru  se  vyvolávají  instrukcí  CALL  FAR s offsetem 0 (tj. zaèátek
+driveru)  a  se  segmentem  s naèteným driverem. Do registru BX se pøed
+vyvoláním  uloží  èíslo  požadované  služby.  Registr datového segmentu
+zùstane  zachován,  driver používá vlastní datový segment. Parametry se
+pøedávají  pomocí  ukazatele  BP bìžným zpùsobem (jako èísla typu INT).
+Fonty jsou navrženy pro èeštinu Kamenických.
+
+
+BX =  0 - výstup znaku na danou pozici
+             VSTUP: SS:[BP+4] = øádek pro vykreslení znaku
+                    SS:[BP+6] = pozice znaku na øádku
+                    SS:[BP+8] = znak k výstupu (kód ASCII)
+                                (kód 255 - následující znak bude mít
+                                     dvojnásobnou šíøku - dvì pozice)
+                    AH = mód pro vykreslení znaku
+                             bit 0 = nadsazený znak ("superscript")(=1)
+                             bit 1 = podsazený znak ("subscript")(=2)
+                             bit 2 = šikmé písmo (=4)
+                             bit 3 = podtržený znak (=8)
+                             bit 4 = zvýraznìný znak (=16)
+                             bit 5 = inverzní znak (=32)
+                             bit 6 = znak s rozdìlovacím znaménkem(=64)
+
+BX =  1 - vykreslení kurzoru, mazání okna
+             VSTUP: SS:[BP+4] = parametr pro vykreslení okna
+                                   0 = normální okno
+                                   1 = invertované okno
+                                   2 = kurzor
+                    SS:[BP+6] = koncový øádek
+                    SS:[BP+8] = koncová pozice
+                    SS:[BP+10] = poèáteèní øádek
+                    SS:[BP+12] = poèáteèní pozice
+
+BX =  2 - rolování okna nahoru
+             VSTUP: SS:[BP+4] = koncový øádek okna k rolování
+                    SS:[BP+6] = koncová pozice okna k rolování
+                    SS:[BP+8] = poèáteèní øádek okna k rolování
+                    SS:[BP+10] = poèáteèní pozice okna k rolování
+
+BX =  3 - rolování okna dolù
+             VSTUP: SS:[BP+4] = koncový øádek okna k rolování
+                    SS:[BP+6] = koncová pozice okna k rolování
+                    SS:[BP+8] = poèáteèní øádek okna k rolování
+                    SS:[BP+10] = poèáteèní pozice okna k rolování
+
+BX =  4 - vykreslení pravého okraje (èára)
+             VSTUP: SS:[BP+4] = maska pro vykreslení èáry (vzhled)
+                    SS:[BP+6] = poslední øádek pro vykreslení èáry
+                    SS:[BP+8] = první øádek pro vykreslení èáry
+                    SS:[BP+10] = pozice na øádku pro vykreslení èáry
+
+BX =  5 - inicializace parametrù displeje (nastavení módu)
+             VSTUP: SS:[BP+4] = barva podkladu
+                    SS:[BP+6] = barva písma
+                    SS:[BP+8] = požadovaný mód øádkování (1 až 3)
+             VÝSTUP: AX = poèet znakù na øádek
+                     CX = èíslo posledního øádku
+                     CS:SI = ukazatel na identifikaci graf.karty("CGA")
+
+BX =  6 - zpìtné nastavení textového módu - nastaví videomód 3
+
+BX =  7 - poskytnutí adresy nápovìdy
+            VSTUP: SS:[BP+4] = èíslo textu nápovìdy 0 až 34
+            VÝSTUP: ES:SI = adresa textu nápovìdy
+             (text je ukonèen batem 0)
+
+BX =  8 - poskytnutí adresy tabulky chybových hlášení
+            VÝSTUP: ES:SI = adresa tabulky chybových hlášení
+             (v tabulce je vždy 1. bajt èíslo chybového hlášení,
+              následuje text chybového hlášení ukonèený bajtem 0)
+
+BX =  9 - rozdìlování slov
+
+BX = 10 - dekódování kódu kláves (rozkódování textu na kód klávesy)
+            VSTUP: ES:SI = ukazatel textu k rozkódování
+            VÝSTUP: ES:SI = nová pozice ukazatele textu
+                    AX = kód rozkódované klávesy
+
+BX = 11 - výpis kódu øídící klávesy (zobrazení v textovém tvaru)
+            VSTUP: DS:[BX+DI] = ukazatel v tiskovém bufferu
+                   AX = kód klávesy
+            VÝSTUP: DS:[BX+DI] = nová adresa ukazatele v bufferu
+

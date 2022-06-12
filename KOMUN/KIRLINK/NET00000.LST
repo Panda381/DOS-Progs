@@ -1,0 +1,177 @@
+CONTEXT   0 241   0   0  88
+
+;                            NET00000.SYS
+
+; Soubor NET00000.SYS slou‘¡ k instalaci driveru pro spojen¡ pomoc¡ programu
+; KIR_LINK.COM. Mus¡ b˜t nainstalov n jako posledn¡ driver v souboru CONFIG.SYS.
+; Instalace se provede bez uveden¡ parametr–. Driver obsluhuje pouze funkce
+; pro inicializaci a pro znakov˜ vstup ze za©¡zen¡ (je znakov‚ za©¡zen¡ IOCTL)
+; Funkce vstupu ze za©¡zen¡ slou‘¡ k p©ed n¡ adresy driveru z d–vodu, aby
+; hlavn¡ program byl schopen nal‚st sv‚ moduly instalovan‚ pomoc¡ CONFIG.SYS.
+; Programu se nezad v  ‘ dn˜ parametr.
+
+0000                 dd     ffff:ffffh           ; adresa n sleduj¡c¡ho za©¡zen¡
+0004                 dw     0c000h               ; atributy za©¡zen¡ (znakov‚
+                                                 ; za©¡zen¡ p©es kan l IOCTL)
+0006                 dw     002eh                ; offset rutiny strategie
+0008                 dw     003dh                ; offset rutiny p©eru¨en¡
+000a                 db     'NET0    '           ; jm‚no za©¡zen¡
+
+0012                 dw     00f8h                ; adresa bajtu nastaven¡ programu
+
+                                                 ; tabulka adres obsluh
+0014                 dw     007dh                ; 00 inicializace za©¡zen¡
+0016                 dw     0079h                ; 01
+0018                 dw     0079h                ; 02
+001a                 dw     0079h                ; 03
+001c                 dw     00cbh                ; 04 vstup ze znakov‚ho za©¡zen¡
+001e                 dw     0079h                ; 05
+0020                 dw     0079h                ; 06
+0022                 dw     0079h                ; 07
+0024                 dw     0079h                ; 08
+0026                 dw     0079h                ; 09
+0028                 dw     0079h                ; 0a
+002a                 dw     0079h                ; 0b
+002c                 dw     0079h                ; 0c
+
+; -----------------------------------------------------------------------------
+                                               ;* obsluha rutiny STRATEGIE
+
+002e  2e891e3900   * mov    cs:[0039],bx         ; offset z hlav¡
+0033  2e8c063b00     mov    cs:[003b],es         ; segment z hlav¡
+0038  cb             ret    far
+
+; -----------------------------------------------------------------------------
+0039                 dd     0                    ; adresa z hlav¡ po‘adavku
+; -----------------------------------------------------------------------------
+                                               ;* obsluha rutiny PžERU›EN‹
+
+003d  9c           * pushf                       ; £schova p©¡znakov‚ho registru
+003e  50             push   ax                   ; £schova AX
+003f  53             push   bx                   ; £schova BX
+0040  51             push   cx                   ; £schova CX
+0041  52             push   dx                   ; £schova DX
+0042  57             push   di                   ; £schova DI
+0043  56             push   si                   ; £schova SI
+0044  55             push   bp                   ; £schova BP
+0045  1e             push   ds                   ; £schova DS
+0046  06             push   es                   ; £schova ES
+0047  2ec43e3900     les    di,cs:[0039]         ; ES:DI<-adresa z hlav¡ po‘adavku
+004c  33db           xor    bx,bx                ; BX <- 0000
+004e  268a5d02       mov    bl,es:[di+02]        ; k¢d povelu
+0052  80fb0d         cmp    bl,0d                ; kontrola maxim. ‡¡sla povelu
+0055  f5             cmc                         ; CY - ‡¡slo povelu vˆt¨¡ ne‘ 13
+0056  b003           mov    al,03                ; k¢d chyby nezn m‚ho povelu
+0058  7207           jc     0061                 ; chyba - nezn m˜ povel (je vˆt¨¡ ne‘ 13)
+005a  d1e3           shl    bx,1                 ; ‡¡slo povelu * 2
+005c  2eff971400     call   cs:[bx+0014]         ; vyvol n¡ obsluhy povelu
+                                                ;* v AL je zde ulo‘en k¢d chyby
+0061  2ec43e3900   * les    di,cs:[0039]         ; ES:DI<-adresa z hlav¡ po‘adavku
+0066  b402           mov    ah,02                ; nastaven¡ bitu "akce provedena"
+0068  d0dc           rcr    ah,1                 ; nastaven¡ bitu 15 (=chyba) z CF
+006a  26894503       mov    es:[di+03],ax        ; nastaven¡ stavov‚ho slova
+006e  07             pop    es                   ; n vrat ES
+006f  1f             pop    ds                   ; n vrat DS
+0070  5d             pop    bp                   ; n vrat BP
+0071  5e             pop    si                   ; n vrat SI
+0072  5f             pop    di                   ; n vrat DI
+0073  5a             pop    dx                   ; n vrat DX
+0074  59             pop    cx                   ; n vrat CX
+0075  5b             pop    bx                   ; n vrat BX
+0076  58             pop    ax                   ; n vrat AX
+0077  9d             popf                        ; n vrat p©¡znakov‚ho registru
+0078  cb             ret    far                  ; n vrat
+
+
+
+
+
+; -----------------------------------------------------------------------------
+                                               ;* neobsluhovan  funkce
+
+0079  b000         * mov    al,00                ; n vratov˜ k¢d - OK
+007b  f8             clc                         ; nen¡ chyba
+007c  c3             ret
+
+; -----------------------------------------------------------------------------
+                                               ;* FUNKCE 00-inicializace za©¡zen¡
+
+007d  8cce           mov    si,cs                ; SI <- CS
+007f  8ede           mov    ds,si                ; DS <- CS
+0081  fa             cli                         ; z kaz p©eru¨en¡
+0082  89260e01       mov    [010e],sp            ; £schova ukazatele z sobn¡ku
+0086  8c161001       mov    [0110],ss            ; £schova segmentu z sobn¡ku
+008a  8ed6           mov    ss,si                ; SS <- CS vlastn¡ z sobn¡k
+008c  bcda01         mov    sp,01da              ; offset vlastn¡ho z sobn¡ku
+008f  fb             sti                         ; povolen¡ p©eru¨en¡
+0090  2e8b361200     mov    si,cs:[0012]         ; adresa bajtu nastaven¡ programu
+0095  2e8a04         mov    al,cs:[si]           ; bajt nastaven¡ programu
+0098  a880           test   al,80                ; m  se nastavit videom¢d 2 ?
+009a  7405           jz     00a1                 ; nenastavuje se videom¢d 2
+009c  b80200         mov    ax,0002              ; funkce nastaven¡ videom¢du 2
+009f  cd10           int    10                   ; nastaven¡ videom¢du 2
+00a1  bef900       * mov    si,00f9              ; text "Treiber geladen "
+00a4  e84000         call   00e7                 ; zobrazen¡ textu
+00a7  b80d01         mov    ax,010d              ; konec rezidentn¡ ‡ sti driveru
+00aa  2689450e       mov    es:[di+0e],ax        ; kone‡n  adresa rezidentn¡ ‡ sti
+00ae  8cc8           mov    ax,cs                ; AX <- CS programov˜ segment
+00b0  26894510       mov    es:[di+10],ax        ; segment rezidentn¡ ‡ sti
+00b4  b000           mov    al,00                ; nen¡ ‘ dn  diskov  jednotka driveru
+00b6  2688450d       mov    es:[di+0d],al        ; po‡et disk. jednotek = 0
+00ba  fa             cli                         ; z kaz p©eru¨en¡
+00bb  2e8b261001     mov    sp,cs:[0110]         ; n vrat segmentu ukazatele z sobn¡ku
+00c0  8ed4           mov    ss,sp                ; segment ukazatele z sobn¡ku
+00c2  2e8b260e01     mov    sp,cs:[010e]         ; n vrat ukazatele z sobn¡ku
+00c7  fb             sti                         ; povolen¡ p©eru¨en¡
+00c8  c3             ret                         ; p©i n vratu je ZY,CN
+
+; -----------------------------------------------------------------------------
+00c9  f8             clc
+00ca  c3             ret
+
+; -----------------------------------------------------------------------------
+                                               ;* FUNKCE 04-vstup ze za©¡zen¡
+
+                                                 ; p©ed  se adresa z hlav¡ tohoto driveru
+
+00cb  268b7510       mov    si,es:[di+10]        ; segment adresy DTA pro p©enos dat
+00cf  8ede           mov    ds,si                ; DS<-segment adresy DTA pro p©enos dat
+00d1  268b750e       mov    si,es:[di+0e]        ; offset adresy DTA pro p©enos dat
+00d5  b80400         mov    ax,0004              ; po‡et bajt–, kter‚ se p©edaj¡
+00d8  26894512       mov    es:[di+12],ax        ; po‡et p©enesen˜ch bajt–
+00dc  8cc8           mov    ax,cs                ; AX <- CS segment tohoto driveru
+00de  894402         mov    [si+02],ax           ; 2 bajty na v˜stup - segment driveru
+00e1  33c0           xor    ax,ax                ; offset z hlav¡ driveru
+00e3  8904           mov    [si],ax              ; 2 bajty na v˜stup - offset driveru
+00e5  f8             clc                         ; nulov n¡ p©¡znaku chyby
+00e6  c3             ret
+
+; -----------------------------------------------------------------------------
+                                               ;* zobrazen¡ textu
+                                                 ; VSTUP: CS:SI=ukazatel textu
+
+00e7  2e8a04       * mov    al,cs:[si]           ; znak k zobrazen¡
+00ea  3c24           cmp    al,24                ; je konec textu "$" ?
+00ec  7409           je     00f7                 ; je konec textu
+00ee  b40e           mov    ah,0e                ; funkce zobrazen¡ znaku v m¢du CTTY
+00f0  56             push   si                   ; £schova ukazatele textu SI
+00f1  cd10           int    10                   ; zobrazen¡ znaku v m¢du CTTY
+00f3  5e             pop    si                   ; n vrat ukazatele textu SI
+00f4  46             inc    si                   ; zv˜¨en¡ ukazatele textu
+00f5  ebf0           jmp    00e7                 ; dal¨¡ znak k zobrazen¡
+00f7  c3           * ret
+
+; -----------------------------------------------------------------------------
+00f8                 db     0                    ; bajt nastaven¡ programu
+                                                 ; bit 7: 1=nastav¡ se videom¢d 2
+
+00f9                 db     'Treiber geladen  ',13,10,'$'
+
+010d                 db     0                    ; konec rezidentn¡ ‡ sti driveru
+
+                                                 ; zde kon‡¡ rezidentn¡ ‡ st
+
+010e                 dd     0                    ; £schova ukazatele z sobn¡ku
+
+01da                                             ; vrchol vlastn¡ho z sobn¡ku
+

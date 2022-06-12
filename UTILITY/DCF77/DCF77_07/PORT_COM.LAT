@@ -1,0 +1,144 @@
+
+     1 2 . -   P o r t   a s s y n c h r o n n ¡ h o   a d a p t ‚ r u
+
+
+    Prostor  dat  BIOS  obsahuje  vìpis  b zovìch  adres  a§ Ÿtyý s‚riovìch
+(komunikaŸn¡ch)  port…  COM.  BØhem  inicializaŸn¡ho  testu  POST testuje a
+inicializuje BIOS porty COM1 a COM2.
+
+    - adapt‚r portu COM1 dek¢duje porty 03F8H a§ 03FFH (IRQ 4 / INT 0CH)
+    - adapt‚r portu COM2 dek¢duje porty 02F8H a§ 02FFH (IRQ 3 / INT 0BH)
+
+    Pýeruçen¡  ROM  BIOS  INT 14H bude pracovat s kterìmkoliv z tØchto Ÿtyý
+port…,  pokud ulo§¡te b zovou adresu portu do tabulky port… COM zaaŸ¡naj¡c¡
+na  adrese  0:0400H.  Je  nutn‚,  aby  § dn‚ dva adapt‚ry nesd¡lely stejnou
+adresu nebo jinak nebudou pracovat.
+
+Porty 03F8H - 03FFH: port asynchronn¡ho adapt‚ru COM1
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+    Analogicky pracuj¡ registry adapt‚ru COM2.
+
+03F8H  - z pis: registr £schovy pýen çenìch dat - 8 bit… znaku k vysl n¡
+       - Ÿten¡: registr pýij¡mac¡ho bufferu - 8 bit… pýijat‚ho znaku
+Pro DLAB=1:
+       - z pis: registr   dØliŸky  -  ni§ç¡  bajt  (pokud  DLAB=1,  tj.  po
+                instrukci  OUT  03FBH,80H).  Po operaci OUT 03FBH,80H tento
+                port  obsahuje  ni§ç¡ bajt dØliŸky taktu. SpoleŸnØ s vyçç¡m
+                bajtem   (port   03F9H)  tvoý¡  16-bitovou  hodnotu,  kter 
+                nastavuje rychlost pýenosu dat:
+                ÉÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÂÍÍÍÍÍÍÍÍÍÍÍ»
+                º    baud   ³  dØliŸka  º    baud   ³  dØliŸka  º
+                ÌÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍÎÍÍÍÍÍÍÍÍÍÍÍÅÍÍÍÍÍÍÍÍÍÍÍ¹
+                º    110    ³   1040    º    1200   ³    96     º
+                º    150    ³    768    º    2400   ³    48     º
+                º    300    ³    384    º    4800   ³    24     º
+                º    600    ³    192    º    9600   ³    12     º
+                ÈÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÍÍÍÍÁÍÍÍÍÍÍÍÍÍÍÍ¼
+03F9H  - z pis: registr povolen¡ pýeruçen¡ (DLAB=1)
+                ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+                ³7 6 5 4 3 2 1 0³
+                ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+                 ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: 1=mo§n‚ pýeruçen¡ pýi pý¡jmu dat
+                 ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: 1=mo§n‚ pýer. pýi pr zdn‚m vys. buff.
+                 ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: 1=mo§n‚ pýer. stavem pýij¡mac¡ linky
+                 ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: 1=mo§n‚ pýer. stavem modemu
+                 ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: v§dy = 0
+                 ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: v§dy = 0
+                 ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: v§dy = 0
+                 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: v§dy = 0
+       - z pis: registr   dØliŸky  -  vyçç¡  bajt  (pokud  DLAB=1,  tj.  po
+                instrukci  OUT  03FBH,80H).  Po operaci OUT 03FBH,80H tento
+                port  obsahuje  vyçç¡ bajt dØliŸky taktu. SpoleŸnØ s ni§ç¡m
+                bajtem   (port   03F8H)  tvoý¡  16-bitovou  hodnotu,  kter 
+                nastavuje rychlost pýenosu dat.
+
+
+
+
+
+
+
+
+03FAH  - Ÿten¡: identifikaŸn¡  registr  pýeruçen¡. Pokud nastane pýeruçen¡,
+                ŸtØte  tento  registr,  pokud  chcete zjistit, co zp…sobilo
+                pýeruçen¡.
+                ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+                ³7 6 5 4 3 2 1 0³
+                ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+                 ³ ³ ³ ³ ³ ³ ³ ÀÄ>  0:  1=nenastalo § dn‚ pýeruçen¡
+                 ³ ³ ³ ³ ³ ÀÄÁÄÄÄ> 1-2: 00=pýeruçen¡ stavem pýij¡mac¡ linky
+                 ³ ³ ³ ³ ³                 vznik   pýi pýeteŸen¡, paritØ,
+                 ³ ³ ³ ³ ³                 chybØ r mu nebo pýi pýeruçen¡.
+                 ³ ³ ³ ³ ³                 Resetov n¡ Ÿten¡m stavu linky
+                 ³ ³ ³ ³ ³                 (port 03FDH)
+                 ³ ³ ³ ³ ³              01=pýijat  data platn  (resetov n¡
+                 ³ ³ ³ ³ ³                 Ÿten¡m pýij¡m. bufferu 03F8H)
+                 ³ ³ ³ ³ ³              10=vys¡lac¡ buffer pr zdnì (reset
+                 ³ ³ ³ ³ ³                 z pisem do vys¡l. bufferu 03F8H)
+                 ³ ³ ³ ³ ³              11=stav modemu. Vznik  pýi zmØnØ
+                 ³ ³ ³ ³ ³                 sign l… CTS, DSR, RI nebo RLSD.
+                 ³ ³ ³ ³ ³                 Reset Ÿten¡m stavu modemu 03FEH.
+                 ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ>  3:  v§dy = 0
+                 ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ>  4:  v§dy = 0
+                 ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ>  5:  v§dy = 0
+                 ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ>  6:  v§dy = 0
+                 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ>  7:  v§dy = 0
+
+03FBH  - Ÿten¡/z pis: ý¡d¡c¡ registr linky
+         ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+         ³7 6 5 4 3 2 1 0³
+         ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ  bit
+          ³ ³ ³ ³ ³ ³ ÀÄÁÄ> 0-1: d‚lka slova: 00=5; 01=6; 10=7; 11=8
+          ³ ³ ³ ³ ³ ÀÄÄÄÄÄ>  2:  stop-bity: 0=1, 1=2
+          ³ ³ ³ ÀÄÁÄÄÄÄÄÄÄ> 3-4: parita: x0=§ dn ; 01=lich ; 11=sud 
+          ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ>  5:  parita znaku (BIOS nepou§¡v )
+          ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ>  6:  mo§n‚ ý¡zen¡ BREAK; 1=zaŸ tek vys¡l n¡ 0s
+          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ>  7:  DLAB (pý¡stupovì bit k registru dØliŸky)
+                                 - urŸuje m¢d port… 03F8H a 03F9H pro nast.
+                                  (pokud je DLAB=1, je pý¡stup k dØliŸce)
+
+03FCH  - z pis: ý¡d¡c¡ registr modemu
+         ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+         ³7 6 5 4 3 2 1 0³
+         ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+          ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: 1=aktivace -DTR (-data terminal ready)
+          ³ ³ ³ ³ ³ ³ ³          (informuje, §e Ÿek  na pý¡jem znaku)
+          ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: 1=aktivace -RTS (-request to send)
+          ³ ³ ³ ³ ³ ³            (m  pýipraven znak k vysl n¡)
+          ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: 1=aktivace -OUT1 (u§ivatelskì vìstup)
+          ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: 1=aktivace -OUT2 (u§ivatelskì vìstup)
+          ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: 1=aktivace zpØtn‚ smyŸky pro diagnostiku
+          ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: v§dy = 0
+          ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: v§dy = 0
+          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: v§dy = 0
+
+03FDH  - Ÿten¡: stavovì registr linky
+         ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+         ³7 6 5 4 3 2 1 0³
+         ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+          ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: 1=data pýipravena (DR) (reset Ÿten¡m dat)
+          ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: 1=chyba pýeteŸen¡ (OE): pýedch. znak ztracen
+          ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: 1=chyba parity (PE): reset Ÿten¡m st.linky
+          ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: 1=chyba r mu (FE): çpatnì stop-bit ve znaku
+          ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: 1=indikace break (BI): pýijata dlouh  mezera
+          ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: 1=vys¡lac¡ registr pr zdnì (OK k vys¡l n¡)
+          ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: 1=vys¡laŸ pr zdnì. Nevys¡l  § dn  data.
+          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: v§dy = 0
+         Pozn.: Pýi povolen‚m pýeruçen¡ (03F9H) zp…sob¡ bity 1-4 pýeruçen¡.
+
+03FEH  - Ÿten¡: stavovì registr modemu
+         ÚÄÂÄÂÄÂÄÂÄÂÄÂÄÂÄ¿
+         ³7 6 5 4 3 2 1 0³
+         ÀÂÁÂÁÂÁÂÁÂÁÂÁÂÁÂÙ bit
+          ³ ³ ³ ³ ³ ³ ³ ÀÄ> 0: 1=zmØna stavu DCTS (Delta Clear To Send)
+          ³ ³ ³ ³ ³ ³ ÀÄÄÄ> 1: 1=zmØna stavu DDSR (Delta Data Set Ready)
+          ³ ³ ³ ³ ³ ÀÄÄÄÄÄ> 2: 1=aktivn¡ zvukov  signalizace TERI
+          ³ ³ ³ ³ ³              (Trailing Edge Ring Indicator)
+          ³ ³ ³ ³ ÀÄÄÄÄÄÄÄ> 3: 1=zmØna st. DDCD (Delta Data Carrier Detect)
+          ³ ³ ³ ÀÄÄÄÄÄÄÄÄÄ> 4: 1=CTS (Clear To Send) je aktivn¡
+          ³ ³ ÀÄÄÄÄÄÄÄÄÄÄÄ> 5: 1=DSR (Data Set Ready) je aktivn¡
+          ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ> 6: 1=signalizace RI (Ring Indikator) je aktivn¡
+          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ> 7: 1=DCD (Data Carrier Detect) je aktivn¡
+         Pozn.: Pýi povolen‚m pýeruçen¡ (03F9H) zp…sob¡ bity 0-3 pýeruçen¡.
+

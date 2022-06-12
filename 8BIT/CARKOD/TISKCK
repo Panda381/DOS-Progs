@@ -1,0 +1,927 @@
+
+; **********************************************************
+;
+; 	     T I S K   C A R O V E H O  K O D U
+;
+; **********************************************************
+
+	.z80
+
+
+care:	ld	a,r
+	ld	l,a
+	ld	h,0d0h
+	ld	(adrrnd),hl	; adr.nahodneho generatoru
+	ld	ix,kodck5
+carkod:	ld	sp,stack	; definovani zasobniku
+	ld	de,textuv
+	ld	c,9
+	call	5		; tisk uvodni nabidky
+	call	inpznk
+	call	outcr
+	cp	3		; je znak <BREAK> ?
+	jp	z,0
+	cp	"K"
+	jp	z,stkod		; nastaveni kodu tisku
+	cp	"S"
+	jp	z,stsir		; nastaveni sirky prvku
+	cp	"R"
+	jp	z,strad		; nastaveni poctu radku
+	cp	"N"
+	jp	z,tskn1		; nahodny tisk stitku
+	cp	"T"
+	jp	z,tskzad	; tisk zadaneho textu
+
+	jr	carkod
+
+
+
+
+; ---------------------------------------------------------
+;       nastaveni kodu
+; ---------------------------------------------------------
+
+stkod:	
+	ld	c,9
+	ld	de,txtkod
+	call	5
+	call	inpznk
+	cp	13
+	jp	z,carkod
+	sub	"A"
+	jr	c,stkod
+	cp	9
+	jr	nc,stkod
+	ld	(kodt),a
+	ld	hl,adrkod
+	add	a,a
+	ld	e,a
+	ld	d,0
+	add	hl,de
+	ld	e,(hl)Š	inc	hl
+	ld	d,(hl)
+	push	de
+	pop	ix
+	jp	carkod
+
+
+
+; ---------------------------------------------------------
+;       nastaveni sirky prvku
+; ---------------------------------------------------------
+
+
+stsir:	
+	ld	c,9
+	ld	de,txtsir
+	call	5
+	call	inpznk
+	cp	13
+	jp	z,carkod
+	sub	"1"
+	jr	c,stsir
+	inc	a
+	cp	10
+	jr	nc,stsir
+	ld	(stit3+1),a	; sirka prvku
+	jp	carkod
+
+; ---------------------------------------------------------
+;       nastaveni poctu radku
+; ---------------------------------------------------------
+
+
+strad:	
+	ld	c,9
+	ld	de,txtrad
+	call	5
+	call	inpznk
+	cp	13
+	jp	z,carkod
+	sub	"1"
+	jr	c,strad
+	inc	a
+	cp	10
+	jr	nc,strad
+	ld	(radky+1),a	; sirka prvku
+	jp	carkod
+	
+
+; ---------------------------------------------------------
+;       nahodny tisk stitku
+; ---------------------------------------------------------
+
+tskn1:	
+	ld	de,txtpoc
+	ld	c,9
+	call	5
+	call	inpznk
+	cp	13
+	jp	z,carkod
+	sub	"1"Š	jr	c,tskn1
+	inc	a
+	cp	10
+	jr	c,tskn2
+	cp	17
+	jr	c,tskn1
+	sub	7
+	cp	36
+	jr	nc,tskn1
+tskn2:	ld	(poct),a
+tskn4:	ld	de,txtsti
+	ld	c,9
+	call	5
+	call	inpznk
+	cp	13
+	jp	z,carkod
+	sub	"0"
+	jr	c,tskn4
+	cp	10
+	jr	nc,tskn4
+	ld	(pocst),a
+tskn3:	ld	a,(poct)
+	ld	b,a
+	ld	hl,bufft
+tiskn1:	call	rnd
+	and	7fh
+	cp	(ix+0)
+	jr	nc,tiskn1
+	ld	(hl),a
+	inc	hl
+	djnz	tiskn1
+	call	tiskst		; tisk stitku
+	ld	a,(pocst)
+	dec	a
+	ld	(pocst),a
+	jr	nz,tskn3
+	jp	carkod	
+
+
+
+; ---------------------------------------------------------
+;       tisk zadaneho stitku
+; ---------------------------------------------------------
+
+tskzad:	
+	ld	hl,bufft
+	ld	c,30
+	ld	a,(kodt)	; kod tisku
+	inc	a
+	ld	de,adrkod-2
+tskzd1:	inc	de
+	inc	de
+	inc	de
+	inc	de
+	dec	a
+	jr	nz,tskzd1
+	ld	a,(de)
+	ld	b,a
+	inc	de
+	ld	a,(de)
+	ld	d,aŠ	ld	e,b
+	call	intxt
+	or	a
+	jp	z,carkod
+	ld	(poct),a
+	call	tiskst
+	jp	carkod
+
+
+; ---------------------------------------------------------
+;       tisk jednoho stitku podle kodu
+; ---------------------------------------------------------
+
+tiskst:	
+	ld	hl,carbuf+1	; buffer cark.kodu
+	ld	bc,0		; c - citac prvku
+	ld	a,(kodt)	; kod
+	cp	6
+	jr	c,tiskck	; kod CK
+	jp	z,tisk39	; tisk v kodu 39
+	cp	7	
+	jp	z,tisk25	; kod 2/5 proklad.
+	cp	8
+	jp	z,tiskea
+	ret
+
+
+; ---------------------------------------------------------
+;       tisk v kodu 39
+; ---------------------------------------------------------
+
+tisk39:	ld	de,kodc39+1
+	ld	a,0
+	call	wrkod
+	jp	stitek
+
+
+; ---------------------------------------------------------
+;       tisk v kodu 2/5
+; ---------------------------------------------------------
+
+tisk25:	ld	de,kodc25+1
+	ld	a,0
+	call	wrkod
+	jp	stitek
+
+; ---------------------------------------------------------
+;       tisk v kodu EAN
+; ---------------------------------------------------------
+
+tiskea:	ret
+
+
+; ---------------------------------------------------------
+;       tisk v kodu CKN
+; ---------------------------------------------------------
+tiskck:
+	ld	de,kodck7+1	; tabulka kodu CK7
+	ld	a,1		; znak k zapisu
+	call	wrkod		; zapis kodu SYN
+	ld	de,kodck4+1	; tabulka kodu CK4Š	ld	a,(kodt)	; kod textu
+	call	wrkod		; zapis kodu KOD
+	ld	de,kodck7+1	; tabulka kodu CK6
+	ld	a,(poct)	; delka zaznamu 
+	call	wrkod		; zapis kodu DELKA
+	ld	iy,bufft	; adresa text.bufferu
+	push	ix		; adresa kodu
+	pop	de		; adresa kodu	
+	inc	de
+	ld	a,(poct)	; pocet znaku textu
+	ld	b,a
+	or	a
+	jr	z,stit27	; neni zadny znak
+stit23:	ld	a,(iy+0)
+	inc	iy
+	call	wrkod		; zapis cisla obrazovky
+	djnz	stit23
+stit27:	ld	a,(poct)
+	ld	b,a		; pocet znaku textu
+	inc	b
+	inc	b
+	ex	de,hl
+	ld	hl,kodt		; kod textu
+	ld	a,28		; soucet KOD + DELKA + 28
+stit24:	rlca			; spocteni kontrolniho souctu
+	xor	(hl)
+	inc	hl
+	djnz	stit24
+stit25:	sub	55
+	jr	nc,stit25
+	add	a,55
+	ex	de,hl
+
+	ld	de,kodck8+1	; tabulka kodu CK8
+	call	wrkod		; zapis kontrolniho souctu
+	ld	de,kodck6+1	; tabulka kodu CK6
+	ld	a,15
+	call	wrkod		; zapis kodu SYN
+	ld	de,kodck4+1
+	ld	a,0
+	call	wrkod
+	jp	stitek
+
+
+
+; ---------------------------------------------------------
+;       fyzicky tisk jednoho stitku
+; ---------------------------------------------------------
+
+
+stitek:				; tisk jednoho stitku
+	ld	hl,txtin1	; text pro inicializaci
+	call	tsktxt
+	ld	c,9
+	ld	de,txttsk
+	call	5
+	ld	a,(carbuf)
+	ld	b,a		; pocet prvku
+	ld	hl,carbuf+1	; buffer znaku
+	ld	de,0		; soucet
+stit31:	ld	a,(stit3+1)	; pocet prvkuŠ	ld	c,a
+stit39:	ld	a,(hl)
+	add	a,e
+	ld	e,a
+	jr	nc,stit32
+	inc	d
+stit32:	dec	c
+	jr	nz,stit39
+	inc	hl
+	djnz	stit31
+	inc	de
+	inc	de
+	inc	de
+	inc	de
+	bit	7,e
+	jr	z,stit33
+	ld	e,0
+	inc	d
+stit33:	ld	(stit11+1),de	; pocet bitu na vystup
+	ld	(txtn21),de
+	ld	de,dekck	; znaky
+	ld	a,(poct)
+	or	a
+	jr	z,stit37
+	ld	b,a
+	ld	hl,bufft
+	dec	de
+	dec	de
+stit35:	ld	a,(hl)
+	inc	hl
+	inc	a
+	push	de
+stit36:	inc	de
+	inc	de
+	dec	a
+	jr	nz,stit36
+	ld	a,(de)
+	call	tskznk
+	inc	de
+	ld	a,(de)
+	call	tskznk
+	pop	de
+	djnz	stit35
+stit37:	ld	a,13
+	call	tskznk
+	ld	a,10
+	call	tskznk
+	ld	hl,txtin3	; korekce sirky stitku
+	call	tsktxt
+;	ld	a,10
+;	call	tskznk
+;	call	tskznk
+
+radky:	ld	b,8
+stit38:	push	bc
+	call	stit1
+	pop	bc
+	djnz	stit38
+	call	tskznk
+	call	tskznk
+;	call	tskznkŠ;	call	tskznk
+;	call	tskznk
+	ret
+
+
+stit1:	ld	hl,txtin2	; tisk jednoho radku	
+	call	tsktxt
+	ld	hl,carbuf
+	ld	c,(hl)		; citac znaku
+	inc	hl
+stit11:	ld	de,4*256	; citac bitu
+	xor	a
+stit2:	push	bc
+	ld	c,(hl)		; citac prvku
+	cpl
+	and	7fh
+stit3:	ld	b,6
+stit4:	call	tskznk
+	dec	de
+	djnz	stit4
+	dec	c
+	jr	nz,stit3
+	inc	hl
+	pop	bc
+	dec	c
+	jr	nz,stit2
+stit5:	xor	a
+	call	tskznk
+	dec	de
+	ld	a,d
+	or	e
+	jr	nz,stit5
+;	ld	a,1
+;	call	tskznk
+	ld	a,13
+	call	tskznk
+	ld	a,10
+	call	tskznk
+	ret
+
+; ---------------------------------------------------------
+;       zapis kodu jednoho znaku do bufferu
+; ---------------------------------------------------------
+wrkod:	push	af		; kod k zapisu
+	push	de		; tabulka kodu
+	ex	de,hl		; hl - tabulka kodu
+wrkod1:	or	a		; citac znaku
+	jr	z,wrkod3	; je spravny znak
+	dec	a
+wrkod2:	bit	7,(hl)		; nalezeni dalsiho znaku
+	inc	hl
+	jr	z,wrkod2
+	jr	wrkod1		; je nalezen znak ?
+wrkod3:	ld	a,(hl)
+	and	7fh
+	ld	(de),a		; zapis do bufferu
+	inc	c		; citac prvku
+	bit	7,(hl)		; posledni ?
+	inc	hl
+	inc	de
+	jr	z,wrkod3	; dalsi prvekŠ	ex	de,hl
+	ld	a,c
+	ld	(carbuf),a	; pocet prvku
+	pop	de		; tabulka kodu
+	pop	af		; kod k zapisu	
+	ret
+
+
+
+; ---------------------------------------------------------
+;       vstup textu
+; ---------------------------------------------------------
+
+intxt:	push	hl		; textovy buffer
+	push	bc		; c = pocet znaku max.
+	push	de		; adresa tabulky znaku
+	push	af
+	push	ix
+	push	iy
+	ld	a,c		; max.pocet znaku
+	ld	de,inbff	; vstupni buffer
+	ld	(de),a
+	ld	c,10
+	call	5		; vstup textu
+	pop	iy
+	pop	ix
+	pop	af
+	pop	de
+	pop	bc
+	pop	hl
+	ld	a,(inbff+1)	; skutecny pocet znaku
+	ld	b,a
+	or	a
+	ret	z		; zadny znak
+	push	hl		; textovy buffer
+	push	bc		; skutecny pocet znaku
+	push	ix
+	dec	de
+	ld	a,(de)
+	ld	c,a		; pocet znaku tabulky
+	inc	de
+	ld	ix,inbff+2	; vstupni buffer
+intx1:	push	de		; adresa tabulky znaku 
+	ex	de,hl
+	push	bc		; citac znaku
+	ld	b,c		; pocet znaku tabulky
+	ld	a,(ix+0)	; precteni znaku
+	inc	ix	
+intx2:	cp	(hl)		; porovnani znaku z tabulky
+	inc	hl
+	jr	z,intx3		; byl nalezen znak
+	djnz	intx2		; dalsi znak v tabulce
+	jr	intxe2		; znak nenalezen v tabulce
+intx3:	ld	a,c
+	sub	b		; vypocet hodnoty znaku
+	pop	bc		; citac znaku
+	ex	de,hl
+	pop	de		; adresa tabulky znaku
+	ld	(hl),a
+	inc	hl
+	djnz	intx1		; dalsi znak textuŠ	pop	ix
+	pop	bc		; skutecny pocet znaku
+	pop	hl		; textovy buffer
+	ld	a,b
+	or	a
+	ret
+
+intxe2:	pop	bc
+	push	iy
+	ld	de,txtzad
+	ld	c,9
+	call	5		; tisk "chyba zadani !"
+	pop	iy
+	pop	de
+	pop	ix
+	pop	bc
+	pop	hl
+	jp	intxt
+
+
+; ---------------------------------------------------------
+;       vystup cisla v HL na obrazovku
+; ---------------------------------------------------------
+
+tskcis:	push	hl
+	push	de
+	push	af
+	push	bc
+	call	tskci1
+	pop	bc
+	pop	af
+	pop	de
+	pop	hl
+	ret
+
+
+tskci1:	res	0,b		; priznak tisku nul
+	ld	de,10000
+	call	tsknum
+	ld	de,1000		; tisk tisicu
+	call	tsknum		; tisk jedne cislice
+	ld	de,100		; tisk stovek
+	call	tsknum
+	ld	de,10		; tisk desitek
+	call	tsknum
+	ld	de,1
+tsknum:	xor	a
+tsknu1:	sbc	hl,de
+	inc	a
+	jr	nc,tsknu1
+	add	hl,de
+	add	a,2fh
+	cp	30h
+	jr	z,tsknu2
+	set	0,b
+tsknu3:	jp	outznk
+tsknu2:	bit	0,b
+	jr	nz,tsknu3
+	ret
+	
+Š; ---------------------------------------------------------
+;       odradkovani textu
+; ---------------------------------------------------------
+
+outcr:	push	af
+	ld	a,13
+	call	outznk
+	ld	a,10
+	call	outznk
+	pop	af
+	ret
+	
+
+
+
+; ---------------------------------------------------------
+;       vystup znaku v A na konzolu
+; ---------------------------------------------------------
+
+outznk:	push	bc
+	push	de
+	push	hl
+	push	af
+	push	ix
+	push	iy
+	ld	c,2
+	ld   	e,a		; znak k vystupu
+	call 	5
+	pop	iy
+	pop	ix
+	pop	af
+	pop	hl
+	pop	de
+	pop	bc
+	ret	
+
+
+; ---------------------------------------------------------
+;       tisk textu na tiskarnu
+; ---------------------------------------------------------
+
+tsktxt:	push	bc	
+	ld	b,(hl)		; pocet znaku k tisku 
+	inc	hl
+tsktx1:	ld	a,(hl)
+	call	tskznk
+	inc	hl
+	djnz	tsktx1
+	pop	bc
+	ret
+
+; ---------------------------------------------------------
+;        vystup znaku v A na tiskarnu
+; ---------------------------------------------------------
+
+tskznk:	push	bc		; tisk znaku v A
+	push	de
+	push	hl
+	push	af
+	push	ix
+	push	iyŠ	ld	c,5
+	ld	e,a
+	call	5
+	ld	c,6
+	ld	e,255
+	call	5
+	or	a
+	jp	nz,carkod
+	pop	iy
+	pop	ix
+	pop	af
+	pop	hl
+	pop	de
+	pop	bc
+	ret
+
+
+; ---------------------------------------------------------
+;       generator nahodneho cisla
+; ---------------------------------------------------------
+
+rnd:	push	hl		; generator nahodneho cisla
+	ld	hl,(adrrnd)
+	inc	hl
+	ld	a,h
+	cp	0e8h
+	jr	c,rnd1
+	ld	h,0d0h
+rnd1:	ld	(adrrnd),hl
+	ld	a,r
+
+	xor	(hl)
+	pop	hl
+	ret
+
+; ---------------------------------------------------------
+;       vstup znaku z konzoly
+; ---------------------------------------------------------
+
+inpznk:	push	hl
+	push	bc
+	push	de
+	push	ix
+	push	iy
+	ld	c,1
+	call	5
+	cp	"a"
+	jr	c,inpzn1
+	cp	"z"+1
+	jr	nc,inpzn1
+	sub	32
+inpzn1:	cp	32
+	pop	iy
+	pop	ix
+	pop	de
+	pop	bc
+	pop	hl
+	ret		
+
+; ---------------------------------------------------------
+;                 d  a  t  aŠ; ---------------------------------------------------------
+
+
+
+txtin1:	db	5		; nastaveni tiskarny
+	db	27,"E"		; zvyraznene pismo
+	db	27,"3",19	; radkovani 19/216"
+	
+txtin2:	db	4		; vystup v graf.rezimu 
+	db	27,"L"		; 960 bodu / 8 palcu
+txtn21:	db	0,4		; pocet bajtu na vystup
+
+
+txtin3:	db	3		; korekce radkovani
+	db	27,"J"
+txtn31:	db	7		; krok posuvu v 1/216 palce 
+
+
+
+
+adrkod:	dw	kodck3		; 0 = CKN 3 
+	dw	kodck4		; 1 = CKN 4
+	dw	kodck5		; 2 = CKN 5
+	dw	kodck6		; 3 = CKN 6
+	dw	kodck7		; 4 = CKN 7
+	dw	kodck8		; 5 = CKN 8
+	dw	kodc39		; 6 = 39
+	dw	kodc25		; 7 = 2/5 prokladany
+	dw	kodcea		; 8 = EAN 6
+
+kodck3:	db	3		; pocet kodu CK3
+	db	1,1,81h		; "0"
+	db	1,82h		; "1"
+	db	2,81h		; "2"
+
+kodck4:	db	6		; pocet kodu CK4
+	db	1,1,1,81h	; "0"
+	db	1,1,82h		; "1"
+	db	1,2,81h		; "2"
+	db	2,1,81h		; "3"
+	db	2,82h		; "4"
+	db	84h		; "5"
+
+
+
+
+
+
+kodck5:	db	10		; pocet kodu CK5
+	db	1,1,1,1,81h	; "0"
+	db	1,1,1,82h	; "1"
+	db	1,1,2,81h	; "2"
+	db	1,2,1,81h	; "3"
+	db	2,1,1,81h	; "4"
+	db	1,2,82h		; "5"
+	db	2,1,82h		; "6"
+	db	2,2,81h		; "7"
+	db	1,84h		; "8"
+	db	4,81h		; "9"
+
+kodck6:	db	18		; pocet kodu CK6Š	db	1,1,1,1,1,81h	; "0"
+	db	1,1,1,1,82h	; "1"
+	db	1,1,1,2,81h	; "2"
+	db	1,1,2,1,81h	; "3"
+	db	1,2,1,1,81h	; "4"
+	db	2,1,1,1,81h	; "5"
+	db	1,1,2,82h	; "6"
+	db	1,2,1,82h	; "7"
+	db	2,1,1,82h	; "8"
+	db	1,2,2,81h	; "9"
+	db	2,1,2,81h	; "10"
+	db	2,2,1,81h	; "11"
+	db	2,2,82h		; "12"
+	db	1,1,84h		; "13"
+	db	1,4,81h		; "14"
+	db	4,1,81h		; "15"
+	db	2,84h		; "16"
+	db	4,82h		; "17"
+
+kodck7:	db	31		; pocet kodu CK7
+	db	1,1,1,1,1,1,81h	; "0"
+	db	1,1,1,1,1,82h	; "1"
+	db	1,1,1,1,2,81h	; "2"
+	db	1,1,1,2,1,81h	; "3"
+	db	1,1,2,1,1,81h	; "4"
+	db	1,2,1,1,1,81h	; "5"
+	db	2,1,1,1,1,81h	; "6"
+	db	1,1,1,2,82h	; "7"
+	db	1,1,2,1,82h	; "8"
+	db	1,2,1,1,82h	; "9"
+	db	2,1,1,1,82h	; "10"
+	db	1,1,2,2,81h	; "11"
+	db	1,2,1,2,81h	; "12"
+	db	2,1,1,2,81h	; "13"
+	db	1,2,2,1,81h	; "14"
+	db	2,1,2,1,81h	; "15"
+	db	2,2,1,1,81h	; "16"
+	db	1,2,2,82h	; "17"
+	db	2,1,2,82h	; "18"
+	db	2,2,1,82h	; "19"
+	db	2,2,2,81h	; "20"
+	db	1,1,1,84h	; "21"
+	db	1,1,4,81h	; "22"
+	db	1,4,1,81h	; "23"
+	db	4,1,1,81h	; "24"
+	db	1,2,84h		; "25"
+	db	2,1,84h		; "26"
+	db	1,4,82h		; "27"
+	db	2,4,81h		; "28"
+	db	4,1,82h		; "29"
+	db	4,2,81h		; "30"
+
+kodck8:	db	55		; pocet kodu CK8
+	db	1,1,1,1,1,1,1,81h; "0"
+	db	1,1,1,1,1,1,82h	; "1"
+	db	1,1,1,1,1,2,81h	; "2"
+	db	1,1,1,1,2,1,81h	; "3"
+	db	1,1,1,2,1,1,81h	; "4"
+	db	1,1,2,1,1,1,81h	; "5"
+	db	1,2,1,1,1,1,81h	; "6"
+	db	2,1,1,1,1,1,81h	; "7"Š	db	1,1,1,1,2,82h	; "8"
+	db	1,1,1,2,1,82h	; "9"
+	db	1,1,2,1,1,82h	; "10"
+	db	1,2,1,1,1,82h	; "11"
+	db	2,1,1,1,1,82h	; "12"
+	db	1,1,1,2,2,81h	; "13"
+	db	1,1,2,1,2,81h	; "14"
+	db	1,2,1,1,2,81h	; "15"
+	db	2,1,1,1,2,81h	; "16"
+	db	1,1,2,2,1,81h	; "17"
+	db	1,2,1,2,1,81h	; "18"
+	db	2,1,1,2,1,81h	; "19"
+	db	1,2,2,1,1,81h	; "20"
+	db	2,1,2,1,1,81h	; "21"
+	db	2,2,1,1,1,81h	; "22"
+	db	1,1,2,2,82h	; "23"
+	db	1,2,1,2,82h	; "24"
+	db	2,1,1,2,82h	; "25"
+	db	1,2,2,1,82h	; "26"
+	db	2,1,2,1,82h	; "27"
+	db	2,2,1,1,82h	; "28"
+	db	1,2,2,2,81h	; "29"
+	db	2,1,2,2,81h	; "30"
+	db	2,2,1,2,81h	; "31"
+	db	2,2,2,1,81h	; "32"
+	db	1,1,1,1,84h	; "33"
+	db	1,1,1,4,81h	; "34"
+	db	1,1,4,1,81h	; "35"
+	db	1,4,1,1,81h	; "36"
+	db	4,1,1,1,81h	; "37"
+	db	2,2,2,82h	; "38"
+	db	1,1,2,84h	; "39"
+	db	1,2,1,84h	; "40"
+	db	2,1,1,84h	; "41"
+	db	1,1,4,82h	; "42"
+	db	1,2,4,81h	; "43"
+	db	2,1,4,81h	; "44"
+	db	1,4,1,82h	; "45"
+	db	1,4,2,81h	; "46"
+	db	2,4,1,81h	; "47"
+	db	4,1,1,82h	; "48"
+	db	4,1,2,81h	; "49"
+	db	4,2,1,81h	; "50"
+	db	2,2,84h		; "51"
+	db	2,4,82h		; "52"
+	db	4,2,82h		; "53"
+	db	4,84h		; "54"
+
+kodc39:	db	1
+	db	1,3,1,1,3,1,3,1,1 ; start
+	db	3,1,1,3,1,1,1,1,3 ; 1
+	db	1,1,3,3,1,1,1,1,3 ; 2
+	db	3,1,3,3,1,1,1,1,1 ; 3
+	db	1,1,1,3,3,1,1,1,3 ; 4
+	db	3,1,1,3,3,1,1,1,1 ; 5
+	db	1,1,3,3,3,1,1,1,1 ; 6
+	db	1,3,1,3,1,1,1,3,1 ; \/
+	db	1,3,1,1,3,1,3,1,81h ; stop
+
+
+kodc25:	db	1Š	db	1,1,1,1,3,1,1,3,1,1,1,1,3 ; start, 1, 2
+	db	3,3,1,3,1,1,3,1,1,1,3,3,1 ; 3, 4, 5, 6
+	db	1,3,3,3,1,1,1,1,3,1,81h	  ; stop
+
+kodcea:	db	1
+	db	81h
+
+
+dekck:	"0 1 2 3 4 5 6 7 8 9 M1M2M3M4M5M6M7M8< > *\/ - . "
+	"A B C D E F X Y P1P2P3P4P5P6P7P8+0+1+2+3+4+5+6+7"
+	"+8+9+A+B+C+D+E+F+G+H+I+J+K+L+M+N+O+P+Q+R+S+T+U+V"
+
+
+textuv:	db	13,10,10,"TISK CAROVEHO KODU",13,10
+	db	"==================",13,10,10
+	db	"K - KOD pro tisk",13,10
+	db	"S - SIRKA prvku pro tisk",13,10
+	db	"R - pocet RADKU pro tisk",13,10
+	db	"N - NAHODNY tisk stitku",13,10
+	db	"T - tisk zadaneho TEXTU",13,10
+	db	"^C- konec programu",13,10 
+	db	"$"
+
+txtkod: db	13,10,10,"Moznost volby kodu:",13,10
+	db	"A = CKN 3",13,10
+	db	"B = CKN 4",13,10
+	db	"C = CKN 5",13,10
+	db	"D = CKN 6",13,10
+	db	"E = CKN 7",13,10
+	db	"F = CKN 8",13,10
+	db	"G = 39",13,10
+	db	"H = 2/5 prokladany",13,10
+	db	"I = EAN 6",13,10
+	db	"<ET1> beze zmeny",13,10
+	db	"$"
+
+txtsir:	db	13,10,10,"Zadejte sirku prvku:",13,10
+	db	"(1 az 9 bodu na prvek, <ET1> = beze zmeny)",13,10
+	db	"$"
+
+txtrad:	db	13,10,10,"Zadejte pocet radku:",13,10
+	db	"(1 az 9 radku stitku, <ET1> = beze zmeny)",13,10
+	db	"$"
+
+txtpoc:	db	13,10,10,"Zadejte pocet znaku pro tisk:",13,10
+	db	"(1...9 , A=10 ... Z=35, <ET1> = navrat)",13,10
+	db	"$"
+
+txtsti:	db	13,10,10,"Zadejte pocet stitku k tisku:",13,10
+	db	"(1...9, 0 = trvale, <ET1> = navrat)",13,10
+	db	"$"
+
+txttsk:	db	13,10,10,"Probiha tisk stitku.",13,10
+	db	"(<ET1> = preruseni)",13,10
+	db	"$"
+
+
+txtzad:	db	13,10,10,"Zadejte text k vytisteni:",13,10
+	db	"$"
+ 
+	ds	256Šstack:	dw	0
+
+adrrnd:	dw	0		; adresa nahodneho cisla	
+pocst:	db	0		; pocet stitku k tisku	
+
+kodt:	db	2		; nastaveny kod pro tisk
+poct:	db	0		; pocet znaku k tisku
+
+bufft:	rept	128		; text pro tisk
+	db	0
+	endm
+
+inbff:	db	128		; vstupni buffer
+	db	0
+	rept	128
+	db	0
+	endm
+
+carbufº	dâ	°		» buffeò prï tisë cark.kodu
+	rept	2048
+	db	0
+	endm
+
+	end	care
+
+
+

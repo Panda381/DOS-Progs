@@ -1,0 +1,3247 @@
+
+
+; *****************************************************************************
+;
+;               Modul opera‡n¡ho syst‚mu IBMDOS.COM verze 1.00
+;
+; *****************************************************************************
+
+00B1:0000 E98F14         JMP    1492             ; start a inicializace modulu
+
+
+00B1:0003 0300           ADD    AX,[BX+SI]
+00B1:0005 4D             DEC    BP
+00B1:0006 3B533C         CMP    DX,[BP+DI+3C]
+00B1:0009 3E3D403F       CMP    AX,3F40
+00B1:000D 4B             DEC    BX
+00B1:000E 52             PUSH   DX
+00B1:000F 41             INC    CX
+00B1:0010 41             INC    CX
+
+; -----------------------------------------------------------------------------
+;                   Obsluha p©eru¨en¡ INT 20h
+; -----------------------------------------------------------------------------
+00B1:0011 B400           MOV    AH,00            ; funkce 0 = konec programu
+00B1:0013 EB1E           JMP    0033
+; -----------------------------------------------------------------------------
+;                   Obsluha slu‘by DOS INT 21h
+; -----------------------------------------------------------------------------
+00B1:0015 82FC2D         CMP    AH,2D            ; max. ‡¡slo slu‘by 2dh
+00B1:0018 7619           JBE    0033             ; ‡¡slo slu‘by OK
+00B1:001A B000         * MOV    AL,00            ; nepovolen‚ ‡¡slo slu‘by
+00B1:001C CF             IRET
+; -----------------------------------------------------------------------------
+;                    Obsluha vol n¡ CP/M (CALL 5)
+; -----------------------------------------------------------------------------
+00B1:001D 58             POP    AX               ; offset n vratov‚ adresy
+00B1:001E 58             POP    AX
+00B1:001F 2E8F06AB15     POP    CS:[15AB]
+00B1:0024 9C             PUSHF
+00B1:0025 FA             CLI
+00B1:0026 50             PUSH   AX
+00B1:0027 2EFF36AB15     PUSH   CS:[15AB]
+00B1:002C 82F924         CMP    CL,24            ; max. slu‘ba 24h
+00B1:002F 77E9           JA     001A             ; velk‚ ‡¡slo slu‘by
+00B1:0031 8AE1           MOV    AH,CL            ; ‡¡slo po‘adovan‚ slu‘by
+
+
+00B1:0033 06             PUSH   ES
+00B1:0034 1E             PUSH   DS
+00B1:0035 55             PUSH   BP
+00B1:0036 57             PUSH   DI
+00B1:0037 56             PUSH   SI
+00B1:0038 52             PUSH   DX
+00B1:0039 51             PUSH   CX
+00B1:003A 53             PUSH   BX
+00B1:003B 50             PUSH   AX
+00B1:003C 2E8926AB15     MOV    CS:[15AB],SP
+00B1:0041 2E8C16AD15     MOV    CS:[15AD],SS
+00B1:0046 8CCC           MOV    SP,CS
+00B1:0048 8ED4           MOV    SS,SP
+00B1:004A BCD416         MOV    SP,16D4
+00B1:004D FB             STI
+00B1:004E 2E88267D15     MOV    CS:[157D],AH     ; ‡¡slo po‘adovan‚ funkce DOS
+00B1:0053 8ADC           MOV    BL,AH            ; ‡¡slo funkce
+00B1:0055 B700           MOV    BH,00
+00B1:0057 D1E3           SHL    BX,1
+00B1:0059 FC             CLD
+00B1:005A 82FC0C         CMP    AH,0C            ; jsou znakov‚ operace ?
+00B1:005D 7E03           JLE    0062             ; jsou znakov‚ operace
+00B1:005F BCD417         MOV    SP,17D4          ; pracovn¡ z sobn¡k
+00B1:0062 2EFF978100   * CALL   CS:[BX+0081]     ; vol n¡ slu‘by DOS
+00B1:0067 FA             CLI
+00B1:0068 2E8B26AB15     MOV    SP,CS:[15AB]
+00B1:006D 2E8E16AD15     MOV    SS,CS:[15AD]
+00B1:0072 8BEC           MOV    BP,SP
+00B1:0074 884600         MOV    [BP+00],AL       ; n vratov˜ k¢d v AL
+00B1:0077 58             POP    AX
+00B1:0078 5B             POP    BX
+00B1:0079 59             POP    CX
+00B1:007A 5A             POP    DX
+00B1:007B 5E             POP    SI
+00B1:007C 5F             POP    DI
+00B1:007D 5D             POP    BP
+00B1:007E 1F             POP    DS
+00B1:007F 07             POP    ES
+00B1:0080 CF             IRET
+
+
+00B1:0081                dw     05e3h            ; 00h ukon‡en¡ programu
+                         dw     1124h            ; 01h vstup z kl v. s echem
+                         dw     1060h            ; 02h v˜stup na displej
+                         dw     010ch            ; 03h vstup znaku z AUX
+                         dw     0115h            ; 04h v˜stup znaku na AUX
+                         dw     114eh            ; 05h v˜stup znaku na LPT1
+                         dw     1133h            ; 06h p©¡m˜ znak. vstup/v˜stup
+                         dw     1142h            ; 07h ©¡zen˜ vstup bez echa
+00B1:0091                dw     112dh            ; 08h vstup z konzoly bez echa
+                         dw     115bh            ; 09h tisk ©etˆzce
+                         dw     0e8dh            ; 0Ah vstup textu
+                         dw     1118h            ; 0Bh test stand. vstupu
+                         dw     00e0h            ; 0Ch vymaz n¡ vstup. bufferu
+                         dw     0e0ch            ; 0Dh reset disku
+                         dw     0e75h            ; 0Eh v˜bˆr aktivn¡ho disku
+                         dw     0359h            ; 0Fh otev©en¡ souboru FCB
+00B1:00A1                dw     03efh            ; 10h uzav©en¡ souboru FCB
+                         dw     0d0fh            ; 11h nalezen¡ souboru FCB
+                         dw     0d78h            ; 12h nalezen¡ dal¨¡ho souboru
+                         dw     024fh            ; 13h zru¨en¡ souboru FCB
+                         dw     0626h            ; 14h sekven‡n¡ ‡ten¡ FCB
+                         dw     062eh            ; 15h sekven‡n¡ z pis FCB
+                         dw     04a1h            ; 16h vytvo©en¡ souboru FCB
+                         dw     0281h            ; 17h p©ejmenov n¡ souboru
+00B1:00B1                dw     00ddh            ; 18h (rezervov no)
+                         dw     0e59h            ; 19h poskytnut¡ aktiv. disku
+                         dw     0dd2h            ; 1Ah nastaven¡ adresy DTA
+                         dw     0dddh            ; 1Bh inform. aktivn¡ FAT
+                         dw     00ddh            ; 1Ch inform. specifik. FAT
+                         dw     00ddh            ; 1Dh (rezervov no)
+                         dw     00ddh            ; 1Eh (rezervov no)
+                         dw     00ddh            ; 1Fh (rezervov no)
+00B1:00C1                dw     00ddh            ; 20h (rezervov no)
+                         dw     063eh            ; 21h ‡ten¡ s p©¡m˜m p©¡stupem
+                         dw     0646h            ; 22h z pis s p©¡m˜m p©¡stupem
+                         dw     0d91h            ; 23h poskytnut¡ velikost soub.
+                         dw     0e62h            ; 24h nastaven¡ rela. z znamu
+                         dw     121eh            ; 25h nastaven¡ vektoru INT
+                         dw     1230h            ; 26h vytvo©en¡ PSP
+                         dw     064eh            ; 27h ‡ten¡ bloku s p©¡m˜m p©.
+00B1:00D1                dw     0656h            ; 28h z pis bloku s p©¡m˜m p©.
+                         dw     1172h            ; 29h rozbor jm‚na souboru
+                         dw     1306h            ; 2Ah poskytnut¡ syst‚m. data
+                         dw     1322h            ; 2Bh nastaven¡ syst‚m. data
+                         dw     136dh            ; 2Ch poskytnut¡ syst‚m. ‡asu
+                         dw     13beh            ; 2Dh nastaven¡ syst‚m. ‡asu
+
+00B1:00D1  56 06 72 11 06 13 22-13 6D 13 BE 13 B0 00 C3 33  .V.r...".m.>.0.C
+00B1:00E1  DB 8E C3 26 C6 06 1A-04 1E 26 C6 06 1C 04 1E 8A  3[.C&F....&F....
+00B1:00F1  E0 3C 01 74 13 3C 06-74 0F 3C 07 74 0B 3C 08 74  .`<.t.<.t.<.t.<.
+00B1:0101  07 3C 0A 74 03 B0 00-C3 E9 3E FF E8 81 0F 9A      t.<.t.0.Ci>.h...
+
+; -----------------------------------------------------------------------------
+;                       Neobsluhovan  funkce
+; -----------------------------------------------------------------------------
+00B1:00DD B000           MOV    AL,00
+00B1:00DF C3             RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 0ch - funkce DOS s vypr zdnˆn¡m bufferu kl vesnice
+; -----------------------------------------------------------------------------
+00B1:00E0 33DB           XOR    BX,BX
+00B1:00E2 8EC3           MOV    ES,BX
+00B1:00E4 26C6061A041E   MOV    Byte Ptr ES:[041A],1E ; vypr zdnˆn¡ bufferu
+00B1:00EA 26C6061C041E   MOV    Byte Ptr ES:[041C],1E
+00B1:00F0 8AE0           MOV    AH,AL
+00B1:00F2 3C01           CMP    AL,01
+00B1:00F4 7413           JZ     0109             ; Slu‘ba 1 - vstup s echem
+00B1:00F6 3C06           CMP    AL,06
+00B1:00F8 740F           JZ     0109
+00B1:00FA 3C07           CMP    AL,07
+00B1:00FC 740B           JZ     0109
+00B1:00FE 3C08           CMP    AL,08
+00B1:0100 7407           JZ     0109
+00B1:0102 3C0A           CMP    AL,0A
+00B1:0104 7403           JZ     0109
+00B1:0106 B000           MOV    AL,00            ; neobsluhovan  funkce
+00B1:0108 C3             RET
+00B1:0109 E93EFF       * JMP    004A             ; proveden¡ funkce DOS
+; -----------------------------------------------------------------------------
+;                   Slu‘ba 03h - vstup znaku z AUX
+; -----------------------------------------------------------------------------
+00B1:010C E8810F         CALL   1090             ; Test stavu kl vesnice
+00B1:010F 9A0F006000     CALL   0060:000F        ; p©¡jem znaku z portu COM1
+00B1:0114 C3             RET
+; -----------------------------------------------------------------------------
+;                   Slu‘ba 04h - vysl n¡ znaku na AUX
+; -----------------------------------------------------------------------------
+00B1:0115 8AC2           MOV    AL,DL            ; znak k vysl n¡
+00B1:0117 50             PUSH   AX
+00B1:0118 E8750F         CALL   1090             ; Test stavu kl vesnice
+00B1:011B 58             POP    AX
+00B1:011C 9A12006000     CALL   0060:0012        ; vysl n¡ znaku na port COM1
+00B1:0121 C3             RET
+; -----------------------------------------------------------------------------
+;
+; -----------------------------------------------------------------------------
+00B1:0122 3B5E0C         CMP    BX,[BP+0C]
+00B1:0125 7718           JA     013F
+00B1:0127 8D38           LEA    DI,[BX+SI]
+00B1:0129 D1EB           SHR    BX,1
+00B1:012B 8B39           MOV    DI,[BX+DI]
+00B1:012D 7309           JNB    0138
+00B1:012F D1EF           SHR    DI,1
+00B1:0131 D1EF           SHR    DI,1
+00B1:0133 D1EF           SHR    DI,1
+00B1:0135 D1EF           SHR    DI,1
+00B1:0137 F9             STC
+00B1:0138 D1D3           RCL    BX,1
+00B1:013A 81E7FF0F       AND    DI,0FFF
+00B1:013E C3             RET
+
+00B1:013F 50             PUSH   AX
+00B1:0140 B480           MOV    AH,80
+00B1:0142 BFFF0F         MOV    DI,0FFF
+00B1:0145 E82804         CALL   0570
+00B1:0148 58             POP    AX
+00B1:0149 C3             RET
+
+
+00B1:014A 8BFB           MOV    DI,BX
+00B1:014C D1EB           SHR    BX,1
+00B1:014E 03DE           ADD    BX,SI
+00B1:0150 03DF           ADD    BX,DI
+00B1:0152 D1EF           SHR    DI,1
+00B1:0154 8B3F           MOV    DI,[BX]
+00B1:0156 730E           JNB    0166
+00B1:0158 D1E2           SHL    DX,1
+00B1:015A D1E2           SHL    DX,1
+00B1:015C D1E2           SHL    DX,1
+00B1:015E D1E2           SHL    DX,1
+00B1:0160 81E70F00       AND    DI,000F
+00B1:0164 EB04           JMP    016A
+00B1:0166 81E700F0     * AND    DI,F000
+00B1:016A 0BFA           OR     DI,DX
+00B1:016C 893F           MOV    [BX],DI
+00B1:016E C3             RET
+
+00B1:016F BE1F14         MOV    SI,141F
+00B1:0172 B306           MOV    BL,06
+00B1:0174 BF8615         MOV    DI,1586
+00B1:0177 B90400         MOV    CX,0004
+00B1:017A F3             REPZ
+00B1:017B A6             CMPSB
+00B1:017C 7408           JZ     0186
+00B1:017E 03F1           ADD    SI,CX
+00B1:0180 FECB           DEC    BL
+00B1:0182 75F0           JNZ    0174
+00B1:0184 F9             STC
+00B1:0185 C3             RET
+
+00B1:0186 B90400       * MOV    CX,0004
+00B1:0189 B020           MOV    AL,20                         ;' '
+00B1:018B F3             REPZ
+00B1:018C AE             SCASB
+00B1:018D 75F5           JNZ    0184
+00B1:018F 8AC3           MOV    AL,BL
+00B1:0191 BB3614         MOV    BX,1436
+00B1:0194 D7             XLAT
+00B1:0195 8AD8           MOV    BL,AL
+00B1:0197 B7FF           MOV    BH,FF
+00B1:0199 C3           * RET
+
+
+00B1:019A E86301         CALL   0300
+00B1:019D 72FA           JB     0199
+00B1:019F 52             PUSH   DX
+00B1:01A0 1E             PUSH   DS
+00B1:01A1 E80800         CALL   01AC
+00B1:01A4 07             POP    ES
+00B1:01A5 5F             POP    DI
+00B1:01A6 C3             RET
+
+
+
+00B1:01A7 E85601         CALL   0300
+00B1:01AA 72FA           JB     01A6
+
+00B1:01AC 8CC8           MOV    AX,CS
+00B1:01AE 8ED8           MOV    DS,AX
+00B1:01B0 E8BCFF         CALL   016F
+00B1:01B3 73F1           JNB    01A6
+00B1:01B5 E8D801         CALL   0390
+00B1:01B8 E83700         CALL   01F2
+00B1:01BB 72E9           JB     01A6
+00B1:01BD 803FE5         CMP    Byte Ptr [BX],E5
+00B1:01C0 7412           JZ     01D4
+00B1:01C2 8BF3           MOV    SI,BX
+00B1:01C4 BF8615         MOV    DI,1586
+00B1:01C7 B90B00         MOV    CX,000B
+00B1:01CA F3             REPZ
+00B1:01CB A6             CMPSB
+00B1:01CC 740C           JZ     01DA
+00B1:01CE 827DFF3F       CMP    Byte Ptr [DI-01],3F           ;'?'
+00B1:01D2 74F6           JZ     01CA
+00B1:01D4 E85200         CALL   0229
+00B1:01D7 73E4           JNB    01BD
+00B1:01D9 C3             RET
+
+00B1:01DA 8A269115       MOV    AH,[1591]
+00B1:01DE F6D4           NOT    AH
+00B1:01E0 2224           AND    AH,[SI]
+00B1:01E2 83C60F         ADD    SI,+0F
+00B1:01E5 80E406         AND    AH,06
+00B1:01E8 74EF           JZ     01D9
+00B1:01EA F606AA15FF     TEST   Byte Ptr [15AA],FF
+00B1:01EF 74E3           JZ     01D4
+00B1:01F1 C3             RET
+
+00B1:01F2 A17E15         MOV    AX,[157E]
+00B1:01F5 40             INC    AX
+00B1:01F6 3B4608         CMP    AX,[BP+08]
+00B1:01F9 734F           JNB    024A
+00B1:01FB A37E15         MOV    [157E],AX
+00B1:01FE B104           MOV    CL,04
+00B1:0200 D3E0           SHL    AX,CL
+00B1:0202 33D2           XOR    DX,DX
+00B1:0204 D1E0           SHL    AX,1
+00B1:0206 D1D2           RCL    DX,1
+00B1:0208 8B5E01         MOV    BX,[BP+01]
+00B1:020B 80E3E0         AND    BL,E0
+00B1:020E F7F3           DIV    BX
+00B1:0210 8BDA           MOV    BX,DX
+00B1:0212 8A6600         MOV    AH,[BP+00]
+00B1:0215 3B065914       CMP    AX,[1459]
+00B1:0219 7405           JZ     0220
+00B1:021B 53             PUSH   BX
+00B1:021C E8FE02         CALL   051D
+00B1:021F 5B             POP    BX
+00B1:0220 BAD417         MOV    DX,17D4
+00B1:0223 03DA           ADD    BX,DX
+00B1:0225 035601         ADD    DX,[BP+01]
+00B1:0228 C3             RET
+
+00B1:0229 8B3E7E15       MOV    DI,[157E]
+00B1:022D 47             INC    DI
+00B1:022E 3B7E08         CMP    DI,[BP+08]
+00B1:0231 7317           JNB    024A
+00B1:0233 893E7E15       MOV    [157E],DI
+00B1:0237 83C320         ADD    BX,+20
+00B1:023A 3BDA           CMP    BX,DX
+00B1:023C 720A           JB     0248
+00B1:023E FEC0           INC    AL
+00B1:0240 52             PUSH   DX
+00B1:0241 E8D902         CALL   051D
+00B1:0244 5A             POP    DX
+00B1:0245 BBD417         MOV    BX,17D4
+00B1:0248 F8             CLC
+00B1:0249 C3             RET
+
+00B1:024A E86403         CALL   05B1             ; Z pis na disk (DS:BP=tabulka)
+00B1:024D F9             STC
+00B1:024E C3             RET
+
+00B1:024F E855FF         CALL   01A7
+00B1:0252 B0FF           MOV    AL,FF
+00B1:0254 72F8           JB     024E
+00B1:0256 3AF8           CMP    BH,AL
+00B1:0258 74F4           JZ     024E
+00B1:025A C6064514FF     MOV    Byte Ptr [1445],FF
+00B1:025F C607E5         MOV    Byte Ptr [BX],E5
+00B1:0262 8B1C           MOV    BX,[SI]
+00B1:0264 8D7612         LEA    SI,[BP+12]
+00B1:0267 0BDB           OR     BX,BX
+00B1:0269 7408           JZ     0273
+00B1:026B 3B5E0C         CMP    BX,[BP+0C]
+00B1:026E 7703           JA     0273
+00B1:0270 E87B0A         CALL   0CEE
+00B1:0273 E842FF         CALL   01B8
+00B1:0276 73E2           JNB    025A
+00B1:0278 E8E801         CALL   0463
+00B1:027B E83303         CALL   05B1             ; Z pis na disk (DS:BP=tabulka)
+00B1:027E 32C0           XOR    AL,AL
+00B1:0280 C3             RET
+
+00B1:0281 E87C00         CALL   0300
+00B1:0284 7277           JB     02FD
+00B1:0286 83C605         ADD    SI,+05
+00B1:0289 BF9215         MOV    DI,1592
+00B1:028C E89F00         CALL   032E
+00B1:028F 726C           JB     02FD
+00B1:0291 E818FF         CALL   01AC
+00B1:0294 7267           JB     02FD
+00B1:0296 82FFFF         CMP    BH,FF
+00B1:0299 7462           JZ     02FD
+00B1:029B BE8615         MOV    SI,1586
+00B1:029E BF9D15         MOV    DI,159D
+00B1:02A1 B90600         MOV    CX,0006
+00B1:02A4 F3             REPZ
+00B1:02A5 A5             MOVSW
+00B1:02A6 BF8615         MOV    DI,1586
+00B1:02A9 BE9215         MOV    SI,1592
+00B1:02AC B90B00         MOV    CX,000B
+00B1:02AF AC             LODSB
+00B1:02B0 3C3F           CMP    AL,3F                         ;'?'
+00B1:02B2 7502           JNZ    02B6
+00B1:02B4 8A07           MOV    AL,[BX]
+00B1:02B6 AA             STOSB
+00B1:02B7 43             INC    BX
+00B1:02B8 E2F5           LOOP   02AF
+00B1:02BA C60506         MOV    Byte Ptr [DI],06
+00B1:02BD E8AFFE         CALL   016F
+00B1:02C0 7338           JNB    02FA
+00B1:02C2 FF367E15       PUSH   [157E]
+00B1:02C6 C7067E15FFFF   MOV    Word Ptr [157E],FFFF
+00B1:02CC E8E9FE         CALL   01B8
+00B1:02CF 58             POP    AX
+00B1:02D0 7328           JNB    02FA
+00B1:02D2 E826FF         CALL   01FB
+00B1:02D5 8BFB           MOV    DI,BX
+00B1:02D7 BE8615         MOV    SI,1586
+00B1:02DA B90B00         MOV    CX,000B
+00B1:02DD F3             REPZ
+00B1:02DE A4             MOVSB
+00B1:02DF C6064514FF     MOV    Byte Ptr [1445],FF
+00B1:02E4 BE9D15         MOV    SI,159D
+00B1:02E7 BF8615         MOV    DI,1586
+00B1:02EA B90600         MOV    CX,0006
+00B1:02ED F3             REPZ
+00B1:02EE A5             MOVSW
+00B1:02EF E8C6FE         CALL   01B8
+00B1:02F2 73B2           JNB    02A6
+00B1:02F4 E8BA02         CALL   05B1             ; Z pis na disk (DS:BP=tabulka)
+00B1:02F7 32C0           XOR    AL,AL
+00B1:02F9 C3             RET
+
+00B1:02FA E8B402         CALL   05B1             ; Z pis na disk (DS:BP=tabulka)
+00B1:02FD B0FF           MOV    AL,FF
+00B1:02FF C3             RET
+
+
+
+00B1:0300 2EC606AA1500   MOV    Byte Ptr CS:[15AA],00
+00B1:0306 8CC8           MOV    AX,CS
+00B1:0308 8EC0           MOV    ES,AX
+00B1:030A BF8615         MOV    DI,1586
+00B1:030D 8BF2           MOV    SI,DX
+00B1:030F AC             LODSB
+00B1:0310 2EA2A915       MOV    CS:[15A9],AL
+00B1:0314 B400           MOV    AH,00
+00B1:0316 3CFF           CMP    AL,FF
+00B1:0318 750A           JNZ    0324
+00B1:031A 83C207         ADD    DX,+07
+00B1:031D 83C606         ADD    SI,+06
+00B1:0320 8A64FF         MOV    AH,[SI-01]
+00B1:0323 AC             LODSB
+00B1:0324 2E88269115     MOV    CS:[1591],AH
+00B1:0329 E81D00         CALL   0349             ; Poskytnut¡ adresy tab. disku
+00B1:032C 72D1           JB     02FF
+00B1:032E 823C20         CMP    Byte Ptr [SI],20              ;' '
+00B1:0331 F9             STC
+00B1:0332 74CB           JZ     02FF
+00B1:0334 B90B00         MOV    CX,000B
+00B1:0337 E8A80E         CALL   11E2
+00B1:033A 7505           JNZ    0341
+00B1:033C 3C20           CMP    AL,20                         ;' '
+00B1:033E F9             STC
+00B1:033F 75BE           JNZ    02FF
+00B1:0341 3C20           CMP    AL,20                         ;' '
+00B1:0343 72BA           JB     02FF
+00B1:0345 AA             STOSB
+00B1:0346 E2EF           LOOP   0337
+00B1:0348 C3           * RET
+
+; -----------------------------------------------------------------------------
+;         Poskytnut¡ adresy tabulky disku
+; -----------------------------------------------------------------------------
+00B1:0349 2E38064614     CMP    CS:[1446],AL     ; po‡et logick˜ch disk–
+00B1:034E 72F8           JB     0348             ; ‡¡slo disku OK
+00B1:0350 98             CBW                     ; AX <- AL
+00B1:0351 95             XCHG   AX,BP
+00B1:0352 D1E5           SHL    BP,1
+00B1:0354 8BAE5B14       MOV    BP,[BP+145B]     ; adresa tabulky aktiv. disku
+00B1:0358 C3             RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 0fh - otev©en¡ souboru s pou‘it¡m FCB
+; -----------------------------------------------------------------------------
+00B1:0359 E83EFE         CALL   019A
+00B1:035C 729F           JB     02FD
+00B1:035E 82FFFF         CMP    BH,FF
+00B1:0361 7426           JZ     0389
+00B1:0363 8A4600         MOV    AL,[BP+00]
+00B1:0366 FEC0           INC    AL
+00B1:0368 AA             STOSB
+00B1:0369 83C70B         ADD    DI,+0B
+00B1:036C 33C0           XOR    AX,AX
+00B1:036E AB             STOSW
+00B1:036F B88000         MOV    AX,0080
+00B1:0372 AB             STOSW
+00B1:0373 AD             LODSW
+00B1:0374 8BD0           MOV    DX,AX
+00B1:0376 A5             MOVSW
+00B1:0377 A5             MOVSW
+00B1:0378 8B44F8         MOV    AX,[SI-08]
+00B1:037B AB             STOSW
+00B1:037C A17E15         MOV    AX,[157E]
+00B1:037F AB             STOSW
+00B1:0380 8BC2           MOV    AX,DX
+00B1:0382 AB             STOSW
+00B1:0383 AB             STOSW
+00B1:0384 33C0           XOR    AX,AX
+00B1:0386 AB             STOSW
+00B1:0387 AA             STOSB
+00B1:0388 C3             RET
+
+00B1:0389 26895D16       MOV    ES:[DI+16],BX
+00B1:038D 32C0           XOR    AL,AL
+00B1:038F C3             RET
+
+00B1:0390 C7067E15FFFF   MOV    Word Ptr [157E],FFFF
+00B1:0396 8A4600         MOV    AL,[BP+00]
+00B1:0399 9A1B006000     CALL   0060:001B        ;
+00B1:039E 8A4600         MOV    AL,[BP+00]
+00B1:03A1 0A6611         OR     AH,[BP+11]
+00B1:03A4 780C           JS     03B2
+00B1:03A6 FECC           DEC    AH
+00B1:03A8 74E5           JZ     038F
+00B1:03AA B401           MOV    AH,01
+00B1:03AC 3B065514       CMP    AX,[1455]
+00B1:03B0 74DD           JZ     038F
+00B1:03B2 3A065514       CMP    AL,[1455]
+00B1:03B6 750C           JNZ    03C4
+00B1:03B8 C70653140000   MOV    Word Ptr [1453],0000
+00B1:03BE C7065514FF00   MOV    Word Ptr [1455],00FF
+00B1:03C4 C7065914FFFF   MOV    Word Ptr [1459],FFFF
+00B1:03CA E8B800         CALL   0485
+00B1:03CD 50             PUSH   AX
+00B1:03CE E8CF01         CALL   05A0             ; €ten¡ z disku (DS:BP=tabulka)
+00B1:03D1 58             POP    AX
+00B1:03D2 720A           JB     03DE
+00B1:03D4 2A4607         SUB    AL,[BP+07]
+00B1:03D7 74B6           JZ     038F
+00B1:03D9 F6D8           NEG    AL
+00B1:03DB E98500         JMP    0463
+00B1:03DE 8BCF           MOV    CX,DI
+00B1:03E0 03D1           ADD    DX,CX
+00B1:03E2 FEC8           DEC    AL
+00B1:03E4 75E7           JNZ    03CD
+00B1:03E6 E89C00         CALL   0485
+00B1:03E9 E94501         JMP    0531
+00B1:03EC B000           MOV    AL,00
+00B1:03EE C3             RET
+
+00B1:03EF 8BFA           MOV    DI,DX
+00B1:03F1 823DFF         CMP    Byte Ptr [DI],FF
+00B1:03F4 7503           JNZ    03F9
+00B1:03F6 83C707         ADD    DI,+07
+00B1:03F9 827D17FF       CMP    Byte Ptr [DI+17],FF
+00B1:03FD 74ED           JZ     03EC
+00B1:03FF F6451EFF       TEST   Byte Ptr [DI+1E],FF
+00B1:0403 74E7           JZ     03EC
+00B1:0405 8A05           MOV    AL,[DI]
+00B1:0407 E83FFF         CALL   0349             ; Poskytnut¡ adresy tab. disku
+00B1:040A 7228           JB     0434
+00B1:040C 8A4600         MOV    AL,[BP+00]
+00B1:040F B401           MOV    AH,01
+00B1:0411 2E3B065514     CMP    AX,CS:[1455]
+00B1:0416 7519           JNZ    0431
+00B1:0418 52             PUSH   DX
+00B1:0419 1E             PUSH   DS
+00B1:041A 0E             PUSH   CS
+00B1:041B 1F             POP    DS
+00B1:041C C606561400     MOV    Byte Ptr [1456],00
+00B1:0421 8B1E5114       MOV    BX,[1451]
+00B1:0425 B90100         MOV    CX,0001
+00B1:0428 8B165314       MOV    DX,[1453]
+00B1:042C E89401         CALL   05C3
+00B1:042F 1F             POP    DS
+00B1:0430 5A             POP    DX
+00B1:0431 E866FD         CALL   019A
+00B1:0434 7248           JB     047E
+00B1:0436 A17E15         MOV    AX,[157E]
+00B1:0439 263B4516       CMP    AX,ES:[DI+16]
+00B1:043D 753F           JNZ    047E
+00B1:043F 268B4D18       MOV    CX,ES:[DI+18]
+00B1:0443 890C           MOV    [SI],CX
+00B1:0445 268B5510       MOV    DX,ES:[DI+10]
+00B1:0449 895402         MOV    [SI+02],DX
+00B1:044C 268B5512       MOV    DX,ES:[DI+12]
+00B1:0450 895404         MOV    [SI+04],DX
+00B1:0453 268B5514       MOV    DX,ES:[DI+14]
+00B1:0457 8954FE         MOV    [SI-02],DX
+00B1:045A E85B01         CALL   05B8
+00B1:045D 827E1101       CMP    Byte Ptr [BP+11],01
+00B1:0461 7518           JNZ    047B
+00B1:0463 C6461100       MOV    Byte Ptr [BP+11],00
+00B1:0467 E81B00         CALL   0485
+00B1:046A 52             PUSH   DX
+00B1:046B 51             PUSH   CX
+00B1:046C 53             PUSH   BX
+00B1:046D 50             PUSH   AX
+00B1:046E E85201         CALL   05C3
+00B1:0471 58             POP    AX
+00B1:0472 5B             POP    BX
+00B1:0473 59             POP    CX
+00B1:0474 5A             POP    DX
+00B1:0475 03D1           ADD    DX,CX
+00B1:0477 FEC8           DEC    AL
+00B1:0479 75EF           JNZ    046A
+00B1:047B B000           MOV    AL,00
+00B1:047D C3             RET
+
+00B1:047E C6461100       MOV    Byte Ptr [BP+11],00
+00B1:0482 B0FF           MOV    AL,FF
+00B1:0484 C3             RET
+
+00B1:0485 8A4607         MOV    AL,[BP+07]
+00B1:0488 8D5E12         LEA    BX,[BP+12]
+00B1:048B 8A4E0E         MOV    CL,[BP+0E]
+00B1:048E B500           MOV    CH,00
+00B1:0490 8B5605         MOV    DX,[BP+05]
+00B1:0493 C3             RET
+
+00B1:0494 98             CBW
+00B1:0495 03460F         ADD    AX,[BP+0F]
+00B1:0498 8BD0           MOV    DX,AX
+00B1:049A BBD417         MOV    BX,17D4
+00B1:049D B90100         MOV    CX,0001
+00B1:04A0 C3             RET
+
+00B1:04A1 E85CFE         CALL   0300
+00B1:04A4 722B           JB     04D1
+00B1:04A6 BF8615         MOV    DI,1586
+00B1:04A9 B90B00         MOV    CX,000B
+00B1:04AC B03F           MOV    AL,3F                         ;'?'
+00B1:04AE F2             REPNZ
+00B1:04AF AE             SCASB
+00B1:04B0 741F           JZ     04D1
+00B1:04B2 2EC606AA1501   MOV    Byte Ptr CS:[15AA],01
+00B1:04B8 52             PUSH   DX
+00B1:04B9 1E             PUSH   DS
+00B1:04BA E8EFFC         CALL   01AC
+00B1:04BD 7315           JNB    04D4
+00B1:04BF E8CEFE         CALL   0390
+00B1:04C2 E82DFD         CALL   01F2
+00B1:04C5 803FE5         CMP    Byte Ptr [BX],E5
+00B1:04C8 7427           JZ     04F1
+00B1:04CA E85CFD         CALL   0229
+00B1:04CD 73F6           JNB    04C5
+00B1:04CF 1F             POP    DS
+00B1:04D0 5A             POP    DX
+00B1:04D1 B0FF           MOV    AL,FF
+00B1:04D3 C3             RET
+
+00B1:04D4 75F9           JNZ    04CF
+00B1:04D6 82FFFF         CMP    BH,FF
+00B1:04D9 743C           JZ     0517
+00B1:04DB 8B0C           MOV    CX,[SI]
+00B1:04DD E312           JCXZ   04F1
+00B1:04DF 3B4E0C         CMP    CX,[BP+0C]
+00B1:04E2 770D           JA     04F1
+00B1:04E4 53             PUSH   BX
+00B1:04E5 8BD9           MOV    BX,CX
+00B1:04E7 8D7612         LEA    SI,[BP+12]
+00B1:04EA E80108         CALL   0CEE
+00B1:04ED E873FF         CALL   0463
+00B1:04F0 5B             POP    BX
+00B1:04F1 8BFB           MOV    DI,BX
+00B1:04F3 BE8615         MOV    SI,1586
+00B1:04F6 B90500         MOV    CX,0005
+00B1:04F9 A4             MOVSB
+00B1:04FA F3             REPZ
+00B1:04FB A5             MOVSW
+00B1:04FC A09115         MOV    AL,[1591]
+00B1:04FF AA             STOSB
+00B1:0500 33C0           XOR    AX,AX
+00B1:0502 B106           MOV    CL,06
+00B1:0504 F3             REPZ
+00B1:0505 AB             STOSW
+00B1:0506 E8910D         CALL   129A
+00B1:0509 AB             STOSW
+00B1:050A 33C0           XOR    AX,AX
+00B1:050C 57             PUSH   DI
+00B1:050D B106           MOV    CL,06
+00B1:050F F3             REPZ
+00B1:0510 AA             STOSB
+00B1:0511 53             PUSH   BX
+00B1:0512 E8A300         CALL   05B8
+00B1:0515 5B             POP    BX
+00B1:0516 5E             POP    SI
+00B1:0517 F8             CLC
+00B1:0518 07             POP    ES
+00B1:0519 5F             POP    DI
+00B1:051A E93FFE         JMP    035C
+00B1:051D 50             PUSH   AX
+00B1:051E E89000         CALL   05B1             ; Z pis na disk (DS:BP=tabulka)
+00B1:0521 58             POP    AX
+00B1:0522 50             PUSH   AX
+00B1:0523 8A6600         MOV    AH,[BP+00]
+00B1:0526 A35914         MOV    [1459],AX
+00B1:0529 E868FF         CALL   0494
+00B1:052C E80200         CALL   0531
+00B1:052F 58             POP    AX
+00B1:0530 C3             RET
+
+00B1:0531 E86C00         CALL   05A0             ; €ten¡ z disku (DS:BP=tabulka)
+00B1:0534 73FA           JNB    0530
+00B1:0536 2EC606B51500   MOV    Byte Ptr CS:[15B5],00
+00B1:053C E80500         CALL   0544
+00B1:053F 3C01           CMP    AL,01
+00B1:0541 74EE           JZ     0531
+00B1:0543 C3             RET
+
+00B1:0544 97             XCHG   AX,DI
+00B1:0545 2BC1           SUB    AX,CX
+00B1:0547 03D0           ADD    DX,AX
+00B1:0549 52             PUSH   DX
+00B1:054A F76601         MUL    Word Ptr [BP+01]
+00B1:054D 5A             POP    DX
+00B1:054E 03D8           ADD    BX,AX
+00B1:0550 B400           MOV    AH,00
+00B1:0552 3B5605         CMP    DX,[BP+05]
+00B1:0555 7212           JB     0569
+00B1:0557 FEC4           INC    AH
+00B1:0559 3B160F00       CMP    DX,[000F]
+00B1:055D 720A           JB     0569
+00B1:055F FEC4           INC    AH
+00B1:0561 3B160A00       CMP    DX,[000A]
+00B1:0565 7202           JB     0569
+00B1:0567 FEC4           INC    AH
+00B1:0569 D0E4           SHL    AH,1
+00B1:056B 2E0A26B515     OR     AH,CS:[15B5]
+00B1:0570 8A4600         MOV    AL,[BP+00]
+00B1:0573 55             PUSH   BP
+00B1:0574 2E8926AF15     MOV    CS:[15AF],SP
+00B1:0579 FA             CLI
+00B1:057A 2E8E16AD15     MOV    SS,CS:[15AD]
+00B1:057F 2E8B26AB15     MOV    SP,CS:[15AB]
+00B1:0584 CD24           INT    24
+00B1:0586 2E8926AB15     MOV    CS:[15AB],SP
+00B1:058B 2E8C16AD15     MOV    CS:[15AD],SS
+00B1:0590 8CCC           MOV    SP,CS
+00B1:0592 8ED4           MOV    SS,SP
+00B1:0594 2E8B26AF15     MOV    SP,CS:[15AF]
+00B1:0599 FB             STI
+00B1:059A 5D             POP    BP
+00B1:059B 3C02           CMP    AL,02
+00B1:059D 745A           JZ     05F9
+00B1:059F C3             RET
+
+; -----------------------------------------------------------------------------
+;         €ten¡ z disku (DS:BP=tabulka disku)
+; -----------------------------------------------------------------------------
+00B1:05A0 8A4600         MOV    AL,[BP+00]       ; po‘adovan˜ disk
+00B1:05A3 55             PUSH   BP
+00B1:05A4 53             PUSH   BX
+00B1:05A5 51             PUSH   CX
+00B1:05A6 52             PUSH   DX
+00B1:05A7 9A15006000     CALL   0060:0015        ; ‡ten¡ z disku (INT 25h)
+00B1:05AC 5A             POP    DX
+00B1:05AD 5F             POP    DI
+00B1:05AE 5B             POP    BX
+00B1:05AF 5D             POP    BP
+00B1:05B0 C3           * RET
+
+; -----------------------------------------------------------------------------
+;         Z pis na disk (DS:BP=tabulka disku)
+; -----------------------------------------------------------------------------
+00B1:05B1 F6064514FF     TEST   Byte Ptr [1445],FF
+00B1:05B6 74F8           JZ     05B0
+00B1:05B8 C606451400     MOV    Byte Ptr [1445],00
+00B1:05BD A05914         MOV    AL,[1459]
+00B1:05C0 E8D1FE         CALL   0494
+00B1:05C3 8A4600         MOV    AL,[BP+00]       ; po‘adovan˜ disk
+00B1:05C6 55             PUSH   BP
+00B1:05C7 53             PUSH   BX
+00B1:05C8 51             PUSH   CX
+00B1:05C9 52             PUSH   DX
+00B1:05CA 9A18006000     CALL   0060:0018        ; z pis na disk (INT 26h)
+00B1:05CF 5A             POP    DX
+00B1:05D0 5F             POP    DI
+00B1:05D1 5B             POP    BX
+00B1:05D2 5D             POP    BP
+00B1:05D3 73DB           JNB    05B0             ; operace OK
+00B1:05D5 2EC606B51501   MOV    Byte Ptr CS:[15B5],01
+00B1:05DB E866FF         CALL   0544
+00B1:05DE 3C01           CMP    AL,01
+00B1:05E0 74E1           JZ     05C3
+00B1:05E2 C3             RET
+
+
+00B1:05E3 2EC536AB15     LDS    SI,CS:[15AB]
+00B1:05E8 8E5C14         MOV    DS,[SI+14]
+00B1:05EB 33C0           XOR    AX,AX
+00B1:05ED 8EC0           MOV    ES,AX
+00B1:05EF BE0A00         MOV    SI,000A
+00B1:05F2 BF8800         MOV    DI,0088
+00B1:05F5 A5             MOVSW
+00B1:05F6 A5             MOVSW
+00B1:05F7 A5             MOVSW
+00B1:05F8 A5             MOVSW
+00B1:05F9 8CC8           MOV    AX,CS
+00B1:05FB 8ED8           MOV    DS,AX
+00B1:05FD 8EC0           MOV    ES,AX
+00B1:05FF E81F08         CALL   0E21
+00B1:0602 33C0           XOR    AX,AX
+00B1:0604 FA             CLI
+00B1:0605 8E16AD15       MOV    SS,[15AD]
+00B1:0609 8B26AB15       MOV    SP,[15AB]
+00B1:060D 8ED8           MOV    DS,AX
+00B1:060F BE8800         MOV    SI,0088
+00B1:0612 BF8015         MOV    DI,1580
+00B1:0615 A5             MOVSW
+00B1:0616 A5             MOVSW
+00B1:0617 58             POP    AX
+00B1:0618 5B             POP    BX
+00B1:0619 59             POP    CX
+00B1:061A 5A             POP    DX
+00B1:061B 5E             POP    SI
+00B1:061C 5F             POP    DI
+00B1:061D 5D             POP    BP
+00B1:061E 1F             POP    DS
+00B1:061F 07             POP    ES
+00B1:0620 FB             STI
+00B1:0621 2EFF2E8015     JMP    FAR CS:[1580]
+; -----------------------------------------------------------------------------
+;         Slu‘ba 14h - sekven‡n¡ ‡ten¡ ze souboru s FCB
+; -----------------------------------------------------------------------------
+00B1:0626 E83006         CALL   0C59             ; Poskytnut¡ ‡¡s. z znamu DX:AX
+00B1:0629 E80803         CALL   0934
+00B1:062C EB06           JMP    0634
+
+00B1:062E E82806         CALL   0C59             ; Poskytnut¡ ‡¡s. z znamu DX:AX
+00B1:0631 E86304         CALL   0A97
+
+00B1:0634 E345         * JCXZ   067B
+00B1:0636 050100         ADD    AX,0001
+00B1:0639 83D200         ADC    DX,+00
+00B1:063C EB3D           JMP    067B
+00B1:063E E85600         CALL   0697
+00B1:0641 E8F002         CALL   0934
+00B1:0644 EB25           JMP    066B
+00B1:0646 E84E00         CALL   0697
+00B1:0649 E84B04         CALL   0A97
+00B1:064C EB1D           JMP    066B
+00B1:064E E84900         CALL   069A
+00B1:0651 E8E002         CALL   0934
+00B1:0654 EB06           JMP    065C
+00B1:0656 E84100         CALL   069A
+00B1:0659 E83B04         CALL   0A97
+00B1:065C C536AB15       LDS    SI,[15AB]
+00B1:0660 894C04         MOV    [SI+04],CX
+00B1:0663 E306           JCXZ   066B
+00B1:0665 050100         ADD    AX,0001
+00B1:0668 83D200         ADC    DX,+00
+00B1:066B 26894521       MOV    ES:[DI+21],AX
+00B1:066F 26885523       MOV    ES:[DI+23],DL
+00B1:0673 0AF6           OR     DH,DH
+00B1:0675 7404           JZ     067B
+00B1:0677 26887524       MOV    ES:[DI+24],DH
+00B1:067B 8BC8         * MOV    CX,AX
+00B1:067D 247F           AND    AL,7F
+00B1:067F 26884520       MOV    ES:[DI+20],AL
+00B1:0683 80E180         AND    CL,80
+00B1:0686 D1E1           SHL    CX,1
+00B1:0688 D1D2           RCL    DX,1
+00B1:068A 8AC5           MOV    AL,CH
+00B1:068C 8AE2           MOV    AH,DL
+00B1:068E 2689450C       MOV    ES:[DI+0C],AX
+00B1:0692 2EA0B215       MOV    AL,CS:[15B2]
+00B1:0696 C3             RET
+
+
+
+00B1:0697 B90100         MOV    CX,0001
+00B1:069A 8BFA           MOV    DI,DX
+00B1:069C 823DFF         CMP    Byte Ptr [DI],FF
+00B1:069F 7503           JNZ    06A4
+00B1:06A1 83C707         ADD    DI,+07
+00B1:06A4 8B4521         MOV    AX,[DI+21]
+00B1:06A7 8B5523         MOV    DX,[DI+23]
+00B1:06AA C3             RET
+
+
+00B1:06AB 33C9         * XOR    CX,CX
+00B1:06AD C606B21504     MOV    Byte Ptr [15B2],04
+00B1:06B2 5B             POP    BX
+00B1:06B3 C3             RET
+; -----------------------------------------------------------------------------
+;         Nastaven¡ parametr– p©ed diskovou operac¡
+; -----------------------------------------------------------------------------
+00B1:06B4 50             PUSH   AX
+00B1:06B5 8A05           MOV    AL,[DI]          ; ‡¡slo disku
+00B1:06B7 8B750E         MOV    SI,[DI+0E]       ; d‚lka jednoho z znamu
+00B1:06BA 0BF6           OR     SI,SI
+00B1:06BC 7506           JNZ    06C4             ; d‚lka je zad na
+00B1:06BE BE8000         MOV    SI,0080          ; n hradn¡ d‚lka 128 bajt–
+00B1:06C1 89750E         MOV    [DI+0E],SI
+00B1:06C4 8CDB         * MOV    BX,DS            ; segment s FCB
+00B1:06C6 8EC3           MOV    ES,BX            ; ES <- segment s FCB
+00B1:06C8 8CCB           MOV    BX,CS
+00B1:06CA 8EDB           MOV    DS,BX            ; DS <- CS
+00B1:06CC E87AFC         CALL   0349             ; Poskytnut¡ adresy tab. disku
+00B1:06CF 58             POP    AX
+00B1:06D0 72D9           JB     06AB             ; chybn‚ zad n¡ disku
+00B1:06D2 83FE40         CMP    SI,+40
+00B1:06D5 7202           JB     06D9
+00B1:06D7 B600           MOV    DH,00
+00B1:06D9 890EBE15     * MOV    [15BE],CX
+00B1:06DD A3BA15         MOV    [15BA],AX
+00B1:06E0 8916BC15       MOV    [15BC],DX
+00B1:06E4 893EB615       MOV    [15B6],DI        ; adresa FCB
+00B1:06E8 8B1E4914       MOV    BX,[1449]        ; adresa DTA
+00B1:06EC 891EB815       MOV    [15B8],BX        ; adresa pro diskovou operaci
+00B1:06F0 C606B21500     MOV    Byte Ptr [15B2],00
+00B1:06F5 C606B31500     MOV    Byte Ptr [15B3],00
+00B1:06FA 8BDA           MOV    BX,DX
+00B1:06FC F7E6           MUL    SI
+00B1:06FE A3CA15         MOV    [15CA],AX
+00B1:0701 52             PUSH   DX
+00B1:0702 8BC3           MOV    AX,BX
+00B1:0704 F7E6           MUL    SI
+00B1:0706 5B             POP    BX
+00B1:0707 03C3           ADD    AX,BX
+00B1:0709 83D200         ADC    DX,+00
+00B1:070C 7556           JNZ    0764
+00B1:070E A3CC15         MOV    [15CC],AX
+00B1:0711 8BD0           MOV    DX,AX
+00B1:0713 A1CA15         MOV    AX,[15CA]
+00B1:0716 8B5E01         MOV    BX,[BP+01]
+00B1:0719 3BD3           CMP    DX,BX
+00B1:071B 7347           JNB    0764
+00B1:071D F7F3           DIV    BX
+00B1:071F A3C415         MOV    [15C4],AX
+00B1:0722 8916C815       MOV    [15C8],DX
+00B1:0726 8BD0           MOV    DX,AX
+00B1:0728 224603         AND    AL,[BP+03]
+00B1:072B A2B115         MOV    [15B1],AL
+00B1:072E 8BC1           MOV    AX,CX
+00B1:0730 8A4E04         MOV    CL,[BP+04]
+00B1:0733 D3EA           SHR    DX,CL
+00B1:0735 8916C215       MOV    [15C2],DX
+00B1:0739 F7E6           MUL    SI
+00B1:073B 8BC8           MOV    CX,AX
+00B1:073D 03064914       ADD    AX,[1449]        ; adresa DTA
+00B1:0741 83D200         ADC    DX,+00
+00B1:0744 741A           JZ     0760
+00B1:0746 A14914         MOV    AX,[1449]        ; adresa DTA
+00B1:0749 F7D8           NEG    AX
+00B1:074B 7501           JNZ    074E
+00B1:074D 48             DEC    AX
+00B1:074E 33D2           XOR    DX,DX
+00B1:0750 F7F6           DIV    SI
+00B1:0752 A3BE15         MOV    [15BE],AX
+00B1:0755 F7E6           MUL    SI
+00B1:0757 C606B21502     MOV    Byte Ptr [15B2],02
+00B1:075C 8BC8           MOV    CX,AX
+00B1:075E E30B           JCXZ   076B
+00B1:0760 8D7612         LEA    SI,[BP+12]
+00B1:0763 C3             RET
+
+00B1:0764 C606B21501     MOV    Byte Ptr [15B2],01
+00B1:0769 33C9           XOR    CX,CX
+00B1:076B 5B             POP    BX
+00B1:076C C3             RET
+
+
+
+00B1:076D A1C815         MOV    AX,[15C8]
+00B1:0770 8BD9           MOV    BX,CX
+00B1:0772 0BC0           OR     AX,AX
+00B1:0774 740D           JZ     0783
+00B1:0776 2B4601         SUB    AX,[BP+01]
+00B1:0779 F7D8           NEG    AX
+00B1:077B 2BD8           SUB    BX,AX
+00B1:077D 7304           JNB    0783
+00B1:077F 03C3           ADD    AX,BX
+00B1:0781 33DB           XOR    BX,BX
+00B1:0783 A3CE15         MOV    [15CE],AX
+00B1:0786 8BC3           MOV    AX,BX
+00B1:0788 33D2           XOR    DX,DX
+00B1:078A F77601         DIV    Word Ptr [BP+01]
+00B1:078D A3D215         MOV    [15D2],AX
+00B1:0790 8916D015       MOV    [15D0],DX
+00B1:0794 C3             RET
+
+00B1:0795 268B5D1A       MOV    BX,ES:[DI+1A]
+00B1:0799 268B551C       MOV    DX,ES:[DI+1C]
+00B1:079D 0BDB           OR     BX,BX
+00B1:079F 741D           JZ     07BE
+00B1:07A1 2BCA           SUB    CX,DX
+00B1:07A3 7308           JNB    07AD
+00B1:07A5 03CA           ADD    CX,DX
+00B1:07A7 33D2           XOR    DX,DX
+00B1:07A9 268B5D18       MOV    BX,ES:[DI+18]
+00B1:07AD E3E5           JCXZ   0794
+00B1:07AF E870F9         CALL   0122
+00B1:07B2 81FFF80F       CMP    DI,0FF8
+00B1:07B6 73DC           JNB    0794
+00B1:07B8 87FB           XCHG   DI,BX
+00B1:07BA 42             INC    DX
+00B1:07BB E2F2           LOOP   07AF
+00B1:07BD C3             RET
+
+00B1:07BE 41             INC    CX
+00B1:07BF 4A             DEC    DX
+00B1:07C0 C3             RET
+
+00B1:07C1 8B16C215       MOV    DX,[15C2]
+00B1:07C5 8A1EB115       MOV    BL,[15B1]
+00B1:07C9 E87E04         CALL   0C4A
+00B1:07CC A2B415         MOV    [15B4],AL
+00B1:07CF 3B165314       CMP    DX,[1453]
+00B1:07D3 7508           JNZ    07DD
+00B1:07D5 A05514         MOV    AL,[1455]
+00B1:07D8 3A4600         CMP    AL,[BP+00]
+00B1:07DB 7440           JZ     081D
+00B1:07DD F6065614FF     TEST   Byte Ptr [1456],FF
+00B1:07E2 7416           JZ     07FA
+00B1:07E4 52             PUSH   DX
+00B1:07E5 55             PUSH   BP
+00B1:07E6 8B2E5714       MOV    BP,[1457]
+00B1:07EA 8B1E5114       MOV    BX,[1451]
+00B1:07EE B90100         MOV    CX,0001
+00B1:07F1 8B165314       MOV    DX,[1453]
+00B1:07F5 E8CBFD         CALL   05C3
+00B1:07F8 5D             POP    BP
+00B1:07F9 5A             POP    DX
+00B1:07FA F606B415FF     TEST   Byte Ptr [15B4],FF
+00B1:07FF 750C           JNZ    080D
+00B1:0801 8B1E5114       MOV    BX,[1451]
+00B1:0805 B90100         MOV    CX,0001
+00B1:0808 52             PUSH   DX
+00B1:0809 E825FD         CALL   0531
+00B1:080C 5A             POP    DX
+00B1:080D 89165314       MOV    [1453],DX
+00B1:0811 8A4600         MOV    AL,[BP+00]
+00B1:0814 B400           MOV    AH,00
+00B1:0816 A35514         MOV    [1455],AX
+00B1:0819 892E5714       MOV    [1457],BP
+00B1:081D C606B31501     MOV    Byte Ptr [15B3],01
+00B1:0822 8B3EB815       MOV    DI,[15B8]
+00B1:0826 8BF7           MOV    SI,DI
+00B1:0828 8B0ECE15       MOV    CX,[15CE]
+00B1:082C 03F1           ADD    SI,CX
+00B1:082E 8936B815       MOV    [15B8],SI
+00B1:0832 8B365114       MOV    SI,[1451]
+00B1:0836 0336C815       ADD    SI,[15C8]
+00B1:083A C3             RET
+
+00B1:083B 32C0           XOR    AL,AL
+00B1:083D E881FF         CALL   07C1
+00B1:0840 06             PUSH   ES
+00B1:0841 8E064B14       MOV    ES,[144B]
+00B1:0845 D1E9           SHR    CX,1
+00B1:0847 7301           JNB    084A
+00B1:0849 A4             MOVSB
+00B1:084A F3             REPZ
+00B1:084B A5             MOVSW
+00B1:084C 07             POP    ES
+00B1:084D C3             RET
+
+00B1:084E A1C415         MOV    AX,[15C4]
+00B1:0851 40             INC    AX
+00B1:0852 A3C415         MOV    [15C4],AX
+00B1:0855 3B06C615       CMP    AX,[15C6]
+00B1:0859 B001           MOV    AL,01
+00B1:085B 7702           JA     085F
+00B1:085D B000           MOV    AL,00
+00B1:085F E85FFF         CALL   07C1
+00B1:0862 87F7           XCHG   SI,DI
+00B1:0864 1E             PUSH   DS
+00B1:0865 06             PUSH   ES
+00B1:0866 0E             PUSH   CS
+00B1:0867 07             POP    ES
+00B1:0868 8E1E4B14       MOV    DS,[144B]
+00B1:086C D1E9           SHR    CX,1
+00B1:086E 7301           JNB    0871
+00B1:0870 A4             MOVSB
+00B1:0871 F3             REPZ
+00B1:0872 A5             MOVSW
+00B1:0873 07             POP    ES
+00B1:0874 1F             POP    DS
+00B1:0875 C606561401     MOV    Byte Ptr [1456],01
+00B1:087A C3             RET
+
+00B1:087B F606B315FF     TEST   Byte Ptr [15B3],FF
+00B1:0880 7427           JZ     08A9
+00B1:0882 A0B115         MOV    AL,[15B1]
+00B1:0885 FEC0           INC    AL
+00B1:0887 3A4603         CMP    AL,[BP+03]
+00B1:088A 761A           JBE    08A6
+00B1:088C 8B1EC215       MOV    BX,[15C2]
+00B1:0890 81FBF80F       CMP    BX,0FF8
+00B1:0894 7315           JNB    08AB
+00B1:0896 8D7612         LEA    SI,[BP+12]
+00B1:0899 E886F8         CALL   0122
+00B1:089C 893EC215       MOV    [15C2],DI
+00B1:08A0 FF06C015       INC    Word Ptr [15C0]
+00B1:08A4 B000           MOV    AL,00
+00B1:08A6 A2B115         MOV    [15B1],AL
+00B1:08A9 F8             CLC
+00B1:08AA C3             RET
+
+00B1:08AB F9             STC
+00B1:08AC C3             RET
+
+00B1:08AD AC             LODSB
+00B1:08AE AA             STOSB
+00B1:08AF 3C0D           CMP    AL,0D
+00B1:08B1 7503           JNZ    08B6
+00B1:08B3 C6040A         MOV    Byte Ptr [SI],0A
+00B1:08B6 3C0A           CMP    AL,0A
+00B1:08B8 E0F3           LOOPNZ 08AD
+00B1:08BA 750B           JNZ    08C7
+00B1:08BC E8A307         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:08BF 33F6           XOR    SI,SI
+00B1:08C1 0BC9           OR     CX,CX
+00B1:08C3 7547           JNZ    090C
+00B1:08C5 0C01           OR     AL,01
+00B1:08C7 89364714       MOV    [1447],SI
+00B1:08CB 893EB815       MOV    [15B8],DI
+00B1:08CF 07             POP    ES
+00B1:08D0 7509           JNZ    08DB
+00B1:08D2 8B3EB615       MOV    DI,[15B6]
+00B1:08D6 26804D1680     OR     Byte Ptr ES:[DI+16],80
+00B1:08DB E9DD00         JMP    09BB
+00B1:08DE 06           * PUSH   ES
+00B1:08DF C43E4914       LES    DI,[1449]        ; adresa DTA
+00B1:08E3 0ADB           OR     BL,BL
+00B1:08E5 740E           JZ     08F5
+00B1:08E7 FECB           DEC    BL
+00B1:08E9 75E0           JNZ    08CB
+00B1:08EB E81EF8         CALL   010C
+00B1:08EE AA             STOSB
+00B1:08EF 3C1A           CMP    AL,1A
+00B1:08F1 E0F8           LOOPNZ 08EB
+00B1:08F3 EBD6           JMP    08CB
+00B1:08F5 0E             PUSH   CS
+00B1:08F6 1F             POP    DS
+00B1:08F7 8B364714       MOV    SI,[1447]
+00B1:08FB 0BF6           OR     SI,SI
+00B1:08FD 75AE           JNZ    08AD
+00B1:08FF 803EFB1480     CMP    Byte Ptr [14FB],80
+00B1:0904 7406           JZ     090C
+00B1:0906 C706FB1480FF   MOV    Word Ptr [14FB],FF80
+00B1:090C 51             PUSH   CX
+00B1:090D 06             PUSH   ES
+00B1:090E 57             PUSH   DI
+00B1:090F BAFB14         MOV    DX,14FB
+00B1:0912 E87805         CALL   0E8D
+00B1:0915 5F             POP    DI
+00B1:0916 07             POP    ES
+00B1:0917 59             POP    CX
+00B1:0918 BEFD14         MOV    SI,14FD
+00B1:091B 823C1A         CMP    Byte Ptr [SI],1A
+00B1:091E 758D           JNZ    08AD
+00B1:0920 B01A           MOV    AL,1A
+00B1:0922 AA             STOSB
+00B1:0923 B00A           MOV    AL,0A
+00B1:0925 E83A07         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:0928 33F6           XOR    SI,SI
+00B1:092A EB9B           JMP    08C7
+00B1:092C 33C9           XOR    CX,CX
+00B1:092E E94F01         JMP    0A80
+00B1:0931 E9E700         JMP    0A1B
+
+
+00B1:0934 E87DFD         CALL   06B4             ; nastaven¡ parametr– p©ed oper.
+00B1:0937 268B5D16       MOV    BX,ES:[DI+16]    ;
+00B1:093B 82FFFF         CMP    BH,FF
+00B1:093E 749E           JZ     08DE
+00B1:0940 268B4510       MOV    AX,ES:[DI+10]
+00B1:0944 268B5D12       MOV    BX,ES:[DI+12]    ; velikost souboru
+00B1:0948 2B06CA15       SUB    AX,[15CA]
+00B1:094C 1B1ECC15       SBB    BX,[15CC]
+00B1:0950 72DA           JB     092C
+00B1:0952 750A           JNZ    095E
+00B1:0954 0BC0           OR     AX,AX
+00B1:0956 74D4           JZ     092C
+00B1:0958 3BC1           CMP    AX,CX
+00B1:095A 7302           JNB    095E
+00B1:095C 8BC8           MOV    CX,AX
+00B1:095E E80CFE         CALL   076D
+00B1:0961 8B0EC215       MOV    CX,[15C2]
+00B1:0965 E82DFE         CALL   0795
+00B1:0968 0BC9           OR     CX,CX
+00B1:096A 75C0           JNZ    092C
+00B1:096C 8916C015       MOV    [15C0],DX
+00B1:0970 891EC215       MOV    [15C2],BX
+00B1:0974 833ECE1500     CMP    Word Ptr [15CE],+00
+00B1:0979 7403           JZ     097E
+00B1:097B E8BDFE         CALL   083B
+00B1:097E 833ED21500     CMP    Word Ptr [15D2],+00
+00B1:0983 74AC           JZ     0931
+00B1:0985 E8F3FE         CALL   087B
+00B1:0988 7231           JB     09BB
+00B1:098A C606B31501     MOV    Byte Ptr [15B3],01
+00B1:098F 8A16B115       MOV    DL,[15B1]
+00B1:0993 8B0ED215       MOV    CX,[15D2]
+00B1:0997 8B1EC215       MOV    BX,[15C2]
+00B1:099B E85302         CALL   0BF1
+00B1:099E 57             PUSH   DI
+00B1:099F 50             PUSH   AX
+00B1:09A0 1E             PUSH   DS
+00B1:09A1 8E1E4B14       MOV    DS,[144B]
+00B1:09A5 E889FB         CALL   0531
+00B1:09A8 1F             POP    DS
+00B1:09A9 59             POP    CX
+00B1:09AA 5B             POP    BX
+00B1:09AB E36E           JCXZ   0A1B
+00B1:09AD 81FBF80F       CMP    BX,0FF8
+00B1:09B1 7308           JNB    09BB
+00B1:09B3 B200           MOV    DL,00
+00B1:09B5 FF06C015       INC    Word Ptr [15C0]
+00B1:09B9 EBE0           JMP    099B
+00B1:09BB 8B36B615       MOV    SI,[15B6]
+00B1:09BF A1B815         MOV    AX,[15B8]
+00B1:09C2 8BF8           MOV    DI,AX
+00B1:09C4 2B064914       SUB    AX,[1449]        ; adresa DTA
+00B1:09C8 33D2           XOR    DX,DX
+00B1:09CA 268B4C0E       MOV    CX,ES:[SI+0E]
+00B1:09CE F7F1           DIV    CX
+00B1:09D0 3B06BE15       CMP    AX,[15BE]
+00B1:09D4 7422           JZ     09F8
+00B1:09D6 C606B21501     MOV    Byte Ptr [15B2],01
+00B1:09DB 0BD2           OR     DX,DX
+00B1:09DD 7419           JZ     09F8
+00B1:09DF C606B21503     MOV    Byte Ptr [15B2],03
+00B1:09E4 2BCA           SUB    CX,DX
+00B1:09E6 06             PUSH   ES
+00B1:09E7 8E064B14       MOV    ES,[144B]
+00B1:09EB 93             XCHG   AX,BX
+00B1:09EC 33C0           XOR    AX,AX
+00B1:09EE D1E9           SHR    CX,1
+00B1:09F0 7301           JNB    09F3
+00B1:09F2 AA             STOSB
+00B1:09F3 F3             REPZ
+00B1:09F4 AB             STOSW
+00B1:09F5 93             XCHG   AX,BX
+00B1:09F6 07             POP    ES
+00B1:09F7 40             INC    AX
+00B1:09F8 8BC8           MOV    CX,AX
+00B1:09FA 8BFE           MOV    DI,SI
+00B1:09FC A1C215         MOV    AX,[15C2]
+00B1:09FF 2689451A       MOV    ES:[DI+1A],AX
+00B1:0A03 A1C015         MOV    AX,[15C0]
+00B1:0A06 2689451C       MOV    ES:[DI+1C],AX
+00B1:0A0A A1BA15         MOV    AX,[15BA]
+00B1:0A0D 8B16BC15       MOV    DX,[15BC]
+00B1:0A11 E307           JCXZ   0A1A
+00B1:0A13 49             DEC    CX
+00B1:0A14 03C1           ADD    AX,CX
+00B1:0A16 83D200         ADC    DX,+00
+00B1:0A19 41             INC    CX
+00B1:0A1A C3             RET
+
+00B1:0A1B A1D015         MOV    AX,[15D0]
+00B1:0A1E 0BC0           OR     AX,AX
+00B1:0A20 7499           JZ     09BB
+00B1:0A22 A3CE15         MOV    [15CE],AX
+00B1:0A25 E853FE         CALL   087B
+00B1:0A28 7291           JB     09BB
+00B1:0A2A C706C8150000   MOV    Word Ptr [15C8],0000
+00B1:0A30 E808FE         CALL   083B
+00B1:0A33 EB86           JMP    09BB
+00B1:0A35 1E             PUSH   DS
+00B1:0A36 C5364914       LDS    SI,[1449]        ; adresa DTA
+00B1:0A3A 80E37F         AND    BL,7F
+00B1:0A3D 0ADB           OR     BL,BL
+00B1:0A3F 741E           JZ     0A5F
+00B1:0A41 FECB           DEC    BL
+00B1:0A43 7410           JZ     0A55
+00B1:0A45 FECB           DEC    BL
+00B1:0A47 7520           JNZ    0A69
+00B1:0A49 AC             LODSB
+00B1:0A4A 3C1A           CMP    AL,1A
+00B1:0A4C 741B           JZ     0A69
+00B1:0A4E E8FF06         CALL   1150
+00B1:0A51 E2F6           LOOP   0A49
+00B1:0A53 EB14           JMP    0A69
+00B1:0A55 AC             LODSB
+00B1:0A56 E8BEF6         CALL   0117
+00B1:0A59 3C1A           CMP    AL,1A
+00B1:0A5B E0F8           LOOPNZ 0A55
+00B1:0A5D EB0A           JMP    0A69
+00B1:0A5F AC             LODSB
+00B1:0A60 3C1A           CMP    AL,1A
+00B1:0A62 7405           JZ     0A69
+00B1:0A64 E8FB05         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:0A67 E2F6           LOOP   0A5F
+00B1:0A69 1F             POP    DS
+00B1:0A6A 8B0EBE15       MOV    CX,[15BE]
+00B1:0A6E 8B3EB615       MOV    DI,[15B6]
+00B1:0A72 EB96           JMP    0A0A
+00B1:0A74 8BC8           MOV    CX,AX
+00B1:0A76 E836FD         CALL   07AF
+00B1:0A79 E316           JCXZ   0A91
+00B1:0A7B E8FB01         CALL   0C79
+00B1:0A7E 7311           JNB    0A91
+00B1:0A80 C606B21501     MOV    Byte Ptr [15B2],01
+00B1:0A85 A1BA15         MOV    AX,[15BA]
+00B1:0A88 8B16BC15       MOV    DX,[15BC]
+00B1:0A8C 8B3EB615       MOV    DI,[15B6]
+00B1:0A90 C3             RET
+
+
+00B1:0A91 E97C00         JMP    0B10
+00B1:0A94 E90A01         JMP    0BA1
+00B1:0A97 C6451E01       MOV    Byte Ptr [DI+1E],01
+00B1:0A9B E816FC         CALL   06B4             ; nastaven¡ parametr– p©ed oper.
+00B1:0A9E E8F907         CALL   129A
+00B1:0AA1 26894514       MOV    ES:[DI+14],AX
+00B1:0AA5 268B5D16       MOV    BX,ES:[DI+16]
+00B1:0AA9 82FFFF         CMP    BH,FF
+00B1:0AAC 7487           JZ     0A35
+00B1:0AAE E8BCFC         CALL   076D
+00B1:0AB1 A1CA15         MOV    AX,[15CA]
+00B1:0AB4 8B16CC15       MOV    DX,[15CC]
+00B1:0AB8 E3DA           JCXZ   0A94
+00B1:0ABA 49             DEC    CX
+00B1:0ABB 03C1           ADD    AX,CX
+00B1:0ABD 83D200         ADC    DX,+00
+00B1:0AC0 F77601         DIV    Word Ptr [BP+01]
+00B1:0AC3 8A4E04         MOV    CL,[BP+04]
+00B1:0AC6 D3E8           SHR    AX,CL
+00B1:0AC8 50             PUSH   AX
+00B1:0AC9 268B4510       MOV    AX,ES:[DI+10]
+00B1:0ACD 268B5512       MOV    DX,ES:[DI+12]
+00B1:0AD1 F77601         DIV    Word Ptr [BP+01]
+00B1:0AD4 0BD2           OR     DX,DX
+00B1:0AD6 7401           JZ     0AD9
+00B1:0AD8 40             INC    AX
+00B1:0AD9 A3C615         MOV    [15C6],AX
+00B1:0ADC 58             POP    AX
+00B1:0ADD 8B0EC215       MOV    CX,[15C2]
+00B1:0AE1 E8B1FC         CALL   0795
+00B1:0AE4 891EC215       MOV    [15C2],BX
+00B1:0AE8 8916C015       MOV    [15C0],DX
+00B1:0AEC 2BC2           SUB    AX,DX
+00B1:0AEE 7420           JZ     0B10
+00B1:0AF0 E382           JCXZ   0A74
+00B1:0AF2 51             PUSH   CX
+00B1:0AF3 8BC8           MOV    CX,AX
+00B1:0AF5 E88101         CALL   0C79
+00B1:0AF8 58             POP    AX
+00B1:0AF9 7285           JB     0A80
+00B1:0AFB 8BC8           MOV    CX,AX
+00B1:0AFD 8B16C015       MOV    DX,[15C0]
+00B1:0B01 42             INC    DX
+00B1:0B02 49             DEC    CX
+00B1:0B03 7403           JZ     0B08
+00B1:0B05 E8A7FC         CALL   07AF
+00B1:0B08 891EC215       MOV    [15C2],BX
+00B1:0B0C 8916C015       MOV    [15C0],DX
+00B1:0B10 833ECE1500     CMP    Word Ptr [15CE],+00
+00B1:0B15 7407           JZ     0B1E
+00B1:0B17 8B1EC215       MOV    BX,[15C2]
+00B1:0B1B E830FD         CALL   084E
+00B1:0B1E A1D215         MOV    AX,[15D2]
+00B1:0B21 0BC0           OR     AX,AX
+00B1:0B23 7432           JZ     0B57
+00B1:0B25 0106C415       ADD    [15C4],AX
+00B1:0B29 E84FFD         CALL   087B
+00B1:0B2C C606B31501     MOV    Byte Ptr [15B3],01
+00B1:0B31 8A16B115       MOV    DL,[15B1]
+00B1:0B35 8B1EC215       MOV    BX,[15C2]
+00B1:0B39 8B0ED215       MOV    CX,[15D2]
+00B1:0B3D E8B100         CALL   0BF1
+00B1:0B40 57             PUSH   DI
+00B1:0B41 50             PUSH   AX
+00B1:0B42 1E             PUSH   DS
+00B1:0B43 8E1E4B14       MOV    DS,[144B]
+00B1:0B47 E879FA         CALL   05C3
+00B1:0B4A 1F             POP    DS
+00B1:0B4B 59             POP    CX
+00B1:0B4C 5B             POP    BX
+00B1:0B4D E308           JCXZ   0B57
+00B1:0B4F B200           MOV    DL,00
+00B1:0B51 FF06C015       INC    Word Ptr [15C0]
+00B1:0B55 EBE6           JMP    0B3D
+00B1:0B57 A1D015         MOV    AX,[15D0]
+00B1:0B5A 0BC0           OR     AX,AX
+00B1:0B5C 740F           JZ     0B6D
+00B1:0B5E A3CE15         MOV    [15CE],AX
+00B1:0B61 E817FD         CALL   087B
+00B1:0B64 C706C8150000   MOV    Word Ptr [15C8],0000
+00B1:0B6A E8E1FC         CALL   084E
+00B1:0B6D A1B815         MOV    AX,[15B8]
+00B1:0B70 2B064914       SUB    AX,[1449]        ; adresa DTA
+00B1:0B74 0306CA15       ADD    AX,[15CA]
+00B1:0B78 8B16CC15       MOV    DX,[15CC]
+00B1:0B7C 83D200         ADC    DX,+00
+00B1:0B7F 8BCA           MOV    CX,DX
+00B1:0B81 8B3EB615       MOV    DI,[15B6]
+00B1:0B85 263B4510       CMP    AX,ES:[DI+10]
+00B1:0B89 261B4D12       SBB    CX,ES:[DI+12]
+00B1:0B8D 7208           JB     0B97
+00B1:0B8F 26894510       MOV    ES:[DI+10],AX
+00B1:0B93 26895512       MOV    ES:[DI+12],DX
+00B1:0B97 8B0EBE15       MOV    CX,[15BE]
+00B1:0B9B E95EFE         JMP    09FC
+00B1:0B9E E9DFFE         JMP    0A80
+00B1:0BA1 8BC8           MOV    CX,AX
+00B1:0BA3 0BCA           OR     CX,DX
+00B1:0BA5 743B           JZ     0BE2
+00B1:0BA7 2D0100         SUB    AX,0001
+00B1:0BAA 83DA00         SBB    DX,+00
+00B1:0BAD F77601         DIV    Word Ptr [BP+01]
+00B1:0BB0 8A4E04         MOV    CL,[BP+04]
+00B1:0BB3 D3E8           SHR    AX,CL
+00B1:0BB5 8BC8           MOV    CX,AX
+00B1:0BB7 E8DBFB         CALL   0795
+00B1:0BBA E31A           JCXZ   0BD6
+00B1:0BBC E8BA00         CALL   0C79
+00B1:0BBF 72DD           JB     0B9E
+00B1:0BC1 8B3EB615       MOV    DI,[15B6]
+00B1:0BC5 A1CA15         MOV    AX,[15CA]
+00B1:0BC8 26894510       MOV    ES:[DI+10],AX
+00B1:0BCC A1CC15         MOV    AX,[15CC]
+00B1:0BCF 26894512       MOV    ES:[DI+12],AX
+00B1:0BD3 33C9           XOR    CX,CX
+00B1:0BD5 C3             RET
+
+00B1:0BD6 BAFF0F         MOV    DX,0FFF
+00B1:0BD9 E81401         CALL   0CF0
+00B1:0BDC C6461101       MOV    Byte Ptr [BP+11],01
+00B1:0BE0 EBDF           JMP    0BC1
+00B1:0BE2 33DB           XOR    BX,BX
+00B1:0BE4 26875D18       XCHG   BX,ES:[DI+18]
+00B1:0BE8 0BDB           OR     BX,BX
+00B1:0BEA 74D5           JZ     0BC1
+00B1:0BEC E8FF00         CALL   0CEE
+00B1:0BEF EBEB           JMP    0BDC
+00B1:0BF1 52             PUSH   DX
+00B1:0BF2 53             PUSH   BX
+00B1:0BF3 8A4603         MOV    AL,[BP+03]
+00B1:0BF6 FEC0           INC    AL
+00B1:0BF8 8AE0           MOV    AH,AL
+00B1:0BFA 2AC2           SUB    AL,DL
+00B1:0BFC 8BD1           MOV    DX,CX
+00B1:0BFE 8D7612         LEA    SI,[BP+12]
+00B1:0C01 B90000         MOV    CX,0000
+00B1:0C04 E81BF5         CALL   0122
+00B1:0C07 02C8           ADD    CL,AL
+00B1:0C09 82D500         ADC    CH,00
+00B1:0C0C 3BCA           CMP    CX,DX
+00B1:0C0E 732C           JNB    0C3C
+00B1:0C10 8AC4           MOV    AL,AH
+00B1:0C12 43             INC    BX
+00B1:0C13 3BFB           CMP    DI,BX
+00B1:0C15 74ED           JZ     0C04
+00B1:0C17 4B             DEC    BX
+00B1:0C18 891EC215       MOV    [15C2],BX
+00B1:0C1C 2BD1           SUB    DX,CX
+00B1:0C1E 52             PUSH   DX
+00B1:0C1F 8BC1           MOV    AX,CX
+00B1:0C21 F76601         MUL    Word Ptr [BP+01]
+00B1:0C24 8B36B815       MOV    SI,[15B8]
+00B1:0C28 03C6           ADD    AX,SI
+00B1:0C2A A3B815         MOV    [15B8],AX
+00B1:0C2D 58             POP    AX
+00B1:0C2E 5A             POP    DX
+00B1:0C2F 2BDA           SUB    BX,DX
+00B1:0C31 011EC015       ADD    [15C0],BX
+00B1:0C35 5B             POP    BX
+00B1:0C36 E81100         CALL   0C4A
+00B1:0C39 8BDE           MOV    BX,SI
+00B1:0C3B C3             RET
+
+00B1:0C3C 2BCA           SUB    CX,DX
+00B1:0C3E 2AE1           SUB    AH,CL
+00B1:0C40 FECC           DEC    AH
+00B1:0C42 8826B115       MOV    [15B1],AH
+00B1:0C46 8BCA           MOV    CX,DX
+00B1:0C48 EBCE           JMP    0C18
+00B1:0C4A 51             PUSH   CX
+00B1:0C4B 8A4E04         MOV    CL,[BP+04]
+00B1:0C4E 4A             DEC    DX
+00B1:0C4F 4A             DEC    DX
+00B1:0C50 D3E2           SHL    DX,CL
+00B1:0C52 0AD3           OR     DL,BL
+00B1:0C54 03560A         ADD    DX,[BP+0A]
+00B1:0C57 59             POP    CX
+00B1:0C58 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Poskytnut¡ ‡¡sla z znamu DX:AX
+; -----------------------------------------------------------------------------
+00B1:0C59 8BFA           MOV    DI,DX            ; adresa FCB
+00B1:0C5B 823DFF         CMP    Byte Ptr [DI],FF ; je roz¨¡©en˜ FCB ?
+00B1:0C5E 7503           JNZ    0C63             ; nen¡ roz¨¡©en˜ FCB
+00B1:0C60 83C707         ADD    DI,+07           ; adresa za‡ tku FCB
+00B1:0C63 B90100       * MOV    CX,0001
+00B1:0C66 8A4520         MOV    AL,[DI+20]       ; aktu ln¡ z znam
+00B1:0C69 8B550C         MOV    DX,[DI+0C]       ; aktu ln¡ blok
+00B1:0C6C D0E0           SHL    AL,1             ; nejvy¨¨¡ bit z znamu -> CF
+00B1:0C6E D1EA           SHR    DX,1             ; nejvy¨¨¡ bit z znamu -> DX
+00B1:0C70 D0D8           RCR    AL,1             ; n vrat AL
+00B1:0C72 8AE2           MOV    AH,DL
+00B1:0C74 8AD6           MOV    DL,DH
+00B1:0C76 B600           MOV    DH,00
+00B1:0C78 C3             RET
+
+
+00B1:0C79 FF34           PUSH   [SI]
+00B1:0C7B 52             PUSH   DX
+00B1:0C7C 51             PUSH   CX
+00B1:0C7D 53             PUSH   BX
+00B1:0C7E 8BC3           MOV    AX,BX
+00B1:0C80 8BD3           MOV    DX,BX
+00B1:0C82 43             INC    BX
+00B1:0C83 3B5E0C         CMP    BX,[BP+0C]
+00B1:0C86 7E29           JLE    0CB1
+00B1:0C88 3D0100         CMP    AX,0001
+00B1:0C8B 7F29           JG     0CB6
+00B1:0C8D 5B             POP    BX
+00B1:0C8E BAFF0F         MOV    DX,0FFF
+00B1:0C91 E85C00         CALL   0CF0
+00B1:0C94 58             POP    AX
+00B1:0C95 2BC1           SUB    AX,CX
+00B1:0C97 5A             POP    DX
+00B1:0C98 8F04           POP    [SI]
+00B1:0C9A 42             INC    DX
+00B1:0C9B 03C2           ADD    AX,DX
+00B1:0C9D 8A5603         MOV    DL,[BP+03]
+00B1:0CA0 B600           MOV    DH,00
+00B1:0CA2 42             INC    DX
+00B1:0CA3 F7E2           MUL    DX
+00B1:0CA5 8BC8           MOV    CX,AX
+00B1:0CA7 2B0EBA15       SUB    CX,[15BA]
+00B1:0CAB 7702           JA     0CAF
+00B1:0CAD 33C9           XOR    CX,CX
+00B1:0CAF F9             STC
+00B1:0CB0 C3             RET
+
+00B1:0CB1 E86EF4         CALL   0122
+00B1:0CB4 740C           JZ     0CC2
+00B1:0CB6 48             DEC    AX
+00B1:0CB7 7EC9           JLE    0C82
+00B1:0CB9 93             XCHG   AX,BX
+00B1:0CBA E865F4         CALL   0122
+00B1:0CBD 7403           JZ     0CC2
+00B1:0CBF 93             XCHG   AX,BX
+00B1:0CC0 EBC0           JMP    0C82
+00B1:0CC2 87D3           XCHG   DX,BX
+00B1:0CC4 8BC2           MOV    AX,DX
+00B1:0CC6 E881F4         CALL   014A
+00B1:0CC9 8BD8           MOV    BX,AX
+00B1:0CCB E2B3           LOOP   0C80
+00B1:0CCD BAFF0F         MOV    DX,0FFF
+00B1:0CD0 E877F4         CALL   014A
+00B1:0CD3 C6461101       MOV    Byte Ptr [BP+11],01
+00B1:0CD7 5B             POP    BX
+00B1:0CD8 59             POP    CX
+00B1:0CD9 5A             POP    DX
+00B1:0CDA E845F4         CALL   0122
+00B1:0CDD 8F04           POP    [SI]
+00B1:0CDF 87FB           XCHG   DI,BX
+00B1:0CE1 0BFF           OR     DI,DI
+00B1:0CE3 75CB           JNZ    0CB0
+00B1:0CE5 8B3EB615       MOV    DI,[15B6]
+00B1:0CE9 26895D18       MOV    ES:[DI+18],BX
+00B1:0CED C3             RET
+
+00B1:0CEE 33D2           XOR    DX,DX
+00B1:0CF0 E82FF4         CALL   0122
+00B1:0CF3 74F8           JZ     0CED
+00B1:0CF5 8BC7           MOV    AX,DI
+00B1:0CF7 E850F4         CALL   014A
+00B1:0CFA 3DF80F         CMP    AX,0FF8
+00B1:0CFD 8BD8           MOV    BX,AX
+00B1:0CFF 72ED           JB     0CEE
+00B1:0D01 C3             RET
+
+00B1:0D02 E81DF4         CALL   0122
+00B1:0D05 81FFF80F       CMP    DI,0FF8
+00B1:0D09 73F6           JNB    0D01
+00B1:0D0B 8BDF           MOV    BX,DI
+00B1:0D0D EBF3           JMP    0D02
+00B1:0D0F E888F4         CALL   019A
+00B1:0D12 7239           JB     0D4D
+00B1:0D14 82FFFF         CMP    BH,FF
+00B1:0D17 743D           JZ     0D56
+00B1:0D19 A17E15         MOV    AX,[157E]
+00B1:0D1C 26894516       MOV    ES:[DI+16],AX
+00B1:0D20 8BF3           MOV    SI,BX
+00B1:0D22 C43E4914       LES    DI,[1449]        ; adresa DTA
+00B1:0D26 B8FF00         MOV    AX,00FF
+00B1:0D29 3A06A915       CMP    AL,[15A9]
+00B1:0D2D 7509           JNZ    0D38
+00B1:0D2F AB             STOSW
+00B1:0D30 FEC0           INC    AL
+00B1:0D32 AB             STOSW
+00B1:0D33 AB             STOSW
+00B1:0D34 A09115         MOV    AL,[1591]
+00B1:0D37 AA             STOSB
+00B1:0D38 8A4600         MOV    AL,[BP+00]
+00B1:0D3B FEC0           INC    AL
+00B1:0D3D AA             STOSB
+00B1:0D3E A4             MOVSB
+00B1:0D3F B90500         MOV    CX,0005
+00B1:0D42 F3             REPZ
+00B1:0D43 A5             MOVSW
+00B1:0D44 33C0           XOR    AX,AX
+00B1:0D46 B90A00         MOV    CX,000A
+00B1:0D49 F3             REPZ
+00B1:0D4A A5             MOVSW
+00B1:0D4B A4             MOVSB
+00B1:0D4C C3             RET
+
+00B1:0D4D 26C74516FEFF   MOV    Word Ptr ES:[DI+16],FFFE
+00B1:0D53 B0FF           MOV    AL,FF
+00B1:0D55 C3             RET
+
+00B1:0D56 26895D16       MOV    ES:[DI+16],BX
+00B1:0D5A C43E4914       LES    DI,[1449]        ; adresa DTA
+00B1:0D5E 33C0           XOR    AX,AX
+00B1:0D60 AA             STOSB
+00B1:0D61 83EE04         SUB    SI,+04
+00B1:0D64 A5             MOVSW
+00B1:0D65 A5             MOVSW
+00B1:0D66 B82020         MOV    AX,2020
+00B1:0D69 B90300         MOV    CX,0003
+00B1:0D6C F3             REPZ
+00B1:0D6D AB             STOSW
+00B1:0D6E AA             STOSB
+00B1:0D6F 33C0           XOR    AX,AX
+00B1:0D71 B90A00         MOV    CX,000A
+00B1:0D74 F3             REPZ
+00B1:0D75 AB             STOSW
+00B1:0D76 AA             STOSB
+00B1:0D77 C3             RET
+
+00B1:0D78 E885F5         CALL   0300
+00B1:0D7B 8BFA           MOV    DI,DX
+00B1:0D7D 72CF           JB     0D4E
+00B1:0D7F 52             PUSH   DX
+00B1:0D80 1E             PUSH   DS
+00B1:0D81 8B4516         MOV    AX,[DI+16]
+00B1:0D84 0E             PUSH   CS
+00B1:0D85 1F             POP    DS
+00B1:0D86 A37E15         MOV    [157E],AX
+00B1:0D89 E82CF4         CALL   01B8
+00B1:0D8C 07             POP    ES
+00B1:0D8D 5F             POP    DI
+00B1:0D8E E981FF         JMP    0D12
+00B1:0D91 E806F4         CALL   019A
+00B1:0D94 B0FF           MOV    AL,FF
+00B1:0D96 72DF           JB     0D77
+00B1:0D98 83C721         ADD    DI,+21
+00B1:0D9B 268B4DED       MOV    CX,ES:[DI-13]
+00B1:0D9F 0BC9           OR     CX,CX
+00B1:0DA1 7503           JNZ    0DA6
+00B1:0DA3 B98000         MOV    CX,0080
+00B1:0DA6 33C0           XOR    AX,AX
+00B1:0DA8 33D2           XOR    DX,DX
+00B1:0DAA 82FFFF         CMP    BH,FF
+00B1:0DAD 7414           JZ     0DC3
+00B1:0DAF 46             INC    SI
+00B1:0DB0 46             INC    SI
+00B1:0DB1 8B4402         MOV    AX,[SI+02]
+00B1:0DB4 F7F1           DIV    CX
+00B1:0DB6 50             PUSH   AX
+00B1:0DB7 AD             LODSW
+00B1:0DB8 F7F1           DIV    CX
+00B1:0DBA 0BD2           OR     DX,DX
+00B1:0DBC 5A             POP    DX
+00B1:0DBD 7404           JZ     0DC3
+00B1:0DBF 40             INC    AX
+00B1:0DC0 7501           JNZ    0DC3
+00B1:0DC2 42             INC    DX
+00B1:0DC3 AB             STOSW
+00B1:0DC4 8BC2           MOV    AX,DX
+00B1:0DC6 AA             STOSB
+00B1:0DC7 B000           MOV    AL,00
+00B1:0DC9 83F940         CMP    CX,+40
+00B1:0DCC 73A9           JNB    0D77
+00B1:0DCE 268825         MOV    ES:[DI],AH
+00B1:0DD1 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Slu‘ba 1ah - nastaven¡ adresy DTA
+; -----------------------------------------------------------------------------
+00B1:0DD2 2E89164914     MOV    CS:[1449],DX     ; adresa DTA
+00B1:0DD7 2E8C1E4B14     MOV    CS:[144B],DS
+00B1:0DDC C3             RET
+
+00B1:0DDD 8CC8           MOV    AX,CS
+00B1:0DDF 8ED8           MOV    DS,AX
+00B1:0DE1 8B2E5B14       MOV    BP,[145B]        ; adresa tabulky aktiv. disku
+00B1:0DE5 E8AEF5         CALL   0396
+00B1:0DE8 8D5E12         LEA    BX,[BP+12]
+00B1:0DEB 8A4603         MOV    AL,[BP+03]
+00B1:0DEE FEC0           INC    AL
+00B1:0DF0 8B560C         MOV    DX,[BP+0C]
+00B1:0DF3 4A             DEC    DX
+00B1:0DF4 C6461101       MOV    Byte Ptr [BP+11],01
+00B1:0DF8 8B4E01         MOV    CX,[BP+01]
+00B1:0DFB C536AB15       LDS    SI,[15AB]
+00B1:0DFF 895C02         MOV    [SI+02],BX
+00B1:0E02 895406         MOV    [SI+06],DX
+00B1:0E05 894C04         MOV    [SI+04],CX
+00B1:0E08 8C4C0E         MOV    [SI+0E],CS
+00B1:0E0B C3             RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 0dh - reset diskov‚ho syst‚mu
+; -----------------------------------------------------------------------------
+00B1:0E0C 2E8C1E4B14     MOV    CS:[144B],DS
+00B1:0E11 8CC8           MOV    AX,CS
+00B1:0E13 8ED8           MOV    DS,AX
+00B1:0E15 C70649148000   MOV    Word Ptr [1449],0080  ; adresa DTA
+00B1:0E1B A15D14         MOV    AX,[145D]
+00B1:0E1E A35B14         MOV    [145B],AX        ; adresa tabulky aktiv. disku
+00B1:0E21 A15514         MOV    AX,[1455]
+00B1:0E24 0AE4           OR     AH,AH
+00B1:0E26 741B           JZ     0E43
+00B1:0E28 98             CBW
+00B1:0E29 8BD8           MOV    BX,AX
+00B1:0E2B D1E3           SHL    BX,1
+00B1:0E2D 8BAF5D14       MOV    BP,[BX+145D]
+00B1:0E31 C606561400     MOV    Byte Ptr [1456],00
+00B1:0E36 8B165314       MOV    DX,[1453]
+00B1:0E3A BB5114         MOV    BX,1451
+00B1:0E3D B90100         MOV    CX,0001
+00B1:0E40 E880F7         CALL   05C3
+00B1:0E43 8A0E4614     * MOV    CL,[1446]        ; po‡et logick˜ch disk–
+00B1:0E47 B500           MOV    CH,00
+00B1:0E49 BE5D14         MOV    SI,145D
+00B1:0E4C AD           * LODSW
+00B1:0E4D 51             PUSH   CX
+00B1:0E4E 56             PUSH   SI
+00B1:0E4F 8BE8           MOV    BP,AX
+00B1:0E51 E809F6         CALL   045D
+00B1:0E54 5E             POP    SI
+00B1:0E55 59             POP    CX
+00B1:0E56 E2F4           LOOP   0E4C
+00B1:0E58 C3             RET
+
+; -----------------------------------------------------------------------------
+;         Slu‘ba 19h - poskytnut¡ aktivn¡ho disku
+; -----------------------------------------------------------------------------
+00B1:0E59 2E8B2E5B14     MOV    BP,CS:[145B]     ; adresa tabulky aktiv. disku
+00B1:0E5E 8A4600         MOV    AL,[BP+00]       ; aktivn¡ disk
+00B1:0E61 C3             RET
+
+
+00B1:0E62 E8F4FD         CALL   0C59             ; Poskytnut¡ ‡¡s. z znamu DX:AX
+00B1:0E65 894521         MOV    [DI+21],AX
+00B1:0E68 885523         MOV    [DI+23],DL
+00B1:0E6B 837D0E40       CMP    Word Ptr [DI+0E],+40
+00B1:0E6F 73F0           JNB    0E61
+00B1:0E71 887524         MOV    [DI+24],DH
+00B1:0E74 C3           * RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 0eh - v˜bˆr aktivn¡ho disku
+; -----------------------------------------------------------------------------
+00B1:0E75 B600           MOV    DH,00
+00B1:0E77 8BDA           MOV    BX,DX            ; ‡¡slo aktivn¡ho disku
+00B1:0E79 0E             PUSH   CS
+00B1:0E7A 1F             POP    DS
+00B1:0E7B A04614         MOV    AL,[1446]        ; po‡et logick˜ch disk–
+00B1:0E7E 3AD8           CMP    BL,AL
+00B1:0E80 73F2           JNB    0E74             ; chybn‚ ‡¡slo disku
+00B1:0E82 D1E3           SHL    BX,1
+00B1:0E84 8B975D14       MOV    DX,[BX+145D]     ; tabulka adres disk–
+00B1:0E88 89165B14       MOV    [145B],DX        ; adresa tabulky aktiv. disku
+00B1:0E8C C3           * RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 0ah - vstup textu z konzoly
+; -----------------------------------------------------------------------------
+00B1:0E8D 8CC8           MOV    AX,CS
+00B1:0E8F 8EC0           MOV    ES,AX
+00B1:0E91 8BF2           MOV    SI,DX            ; za‡ tek bufferu
+00B1:0E93 B500           MOV    CH,00            ; aktu ln¡ po‡et znak–
+00B1:0E95 AD             LODSW                   ; AL=max. znak–, AH=skut. znak–
+00B1:0E96 0AC0           OR     AL,AL
+00B1:0E98 74F2           JZ     0E8C             ; nen¡ po‘adov n ‘ dn˜ znak
+00B1:0E9A 8ADC           MOV    BL,AH            ; sou‡asn˜ po‡et znak–
+00B1:0E9C 8AFD           MOV    BH,CH            ; aktu ln¡ po‡et znak–
+00B1:0E9E 3AC3           CMP    AL,BL
+00B1:0EA0 7605           JBE    0EA7             ; nen¡ je¨tˆ
+00B1:0EA2 82380D         CMP    Byte Ptr [BX+SI],0D
+00B1:0EA5 7402           JZ     0EA9
+00B1:0EA7 8ADD         * MOV    BL,CH
+00B1:0EA9 8AD0           MOV    DL,AL
+00B1:0EAB 4A             DEC    DX
+00B1:0EAC 2EA03D14       MOV    AL,CS:[143D]     ; pozice na © dku
+00B1:0EB0 2EA23F14       MOV    CS:[143F],AL
+00B1:0EB4 56             PUSH   SI
+00B1:0EB5 BF7B14         MOV    DI,147B
+00B1:0EB8 8AE5           MOV    AH,CH
+00B1:0EBA 8AFD           MOV    BH,CH
+00B1:0EBC 8AF5           MOV    DH,CH
+00B1:0EBE E86C02         CALL   112D             ; vstup znaku z konz. bez echa
+00B1:0EC1 3C7F           CMP    AL,7F
+00B1:0EC3 7436           JZ     0EFB             ; je DEL
+00B1:0EC5 3C08           CMP    AL,08
+00B1:0EC7 7432           JZ     0EFB             ; je BS (=DEL)
+00B1:0EC9 3C0D           CMP    AL,0D
+00B1:0ECB 7445           JZ     0F12             ; je CR
+00B1:0ECD 3C0A           CMP    AL,0A
+00B1:0ECF 7465           JZ     0F36
+00B1:0ED1 3C18           CMP    AL,18
+00B1:0ED3 7466           JZ     0F3B
+00B1:0ED5 3C1B           CMP    AL,1B
+00B1:0ED7 7462           JZ     0F3B
+00B1:0ED9 3C00           CMP    AL,00
+00B1:0EDB 7420           JZ     0EFD
+00B1:0EDD 3AF2           CMP    DH,DL
+00B1:0EDF 7313           JNB    0EF4
+00B1:0EE1 AA             STOSB
+00B1:0EE2 FEC6           INC    DH
+00B1:0EE4 E86601         CALL   104D
+00B1:0EE7 0AE4           OR     AH,AH
+00B1:0EE9 75D3           JNZ    0EBE
+00B1:0EEB 3AFB           CMP    BH,BL
+00B1:0EED 73CF           JNB    0EBE
+00B1:0EEF 46             INC    SI
+00B1:0EF0 FEC7           INC    BH
+00B1:0EF2 EBCA           JMP    0EBE
+00B1:0EF4 B007           MOV    AL,07
+00B1:0EF6 E87601         CALL   106F
+00B1:0EF9 EBC3           JMP    0EBE
+
+00B1:0EFB EB51           JMP    0F4E             ; je DEL
+
+00B1:0EFD E82D02         CALL   112D
+00B1:0F00 57             PUSH   DI
+00B1:0F01 B10C           MOV    CL,0C
+00B1:0F03 BF0500         MOV    DI,0005
+00B1:0F06 F2             REPNZ
+00B1:0F07 AE             SCASB
+00B1:0F08 5F             POP    DI
+00B1:0F09 8BE9           MOV    BP,CX
+00B1:0F0B D1E5           SHL    BP,1
+00B1:0F0D 2EFFA63510     JMP    CS:[BP+1035]
+
+                                               ;* je CR
+00B1:0F12 AA             STOSB
+00B1:0F13 E84C01         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:0F16 5F             POP    DI
+00B1:0F17 8875FF         MOV    [DI-01],DH
+00B1:0F1A FEC6           INC    DH
+00B1:0F1C 8CC5           MOV    BP,ES
+00B1:0F1E 8CDB           MOV    BX,DS
+00B1:0F20 8EC3           MOV    ES,BX
+00B1:0F22 8EDD           MOV    DS,BP
+00B1:0F24 BE7B14         MOV    SI,147B
+00B1:0F27 8ACE           MOV    CL,DH
+00B1:0F29 F3             REPZ
+00B1:0F2A A4             MOVSB
+00B1:0F2B C3             RET
+
+00B1:0F2C B00D           MOV    AL,0D
+00B1:0F2E E83101         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:0F31 B00A           MOV    AL,0A
+00B1:0F33 E92C01         JMP    1062             ; Zobrazen¡ znaku DOS
+
+00B1:0F36 E8F3FF         CALL   0F2C
+00B1:0F39 EB83           JMP    0EBE
+00B1:0F3B B05C           MOV    AL,5C                         ;'\'
+00B1:0F3D E82201         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:0F40 5E             POP    SI
+00B1:0F41 E8E8FF         CALL   0F2C
+00B1:0F44 2EA03F14       MOV    AL,CS:[143F]
+00B1:0F48 E8AC01         CALL   10F7
+00B1:0F4B E95EFF         JMP    0EAC
+                                               ;* obsluha DEL
+00B1:0F4E 0AF6           OR     DH,DH
+00B1:0F50 7411           JZ     0F63             ; je ji‘ za‡ tek © dku
+00B1:0F52 E84E00         CALL   0FA3             ; vymaz n¡ p©edchoz¡ho znaku DEL
+00B1:0F55 268A05         MOV    AL,ES:[DI]
+00B1:0F58 3C20           CMP    AL,20                         ;' '
+00B1:0F5A 7307           JNB    0F63             ; nen¡ ©¡dic¡ znak
+00B1:0F5C 3C09           CMP    AL,09
+00B1:0F5E 7411           JZ     0F71             ; je tabel tor
+00B1:0F60 E84300         CALL   0FA6             ; vymaz n¡ znaku "^" (©¡d.znak)
+00B1:0F63 0AE4         * OR     AH,AH
+00B1:0F65 7507           JNZ    0F6E
+00B1:0F67 0AFF           OR     BH,BH
+00B1:0F69 7403           JZ     0F6E
+00B1:0F6B FECF           DEC    BH
+00B1:0F6D 4E             DEC    SI
+00B1:0F6E E94DFF         JMP    0EBE
+                                               ;* vymaz n¡ tabel toru
+00B1:0F71 57             PUSH   DI
+00B1:0F72 4F             DEC    DI
+00B1:0F73 FD             STD
+00B1:0F74 8ACE           MOV    CL,DH
+00B1:0F76 B020           MOV    AL,20                         ;' '
+00B1:0F78 53             PUSH   BX
+00B1:0F79 B307           MOV    BL,07
+00B1:0F7B E30E           JCXZ   0F8B
+00B1:0F7D AE             SCASB
+00B1:0F7E 7609           JBE    0F89
+00B1:0F80 26827D0109     CMP    Byte Ptr ES:[DI+01],09
+00B1:0F85 7409           JZ     0F90
+00B1:0F87 FECB           DEC    BL
+00B1:0F89 E2F2           LOOP   0F7D
+00B1:0F8B 2E2A1E3F14     SUB    BL,CS:[143F]
+00B1:0F90 2ADE           SUB    BL,DH
+00B1:0F92 02CB           ADD    CL,BL
+00B1:0F94 80E107         AND    CL,07
+00B1:0F97 FC             CLD
+00B1:0F98 5B             POP    BX
+00B1:0F99 5F             POP    DI
+00B1:0F9A 74C7           JZ     0F63
+00B1:0F9C E80700         CALL   0FA6             ; vymaz n¡ p©edchoz¡ho znaku
+00B1:0F9F E2FB           LOOP   0F9C
+00B1:0FA1 EBC0           JMP    0F63
+
+                                               ;* vymaz n¡ p©edchoz¡ho znaku DEL
+00B1:0FA3 FECE           DEC    DH
+00B1:0FA5 4F             DEC    DI
+00B1:0FA6 B008           MOV    AL,08
+00B1:0FA8 E8B700         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:0FAB B020           MOV    AL,20                         ;' '
+00B1:0FAD E8B200         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:0FB0 B008           MOV    AL,08
+00B1:0FB2 E9AD00         JMP    1062             ; Zobrazen¡ znaku DOS
+
+00B1:0FB5 B000           MOV    AL,00
+00B1:0FB7 E923FF         JMP    0EDD
+00B1:0FBA 8ACB           MOV    CL,BL
+00B1:0FBC 2ACF           SUB    CL,BH
+00B1:0FBE EB07           JMP    0FC7
+00B1:0FC0 E83000         CALL   0FF3
+00B1:0FC3 EB02           JMP    0FC7
+00B1:0FC5 B101           MOV    CL,01
+00B1:0FC7 B400           MOV    AH,00
+00B1:0FC9 3AF2           CMP    DH,DL
+00B1:0FCB 740F           JZ     0FDC
+00B1:0FCD 3AFB           CMP    BH,BL
+00B1:0FCF 740B           JZ     0FDC
+00B1:0FD1 AC             LODSB
+00B1:0FD2 AA             STOSB
+00B1:0FD3 E87700         CALL   104D
+00B1:0FD6 FEC7           INC    BH
+00B1:0FD8 FEC6           INC    DH
+00B1:0FDA E2EB           LOOP   0FC7
+00B1:0FDC E9DFFE         JMP    0EBE
+00B1:0FDF 3AFB           CMP    BH,BL
+00B1:0FE1 74F9           JZ     0FDC
+00B1:0FE3 FEC7           INC    BH
+00B1:0FE5 46             INC    SI
+00B1:0FE6 E9D5FE         JMP    0EBE
+00B1:0FE9 E80700         CALL   0FF3
+00B1:0FEC 03F1           ADD    SI,CX
+00B1:0FEE 02F9           ADD    BH,CL
+00B1:0FF0 E9CBFE         JMP    0EBE
+00B1:0FF3 E83701         CALL   112D
+00B1:0FF6 8ACB           MOV    CL,BL
+00B1:0FF8 2ACF           SUB    CL,BH
+00B1:0FFA 7417           JZ     1013
+00B1:0FFC 49             DEC    CX
+00B1:0FFD 7414           JZ     1013
+00B1:0FFF 06             PUSH   ES
+00B1:1000 1E             PUSH   DS
+00B1:1001 07             POP    ES
+00B1:1002 57             PUSH   DI
+00B1:1003 8BFE           MOV    DI,SI
+00B1:1005 47             INC    DI
+00B1:1006 F2             REPNZ
+00B1:1007 AE             SCASB
+00B1:1008 5F             POP    DI
+00B1:1009 07             POP    ES
+00B1:100A 7507           JNZ    1013
+00B1:100C F6D1           NOT    CL
+00B1:100E 02CB           ADD    CL,BL
+00B1:1010 2ACF           SUB    CL,BH
+
+00B1:1012 C3           * RET
+
+00B1:1013 5D             POP    BP
+00B1:1014 E9A7FE         JMP    0EBE
+00B1:1017 B040           MOV    AL,40                         ;'@'
+00B1:1019 E84600         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:101C 5F             POP    DI
+00B1:101D 57             PUSH   DI
+00B1:101E 06             PUSH   ES
+00B1:101F 1E             PUSH   DS
+00B1:1020 E8F9FE         CALL   0F1C
+00B1:1023 1F             POP    DS
+00B1:1024 07             POP    ES
+00B1:1025 5E             POP    SI
+00B1:1026 8ADE           MOV    BL,DH
+00B1:1028 E916FF         JMP    0F41
+00B1:102B F6D4           NOT    AH
+00B1:102D E98EFE         JMP    0EBE
+00B1:1030 B01A           MOV    AL,1A
+00B1:1032 E9A8FE         JMP    0EDD
+
+00B1:1035                dw     0ebeh
+
+00B1:1035 BE0EB5         MOV    SI,B50E
+00B1:1038 0F2B           CTS    2B
+00B1:103A 104E0F         ADC    [BP+0F],CL
+00B1:103D 17             POP    SS
+00B1:103E 1030           ADC    [BX+SI],DH
+00B1:1040 10BA0FE9       ADC    [BP+SI+E90F],BH
+00B1:1044 0FC0           CTS    C0
+00B1:1046 0FDF           CTS    DF
+00B1:1048 0FC5           CTS    C5
+00B1:104A 0FC5           CTS    C5
+00B1:104C 0F3C           CTS    3C
+00B1:104E 207311         AND    [BP+DI+11],DH
+
+00B1:1051 3C09           CMP    AL,09
+00B1:1053 740D           JZ     1062             ; Zobrazen¡ znaku DOS
+                                               ;* zobrazen¡ ©¡dic¡ho znaku
+00B1:1055 50             PUSH   AX
+00B1:1056 B05E           MOV    AL,5E                         ;'^'
+00B1:1058 E80700         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:105B 58             POP    AX
+00B1:105C 0C40           OR     AL,40                         ;'@'
+00B1:105E EB02           JMP    1062             ; Zobrazen¡ znaku DOS
+
+; -----------------------------------------------------------------------------
+;                      Slu‘ba 02h - zobrazen¡ znaku
+; -----------------------------------------------------------------------------
+00B1:1060 8AC2           MOV    AL,DL            ; znak k zobrazen¡
+; -----------------------------------------------------------------------------
+;                      Zobrazen¡ znaku DOS
+; -----------------------------------------------------------------------------
+00B1:1062 3C20         * CMP    AL,20
+00B1:1064 727D           JB     10E3             ; je ©¡dic¡ znak
+00B1:1066 3C7F           CMP    AL,7F
+00B1:1068 7405           JZ     106F             ; je DEL
+00B1:106A 2EFE063D14     INC    Byte Ptr CS:[143D] ; zv˜¨en¡ pozice na © dku
+00B1:106F 50           * PUSH   AX
+00B1:1070 E81D00         CALL   1090             ; test p©eru¨en¡ z kl vesnice
+00B1:1073 58             POP    AX
+00B1:1074 9A09006000     CALL   0060:0009        ; zobrazen¡ znaku
+00B1:1079 2EF6064014FF   TEST   Byte Ptr CS:[1440],FF ; p©¡znak tisku PRINT
+00B1:107F 7491           JZ     1012             ; nen¡ PRINT (n vrat)
+00B1:1081 9A0C006000     CALL   0060:000C        ; echo i na tisk rnu
+00B1:1086 C3             RET
+
+00B1:1087 3C10           CMP    AL,10
+00B1:1089 7415           JZ     10A0             ; ž¡zen˜ vstup znaku z konzoly
+00B1:108B 3C03           CMP    AL,03
+00B1:108D 7411           JZ     10A0             ; ž¡zen˜ vstup znaku z konzoly
+
+00B1:108F C3           * RET
+; -----------------------------------------------------------------------------
+;                   Test stavu kl vesnice
+; -----------------------------------------------------------------------------
+00B1:1090 9A03006000     CALL   0060:0003        ; test stavu kl vesnice DOS
+00B1:1095 74F8           JZ     108F             ; nen¡ p©ipraven znak
+00B1:1097 3C13           CMP    AL,13            ; je ^S (=HALT) ?
+00B1:1099 75EC           JNZ    1087             ; nen¡ ^S (HALT)
+00B1:109B 9A06006000     CALL   0060:0006        ; zru¨en¡ kl vesy ^S z bufferu
+; -----------------------------------------------------------------------------
+;                      ž¡zen˜ vstup znaku z kl vesnice
+; -----------------------------------------------------------------------------
+00B1:10A0 9A06006000     CALL   0060:0006        ; vstup znaku z kl vesnice
+00B1:10A5 3C10           CMP    AL,10            ; je ^P (hardcopy obrazovky)
+00B1:10A7 7431           JZ     10DA             ; je PRINT
+00B1:10A9 3C03           CMP    AL,03            ; je ^C (break) ?
+00B1:10AB 75E2           JNZ    108F             ; nen¡ ^C (break)
+                                               ;* obsluha ^C (break)
+00B1:10AD 2EA07D15       MOV    AL,CS:[157D]     ; ‡¡slo po‘adovan‚ funkce DOS
+00B1:10B1 3C0A           CMP    AL,0A
+00B1:10B3 7404           JZ     10B9
+00B1:10B5 3C09           CMP    AL,09
+00B1:10B7 7508           JNZ    10C1
+00B1:10B9 B05C         * MOV    AL,5C                         ;'\'
+00B1:10BB E8A4FF         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:10BE E86BFE         CALL   0F2C
+00B1:10C1 FA           * CLI
+00B1:10C2 2E8E16AD15     MOV    SS,CS:[15AD]
+00B1:10C7 2E8B26AB15     MOV    SP,CS:[15AB]
+00B1:10CC 58             POP    AX
+00B1:10CD 5B             POP    BX
+00B1:10CE 59             POP    CX
+00B1:10CF 5A             POP    DX
+00B1:10D0 5E             POP    SI
+00B1:10D1 5F             POP    DI
+00B1:10D2 5D             POP    BP
+00B1:10D3 1F             POP    DS
+00B1:10D4 07             POP    ES
+00B1:10D5 CD23           INT    23               ; obsluha p©eru¨en¡ ^C
+00B1:10D7 E93BEF         JMP    0015
+
+00B1:10DA 2E8036401401 * XOR    Byte Ptr CS:[1440],01 ; zmˆna p©¡znaku PRINT
+00B1:10E0 32C0           XOR    AL,AL            ; nen¡ ‘ dn  kl vesa
+00B1:10E2 C3             RET
+; -----------------------------------------------------------------------------
+;         Zobrazen¡ ©¡dic¡ho znaku
+; -----------------------------------------------------------------------------
+00B1:10E3 3C0D           CMP    AL,0D
+00B1:10E5 7420           JZ     1107
+00B1:10E7 3C08           CMP    AL,08
+00B1:10E9 7425           JZ     1110             ; je BS
+00B1:10EB 3C09           CMP    AL,09
+00B1:10ED 751E           JNZ    110D             ; jin˜ znak - zobrazen¡
+                                               ;* je tabel tor
+00B1:10EF 2EA03D14       MOV    AL,CS:[143D]     ; pozice na © dku
+00B1:10F3 0CF8           OR     AL,F8
+00B1:10F5 F6D8           NEG    AL               ; po‡et zbyl˜ch pozic
+00B1:10F7 51             PUSH   CX
+00B1:10F8 8AC8           MOV    CL,AL
+00B1:10FA B500           MOV    CH,00
+00B1:10FC E307           JCXZ   1105
+00B1:10FE B020           MOV    AL,20                         ;' '
+00B1:1100 E85FFF         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:1103 E2F9           LOOP   10FE
+00B1:1105 59           * POP    CX
+00B1:1106 C3           * RET
+                                               ;* je za‡ tek © dku
+00B1:1107 2EC6063D1400 * MOV    Byte Ptr CS:[143D],00 ; pozice na © dku
+00B1:110D E95FFF       * JMP    106F             ; zobrazen¡ znaku
+
+00B1:1110 2EFE0E3D14     DEC    Byte Ptr CS:[143D] ; sn¡‘en¡ pozice na © dku
+00B1:1115 E957FF         JMP    106F             ; zobrazen¡ znaku
+; -----------------------------------------------------------------------------
+;         Slu‘ba 0bh - test stavu standardn¡ho vstupu
+; -----------------------------------------------------------------------------
+00B1:1118 9A03006000     CALL   0060:0003        ; test stavu kl vesnice DOS
+00B1:111D B000           MOV    AL,00
+00B1:111F 74E5           JZ     1106             ; nen¡ znak
+00B1:1121 0CFF           OR     AL,FF            ; p©¡znak, ‘e je znak
+00B1:1123 C3             RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 01h - vstup z kl vesnice s echem
+; -----------------------------------------------------------------------------
+00B1:1124 E80600         CALL   112D             ; vstup znaku z kl vesnice
+00B1:1127 50             PUSH   AX
+00B1:1128 E837FF         CALL   1062             ; Zobrazen¡ znaku DOS (echo)
+00B1:112B 58             POP    AX
+00B1:112C C3             RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 08h - vstup znaku z konzoly bez echa s kontrolou p©eru¨en¡
+; -----------------------------------------------------------------------------
+00B1:112D E870FF       * CALL   10A0             ; ž¡zen˜ vstup znaku z konzoly
+00B1:1130 74FB           JZ     112D             ; nen¡ ‘ dn˜ znak
+00B1:1132 C3           * RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 06h - p©¡m˜ vstup/v˜stup znaku na konzolu
+; -----------------------------------------------------------------------------
+00B1:1133 8AC2           MOV    AL,DL
+00B1:1135 3CFF           CMP    AL,FF
+00B1:1137 750F           JNZ    1148             ; je zobrazen¡ znaku
+00B1:1139 9A03006000     CALL   0060:0003        ; test stavu kl vesnice DOS
+00B1:113E B000           MOV    AL,00
+00B1:1140 74F0           JZ     1132             ; nen¡ p©ipraven ‘ dn˜ znak
+; -----------------------------------------------------------------------------
+;         Slu‘ba 07h - vstup znaku z konzoly bez echa
+; -----------------------------------------------------------------------------
+00B1:1142 9A06006000     CALL   0060:0006        ; vstup znaku z kl vesnice DOS
+00B1:1147 C3             RET
+
+
+00B1:1148 9A09006000     CALL   0060:0009        ; zobrazen¡ znaku na konzolu
+00B1:114D C3             RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 05h - v˜stup znaku na LPT1
+; -----------------------------------------------------------------------------
+00B1:114E 8AC2           MOV    AL,DL
+00B1:1150 50             PUSH   AX
+00B1:1151 E83CFF         CALL   1090             ; Test stavu kl vesnice
+00B1:1154 58             POP    AX
+00B1:1155 9A0C006000     CALL   0060:000C        ; v˜stup znaku na LPT1
+00B1:115A C3           * RET
+; -----------------------------------------------------------------------------
+;         Slu‘ba 09h - zobrazen¡ textu DS:DX
+; -----------------------------------------------------------------------------
+00B1:115B 8BF2           MOV    SI,DX            ; text k zobrazen¡
+00B1:115D AC           * LODSB
+00B1:115E 3C24           CMP    AL,24            ;'$'
+00B1:1160 74F8           JZ     115A             ; konec
+00B1:1162 E8FDFE         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:1165 EBF6           JMP    115D
+
+
+00B1:1167 2EAC           LODSB  CS:
+00B1:1169 3C24           CMP    AL,24                         ;'$'
+00B1:116B 74ED           JZ     115A
+00B1:116D E8F2FE         CALL   1062             ; Zobrazen¡ znaku DOS
+00B1:1170 EBF5           JMP    1167
+00B1:1172 B200           MOV    DL,00
+00B1:1174 0AC0           OR     AL,AL
+00B1:1176 7406           JZ     117E
+00B1:1178 E86700         CALL   11E2
+00B1:117B 74FB           JZ     1178
+00B1:117D 4E             DEC    SI
+00B1:117E B000           MOV    AL,00
+00B1:1180 823C20         CMP    Byte Ptr [SI],20              ;' '
+00B1:1183 7217           JB     119C
+00B1:1185 827C013A       CMP    Byte Ptr [SI+01],3A           ;':'
+00B1:1189 7511           JNZ    119C
+00B1:118B E85400         CALL   11E2
+00B1:118E 2C40           SUB    AL,40                         ;'@'
+00B1:1190 7607           JBE    1199
+00B1:1192 2E3A064614     CMP    AL,CS:[1446]     ; po‡et logick˜ch disk–
+00B1:1197 7602           JBE    119B
+00B1:1199 B2FF           MOV    DL,FF
+00B1:119B 46             INC    SI
+00B1:119C AA             STOSB
+00B1:119D B90800         MOV    CX,0008
+00B1:11A0 E81B00         CALL   11BE
+00B1:11A3 823C2E         CMP    Byte Ptr [SI],2E              ;'.'
+00B1:11A6 7501           JNZ    11A9
+00B1:11A8 46             INC    SI
+00B1:11A9 B90300         MOV    CX,0003
+00B1:11AC E80F00         CALL   11BE
+00B1:11AF 2EC51EAB15     LDS    BX,CS:[15AB]
+00B1:11B4 897708         MOV    [BX+08],SI
+00B1:11B7 33C0           XOR    AX,AX
+00B1:11B9 AB             STOSW
+00B1:11BA AB             STOSW
+00B1:11BB 8AC2           MOV    AL,DL
+00B1:11BD C3             RET
+
+00B1:11BE E82100         CALL   11E2
+00B1:11C1 7419           JZ     11DC
+00B1:11C3 3C20           CMP    AL,20                         ;' '
+00B1:11C5 7615           JBE    11DC
+00B1:11C7 3C2A           CMP    AL,2A                         ;'*'
+00B1:11C9 7506           JNZ    11D1
+00B1:11CB B03F           MOV    AL,3F                         ;'?'
+00B1:11CD 49             DEC    CX
+00B1:11CE F3             REPZ
+00B1:11CF AA             STOSB
+00B1:11D0 41             INC    CX
+00B1:11D1 AA             STOSB
+00B1:11D2 3C3F           CMP    AL,3F                         ;'?'
+00B1:11D4 7503           JNZ    11D9
+00B1:11D6 80CA01         OR     DL,01
+00B1:11D9 E2E3           LOOP   11BE
+00B1:11DB 46             INC    SI
+00B1:11DC B020           MOV    AL,20                         ;' '
+00B1:11DE F3             REPZ
+00B1:11DF AA             STOSB
+00B1:11E0 4E             DEC    SI
+00B1:11E1 C3             RET
+
+00B1:11E2 AC             LODSB
+00B1:11E3 247F           AND    AL,7F
+00B1:11E5 3C61           CMP    AL,61                         ;'a'
+00B1:11E7 7206           JB     11EF
+00B1:11E9 3C7A           CMP    AL,7A                         ;'z'
+00B1:11EB 7702           JA     11EF
+00B1:11ED 2C20           SUB    AL,20                         ;' '
+00B1:11EF 3C20           CMP    AL,20                         ;' '
+00B1:11F1 74EE           JZ     11E1
+00B1:11F3 3C3D           CMP    AL,3D                         ;'='
+00B1:11F5 74EA           JZ     11E1
+00B1:11F7 3C2C           CMP    AL,2C                         ;','
+00B1:11F9 74E6           JZ     11E1
+00B1:11FB 3C3B           CMP    AL,3B                         ;';'
+00B1:11FD 74E2           JZ     11E1
+00B1:11FF 3C2E           CMP    AL,2E                         ;'.'
+00B1:1201 74DE           JZ     11E1
+00B1:1203 3C3A           CMP    AL,3A                         ;':'
+00B1:1205 74DA           JZ     11E1
+00B1:1207 3C22           CMP    AL,22                         ;'"'
+00B1:1209 74D6           JZ     11E1
+00B1:120B 3C2B           CMP    AL,2B                         ;'+'
+00B1:120D 74D2           JZ     11E1
+00B1:120F 3C2F           CMP    AL,2F                         ;'/'
+00B1:1211 74CE           JZ     11E1
+00B1:1213 3C5B           CMP    AL,5B                         ;'['
+00B1:1215 74CA           JZ     11E1
+00B1:1217 3C5D           CMP    AL,5D                         ;']'
+00B1:1219 74C6           JZ     11E1
+00B1:121B 3C09           CMP    AL,09
+00B1:121D C3             RET
+
+00B1:121E 33DB           XOR    BX,BX
+00B1:1220 8EC3           MOV    ES,BX
+00B1:1222 8AD8           MOV    BL,AL
+00B1:1224 D1E3           SHL    BX,1
+00B1:1226 D1E3           SHL    BX,1
+00B1:1228 268917         MOV    ES:[BX],DX
+00B1:122B 268C5F02       MOV    ES:[BX+02],DS
+00B1:122F C3             RET
+
+00B1:1230 8EC2           MOV    ES,DX
+00B1:1232 2EC536AB15     LDS    SI,CS:[15AB]
+00B1:1237 8E5C14         MOV    DS,[SI+14]
+00B1:123A 33F6           XOR    SI,SI
+00B1:123C 8BFE           MOV    DI,SI
+00B1:123E B98000         MOV    CX,0080
+00B1:1241 F3             REPZ
+00B1:1242 A5             MOVSW
+00B1:1243 33C9           XOR    CX,CX
+00B1:1245 8ED9           MOV    DS,CX
+00B1:1247 8EC2           MOV    ES,DX
+00B1:1249 BE8800         MOV    SI,0088
+00B1:124C BF0A00         MOV    DI,000A
+00B1:124F A5             MOVSW
+00B1:1250 A5             MOVSW
+00B1:1251 A5             MOVSW
+00B1:1252 A5             MOVSW
+00B1:1253 2E8B0E4D14     MOV    CX,CS:[144D]
+00B1:1258 26890E0200     MOV    ES:[0002],CX
+00B1:125D 2BCA           SUB    CX,DX
+00B1:125F 81F9FF0F       CMP    CX,0FFF
+00B1:1263 7603           JBE    1268
+00B1:1265 B9FF0F         MOV    CX,0FFF
+00B1:1268 BB0C00         MOV    BX,000C
+00B1:126B 2BD9           SUB    BX,CX
+00B1:126D D1E1           SHL    CX,1
+00B1:126F D1E1           SHL    CX,1
+00B1:1271 D1E1           SHL    CX,1
+00B1:1273 D1E1           SHL    CX,1
+00B1:1275 8EDA           MOV    DS,DX
+00B1:1277 890E0600       MOV    [0006],CX
+00B1:127B 891E0800       MOV    [0008],BX
+00B1:127F C7060000CD20   MOV    Word Ptr [0000],20CD
+00B1:1285 C60605009A     MOV    Byte Ptr [0005],9A
+00B1:128A C3             RET
+
+00B1:128B D1E7           SHL    DI,1
+00B1:128D D1E7           SHL    DI,1
+00B1:128F D1E7           SHL    DI,1
+00B1:1291 D1E7           SHL    DI,1
+00B1:1293 D1E7           SHL    DI,1
+00B1:1295 D1E7           SHL    DI,1
+00B1:1297 D1E7           SHL    DI,1
+00B1:1299 C3             RET
+
+00B1:129A 51             PUSH   CX
+00B1:129B 52             PUSH   DX
+00B1:129C 53             PUSH   BX
+00B1:129D E81500         CALL   12B5
+00B1:12A0 5B             POP    BX
+00B1:12A1 5A             POP    DX
+00B1:12A2 59             POP    CX
+00B1:12A3 A14214         MOV    AX,[1442]
+00B1:12A6 D0E0           SHL    AL,1
+00B1:12A8 D0E0           SHL    AL,1
+00B1:12AA D0E0           SHL    AL,1
+00B1:12AC D0E0           SHL    AL,1
+00B1:12AE D1E0           SHL    AX,1
+00B1:12B0 0A064114       OR     AL,[1441]
+00B1:12B4 C3             RET
+
+00B1:12B5 B400           MOV    AH,00
+00B1:12B7 CD1A           INT    1A
+00B1:12B9 0AC0           OR     AL,AL
+00B1:12BB 74F7           JZ     12B4
+00B1:12BD 02064114       ADD    AL,[1441]
+00B1:12C1 A24114         MOV    [1441],AL
+00B1:12C4 8AE0           MOV    AH,AL
+00B1:12C6 A04214         MOV    AL,[1442]
+00B1:12C9 BBF912         MOV    BX,12F9
+00B1:12CC D7             XLAT
+00B1:12CD 2AE0           SUB    AH,AL
+00B1:12CF 76E3           JBE    12B4
+00B1:12D1 88264114       MOV    [1441],AH
+00B1:12D5 A04214         MOV    AL,[1442]
+00B1:12D8 FEC0           INC    AL
+00B1:12DA A24214         MOV    [1442],AL
+00B1:12DD 3C0C           CMP    AL,0C
+00B1:12DF 76D3           JBE    12B4
+00B1:12E1 C606421401     MOV    Byte Ptr [1442],01
+00B1:12E6 A04314         MOV    AL,[1443]
+00B1:12E9 FEC0           INC    AL
+00B1:12EB A24314         MOV    [1443],AL
+00B1:12EE 2403           AND    AL,03
+00B1:12F0 B01C           MOV    AL,1C
+00B1:12F2 7502           JNZ    12F6
+00B1:12F4 FEC0           INC    AL
+00B1:12F6 A2FB12         MOV    [12FB],AL
+00B1:12F9 C3             RET
+
+00B1:12FA 1F             POP    DS
+00B1:12FB 1C1F           SBB    AL,1F
+00B1:12FD 1E             PUSH   DS
+00B1:12FE 1F             POP    DS
+00B1:12FF 1E             PUSH   DS
+00B1:1300 1F             POP    DS
+00B1:1301 1F             POP    DS
+00B1:1302 1E             PUSH   DS
+00B1:1303 1F             POP    DS
+00B1:1304 1E             PUSH   DS
+00B1:1305 1F             POP    DS
+00B1:1306 0E             PUSH   CS
+00B1:1307 1F             POP    DS
+00B1:1308 E8AAFF         CALL   12B5
+00B1:130B A14314         MOV    AX,[1443]
+00B1:130E 8B1E4114       MOV    BX,[1441]
+00B1:1312 C536AB15       LDS    SI,[15AB]
+00B1:1316 895C06         MOV    [SI+06],BX
+00B1:1319 05BC07         ADD    AX,07BC
+00B1:131C 894404         MOV    [SI+04],AX
+00B1:131F 32C0           XOR    AL,AL
+00B1:1321 C3             RET
+
+00B1:1322 B0FF           MOV    AL,FF
+00B1:1324 81E9BC07       SUB    CX,07BC
+00B1:1328 72F7           JB     1321
+00B1:132A 83F977         CMP    CX,+77
+00B1:132D 77F2           JA     1321
+00B1:132F 0AF6           OR     DH,DH
+00B1:1331 74EE           JZ     1321
+00B1:1333 0AD2           OR     DL,DL
+00B1:1335 74EA           JZ     1321
+00B1:1337 82FE0C         CMP    DH,0C
+00B1:133A 77E5           JA     1321
+00B1:133C 0E             PUSH   CS
+00B1:133D 1F             POP    DS
+00B1:133E 82FE02         CMP    DH,02
+00B1:1341 750D           JNZ    1350
+00B1:1343 82FA1D         CMP    DL,1D
+00B1:1346 77D9           JA     1321
+00B1:1348 7212           JB     135C
+00B1:134A F6C103         TEST   CL,03
+00B1:134D 740D           JZ     135C
+00B1:134F C3             RET
+
+00B1:1350 8AC6           MOV    AL,DH
+00B1:1352 BBF912         MOV    BX,12F9
+00B1:1355 D7             XLAT
+00B1:1356 3AC2           CMP    AL,DL
+00B1:1358 B0FF           MOV    AL,FF
+00B1:135A 72F3           JB     134F
+00B1:135C 52             PUSH   DX
+00B1:135D 51             PUSH   CX
+00B1:135E B400           MOV    AH,00
+00B1:1360 CD1A           INT    1A
+00B1:1362 58             POP    AX
+00B1:1363 E885FF         CALL   12EB
+00B1:1366 8F064114       POP    [1441]
+00B1:136A 32C0           XOR    AL,AL
+00B1:136C C3             RET
+
+00B1:136D 0E             PUSH   CS
+00B1:136E 1F             POP    DS
+00B1:136F E843FF         CALL   12B5
+00B1:1372 8BC1           MOV    AX,CX
+00B1:1374 8BDA           MOV    BX,DX
+00B1:1376 D1E2           SHL    DX,1
+00B1:1378 D1D1           RCL    CX,1
+00B1:137A D1E2           SHL    DX,1
+00B1:137C D1D1           RCL    CX,1
+00B1:137E 03D3           ADD    DX,BX
+00B1:1380 13C1           ADC    AX,CX
+00B1:1382 92             XCHG   AX,DX
+00B1:1383 B90BE9         MOV    CX,E90B
+00B1:1386 F7F1           DIV    CX
+00B1:1388 8BD8           MOV    BX,AX
+00B1:138A 33C0           XOR    AX,AX
+00B1:138C F7F1           DIV    CX
+00B1:138E 8BD3           MOV    DX,BX
+00B1:1390 B9C800         MOV    CX,00C8
+00B1:1393 F7F1           DIV    CX
+00B1:1395 82FA64         CMP    DL,64                         ;'d'
+00B1:1398 7203           JB     139D
+00B1:139A 82EA64         SUB    DL,64                         ;'d'
+00B1:139D F5             CMC
+00B1:139E 8ADA           MOV    BL,DL
+00B1:13A0 D1D0           RCL    AX,1
+00B1:13A2 B200           MOV    DL,00
+00B1:13A4 D1D2           RCL    DX,1
+00B1:13A6 B93C00         MOV    CX,003C
+00B1:13A9 F7F1           DIV    CX
+00B1:13AB 8AFA           MOV    BH,DL
+00B1:13AD F6F1           DIV    CL
+00B1:13AF 86C4           XCHG   AL,AH
+00B1:13B1 C536AB15       LDS    SI,[15AB]
+00B1:13B5 895C06         MOV    [SI+06],BX
+00B1:13B8 894404         MOV    [SI+04],AX
+00B1:13BB 32C0           XOR    AL,AL
+00B1:13BD C3             RET
+
+00B1:13BE B0FF           MOV    AL,FF
+00B1:13C0 82FD18         CMP    CH,18
+00B1:13C3 73F8           JNB    13BD
+00B1:13C5 82F93C         CMP    CL,3C                         ;'<'
+00B1:13C8 73F3           JNB    13BD
+00B1:13CA 82FE3C         CMP    DH,3C                         ;'<'
+00B1:13CD 73EE           JNB    13BD
+00B1:13CF 82FA64         CMP    DL,64                         ;'d'
+00B1:13D2 73E9           JNB    13BD
+00B1:13D4 B03C           MOV    AL,3C                         ;'<'
+00B1:13D6 F6E5           MUL    CH
+00B1:13D8 B500           MOV    CH,00
+00B1:13DA 03C1           ADD    AX,CX
+00B1:13DC B97017         MOV    CX,1770
+00B1:13DF 8BDA           MOV    BX,DX
+00B1:13E1 F7E1           MUL    CX
+00B1:13E3 8BC8           MOV    CX,AX
+00B1:13E5 B064           MOV    AL,64                         ;'d'
+00B1:13E7 F6E7           MUL    BH
+00B1:13E9 03C8           ADD    CX,AX
+00B1:13EB 83D200         ADC    DX,+00
+00B1:13EE B700           MOV    BH,00
+00B1:13F0 03CB           ADD    CX,BX
+00B1:13F2 83D200         ADC    DX,+00
+00B1:13F5 92             XCHG   AX,DX
+00B1:13F6 91             XCHG   AX,CX
+00B1:13F7 BB0BE9         MOV    BX,E90B
+00B1:13FA F7E3           MUL    BX
+00B1:13FC 87CA           XCHG   CX,DX
+00B1:13FE 92             XCHG   AX,DX
+00B1:13FF F7E3           MUL    BX
+00B1:1401 03C1           ADD    AX,CX
+00B1:1403 83D200         ADC    DX,+00
+00B1:1406 92             XCHG   AX,DX
+00B1:1407 BB0500         MOV    BX,0005
+00B1:140A F6F3           DIV    BL
+00B1:140C 8AC8           MOV    CL,AL
+00B1:140E B500           MOV    CH,00
+00B1:1410 8AC4           MOV    AL,AH
+00B1:1412 98             CBW
+00B1:1413 92             XCHG   AX,DX
+00B1:1414 F7F3           DIV    BX
+00B1:1416 8BD0           MOV    DX,AX
+00B1:1418 B401           MOV    AH,01
+00B1:141A CD1A           INT    1A
+00B1:141C 32C0           XOR    AL,AL
+00B1:141E C3             RET
+
+00B1:141F 50             PUSH   AX
+00B1:1420 52             PUSH   DX
+00B1:1421 4E             DEC    SI
+00B1:1422 204C50         AND    [SI+50],CL
+00B1:1425 54             PUSH   SP
+00B1:1426 314155         XOR    [BX+DI+55],AX
+00B1:1429 58             POP    AX
+00B1:142A 20434F         AND    [BP+DI+4F],AL
+00B1:142D 4D             DEC    BP
+00B1:142E 31434F         XOR    [BP+DI+4F],AX
+00B1:1431 4E             DEC    SI
+00B1:1432 204E55         AND    [BP+55],CL
+00B1:1435 4C             DEC    SP
+00B1:1436 2003           AND    [BP+DI],AL
+00B1:1438 0001           ADD    [BX+DI],AL
+00B1:143A 0102           ADD    [BP+SI],AX
+00B1:143C 0200           ADD    AL,[BX+SI]
+00B1:143E 0000           ADD    [BX+SI],AL
+
+00B1:143d                db     0                ; pozice na © dku
+
+00B1:1440                db     0                ; p©¡znak tisku PRINT
+
+
+00B1:1449                dd     00000080h        ; adresa DTA
+
+
+00B1:1440 0000           ADD    [BX+SI],AL
+00B1:1442 0000           ADD    [BX+SI],AL
+00B1:1444 0000           ADD    [BX+SI],AL
+00B1:1446 0000           ADD    [BX+SI],AL
+00B1:1448 00800000       ADD    [BX+SI+0000],AL
+00B1:144C 0000           ADD    [BX+SI],AL
+00B1:144E 0000           ADD    [BX+SI],AL
+00B1:1450 0000           ADD    [BX+SI],AL
+00B1:1452 0000           ADD    [BX+SI],AL
+00B1:1454 00FF           ADD    BH,BH
+00B1:1456 0000           ADD    [BX+SI],AL
+00B1:1458 00FF           ADD    BH,BH
+00B1:145A FF00           INC    Word Ptr [BX+SI]
+00B1:145C 0000           ADD    [BX+SI],AL
+00B1:145E 0000           ADD    [BX+SI],AL
+00B1:1460 0000           ADD    [BX+SI],AL
+00B1:1462 0000           ADD    [BX+SI],AL
+00B1:1464 0000           ADD    [BX+SI],AL
+00B1:1466 0000           ADD    [BX+SI],AL
+00B1:1468 0000           ADD    [BX+SI],AL
+00B1:146A 0000           ADD    [BX+SI],AL
+00B1:146C 0000           ADD    [BX+SI],AL
+00B1:146E 0000           ADD    [BX+SI],AL
+00B1:1470 0000           ADD    [BX+SI],AL
+00B1:1472 0000           ADD    [BX+SI],AL
+00B1:1474 0000           ADD    [BX+SI],AL
+00B1:1476 0000           ADD    [BX+SI],AL
+00B1:1478 0000           ADD    [BX+SI],AL
+00B1:147A 0000           ADD    [BX+SI],AL
+00B1:147C 0000           ADD    [BX+SI],AL
+00B1:147E 0000           ADD    [BX+SI],AL
+00B1:1480 0000           ADD    [BX+SI],AL
+00B1:1482 0000           ADD    [BX+SI],AL
+00B1:1484 0000           ADD    [BX+SI],AL
+00B1:1486 0000           ADD    [BX+SI],AL
+00B1:1488 0000           ADD    [BX+SI],AL
+00B1:148A 26F3           REPZ
+00B1:148C A4             MOVSB  ES:
+00B1:148D FC             CLD
+00B1:148E E8B2FD         CALL   1243
+00B1:1491 CB             RETF
+
+
+; -----------------------------------------------------------------------------
+;               Start a inicializace modulu IBMDOS.COM
+; -----------------------------------------------------------------------------
+00B1:1492 FA             CLI
+00B1:1493 FC             CLD
+00B1:1494 E8AD01         CALL   1644
+00B1:1497 0E             PUSH   CS
+00B1:1498 07             POP    ES
+00B1:1499 AC             LODSB
+00B1:149A 26A24614       MOV    ES:[1446],AL     ; po‡et logick˜ch disk–
+00B1:149E BB5D14         MOV    BX,145D
+00B1:14A1 BF7216         MOV    DI,1672
+00B1:14A4 26893F         MOV    ES:[BX],DI
+00B1:14A7 8BEF           MOV    BP,DI
+00B1:14A9 43             INC    BX
+00B1:14AA 43             INC    BX
+00B1:14AB 26A07016       MOV    AL,ES:[1670]
+00B1:14AF AA             STOSB
+00B1:14B0 AD             LODSW
+00B1:14B1 56             PUSH   SI
+00B1:14B2 8BF0           MOV    SI,AX
+00B1:14B4 AD             LODSW
+00B1:14B5 AB             STOSW
+00B1:14B6 8BD0           MOV    DX,AX
+00B1:14B8 263B064F14     CMP    AX,ES:[144F]
+00B1:14BD 7604           JBE    14C3
+00B1:14BF 26A34F14       MOV    ES:[144F],AX
+00B1:14C3 AC             LODSB
+00B1:14C4 FEC8           DEC    AL
+00B1:14C6 AA             STOSB
+00B1:14C7 7409           JZ     14D2
+00B1:14C9 98             CBW
+00B1:14CA FEC4           INC    AH
+00B1:14CC D0F8           SAR    AL,1
+00B1:14CE 75FA           JNZ    14CA
+00B1:14D0 8AC4           MOV    AL,AH
+00B1:14D2 AA             STOSB
+00B1:14D3 A5             MOVSW
+00B1:14D4 A4             MOVSB
+00B1:14D5 A5             MOVSW
+00B1:14D6 8BC2           MOV    AX,DX
+00B1:14D8 B105           MOV    CL,05
+00B1:14DA D3E8           SHR    AX,CL
+00B1:14DC 8BC8           MOV    CX,AX
+00B1:14DE 48             DEC    AX
+00B1:14DF 26034608       ADD    AX,ES:[BP+08]
+00B1:14E3 33D2           XOR    DX,DX
+00B1:14E5 F7F1           DIV    CX
+00B1:14E7 AB             STOSW
+00B1:14E8 D1E8           SHR    AX,1
+00B1:14EA 150000         ADC    AX,0000
+00B1:14ED 26A37116       MOV    ES:[1671],AX
+00B1:14F1 A5             MOVSW
+00B1:14F2 B001           MOV    AL,01
+00B1:14F4 BA0100         MOV    DX,0001
+00B1:14F7 52             PUSH   DX
+00B1:14F8 E81A01         CALL   1615
+00B1:14FB 5A             POP    DX
+00B1:14FC 3AC2           CMP    AL,DL
+00B1:14FE 740E           JZ     150E
+00B1:1500 3AC6           CMP    AL,DH
+00B1:1502 8AF2           MOV    DH,DL
+00B1:1504 8AD0           MOV    DL,AL
+00B1:1506 75EF           JNZ    14F7
+00B1:1508 26FF4E0C       DEC    Word Ptr ES:[BP+0C]
+00B1:150C EBE4           JMP    14F2
+00B1:150E AA             STOSB
+00B1:150F 26F66607       MUL    Byte Ptr ES:[BP+07]
+00B1:1513 26034605       ADD    AX,ES:[BP+05]
+00B1:1517 AB             STOSW
+00B1:1518 2603460A       ADD    AX,ES:[BP+0A]
+00B1:151C 2689460A       MOV    ES:[BP+0A],AX
+00B1:1520 E8FF00         CALL   1622
+00B1:1523 26894E0C       MOV    ES:[BP+0C],CX
+00B1:1527 B8FF00         MOV    AX,00FF
+00B1:152A AA             STOSB
+00B1:152B 268A460E       MOV    AL,ES:[BP+0E]
+00B1:152F 26F76601       MUL    Word Ptr ES:[BP+01]
+00B1:1533 03F8           ADD    DI,AX
+00B1:1535 5E             POP    SI
+00B1:1536 26A07016       MOV    AL,ES:[1670]
+00B1:153A FEC0           INC    AL
+00B1:153C 26A27016       MOV    ES:[1670],AL
+00B1:1540 263A064614     CMP    AL,ES:[1446]     ; po‡et logick˜ch disk–
+00B1:1545 7303           JNB    154A
+00B1:1547 E95AFF         JMP    14A4
+00B1:154A AD             LODSW
+00B1:154B 268B1E4F14     MOV    BX,ES:[144F]
+00B1:1550 B8D417         MOV    AX,17D4
+00B1:1553 03C3           ADD    AX,BX
+00B1:1555 26A35114       MOV    ES:[1451],AX
+00B1:1559 57             PUSH   DI
+00B1:155A 03FB           ADD    DI,BX
+00B1:155C 03FB           ADD    DI,BX
+00B1:155E 81C77101       ADD    DI,0171
+00B1:1562 B104           MOV    CL,04
+00B1:1564 D3EF           SHR    DI,CL
+00B1:1566 8BEF           MOV    BP,DI
+00B1:1568 33C0           XOR    AX,AX
+00B1:156A 8ED8           MOV    DS,AX
+00B1:156C 8EC0           MOV    ES,AX
+00B1:156E BF8000         MOV    DI,0080
+00B1:1571 B81100         MOV    AX,0011
+00B1:1574 AB             STOSW
+00B1:1575 8CC8           MOV    AX,CS
+00B1:1577 C606C000EA     MOV    Byte Ptr [00C0],EA
+00B1:157C C706C1001D00   MOV    Word Ptr [00C1],001D
+00B1:1582 A3C300         MOV    [00C3],AX
+00B1:1585 B90900         MOV    CX,0009
+00B1:1588 F3             REPZ
+00B1:1589 AB             STOSW
+00B1:158A C70684001500   MOV    Word Ptr [0084],0015
+00B1:1590 C7068C001C00   MOV    Word Ptr [008C],001C
+00B1:1596 C70690001C00   MOV    Word Ptr [0090],001C
+00B1:159C B81500         MOV    AX,0015
+00B1:159F AB             STOSW
+00B1:15A0 B86000         MOV    AX,0060
+00B1:15A3 AB             STOSW
+00B1:15A4 AB             STOSW
+00B1:15A5 AB             STOSW
+00B1:15A6 C70698001800   MOV    Word Ptr [0098],0018
+00B1:15AC 8CCA           MOV    DX,CS
+00B1:15AE 8EDA           MOV    DS,DX
+00B1:15B0 03D5           ADD    DX,BP
+00B1:15B2 C70649148000   MOV    Word Ptr [1449],0080  ; adresa DTA
+00B1:15B8 89164B14       MOV    [144B],DX
+00B1:15BC A15D14         MOV    AX,[145D]
+00B1:15BF A35B14         MOV    [145B],AX        ; adresa tabulky aktiv. disku
+00B1:15C2 CD12           INT    12
+00B1:15C4 B106           MOV    CL,06
+00B1:15C6 D3E0           SHL    AX,CL
+00B1:15C8 2EA34D14       MOV    CS:[144D],AX
+00B1:15CC 33C9           XOR    CX,CX
+00B1:15CE 8ED9           MOV    DS,CX
+00B1:15D0 C70688000001   MOV    Word Ptr [0088],0100
+00B1:15D6 89168A00       MOV    [008A],DX
+00B1:15DA 0E             PUSH   CS
+00B1:15DB 1F             POP    DS
+00B1:15DC 0E             PUSH   CS
+00B1:15DD 07             POP    ES
+00B1:15DE 89160300       MOV    [0003],DX
+00B1:15E2 5E             POP    SI
+00B1:15E3 A14F14         MOV    AX,[144F]
+00B1:15E6 D1E0           SHL    AX,1
+00B1:15E8 056201         ADD    AX,0162
+00B1:15EB 7425           JZ     1612
+00B1:15ED BF5D14         MOV    DI,145D
+00B1:15F0 B90F00         MOV    CX,000F
+00B1:15F3 0105           ADD    [DI],AX
+00B1:15F5 47             INC    DI
+00B1:15F6 47             INC    DI
+00B1:15F7 E2FA           LOOP   15F3
+00B1:15F9 8BCE           MOV    CX,SI
+00B1:15FB BE7216         MOV    SI,1672
+00B1:15FE 2BCE           SUB    CX,SI
+00B1:1600 8BF8           MOV    DI,AX
+00B1:1602 03FE           ADD    DI,SI
+00B1:1604 0BC0           OR     AX,AX
+00B1:1606 7807           JS     160F
+00B1:1608 49             DEC    CX
+00B1:1609 03F9           ADD    DI,CX
+00B1:160B 03F1           ADD    SI,CX
+00B1:160D 41             INC    CX
+00B1:160E FD             STD
+00B1:160F E978FE         JMP    148A
+00B1:1612 E979FE         JMP    148E
+00B1:1615 26F66607       MUL    Byte Ptr ES:[BP+07]
+00B1:1619 26034605       ADD    AX,ES:[BP+05]
+00B1:161D 2603067116     ADD    AX,ES:[1671]
+00B1:1622 262B460C       SUB    AX,ES:[BP+0C]
+00B1:1626 F7D8           NEG    AX
+00B1:1628 268A4E04       MOV    CL,ES:[BP+04]
+00B1:162C D3E8           SHR    AX,CL
+00B1:162E 40             INC    AX
+00B1:162F 8BC8           MOV    CX,AX
+00B1:1631 40             INC    AX
+00B1:1632 8BD0           MOV    DX,AX
+00B1:1634 D1EA           SHR    DX,1
+00B1:1636 13C2           ADC    AX,DX
+00B1:1638 268B7601       MOV    SI,ES:[BP+01]
+00B1:163C 03C6           ADD    AX,SI
+00B1:163E 48             DEC    AX
+00B1:163F 33D2           XOR    DX,DX
+00B1:1641 F7F6           DIV    SI
+00B1:1643 C3             RET
+
+00B1:1644 1E             PUSH   DS
+00B1:1645 56             PUSH   SI
+00B1:1646 33DB           XOR    BX,BX
+00B1:1648 8EC3           MOV    ES,BX
+00B1:164A BF8005         MOV    DI,0580
+00B1:164D 0E             PUSH   CS
+00B1:164E 1F             POP    DS
+00B1:164F BE7216         MOV    SI,1672
+00B1:1652 B97800         MOV    CX,0078
+00B1:1655 F3             REPZ
+00B1:1656 A4             MOVSB
+00B1:1657 BF8205         MOV    DI,0582
+00B1:165A 53             PUSH   BX
+00B1:165B 1F             POP    DS
+00B1:165C BE4C00         MOV    SI,004C
+00B1:165F 56             PUSH   SI
+00B1:1660 B90400         MOV    CX,0004
+00B1:1663 F3             REPZ
+00B1:1664 A4             MOVSB
+00B1:1665 5F             POP    DI
+00B1:1666 C7058005       MOV    Word Ptr [DI],0580
+00B1:166A 895D02         MOV    [DI+02],BX
+00B1:166D 5E             POP    SI
+00B1:166E 1F             POP    DS
+00B1:166F C3             RET
+
+00B1:1670 0000           ADD    [BX+SI],AL
+00B1:1672 EB13           JMP    1687
+00B1:1674 0000           ADD    [BX+SI],AL
+00B1:1676 0000           ADD    [BX+SI],AL
+00B1:1678 0000           ADD    [BX+SI],AL
+00B1:167A 0000           ADD    [BX+SI],AL
+00B1:167C 0000           ADD    [BX+SI],AL
+00B1:167E 0000           ADD    [BX+SI],AL
+00B1:1680 0000           ADD    [BX+SI],AL
+00B1:1682 0000           ADD    [BX+SI],AL
+00B1:1684 0000           ADD    [BX+SI],AL
+00B1:1686 0082FC03       ADD    [BP+SI+03FC],AL
+00B1:168A 7405           JZ     1691
+00B1:168C 2EFF2E8205     JMP    FAR CS:[0582]
+00B1:1691 50             PUSH   AX
+00B1:1692 51             PUSH   CX
+00B1:1693 56             PUSH   SI
+00B1:1694 57             PUSH   DI
+00B1:1695 1E             PUSH   DS
+00B1:1696 06             PUSH   ES
+00B1:1697 FEC8           DEC    AL
+00B1:1699 02C1           ADD    AL,CL
+00B1:169B 0E             PUSH   CS
+00B1:169C 07             POP    ES
+00B1:169D BF8A05         MOV    DI,058A
+00B1:16A0 0E             PUSH   CS
+00B1:16A1 1F             POP    DS
+00B1:16A2 C5367800       LDS    SI,[0078]
+00B1:16A6 B90B00         MOV    CX,000B
+00B1:16A9 FC             CLD
+00B1:16AA F3             REPZ
+00B1:16AB A4             MOVSB
+00B1:16AC 0E             PUSH   CS
+00B1:16AD 1F             POP    DS
+00B1:16AE A28E05         MOV    [058E],AL
+00B1:16B1 A17800         MOV    AX,[0078]
+00B1:16B4 A38605         MOV    [0586],AX
+00B1:16B7 A17A00         MOV    AX,[007A]
+00B1:16BA A38805         MOV    [0588],AX
+00B1:16BD C70678008A05   MOV    Word Ptr [0078],058A
+00B1:16C3 8C0E7A00       MOV    [007A],CS
+00B1:16C7 07             POP    ES
+00B1:16C8 1F             POP    DS
+00B1:16C9 5F             POP    DI
+00B1:16CA 5E             POP    SI
+00B1:16CB 59             POP    CX
+00B1:16CC 58             POP    AX
+00B1:16CD 9C             PUSHF
+00B1:16CE 2EFF1E8205     CALL   FAR CS:[0582]
+00B1:16D3 9C             PUSHF
+00B1:16D4 50             PUSH   AX
+00B1:16D5 1E             PUSH   DS
+00B1:16D6 0E             PUSH   CS
+00B1:16D7 1F             POP    DS
+00B1:16D8 A18605         MOV    AX,[0586]
+00B1:16DB A37800         MOV    [0078],AX
+00B1:16DE A18805         MOV    AX,[0588]
+00B1:16E1 A37A00         MOV    [007A],AX
+00B1:16E4 1F             POP    DS
+00B1:16E5 58             POP    AX
+00B1:16E6 9D             POPF
+00B1:16E7 CA0200         RETF   0002
+
+00B1:16E0  05 A3 7A 00 1F 58 9D CA-02 00 00 00 00 00 00 00  .#z..X.J........
+00B1:16F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1700  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1710  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1720  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1730  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1740  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1750  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1760  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1770  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1780  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1790  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:17A0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:17B0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:17C0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:17D0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:17E0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:17F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1800  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1810  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1820  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1830  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1840  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1850  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1860  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1870  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1880  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1890  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:18A0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:18B0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:18C0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:18D0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:18E0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:18F0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1900  8A                                               .
+
+
+
+
+
+00B1:0000  E9 8F 14 03 00 4D 3B 53-3C 3E 3D 40 3F 4B 52 41  i....M;S<>=@?KRA
+00B1:0010  41 B4 00 EB 1E 82 FC 2D-76 19 B0 00 CF 58 58 2E  A4.k..|-v.0.OXX.
+00B1:0020  8F 06 AB 15 9C FA 50 2E-FF 36 AB 15 82 F9 24 77  ..+..zP..6+..y$w
+00B1:0030  E9 8A E1 06 1E 55 57 56-52 51 53 50 2E 89 26 AB  i.a..UWVRQSP..&+
+00B1:0040  15 2E 8C 16 AD 15 8C CC-8E D4 BC D4 16 FB 2E 88  ....-..L.T<T.{..
+00B1:0050  26 7D 15 8A DC B7 00 D1-E3 FC 82 FC 0C 7E 03 BC  &}..\7.Qc|.|.~.<
+00B1:0060  D4 17 2E FF 97 81 00 FA-2E 8B 26 AB 15 2E 8E 16  T......z..&+....
+00B1:0070  AD 15 8B EC 88 46 00 58-5B 59 5A 5E 5F 5D 1F 07  -..l.F.X[YZ^_]..
+
+
+
+00B1:0110  0F 00 60 00 C3 8A C2 50-E8 75 0F 58 9A 12 00 60  ..`.C.BPhu.X...`
+00B1:0120  00 C3 3B 5E 0C 77 18 8D-38 D1 EB 8B 39 73 09 D1  .C;^.w..8Qk.9s.Q
+00B1:0130  EF D1 EF D1 EF D1 EF F9-D1 D3 81 E7 FF 0F C3 50  oQoQoQoyQS.g..CP
+00B1:0140  B4 80 BF FF 0F E8 28 04-58 C3 8B FB D1 EB 03 DE  4.?..h(.XC.{Qk.^
+00B1:0150  03 DF D1 EF 8B 3F 73 0E-D1 E2 D1 E2 D1 E2 D1 E2  ._Qo.?s.QbQbQbQb
+00B1:0160  81 E7 0F 00 EB 04 81 E7-00 F0 0B FA 89 3F C3 BE  .g..k..g.p.z.?C>
+00B1:0170  1F 14 B3 06 BF 86 15 B9-04 00 F3 A6 74 08 03 F1  ..3.?..9..s&t..q
+00B1:0180  FE CB 75 F0 F9 C3 B9 04-00 B0 20 F3 AE 75 F5 8A  ~KupyC9..0 s.uu.
+00B1:0190  C3 BB 36 14 D7 8A D8 B7-FF C3 E8 63 01 72 FA 52  C;6.W.X7.Chc.rzR
+00B1:01A0  1E E8 08 00 07 5F C3 E8-56 01 72 FA 8C C8 8E D8  .h..._ChV.rz.H.X
+00B1:01B0  E8 BC FF 73 F1 E8 D8 01-E8 37 00 72 E9 80 3F E5  h<.sqhX.h7.ri.?e
+00B1:01C0  74 12 8B F3 BF 86 15 B9-0B 00 F3 A6 74 0C 82 7D  t..s?..9..s&t..}
+00B1:01D0  FF 3F 74 F6 E8 52 00 73-E4 C3 8A 26 91 15 F6 D4  .?tvhR.sdC.&..vT
+00B1:01E0  22 24 83 C6 0F 80 E4 06-74 EF F6 06 AA 15 FF 74  "$.F..d.tov.*..t
+00B1:01F0  E3 C3 A1 7E 15 40 3B 46-08 73 4F A3 7E 15 B1 04  cC!~.@;F.sO#~.1.
+00B1:0200  D3 E0 33 D2 D1 E0 D1 D2-8B 5E 01 80 E3 E0 F7 F3  S`3RQ`QR.^..c`ws
+00B1:0210  8B DA 8A 66 00 3B 06 59-14 74 05 53 E8 FE 02 5B  .Z.f.;.Y.t.Sh~.[
+00B1:0220  BA D4 17 03 DA 03 56 01-C3 8B 3E 7E 15 47 3B 7E  :T..Z.V.C.>~.G;~
+00B1:0230  08 73 17 89 3E 7E 15 83-C3 20 3B DA 72 0A FE C0  .s..>~..C ;Zr.~@
+00B1:0240  52 E8 D9 02 5A BB D4 17-F8 C3 E8 64 03 F9 C3 E8  RhY.Z;T.xChd.yCh
+00B1:0250  55 FF B0 FF 72 F8 3A F8-74 F4 C6 06 45 14 FF C6  U.0.rx:xttF.E..F
+00B1:0260  07 E5 8B 1C 8D 76 12 0B-DB 74 08 3B 5E 0C 77 03  .e...v..[t.;^.w.
+00B1:0270  E8 7B 0A E8 42 FF 73 E2-E8 E8 01 E8 33 03 32 C0  h{.hB.sbhh.h3.2@
+00B1:0280  C3 E8 7C 00 72 77 83 C6-05 BF 92 15 E8 9F 00 72  Ch|.rw.F.?..h..r
+00B1:0290  6C E8 18 FF 72 67 82 FF-FF 74 62 BE 86 15 BF 9D  lh..rg...tb>..?.
+00B1:02A0  15 B9 06 00 F3 A5 BF 86-15 BE 92 15 B9 0B 00 AC  .9..s%?..>..9..,
+00B1:02B0  3C 3F 75 02 8A 07 AA 43-E2 F5 C6 05 06 E8 AF FE  <?u...*CbuF..h/~
+00B1:02C0  73 38 FF 36 7E 15 C7 06-7E 15 FF FF E8 E9 FE 58  s8.6~.G.~...hi~X
+00B1:02D0  73 28 E8 26 FF 8B FB BE-86 15 B9 0B 00 F3 A4 C6  s(h&..{>..9..s$F
+00B1:02E0  06 45 14 FF BE 9D 15 BF-86 15 B9 06 00 F3 A5 E8  .E..>..?..9..s%h
+00B1:02F0  C6 FE 73 B2 E8 BA 02 32-C0 C3 E8 B4 02 B0 FF C3  F~s2h:.2@Ch4.0.C
+00B1:0300  2E C6 06 AA 15 00 8C C8-8E C0 BF 86 15 8B F2 AC  .F.*...H.@?...r,
+00B1:0310  2E A2 A9 15 B4 00 3C FF-75 0A 83 C2 07 83 C6 06  .").4.<.u..B..F.
+00B1:0320  8A 64 FF AC 2E 88 26 91-15 E8 1D 00 72 D1 82 3C  .d.,..&..h..rQ.<
+00B1:0330  20 F9 74 CB B9 0B 00 E8-A8 0E 75 05 3C 20 F9 75   ytK9..h(.u.< yu
+00B1:0340  BE 3C 20 72 BA AA E2 EF-C3 2E 38 06 46 14 72 F8  >< r:*boC.8.F.rx
+00B1:0350  98 95 D1 E5 8B AE 5B 14-C3 E8 3E FE 72 9F 82 FF  ..Qe..[.Ch>~r...
+00B1:0360  FF 74 26 8A 46 00 FE C0-AA 83 C7 0B 33 C0 AB B8  .t&.F.~@*.G.3@+8
+00B1:0370  80 00 AB AD 8B D0 A5 A5-8B 44 F8 AB A1 7E 15 AB  ..+-.P%%.Dx+!~.+
+00B1:0380  8B C2 AB AB 33 C0 AB AA-C3 26 89 5D 16 32 C0 C3  .B++3@+*C&.].2@C
+00B1:0390  C7 06 7E 15 FF FF 8A 46-00 9A 1B 00 60 00 8A 46  G.~....F....`..F
+00B1:03A0  00 0A 66 11 78 0C FE CC-74 E5 B4 01 3B 06 55 14  ..f.x.~Lte4.;.U.
+00B1:03B0  74 DD 3A 06 55 14 75 0C-C7 06 53 14 00 00 C7 06  t]:.U.u.G.S...G.
+00B1:03C0  55 14 FF 00 C7 06 59 14-FF FF E8 B8 00 50 E8 CF  U...G.Y...h8.PhO
+00B1:03D0  01 58 72 0A 2A 46 07 74-B6 F6 D8 E9 85 00 8B CF  .Xr.*F.t6vXi...O
+00B1:03E0  03 D1 FE C8 75 E7 E8 9C-00 E9 45 01 B0 00 C3 8B  .Q~Hugh..iE.0.C.
+00B1:03F0  FA 82 3D FF 75 03 83 C7-07 82 7D 17 FF 74 ED F6  z.=.u..G..}..tmv
+00B1:0400  45 1E FF 74 E7 8A 05 E8-3F FF 72 28 8A 46 00 B4  E..tg..h?.r(.F.4
+00B1:0410  01 2E 3B 06 55 14 75 19-52 1E 0E 1F C6 06 56 14  ..;.U.u.R...F.V.
+00B1:0420  00 8B 1E 51 14 B9 01 00-8B 16 53 14 E8 94 01 1F  ...Q.9....S.h...
+00B1:0430  5A E8 66 FD 72 48 A1 7E-15 26 3B 45 16 75 3F 26  Zhf}rH!~.&;E.u?&
+00B1:0440  8B 4D 18 89 0C 26 8B 55-10 89 54 02 26 8B 55 12  .M...&.U..T.&.U.
+00B1:0450  89 54 04 26 8B 55 14 89-54 FE E8 5B 01 82 7E 11  .T.&.U..T~h[..~.
+00B1:0460  01 75 18 C6 46 11 00 E8-1B 00 52 51 53 50 E8 52  .u.FF..h..RQSPhR
+00B1:0470  01 58 5B 59 5A 03 D1 FE-C8 75 EF B0 00 C3 C6 46  .X[YZ.Q~Huo0.CFF
+00B1:0480  11 00 B0 FF C3 8A 46 07-8D 5E 12 8A 4E 0E B5 00  ..0.C.F..^..N.5.
+00B1:0490  8B 56 05 C3 98 03 46 0F-8B D0 BB D4 17 B9 01 00  .V.C..F..P;T.9..
+00B1:04A0  C3 E8 5C FE 72 2B BF 86-15 B9 0B 00 B0 3F F2 AE  Ch\~r+?..9..0?r.
+00B1:04B0  74 1F 2E C6 06 AA 15 01-52 1E E8 EF FC 73 15 E8  t..F.*..R.ho|s.h
+00B1:04C0  CE FE E8 2D FD 80 3F E5-74 27 E8 5C FD 73 F6 1F  N~h-}.?et'h\}sv.
+00B1:04D0  5A B0 FF C3 75 F9 82 FF-FF 74 3C 8B 0C E3 12 3B  Z0.Cuy...t<..c.;
+00B1:04E0  4E 0C 77 0D 53 8B D9 8D-76 12 E8 01 08 E8 73 FF  N.w.S.Y.v.h..hs.
+00B1:04F0  5B 8B FB BE 86 15 B9 05-00 A4 F3 A5 A0 91 15 AA  [.{>..9..$s% ..*
+00B1:0500  33 C0 B1 06 F3 AB E8 91-0D AB 33 C0 57 B1 06 F3  3@1.s+h..+3@W1.s
+00B1:0510  AA 53 E8 A3 00 5B 5E F8-07 5F E9 3F FE 50 E8 90  *Sh#.[^x._i?~Ph.
+00B1:0520  00 58 50 8A 66 00 A3 59-14 E8 68 FF E8 02 00 58  .XP.f.#Y.hh.h..X
+00B1:0530  C3 E8 6C 00 73 FA 2E C6-06 B5 15 00 E8 05 00 3C  Chl.sz.F.5..h..<
+00B1:0540  01 74 EE C3 97 2B C1 03-D0 52 F7 66 01 5A 03 D8  .tnC.+A.PRwf.Z.X
+00B1:0550  B4 00 3B 56 05 72 12 FE-C4 3B 16 0F 00 72 0A FE  4.;V.r.~D;...r.~
+00B1:0560  C4 3B 16 0A 00 72 02 FE-C4 D0 E4 2E 0A 26 B5 15  D;...r.~DPd..&5.
+00B1:0570  8A 46 00 55 2E 89 26 AF-15 FA 2E 8E 16 AD 15 2E  .F.U..&/.z...-..
+00B1:0580  8B 26 AB 15 CD 24 2E 89-26 AB 15 2E 8C 16 AD 15  .&+.M$..&+....-.
+00B1:0590  8C CC 8E D4 2E 8B 26 AF-15 FB 5D 3C 02 74 5A C3  .L.T..&/.{]<.tZC
+00B1:05A0  8A 46 00 55 53 51 52 9A-15 00 60 00 5A 5F 5B 5D  .F.USQR...`.Z_[]
+00B1:05B0  C3 F6 06 45 14 FF 74 F8-C6 06 45 14 00 A0 59 14  Cv.E..txF.E.. Y.
+00B1:05C0  E8 D1 FE 8A 46 00 55 53-51 52 9A 18 00 60 00 5A  hQ~.F.USQR...`.Z
+00B1:05D0  5F 5B 5D 73 DB 2E C6 06-B5 15 01 E8 66 FF 3C 01  _[]s[.F.5..hf.<.
+00B1:05E0  74 E1 C3 2E C5 36 AB 15-8E 5C 14 33 C0 8E C0 BE  taC.E6+..\.3@.@>
+00B1:05F0  0A 00 BF 88 00 A5 A5 A5-A5 8C C8 8E D8 8E C0 E8  ..?..%%%%.H.X.@h
+00B1:0600  1F 08 33 C0 FA 8E 16 AD-15 8B 26 AB 15 8E D8 BE  ..3@z..-..&+..X>
+00B1:0610  88 00 BF 80 15 A5 A5 58-5B 59 5A 5E 5F 5D 1F 07  ..?..%%X[YZ^_]..
+00B1:0620  FB 2E FF 2E 80 15 E8 30-06 E8 08 03 EB 06 E8 28  {.....h0.h..k.h(
+00B1:0630  06 E8 63 04 E3 45 05 01-00 83 D2 00 EB 3D E8 56  .hc.cE....R.k=hV
+00B1:0640  00 E8 F0 02 EB 25 E8 4E-00 E8 4B 04 EB 1D E8 49  .hp.k%hN.hK.k.hI
+00B1:0650  00 E8 E0 02 EB 06 E8 41-00 E8 3B 04 C5 36 AB 15  .h`.k.hA.h;.E6+.
+00B1:0660  89 4C 04 E3 06 05 01 00-83 D2 00 26 89 45 21 26  .L.c.....R.&.E!&
+00B1:0670  88 55 23 0A F6 74 04 26-88 75 24 8B C8 24 7F 26  .U#.vt.&.u$.H$.&
+00B1:0680  88 45 20 80 E1 80 D1 E1-D1 D2 8A C5 8A E2 26 89  .E .a.QaQR.E.b&.
+00B1:0690  45 0C 2E A0 B2 15 C3 B9-01 00 8B FA 82 3D FF 75  E.. 2.C9...z.=.u
+00B1:06A0  03 83 C7 07 8B 45 21 8B-55 23 C3 33 C9 C6 06 B2  ..G..E!.U#C3IF.2
+00B1:06B0  15 04 5B C3 50 8A 05 8B-75 0E 0B F6 75 06 BE 80  ..[CP...u..vu.>.
+00B1:06C0  00 89 75 0E 8C DB 8E C3-8C CB 8E DB E8 7A FC 58  ..u..[.C.K.[hz|X
+00B1:06D0  72 D9 83 FE 40 72 02 B6-00 89 0E BE 15 A3 BA 15  rY.~@r.6...>.#:.
+00B1:06E0  89 16 BC 15 89 3E B6 15-8B 1E 49 14 89 1E B8 15  ..<..>6...I...8.
+00B1:06F0  C6 06 B2 15 00 C6 06 B3-15 00 8B DA F7 E6 A3 CA  F.2..F.3...Zwf#J
+00B1:0700  15 52 8B C3 F7 E6 5B 03-C3 83 D2 00 75 56 A3 CC  .R.Cwf[.C.R.uV#L
+00B1:0710  15 8B D0 A1 CA 15 8B 5E-01 3B D3 73 47 F7 F3 A3  ..P!J..^.;SsGws#
+00B1:0720  C4 15 89 16 C8 15 8B D0-22 46 03 A2 B1 15 8B C1  D...H..P"F."1..A
+00B1:0730  8A 4E 04 D3 EA 89 16 C2-15 F7 E6 8B C8 03 06 49  .N.Sj..B.wf.H..I
+00B1:0740  14 83 D2 00 74 1A A1 49-14 F7 D8 75 01 48 33 D2  ..R.t.!I.wXu.H3R
+00B1:0750  F7 F6 A3 BE 15 F7 E6 C6-06 B2 15 02 8B C8 E3 0B  wv#>.wfF.2...Hc.
+00B1:0760  8D 76 12 C3 C6 06 B2 15-01 33 C9 5B C3 A1 C8 15  .v.CF.2..3I[C!H.
+00B1:0770  8B D9 0B C0 74 0D 2B 46-01 F7 D8 2B D8 73 04 03  .Y.@t.+F.wX+Xs..
+00B1:0780  C3 33 DB A3 CE 15 8B C3-33 D2 F7 76 01 A3 D2 15  C3[#N..C3Rwv.#R.
+00B1:0790  89 16 D0 15 C3 26 8B 5D-1A 26 8B 55 1C 0B DB 74  ..P.C&.].&.U..[t
+00B1:07A0  1D 2B CA 73 08 03 CA 33-D2 26 8B 5D 18 E3 E5 E8  .+Js..J3R&.].ceh
+00B1:07B0  70 F9 81 FF F8 0F 73 DC-87 FB 42 E2 F2 C3 41 4A  py..x.s\.{BbrCAJ
+00B1:07C0  C3 8B 16 C2 15 8A 1E B1-15 E8 7E 04 A2 B4 15 3B  C..B...1.h~."4.;
+00B1:07D0  16 53 14 75 08 A0 55 14-3A 46 00 74 40 F6 06 56  .S.u. U.:F.t@v.V
+00B1:07E0  14 FF 74 16 52 55 8B 2E-57 14 8B 1E 51 14 B9 01  ..t.RU..W...Q.9.
+00B1:07F0  00 8B 16 53 14 E8 CB FD-5D 5A F6 06 B4 15 FF 75  ...S.hK}]Zv.4..u
+00B1:0800  0C 8B 1E 51 14 B9 01 00-52 E8 25 FD 5A 89 16 53  ...Q.9..Rh%}Z..S
+00B1:0810  14 8A 46 00 B4 00 A3 55-14 89 2E 57 14 C6 06 B3  ..F.4.#U...W.F.3
+00B1:0820  15 01 8B 3E B8 15 8B F7-8B 0E CE 15 03 F1 89 36  ...>8..w..N..q.6
+00B1:0830  B8 15 8B 36 51 14 03 36-C8 15 C3 32 C0 E8 81 FF  8..6Q..6H.C2@h..
+00B1:0840  06 8E 06 4B 14 D1 E9 73-01 A4 F3 A5 07 C3 A1 C4  ...K.Qis.$s%.C!D
+00B1:0850  15 40 A3 C4 15 3B 06 C6-15 B0 01 77 02 B0 00 E8  .@#D.;.F.0.w.0.h
+00B1:0860  5F FF 87 F7 1E 06 0E 07-8E 1E 4B 14 D1 E9 73 01  _..w......K.Qis.
+00B1:0870  A4 F3 A5 07 1F C6 06 56-14 01 C3 F6 06 B3 15 FF  $s%..F.V..Cv.3..
+00B1:0880  74 27 A0 B1 15 FE C0 3A-46 03 76 1A 8B 1E C2 15  t' 1.~@:F.v...B.
+00B1:0890  81 FB F8 0F 73 15 8D 76-12 E8 86 F8 89 3E C2 15  .{x.s..v.h.x.>B.
+00B1:08A0  FF 06 C0 15 B0 00 A2 B1-15 F8 C3 F9 C3 AC AA 3C  ..@.0."1.xCyC,*<
+00B1:08B0  0D 75 03 C6 04 0A 3C 0A-E0 F3 75 0B E8 A3 07 33  .u.F..<.`su.h#.3
+00B1:08C0  F6 0B C9 75 47 0C 01 89-36 47 14 89 3E B8 15 07  v.IuG...6G..>8..
+00B1:08D0  75 09 8B 3E B6 15 26 80-4D 16 80 E9 DD 00 06 C4  u..>6.&.M..i]..D
+00B1:08E0  3E 49 14 0A DB 74 0E FE-CB 75 E0 E8 1E F8 AA 3C  >I..[t.~Ku`h.x*<
+00B1:08F0  1A E0 F8 EB D6 0E 1F 8B-36 47 14 0B F6 75 AE 80  .`xkV...6G..vu..
+00B1:0900  3E FB 14 80 74 06 C7 06-FB 14 80 FF 51 06 57 BA  >{..t.G.{...Q.W:
+00B1:0910  FB 14 E8 78 05 5F 07 59-BE FD 14 82 3C 1A 75 8D  {.hx._.Y>}..<.u.
+00B1:0920  B0 1A AA B0 0A E8 3A 07-33 F6 EB 9B 33 C9 E9 4F  0.*0.h:.3vk.3IiO
+00B1:0930  01 E9 E7 00 E8 7D FD 26-8B 5D 16 82 FF FF 74 9E  .ig.h}}&.]....t.
+00B1:0940  26 8B 45 10 26 8B 5D 12-2B 06 CA 15 1B 1E CC 15  &.E.&.].+.J...L.
+00B1:0950  72 DA 75 0A 0B C0 74 D4-3B C1 73 02 8B C8 E8 0C  rZu..@tT;As..Hh.
+00B1:0960  FE 8B 0E C2 15 E8 2D FE-0B C9 75 C0 89 16 C0 15  ~..B.h-~.Iu@..@.
+00B1:0970  89 1E C2 15 83 3E CE 15-00 74 03 E8 BD FE 83 3E  ..B..>N..t.h=~.>
+00B1:0980  D2 15 00 74 AC E8 F3 FE-72 31 C6 06 B3 15 01 8A  R..t,hs~r1F.3...
+00B1:0990  16 B1 15 8B 0E D2 15 8B-1E C2 15 E8 53 02 57 50  .1...R...B.hS.WP
+00B1:09A0  1E 8E 1E 4B 14 E8 89 FB-1F 59 5B E3 6E 81 FB F8  ...K.h.{.Y[cn.{x
+00B1:09B0  0F 73 08 B2 00 FF 06 C0-15 EB E0 8B 36 B6 15 A1  .s.2...@.k`.66.!
+00B1:09C0  B8 15 8B F8 2B 06 49 14-33 D2 26 8B 4C 0E F7 F1  8..x+.I.3R&.L.wq
+00B1:09D0  3B 06 BE 15 74 22 C6 06-B2 15 01 0B D2 74 19 C6  ;.>.t"F.2...Rt.F
+00B1:09E0  06 B2 15 03 2B CA 06 8E-06 4B 14 93 33 C0 D1 E9  .2..+J...K..3@Qi
+00B1:09F0  73 01 AA F3 AB 93 07 40-8B C8 8B FE A1 C2 15 26  s.*s+..@.H.~!B.&
+00B1:0A00  89 45 1A A1 C0 15 26 89-45 1C A1 BA 15 8B 16 BC  .E.!@.&.E.!:...<
+00B1:0A10  15 E3 07 49 03 C1 83 D2-00 41 C3 A1 D0 15 0B C0  .c.I.A.R.AC!P..@
+00B1:0A20  74 99 A3 CE 15 E8 53 FE-72 91 C7 06 C8 15 00 00  t.#N.hS~r.G.H...
+00B1:0A30  E8 08 FE EB 86 1E C5 36-49 14 80 E3 7F 0A DB 74  h.~k..E6I..c..[t
+00B1:0A40  1E FE CB 74 10 FE CB 75-20 AC 3C 1A 74 1B E8 FF  .~Kt.~Ku ,<.t.h.
+00B1:0A50  06 E2 F6 EB 14 AC E8 BE-F6 3C 1A E0 F8 EB 0A AC  .bvk.,h>v<.`xk.,
+00B1:0A60  3C 1A 74 05 E8 FB 05 E2-F6 1F 8B 0E BE 15 8B 3E  <.t.h{.bv...>..>
+00B1:0A70  B6 15 EB 96 8B C8 E8 36-FD E3 16 E8 FB 01 73 11  6.k..Hh6}c.h{.s.
+00B1:0A80  C6 06 B2 15 01 A1 BA 15-8B 16 BC 15 8B 3E B6 15  F.2..!:...<..>6.
+00B1:0A90  C3 E9 7C 00 E9 0A 01 C6-45 1E 01 E8 16 FC E8 F9  Ci|.i..FE..h.|hy
+00B1:0AA0  07 26 89 45 14 26 8B 5D-16 82 FF FF 74 87 E8 BC  .&.E.&.]....t.h<
+00B1:0AB0  FC A1 CA 15 8B 16 CC 15-E3 DA 49 03 C1 83 D2 00  |!J...L.cZI.A.R.
+00B1:0AC0  F7 76 01 8A 4E 04 D3 E8-50 26 8B 45 10 26 8B 55  wv..N.ShP&.E.&.U
+00B1:0AD0  12 F7 76 01 0B D2 74 01-40 A3 C6 15 58 8B 0E C2  .wv..Rt.@#F.X..B
+00B1:0AE0  15 E8 B1 FC 89 1E C2 15-89 16 C0 15 2B C2 74 20  .h1|..B...@.+Bt
+00B1:0AF0  E3 82 51 8B C8 E8 81 01-58 72 85 8B C8 8B 16 C0  c.Q.Hh..Xr..H..@
+00B1:0B00  15 42 49 74 03 E8 A7 FC-89 1E C2 15 89 16 C0 15  .BIt.h'|..B...@.
+00B1:0B10  83 3E CE 15 00 74 07 8B-1E C2 15 E8 30 FD A1 D2  .>N..t...B.h0}!R
+00B1:0B20  15 0B C0 74 32 01 06 C4-15 E8 4F FD C6 06 B3 15  ..@t2..D.hO}F.3.
+00B1:0B30  01 8A 16 B1 15 8B 1E C2-15 8B 0E D2 15 E8 B1 00  ...1...B...R.h1.
+00B1:0B40  57 50 1E 8E 1E 4B 14 E8-79 FA 1F 59 5B E3 08 B2  WP...K.hyz.Y[c.2
+00B1:0B50  00 FF 06 C0 15 EB E6 A1-D0 15 0B C0 74 0F A3 CE  ...@.kf!P..@t.#N
+00B1:0B60  15 E8 17 FD C7 06 C8 15-00 00 E8 E1 FC A1 B8 15  .h.}G.H...ha|!8.
+00B1:0B70  2B 06 49 14 03 06 CA 15-8B 16 CC 15 83 D2 00 8B  +.I...J...L..R..
+00B1:0B80  CA 8B 3E B6 15 26 3B 45-10 26 1B 4D 12 72 08 26  J.>6.&;E.&.M.r.&
+00B1:0B90  89 45 10 26 89 55 12 8B-0E BE 15 E9 5E FE E9 DF  .E.&.U...>.i^~i_
+00B1:0BA0  FE 8B C8 0B CA 74 3B 2D-01 00 83 DA 00 F7 76 01  ~.H.Jt;-...Z.wv.
+00B1:0BB0  8A 4E 04 D3 E8 8B C8 E8-DB FB E3 1A E8 BA 00 72  .N.Sh.Hh[{c.h:.r
+00B1:0BC0  DD 8B 3E B6 15 A1 CA 15-26 89 45 10 A1 CC 15 26  ].>6.!J.&.E.!L.&
+00B1:0BD0  89 45 12 33 C9 C3 BA FF-0F E8 14 01 C6 46 11 01  .E.3IC:..h..FF..
+00B1:0BE0  EB DF 33 DB 26 87 5D 18-0B DB 74 D5 E8 FF 00 EB  k_3[&.]..[tUh..k
+00B1:0BF0  EB 52 53 8A 46 03 FE C0-8A E0 2A C2 8B D1 8D 76  kRS.F.~@.`*B.Q.v
+00B1:0C00  12 B9 00 00 E8 1B F5 02-C8 82 D5 00 3B CA 73 2C  .9..h.u.H.U.;Js,
+00B1:0C10  8A C4 43 3B FB 74 ED 4B-89 1E C2 15 2B D1 52 8B  .DC;{tmK..B.+QR.
+00B1:0C20  C1 F7 66 01 8B 36 B8 15-03 C6 A3 B8 15 58 5A 2B  Awf..68..F#8.XZ+
+00B1:0C30  DA 01 1E C0 15 5B E8 11-00 8B DE C3 2B CA 2A E1  Z..@.[h...^C+J*a
+00B1:0C40  FE CC 88 26 B1 15 8B CA-EB CE 51 8A 4E 04 4A 4A  ~L.&1..JkNQ.N.JJ
+00B1:0C50  D3 E2 0A D3 03 56 0A 59-C3 8B FA 82 3D FF 75 03  Sb.S.V.YC.z.=.u.
+00B1:0C60  83 C7 07 B9 01 00 8A 45-20 8B 55 0C D0 E0 D1 EA  .G.9...E .U.P`Qj
+00B1:0C70  D0 D8 8A E2 8A D6 B6 00-C3 FF 34 52 51 53 8B C3  PX.b.V6.C.4RQS.C
+00B1:0C80  8B D3 43 3B 5E 0C 7E 29-3D 01 00 7F 29 5B BA FF  .SC;^.~)=...)[:.
+00B1:0C90  0F E8 5C 00 58 2B C1 5A-8F 04 42 03 C2 8A 56 03  .h\.X+AZ..B.B.V.
+00B1:0CA0  B6 00 42 F7 E2 8B C8 2B-0E BA 15 77 02 33 C9 F9  6.Bwb.H+.:.w.3Iy
+00B1:0CB0  C3 E8 6E F4 74 0C 48 7E-C9 93 E8 65 F4 74 03 93  Chntt.H~I.hett..
+00B1:0CC0  EB C0 87 D3 8B C2 E8 81-F4 8B D8 E2 B3 BA FF 0F  k@.S.Bh.t.Xb3:..
+00B1:0CD0  E8 77 F4 C6 46 11 01 5B-59 5A E8 45 F4 8F 04 87  hwtFF..[YZhEt...
+00B1:0CE0  FB 0B FF 75 CB 8B 3E B6-15 26 89 5D 18 C3 33 D2  {..uK.>6.&.].C3R
+00B1:0CF0  E8 2F F4 74 F8 8B C7 E8-50 F4 3D F8 0F 8B D8 72  h/ttx.GhPt=x..Xr
+00B1:0D00  ED C3 E8 1D F4 81 FF F8-0F 73 F6 8B DF EB F3 E8  mCh.t..x.sv._ksh
+00B1:0D10  88 F4 72 39 82 FF FF 74-3D A1 7E 15 26 89 45 16  .tr9...t=!~.&.E.
+00B1:0D20  8B F3 C4 3E 49 14 B8 FF-00 3A 06 A9 15 75 09 AB  .sD>I.8..:.).u.+
+00B1:0D30  FE C0 AB AB A0 91 15 AA-8A 46 00 FE C0 AA A4 B9  ~@++ ..*.F.~@*$9
+00B1:0D40  05 00 F3 A5 33 C0 B9 0A-00 F3 A5 A4 C3 26 C7 45  ..s%3@9..s%$C&GE
+00B1:0D50  16 FE FF B0 FF C3 26 89-5D 16 C4 3E 49 14 33 C0  .~.0.C&.].D>I.3@
+00B1:0D60  AA 83 EE 04 A5 A5 B8 20-20 B9 03 00 F3 AB AA 33  *.n.%%8  9..s+*3
+00B1:0D70  C0 B9 0A 00 F3 AB AA C3-E8 85 F5 8B FA 72 CF 52  @9..s+*Ch.u.zrOR
+00B1:0D80  1E 8B 45 16 0E 1F A3 7E-15 E8 2C F4 07 5F E9 81  ..E...#~.h,t._i.
+00B1:0D90  FF E8 06 F4 B0 FF 72 DF-83 C7 21 26 8B 4D ED 0B  .h.t0.r_.G!&.Mm.
+00B1:0DA0  C9 75 03 B9 80 00 33 C0-33 D2 82 FF FF 74 14 46  Iu.9..3@3R...t.F
+00B1:0DB0  46 8B 44 02 F7 F1 50 AD-F7 F1 0B D2 5A 74 04 40  F.D.wqP-wq.RZt.@
+00B1:0DC0  75 01 42 AB 8B C2 AA B0-00 83 F9 40 73 A9 26 88  u.B+.B*0..y@s)&.
+00B1:0DD0  25 C3 2E 89 16 49 14 2E-8C 1E 4B 14 C3 8C C8 8E  %C...I....K.C.H.
+00B1:0DE0  D8 8B 2E 5B 14 E8 AE F5-8D 5E 12 8A 46 03 FE C0  X..[.h.u.^..F.~@
+00B1:0DF0  8B 56 0C 4A C6 46 11 01-8B 4E 01 C5 36 AB 15 89  .V.JFF...N.E6+..
+00B1:0E00  5C 02 89 54 06 89 4C 04-8C 4C 0E C3 2E 8C 1E 4B  \..T..L..L.C...K
+00B1:0E10  14 8C C8 8E D8 C7 06 49-14 80 00 A1 5D 14 A3 5B  ..H.XG.I...!].#[
+00B1:0E20  14 A1 55 14 0A E4 74 1B-98 8B D8 D1 E3 8B AF 5D  .!U..dt...XQc./]
+00B1:0E30  14 C6 06 56 14 00 8B 16-53 14 BB 51 14 B9 01 00  .F.V....S.;Q.9..
+00B1:0E40  E8 80 F7 8A 0E 46 14 B5-00 BE 5D 14 AD 51 56 8B  h.w..F.5.>].-QV.
+00B1:0E50  E8 E8 09 F6 5E 59 E2 F4-C3 2E 8B 2E 5B 14 8A 46  hh.v^YbtC...[..F
+00B1:0E60  00 C3 E8 F4 FD 89 45 21-88 55 23 83 7D 0E 40 73  .Cht}.E!.U#.}.@s
+00B1:0E70  F0 88 75 24 C3 B6 00 8B-DA 0E 1F A0 46 14 3A D8  p.u$C6..Z.. F.:X
+00B1:0E80  73 F2 D1 E3 8B 97 5D 14-89 16 5B 14 C3 8C C8 8E  srQc..]...[.C.H.
+00B1:0E90  C0 8B F2 B5 00 AD 0A C0-74 F2 8A DC 8A FD 3A C3  @.r5.-.@tr.\.}:C
+00B1:0EA0  76 05 82 38 0D 74 02 8A-DD 8A D0 4A 2E A0 3D 14  v..8.t..].PJ. =.
+00B1:0EB0  2E A2 3F 14 56 BF 7B 14-8A E5 8A FD 8A F5 E8 6C  ."?.V?{..e.}.uhl
+00B1:0EC0  02 3C 7F 74 36 3C 08 74-32 3C 0D 74 45 3C 0A 74  .<.t6<.t2<.tE<.t
+00B1:0ED0  65 3C 18 74 66 3C 1B 74-62 3C 00 74 20 3A F2 73  e<.tf<.tb<.t :rs
+00B1:0EE0  13 AA FE C6 E8 66 01 0A-E4 75 D3 3A FB 73 CF 46  .*~Fhf..duS:{sOF
+00B1:0EF0  FE C7 EB CA B0 07 E8 76-01 EB C3 EB 51 E8 2D 02  ~GkJ0.hv.kCkQh-.
+00B1:0F00  57 B1 0C BF 05 00 F2 AE-5F 8B E9 D1 E5 2E FF A6  W1.?..r._.iQe..&
+00B1:0F10  35 10 AA E8 4C 01 5F 88-75 FF FE C6 8C C5 8C DB  5.*hL._.u.~F.E.[
+00B1:0F20  8E C3 8E DD BE 7B 14 8A-CE F3 A4 C3 B0 0D E8 31  .C.]>{..Ns$C0.h1
+00B1:0F30  01 B0 0A E9 2C 01 E8 F3-FF EB 83 B0 5C E8 22 01  .0.i,.hs.k.0\h".
+00B1:0F40  5E E8 E8 FF 2E A0 3F 14-E8 AC 01 E9 5E FF 0A F6  ^hh.. ?.h,.i^..v
+00B1:0F50  74 11 E8 4E 00 26 8A 05-3C 20 73 07 3C 09 74 11  t.hN.&..< s.<.t.
+00B1:0F60  E8 43 00 0A E4 75 07 0A-FF 74 03 FE CF 4E E9 4D  hC..du...t.~ONiM
+00B1:0F70  FF 57 4F FD 8A CE B0 20-53 B3 07 E3 0E AE 76 09  .WO}.N0 S3.c..v.
+00B1:0F80  26 82 7D 01 09 74 09 FE-CB E2 F2 2E 2A 1E 3F 14  &.}..t.~Kbr.*.?.
+00B1:0F90  2A DE 02 CB 80 E1 07 FC-5B 5F 74 C7 E8 07 00 E2  *^.K.a.|[_tGh..b
+00B1:0FA0  FB EB C0 FE CE 4F B0 08-E8 B7 00 B0 20 E8 B2 00  {k@~NO0.h7.0 h2.
+00B1:0FB0  B0 08 E9 AD 00 B0 00 E9-23 FF 8A CB 2A CF EB 07  0.i-.0.i#..K*Ok.
+00B1:0FC0  E8 30 00 EB 02 B1 01 B4-00 3A F2 74 0F 3A FB 74  h0.k.1.4.:rt.:{t
+00B1:0FD0  0B AC AA E8 77 00 FE C7-FE C6 E2 EB E9 DF FE 3A  .,*hw.~G~Fbki_~:
+00B1:0FE0  FB 74 F9 FE C7 46 E9 D5-FE E8 07 00 03 F1 02 F9  {ty~GFiU~h...q.y
+00B1:0FF0  E9 CB FE E8 37 01 8A CB-2A CF 74 17 49 74 14 06  iK~h7..K*Ot.It..
+00B1:1000  1E 07 57 8B FE 47 F2 AE-5F 07 75 07 F6 D1 02 CB  ..W.~Gr._.u.vQ.K
+00B1:1010  2A CF C3 5D E9 A7 FE B0-40 E8 46 00 5F 57 06 1E  *OC]i'~0@hF._W..
+00B1:1020  E8 F9 FE 1F 07 5E 8A DE-E9 16 FF F6 D4 E9 8E FE  hy~..^.^i..vTi.~
+00B1:1030  B0 1A E9 A8 FE BE 0E B5-0F 2B 10 4E 0F 17 10 30  0.i(~>.5.+.N...0
+00B1:1040  10 BA 0F E9 0F C0 0F DF-0F C5 0F C5 0F 3C 20 73  .:.i.@._.E.E.< s
+00B1:1050  11 3C 09 74 0D 50 B0 5E-E8 07 00 58 0C 40 EB 02  .<.t.P0^h..X.@k.
+00B1:1060  8A C2 3C 20 72 7D 3C 7F-74 05 2E FE 06 3D 14 50  .B< r}<.t..~.=.P
+00B1:1070  E8 1D 00 58 9A 09 00 60-00 2E F6 06 40 14 FF 74  h..X...`..v.@..t
+00B1:1080  91 9A 0C 00 60 00 C3 3C-10 74 15 3C 03 74 11 C3  ....`.C<.t.<.t.C
+00B1:1090  9A 03 00 60 00 74 F8 3C-13 75 EC 9A 06 00 60 00  ...`.tx<.ul...`.
+00B1:10A0  9A 06 00 60 00 3C 10 74-31 3C 03 75 E2 2E A0 7D  ...`.<.t1<.ub. }
+00B1:10B0  15 3C 0A 74 04 3C 09 75-08 B0 5C E8 A4 FF E8 6B  .<.t.<.u.0\h$.hk
+00B1:10C0  FE FA 2E 8E 16 AD 15 2E-8B 26 AB 15 58 5B 59 5A  ~z...-...&+.X[YZ
+00B1:10D0  5E 5F 5D 1F 07 CD 23 E9-3B EF 2E 80 36 40 14 01  ^_]..M#i;o..6@..
+00B1:10E0  32 C0 C3 3C 0D 74 20 3C-08 74 25 3C 09 75 1E 2E  2@C<.t <.t%<.u..
+00B1:10F0  A0 3D 14 0C F8 F6 D8 51-8A C8 B5 00 E3 07 B0 20   =..xvXQ.H5.c.0
+00B1:1100  E8 5F FF E2 F9 59 C3 2E-C6 06 3D 14 00 E9 5F FF  h_.byYC.F.=..i_.
+00B1:1110  2E FE 0E 3D 14 E9 57 FF-9A 03 00 60 00 B0 00 74  .~.=.iW....`.0.t
+00B1:1120  E5 0C FF C3 E8 06 00 50-E8 37 FF 58 C3 E8 70 FF  e..Ch..Ph7.XChp.
+00B1:1130  74 FB C3 8A C2 3C FF 75-0F 9A 03 00 60 00 B0 00  t{C.B<.u....`.0.
+00B1:1140  74 F0 9A 06 00 60 00 C3-9A 09 00 60 00 C3 8A C2  tp...`.C...`.C.B
+00B1:1150  50 E8 3C FF 58 9A 0C 00-60 00 C3 8B F2 AC 3C 24  Ph<.X...`.C.r,<$
+00B1:1160  74 F8 E8 FD FE EB F6 2E-AC 3C 24 74 ED E8 F2 FE  txh}~kv.,<$tmhr~
+00B1:1170  EB F5 B2 00 0A C0 74 06-E8 67 00 74 FB 4E B0 00  ku2..@t.hg.t{N0.
+00B1:1180  82 3C 20 72 17 82 7C 01-3A 75 11 E8 54 00 2C 40  .< r..|.:u.hT.,@
+00B1:1190  76 07 2E 3A 06 46 14 76-02 B2 FF 46 AA B9 08 00  v..:.F.v.2.F*9..
+00B1:11A0  E8 1B 00 82 3C 2E 75 01-46 B9 03 00 E8 0F 00 2E  h...<.u.F9..h...
+00B1:11B0  C5 1E AB 15 89 77 08 33-C0 AB AB 8A C2 C3 E8 21  E.+..w.3@++.BCh!
+00B1:11C0  00 74 19 3C 20 76 15 3C-2A 75 06 B0 3F 49 F3 AA  .t.< v.<*u.0?Is*
+00B1:11D0  41 AA 3C 3F 75 03 80 CA-01 E2 E3 46 B0 20 F3 AA  A*<?u..J.bcF0 s*
+00B1:11E0  4E C3 AC 24 7F 3C 61 72-06 3C 7A 77 02 2C 20 3C  NC,$.<ar.<zw., <
+00B1:11F0  20 74 EE 3C 3D 74 EA 3C-2C 74 E6 3C 3B 74 E2 3C   tn<=tj<,tf<;tb<
+00B1:1200  2E 74 DE 3C 3A 74 DA 3C-22 74 D6 3C 2B 74 D2 3C  .t^<:tZ<"tV<+tR<
+00B1:1210  2F 74 CE 3C 5B 74 CA 3C-5D 74 C6 3C 09 C3 33 DB  /tN<[tJ<]tF<.C3[
+00B1:1220  8E C3 8A D8 D1 E3 D1 E3-26 89 17 26 8C 5F 02 C3  .C.XQcQc&..&._.C
+00B1:1230  8E C2 2E C5 36 AB 15 8E-5C 14 33 F6 8B FE B9 80  .B.E6+..\.3v.~9.
+00B1:1240  00 F3 A5 33 C9 8E D9 8E-C2 BE 88 00 BF 0A 00 A5  .s%3I.Y.B>..?..%
+00B1:1250  A5 A5 A5 2E 8B 0E 4D 14-26 89 0E 02 00 2B CA 81  %%%...M.&....+J.
+00B1:1260  F9 FF 0F 76 03 B9 FF 0F-BB 0C 00 2B D9 D1 E1 D1  y..v.9..;..+YQaQ
+00B1:1270  E1 D1 E1 D1 E1 8E DA 89-0E 06 00 89 1E 08 00 C7  aQaQa.Z........G
+00B1:1280  06 00 00 CD 20 C6 06 05-00 9A C3 D1 E7 D1 E7 D1  ...M F....CQgQgQ
+00B1:1290  E7 D1 E7 D1 E7 D1 E7 D1-E7 C3 51 52 53 E8 15 00  gQgQgQgQgCQRSh..
+00B1:12A0  5B 5A 59 A1 42 14 D0 E0-D0 E0 D0 E0 D0 E0 D1 E0  [ZY!B.P`P`P`P`Q`
+00B1:12B0  0A 06 41 14 C3 B4 00 CD-1A 0A C0 74 F7 02 06 41  ..A.C4.M..@tw..A
+00B1:12C0  14 A2 41 14 8A E0 A0 42-14 BB F9 12 D7 2A E0 76  ."A..` B.;y.W*`v
+00B1:12D0  E3 88 26 41 14 A0 42 14-FE C0 A2 42 14 3C 0C 76  c.&A. B.~@"B.<.v
+00B1:12E0  D3 C6 06 42 14 01 A0 43-14 FE C0 A2 43 14 24 03  SF.B.. C.~@"C.$.
+00B1:12F0  B0 1C 75 02 FE C0 A2 FB-12 C3 1F 1C 1F 1E 1F 1E  0.u.~@"{.C......
+00B1:1300  1F 1F 1E 1F 1E 1F 0E 1F-E8 AA FF A1 43 14 8B 1E  ........h*.!C...
+00B1:1310  41 14 C5 36 AB 15 89 5C-06 05 BC 07 89 44 04 32  A.E6+..\..<..D.2
+00B1:1320  C0 C3 B0 FF 81 E9 BC 07-72 F7 83 F9 77 77 F2 0A  @C0..i<.rw.ywwr.
+00B1:1330  F6 74 EE 0A D2 74 EA 82-FE 0C 77 E5 0E 1F 82 FE  vtn.Rtj.~.we...~
+00B1:1340  02 75 0D 82 FA 1D 77 D9-72 12 F6 C1 03 74 0D C3  .u..z.wYr.vA.t.C
+00B1:1350  8A C6 BB F9 12 D7 3A C2-B0 FF 72 F3 52 51 B4 00  .F;y.W:B0.rsRQ4.
+00B1:1360  CD 1A 58 E8 85 FF 8F 06-41 14 32 C0 C3 0E 1F E8  M.Xh....A.2@C..h
+00B1:1370  43 FF 8B C1 8B DA D1 E2-D1 D1 D1 E2 D1 D1 03 D3  C..A.ZQbQQQbQQ.S
+00B1:1380  13 C1 92 B9 0B E9 F7 F1-8B D8 33 C0 F7 F1 8B D3  .A.9.iwq.X3@wq.S
+00B1:1390  B9 C8 00 F7 F1 82 FA 64-72 03 82 EA 64 F5 8A DA  9H.wq.zdr..jdu.Z
+00B1:13A0  D1 D0 B2 00 D1 D2 B9 3C-00 F7 F1 8A FA F6 F1 86  QP2.QR9<.wq.zvq.
+00B1:13B0  C4 C5 36 AB 15 89 5C 06-89 44 04 32 C0 C3 B0 FF  DE6+..\..D.2@C0.
+00B1:13C0  82 FD 18 73 F8 82 F9 3C-73 F3 82 FE 3C 73 EE 82  .}.sx.y<ss.~<sn.
+00B1:13D0  FA 64 73 E9 B0 3C F6 E5-B5 00 03 C1 B9 70 17 8B  zdsi0<ve5..A9p..
+00B1:13E0  DA F7 E1 8B C8 B0 64 F6-E7 03 C8 83 D2 00 B7 00  Zwa.H0dvg.H.R.7.
+00B1:13F0  03 CB 83 D2 00 92 91 BB-0B E9 F7 E3 87 CA 92 F7  .K.R...;.iwc.J.w
+00B1:1400  E3 03 C1 83 D2 00 92 BB-05 00 F6 F3 8A C8 B5 00  c.A.R..;..vs.H5.
+00B1:1410  8A C4 98 92 F7 F3 8B D0-B4 01 CD 1A 32 C0 C3 50  .D..ws.P4.M.2@CP
+00B1:1420  52 4E 20 4C 50 54 31 41-55 58 20 43 4F 4D 31 43  RN LPT1AUX COM1C
+00B1:1430  4F 4E 20 4E 55 4C 20 03-00 01 01 02 02 00 00 00  ON NUL .........
+00B1:1440  00 00 00 00 00 00 00 00-00 80 00 00 00 00 00 00  ................
+00B1:1450  00 00 00 00 00 FF 00 00-00 FF FF 00 00 00 00 00  ................
+
+00B1:145B                dw     0                ; adresa tabulky aktiv. disku
+00B1:145D                                        ; tabulka adres parametr– disk–
+
+00B1:1460  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1470  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+00B1:1480  00 00 00 00 00 00 00 00-00 00 26 F3 A4 FC E8 B2  ..........&s$|h2
+00B1:1490  FD CB FA FC E8 AD 01 0E-07 AC 26 A2 46 14 BB 5D  }Kz|h-...,&"F.;]
+00B1:14A0  14 BF 72 16 26 89 3F 8B-EF 43 43 26 A0 70 16 AA  .?r.&.?.oCC& p.*
+00B1:14B0  AD 56 8B F0 AD AB 8B D0-26 3B 06 4F 14 76 04 26  -V.p-+.P&;.O.v.&
+00B1:14C0  A3 4F 14 AC FE C8 AA 74-09 98 FE C4 D0 F8 75 FA  #O.,~H*t..~DPxuz
+00B1:14D0  8A C4 AA A5 A4 A5 8B C2-B1 05 D3 E8 8B C8 48 26  .D*%$%.B1.Sh.HH&
+00B1:14E0  03 46 08 33 D2 F7 F1 AB-D1 E8 15 00 00 26 A3 71  .F.3Rwq+Qh...&#q
+00B1:14F0  16 A5 B0 01 BA 01 00 52-E8 1A 01 5A 3A C2 74 0E  .%0.:..Rh..Z:Bt.
+00B1:1500  3A C6 8A F2 8A D0 75 EF-26 FF 4E 0C EB E4 AA 26  :F.r.Puo&.N.kd*&
+00B1:1510  F6 66 07 26 03 46 05 AB-26 03 46 0A 26 89 46 0A  vf.&.F.+&.F.&.F.
+00B1:1520  E8 FF 00 26 89 4E 0C B8-FF 00 AA 26 8A 46 0E 26  h..&.N.8..*&.F.&
+00B1:1530  F7 66 01 03 F8 5E 26 A0-70 16 FE C0 26 A2 70 16  wf..x^& p.~@&"p.
+00B1:1540  26 3A 06 46 14 73 03 E9-5A FF AD 26 8B 1E 4F 14  &:.F.s.iZ.-&..O.
+00B1:1550  B8 D4 17 03 C3 26 A3 51-14 57 03 FB 03 FB 81 C7  8T..C&#Q.W.{.{.G
+00B1:1560  71 01 B1 04 D3 EF 8B EF-33 C0 8E D8 8E C0 BF 80  q.1.So.o3@.X.@?.
+00B1:1570  00 B8 11 00 AB 8C C8 C6-06 C0 00 EA C7 06 C1 00  .8..+.HF.@.jG.A.
+
+00B1:157d                db     6                ; ‡¡slo po‘adovan‚ funkce DOS
+
+00B1:1580  1D 00 A3 C3 00 B9 09 00-F3 AB C7 06 84 00 15 00  ..#C.9..s+G.....
+00B1:1590  C7 06 8C 00 1C 00 C7 06-90 00 1C 00 B8 15 00 AB  G.....G.....8..+
+00B1:15A0  B8 60 00 AB AB AB C7 06-98 00 18 00 8C CA 8E DA  8`.+++G......J.Z
+00B1:15B0  03 D5 C7 06 49 14 80 00-89 16 4B 14 A1 5D 14 A3  .UG.I.....K.!].#
+00B1:15C0  5B 14 CD 12 B1 06 D3 E0-2E A3 4D 14 33 C9 8E D9  [.M.1.S`.#M.3I.Y
+00B1:15D0  C7 06 88 00 00 01 89 16-8A 00 0E 1F 0E 07 89 16  G...............
+00B1:15E0  03 00 5E A1 4F 14 D1 E0-05 62 01 74 25 BF 5D 14  ..^!O.Q`.b.t%?].
+00B1:15F0  B9 0F 00 01 05 47 47 E2-FA 8B CE BE 72 16 2B CE  9....GGbz.N>r.+N
+00B1:1600  8B F8 03 FE 0B C0 78 07-49 03 F9 03 F1 41 FD E9  .x.~.@x.I.y.qA}i
+00B1:1610  78 FE E9 79 FE 26 F6 66-07 26 03 46 05 26 03 06  x~iy~&vf.&.F.&..
+00B1:1620  71 16 26 2B 46 0C F7 D8-26 8A 4E 04 D3 E8 40 8B  q.&+F.wX&.N.Sh@.
+00B1:1630  C8 40 8B D0 D1 EA 13 C2-26 8B 76 01 03 C6 48 33  H@.PQj.B&.v..FH3
+00B1:1640  D2 F7 F6 C3 1E 56 33 DB-8E C3 BF 80 05 0E 1F BE  RwvC.V3[.C?....>
+00B1:1650  72 16 B9 78 00 F3 A4 BF-82 05 53 1F BE 4C 00 56  r.9x.s$?..S.>L.V
+00B1:1660  B9 04 00 F3 A4 5F C7 05-80 05 89 5D 02 5E 1F C3  9..s$_G....].^.C
+00B1:1670  00 00 EB 13 00 00 00 00-00 00 00 00 00 00 00 00  ..k.............
+00B1:1680  00 00 00 00 00 00 00 82-FC 03 74 05 2E FF 2E 82  ........|.t.....
+00B1:1690  05 50 51 56 57 1E 06 FE-C8 02 C1 0E 07 BF 8A 05  .PQVW..~H.A..?..
+00B1:16A0  0E 1F C5 36 78 00 B9 0B-00 FC F3 A4 0E 1F A2 8E  ..E6x.9..|s$..".
+00B1:16B0  05 A1 78 00 A3 86 05 A1-7A 00 A3 88 05 C7 06 78  .!x.#..!z.#..G.x
+00B1:16C0  00 8A 05 8C 0E 7A 00 07-1F 5F 5E 59 58 9C 2E FF  .....z..._^YX...
+00B1:16D0  1E 82 05 9C 50 1E 0E 1F-A1 86 05 A3 78 00 A1 88  ....P...!..#x.!.
+

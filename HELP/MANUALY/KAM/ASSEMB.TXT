@@ -1,0 +1,541 @@
+
+                    Z klady programov n¡ v ASSEMBLERU IBM PC
+                    ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+Obsah:
+         1.- instrukce procesoru 8086
+               1. 1. Registry procesoru 8086/8088
+               1. 2. Registr p©¡znak–
+               1. 3. Adresace pamˆti, operandy
+               1. 4. Aritmetick‚ operace
+               1. 5. Logick‚ operace, rotace
+               1. 6. etˆzcov‚ operace
+               1. 7. Skoky
+               1. 8. Podprogramy
+               1. 9. P©esuny dat
+               1.10. ¡dic¡ instrukce procesoru
+         2.- z kladn¡ slu‘by BIOS
+         3.- z kladn¡ slu‘by DOS
+         3.- rezidentn¡ programy
+         4.-
+
+
+
+
+
+                       1.1. Registry procesoru 8086/8088
+                       ---------------------------------
+  ÚÄÄÄÄ> 15 ............... 0
+  ³       7 ..... 0 7 ..... 0
+ÚÄÁÄÄÄÄÄÄÄÄÄÄÄ^ÄÄÄÄÄÄÄÄÄ^ÄÄÄ¿
+³ AX    =    AH    +   AL   ³ akumul tor          ÄÄ¿ hlavn¡ registry
+³ BX    =    BH    +   BL   ³ b zov˜ registr        ³
+³ CX    =    CH    +   CL   ³ ‡¡tac¡ registr        ³
+³ DX    =    DH    +   DL   ³ datov˜ registr      ÄÄÙ
+ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³            SP             ³ ukazatel z sobn¡ku  ÄÄ¿ ukazatele
+³            BP             ³ b zov˜ ukazatel     ÄÄÙ
+ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³            SI             ³ zdrojov˜ index      ÄÄ¿ indexy
+³            DI             ³ c¡lov˜ index        ÄÄÙ
+ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³            IP             ³ ukazatel instrukc¡  ÄÄ¿ ©¡zen¡ programu
+³          FLAGS            ³ registr p©¡znak–    ÄÄÙ
+ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³            CS             ³ k¢dov˜ segment      ÄÄ¿ segmentov‚ registry
+³            DS             ³ datov˜ segment        ³
+³            SS             ³ segment z sobn¡ku     ³
+³            ES             ³ zvl ¨tn¡ segment    ÄÄÙ
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+                             1.2. Registr p©¡znak–
+                             ---------------------
+
+ bit  0: CF p©enos ........ nastav¡ se p©i p©ete‡en¡ aritmetick‚ operace
+
+ bit  2: PF parita ........ nastav¡ se p©i sud‚m po‡tu bit– 1 po aritm. operaci
+
+ bit  4: AF pomocn˜ p©enos  nastav¡ se p©i p©enosu z ni‘¨¡ poloviny operandu
+
+ bit  6: ZF p©¡znak nuly .. nastav¡ se, je-li v˜sledkem operace nula (shoda)
+
+ bit  7: SF znam‚nko ...... odpov¡d  nejvy¨¨¡mu bitu v˜sledku (1=z porn˜)
+
+ bit  8: TF krokov n¡ ..... p©i nastaven¡ ka‘d  instrukce vyvol  p©eru¨en¡ INT3
+
+ bit  9: IF p©eru¨en¡ ..... p©i nastaven¡ je povoleno p©eru¨en¡ (kromˆ NMI)
+
+ bit 10: DF smˆr .......... p©i nastaven¡ se ukazatele sni‘uj¡, p©i 0 zvy¨uj¡
+
+ bit 11: OF p©eplnˆn¡ ..... nastav¡ se p©i p©ete‡en¡ operace se znam‚nkem
+
+
+
+
+
+                         1.3. Adresace pamˆti, operandy
+                         ------------------------------
+PamˆŸ  se  adresuje  pomoc¡  20 bit– - tj. lze adresovat 1 MB pamˆti. Absolutn¡
+adresa vznikne sou‡tem segmentov‚ho registru * 16 s offsetov˜m registrem:
+
+      segmentov˜ registr (nap©. DS):  xxxx xxxx xxxx xxxx .... (16 bit–)
+      offset        (nap©. SI + BX):  .... yyyy yyyy yyyy yyyy (16 bit–)
+                                      ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+      absolutn¡ adresa                xxxx zzzz zzzz zzzz yyyy (20 bit–)
+
+- konstanta (‡¡slo 8 nebo 16 bit–)
+- registr Al,BL,CL,DL, AH,BH,CH,DH, AX,BX,CX,DX, SP,BP, SI,DI, CS,DS,SS,ES
+- index        [SI],    [SI+offset],    [SI+n vˆ¨t¡],    implicitn¡ segm. DS
+- index        [DI],    [DI+offset],    [DI+n vˆ¨t¡],    implicitn¡ segm. DS
+- b ze         [BX],    [BX+offset],    [BX+n vˆ¨t¡],    implicitn¡ segm. DS
+- b ze         [BP],    [BP+offset],    [BP+n vˆ¨t¡],    implicitn¡ segm. SS !
+- b ze + index [BX+SI], [BX+SI+offset], [BX+SI+n vˆ¨t¡], implicitn¡ segm. DS
+- b ze + index [BX+DI], [BX+SI+offset], [BX+SI+n vˆ¨t¡], implicitn¡ segm. DS
+- b ze + index [BP+SI], [BP+SI+offset], [BP+SI+n vˆ¨t¡], implicitn¡ segm. SS !
+- b ze + index [BP+DI], [BP+SI+offset], [BP+SI+n vˆ¨t¡], implicitn¡ segm. SS !
+- ©etˆzov  instrukce     zdroj DS:SI,  p©¡jemce ES:DI
+
+Varov n¡: U  AT  se  nesm¡  adresovat  slovo na p©elomu segment– (tj. nesm¡ b˜t
+          offset adresy slova = 0FFFFh) - vyvol  p©eru¨en¡ INT 0Dh a zamrzne !
+
+                            1.4. Aritmetick‚ operace
+                            ------------------------
+ Nekovan  ‡¡sla BCD (v AL ni‘¨¡ ‡¡slice 0 a‘ 9, v AH vy¨¨¡ ‡¡slice 0 a‘ 9):
+AAA      - ASCII korekce po sou‡tu BCD (AH <- 1. ‡¡slice, AL <- 2. ‡¡slice)
+AAS      - ASCII korekce po ode‡¡t n¡ (AH <- 1. ‡¡slice, AL <- 2. ‡¡slice)
+AAD      - ASCII korekce p©ed dˆlen¡m BCD (AL <- AH*10+AL, AH <- 0)
+AAM      - ASCII korekce po n soben¡ BCD (AH <- AL/10, AL <- AL MOD 10)
+
+ Pakovan  ‡¡sla BCD (v ni‘¨¡ tetr dˆ AL ni‘¨¡ ‡¡slice, ve vy¨¨¡ tetr dˆ vy¨¨¡)
+DAA      - dekadick  korekce po sou‡tu (AL_H <- 1. ‡¡slice, AL_L <- 2. ‡¡slice)
+DAS      - dekadick  korekce po ode‡¡t n¡ (AL_H <-1.‡¡slice, AL_L <-2.‡¡slice)
+
+ADD      - aritmetick˜ sou‡et
+ADC      - aritmetick˜ sou‡et s p©i‡ten¡m p©¡znaku p©enosu CF
+SUB      - aritmetick˜ rozd¡l
+SBB      - aritmetick˜ rozd¡l s ode‡ten¡m p©¡znaku p©enosu CF
+CMP      - porovn n¡ dvou operand– (p©¡znaky p©enosu jako p©i operaci SUB)
+NEG      - negace operandu
+INC      - inkrementace (zv˜¨en¡ o 1) - pozor, neovlivn¡ p©¡znak CF !
+DEC      - dekrementace (sn¡‘en¡ o 1) - pozor, neovlivn¡ p©¡znak CF !
+
+DIV      - dˆlen¡ bez znam‚nka (AX/op->AL,AH=zbytek) (DX:AX/op->AX,DX=zbytek)
+IDIV     - dˆlen¡ se znam‚nkem (AX/op->AL,AH=zbytek) (DX:AX/op->AX,DX=zbytek)
+MUL      - n soben¡ bez znam‚nka (AL*op->AX) (AX*op->DX:AX) (neplat¡ p©¡znaky!)
+IMUL     - n soben¡ se znam‚nkem (AL*op->AX) (AX*op->DX:AX) (neplat¡ p©¡znaky!)
+
+                          1.5. Logick‚ operace, rotace
+                          ----------------------------
+AND      - logick‚ AND
+OR       - logick‚ OR
+XOR      - logick‚ XOR (pou‘¡v  se pro nulov n¡ registr– - XOR BX,BX)
+NOT      - logick  inverze operandu
+TEST     - test operandu 1 operandem 2 (nastav¡ p©¡znaky jako AND)
+
+
+Prvn¡  operand  pro  rotace m–‘e b˜t libovoln˜ kromˆ segment–, druh˜ operand je
+‡¡slo 1 nebo registr CL a ud v  po‡et rotac¡.
+
+RCL      - rotace vlevo, p©es p©¡znak CF (mˆn¡ jen p©¡znaky OF a CF)
+RCR      - rotace vpravo p©es p©¡znak CF (mˆn¡ jen p©¡znaky OF a CF)
+ROL      - rotace vlevo, kopie bitu 7 do p©¡znaku CF (mˆn¡ jen p©¡zn. OF a CF)
+ROR      - rotace vpravo, kopie bitu 7 do p©¡znaku CF (mˆn¡ jen p©¡zn. OF a CF)
+SAL      - aritm. posun vlevo, CF <- bit 7, bit 0 <- 0 (nastav¡ p©¡znaky)
+SAR      - aritm. posun vpravo, SF -> bit 7, bit 0 -> CF (nastav¡ p©¡znaky)
+SHL      - logick˜ posun vlevo, CF <- bit 7, bit 0 <- 0 (nastav¡ p©¡znaky)
+SHR      - logick˜ posun vpravo, 0 -> bit 7, bit 0 -> CF (nastav¡ p©¡znaky)
+
+
+
+
+                             1.6. etˆzcov‚ operace
+                             ----------------------
+Po  proveden¡  ka‘d‚  ©etˆzcov‚  instrukce  se ukazatele posunou podle p©¡znaku
+smˆru  DF  nahoru  nebo  dol–.  P©i  pou‘it¡ prefixu REP se ©etˆzcov  instrukce
+opakuje CX kr t (po proveden¡ je v CX 0). Je-li CX=0, neprovede se ani jednou).
+Prefix REPE se po proveden¡ jednoho kroku opakuje pouze v p©¡padˆ shody operace
+porovn n¡  (pou‘it¡  p©i porovn n¡ ©etˆzc– na shodu). P©i pou‘it¡ prefixu REPNE
+se operace opakuje jen p©i neshodˆ (pou‘it¡ p©i vyhled n¡ znaku v ©etˆzci).
+
+CMPSB    - porovn n¡ ©etˆzc– s velikost¡ bajt (v˜znam  CMP DS:[SI],ES:[DI])
+CMPSW    - porovn n¡ ©etˆzc– s velikost¡ slovo (v˜znam  CMP DS:[SI],ES:[DI])
+
+LODSB    - na‡ten¡ bajtu AL z ©etˆzce DS:SI (v˜znam MOV AL,DS:[SI])
+LODSW    - na‡ten¡ slova AX z ©etˆzce DS:SI (v˜znam MOV AX,DS:[SI])
+
+MOVSB    - p©esun bajtu z adresy DS:SI do adresy ES:DI
+MOVSW    - p©esun slova z adresy DS:SI do adresy ES:DI
+
+SCASB    - porovn n¡ AL s ©etˆzcem ES:DI (v˜znam CMP AL,ES:[DI])
+SCASW    - porovn n¡ AX s ©etˆzcem ES:DI (v˜znam CMP AX,ES:[DI])
+
+STOSB    - ulo‘en¡ AL do adresy ES:DI (v˜znam MOV ES:[DI],AL)
+STOSW    - ulo‘en¡ AX do adresy ES:DI (v˜znam MOV ES:[DI],AX)
+
+
+                                   1.7. Skoky
+                                   ----------
+JMP      - nepodm¡nˆn˜ skok (typ SHORT, NEAR nebo FAR)
+JA,JNBE  - skok, je-li nad = nen¡ pod ani shoda (je CF=0 a ZF=0)
+JAE,JNB,JNC - skok, je-li nad nebo shoda = nen¡ pod = nen¡ p©enos CF (je CF=0)
+JB,JNAE,JC  - skok, je-li pod = nen¡ nad ani shoda = je p©enos CF (je CF=1)
+JBE,JNA  - skok, je-li pod nebo shoda = nen¡ nad (je CF=1 nebo CF=1)
+JE,JZ    - skok, je-li shoda = je nula (je ZF=1)
+JNE,JNZ  - skok, nen¡-li shoda = nen¡ nula (je ZF=0)
+JG,JNLE  - skok, je-li vˆt¨¡ = nen¡ men¨¡ ani shoda (je ZF=0 a SF=OF)
+JGE,JNL  - skok, je-li vˆt¨¡ nebo shoda = nen¡ men¨¡ (je SF=OF)
+JL,JNGE  - skok, je-li men¨¡ = nen¡ vˆt¨¡ ani shoda (je SF<>OF)
+JLE,JNG  - skok, je-li men¨¡ nebo shoda = nen¡ vˆt¨¡ (je SF<>OF nebo ZF=1)
+JO       - skok, je-li p©ete‡en¡ (je OF=1)
+JNO      - skok, nen¡-li p©ete‡en¡ (je OF=0)
+JP,JPE   - skok, je-li parita = parita je sud  (PF=1)
+JNP,JPO  - skok, nen¡-li parita = parita je lich  (PF=0)
+JS       - skok, je-li znam‚nko = je z porn‚ (SF=1)
+JNS      - skok, nen¡-li znam‚nko = je kladn‚ (SF=0)
+JCXZ     - skok, je-li registr CX=0 (neovlivn¡ p©¡znaky)
+LOOP     - sn¡‘en¡ CX o 1 a skok, je-li CX<>0
+LOOPE,LOOPZ - sn¡‘en¡ CX o 1 a skok, je-li CX<>0 a z rove¤ je shoda/nula
+LOOPNE,LOOPNZ - sn¡‘en¡ CX o 1 a skok, je-li CX<>0 a z rove¤ nen¡ shoda/nula
+
+
+                                1.8. Podprogramy
+                                ----------------
+CALL     - vyvol n¡ podprogramu (NEAR - ulo‘¡ se IP, FAR - ulo‘¡ se CS a IP)
+RET      - n vrat z podprogramu (NEAR - n vrat IP, FAR - n vrat IP a CS)
+
+INT      - vyvol n¡ p©eru¨en¡ ‡¡slo 0 a‘ 255 (ulo‘¡ se FLAGS, CS a IP)
+INTO     - vyvol n¡ p©eru¨en¡ INT 4 v p©¡padˆ, ‘e je p©¡znak p©ete‡en¡ OF
+IRET     - n vrat z obsluhy p©eru¨en¡ (navr t¡ IP, CS a FLAGS)
+
+
+                                1.9. P©esuny dat
+                                ----------------
+MOV      - p©esun obsahu operandu 2 do operandu 1
+LEA      - naplnˆn¡ efektivn¡ adresou (nap©. LEA AX,[BP+offset])
+LDS      - naplnˆn¡ registru i segmentu DS dvojslovem (nap©. LDS SI,[ukazatel])
+LES      - naplnˆn¡ registru i segmentu ES dvojslovem (nap©. LES DI,[ukazatel])
+LAHF     - naplnˆn¡ registru AH obsahem p©¡znak. registru FLAGS - LOW
+SAHF     - ulo‘en¡ registru AH do p©¡znak. registru FLAGS - LOW
+PUSH     - ulo‘en¡ slova do z sobn¡ku (registr nebo adresa)
+POP      - n vrat slova ze z sobn¡ku (registr nebo adresa, nesm¡ b˜t CS)
+PUSHF    - ulo‘en¡ registru p©¡znak– do z sobn¡ku
+POPF     - n vrat registru p©¡znak– ze z sobn¡ku
+XCHG     - z mˆna dat
+XLAT     - tabulkov˜ p©evod (v˜znam MOV AL,DS:[BX+AL])
+
+                        1.10. ¡dic¡ instrukce procesoru
+                        --------------------------------
+CBW      - konverze bajtu v AL na slovo v AX (s dodr‘en¡m znam‚nka)
+CWD      - konverze slova v AX na dvojslovo DX:AX (s dodr‘en¡m znam‚nka)
+
+CLC      - nulov n¡ p©¡znaku p©enosu CF
+CMC      - doplnˆk p©¡znaku p©enosu CF (inverze)
+STC      - nastaven¡ p©¡znaku p©enosu CF
+
+CLD      - nulov n¡ p©¡znaku smˆru DF (bude smˆr nahoru)
+STD      - nastaven¡ p©¡znaku smˆru DF (bude smˆr dol–)
+
+CLI      - nulov n¡ p©¡znaku p©eru¨en¡ (p©eru¨en¡ bude zak z no)
+STI      - nastaven¡ p©¡znaku p©eru¨en¡ (p©eru¨en¡ bude povoleno)
+
+IN       - vstup z portu (povoleno IN AL,DX; IN AX,DX; IN AL,[n8]; IN AX,[n8])
+OUT      - v˜stup na port (OUT DX,AL; OUT DX,AX; OUT [n8],AL; OUT [n8],AX)
+
+ESC      - p©ed n¡ ©¡zen¡ koprocesoru
+HLT,HALT - zastaven¡ procesoru (pokra‡ov n¡ po p©eru¨en¡)
+LOCK     - uzam‡en¡ sbˆrnice pro n sleduj¡c¡ instrukci (proti p©eru¨en¡ a DMA)
+NOP      - pr zdn  instrukce, nic se neprovede (jednobajtov˜ k¢d 90h)
+WAIT     - ‡ek n¡ (je-li vstup procesoru TEST aktivn¡)
+
+
+
+INT 00h  - vyvol  se p©i chybˆ dˆlen¡ nulou nebo p©i p©ete‡en¡ dˆlen¡
+INT 01h  - vyvol  se po ka‘d‚ instrukci, je-li nastaven p©¡znak krokov n¡ TF
+INT 02h  - nemaskovateln‚ p©eru¨en¡ (chyba pamˆti, v˜padek napˆt¡)
+INT 03h  - bod p©eru¨en¡ programu (pou‘¡v  debugger - instrukce m  k¢d 0C0h)
+INT 04h  - p©ete‡en¡ (vyvol  se instrukc¡ INTO, je-li p©¡znak p©ete‡en¡ OF)
+INT 05h  - tisk obrazovky (vyvol  se z INT 09h stiskem kl vesy PrintScreen);
+           nastavuje syst‚mov˜ p©¡znak na adrese 0040h:0100h (0000h:0500h):
+                     0 ...... obsluha Print Screen neprob¡h 
+                     1 ...... obsluha Print Screen pr vˆ prob¡h 
+                     0FFh ... bˆhem posledn¡ funkce Print Screen nastala chyba
+INT 06h  - p©eru¨en¡ AT p©i nedefinovan‚m oper. k¢du
+INT 07h  - p©eru¨en¡ AT, nen¡-li matem. koprocesor
+INT 08h  - p©eru¨en¡ od syst‚mov˜ch hodin (IRQ 0) (18.20651 kr t za sekundu);
+           €¡t   ‡¡ta‡  (dvojslovo)  na adrese 0040h:006Ch. Po dosa‘en¡ p–lnoci
+           (hodnota  ‡¡ta‡e  1573040) se ‡¡ta‡ vynuluje a nastav¡ se p©¡znak na
+           adrese 0040h:0070h na 1 (p©¡znak zv˜¨en¡ data) - nuluje ‡ten¡m ‡asu
+INT 09h  - p©eru¨en¡ od kl vesnice (IRQ 1) - p©i stisku nebo uvolnˆn¡ kl vesy
+              0040h:001Ah  - ‡tec¡ adresa z bufferu kl vesnice
+              0040h:001Ch  - ukl dac¡ adresa do bufferu kl vesnice
+              0040h:001Eh  - standardn¡ buffer kl vesnie (16 slov)
+              0040h:0080h  - offset za‡ tku bufferu kl vesnice (segment 0040h)
+              0040h:0082h  - offset konce bufferu kl vesnice (segment 0040h)
+
+
+              0040h:0017h  - p©esmyka‡e  bit 0: 1=prav˜ Shift stisknut
+                                         bit 1: 1=lev˜ Shift stisknut
+                                         bit 2: 1=nˆkter˜ Ctrl stisknut
+                                         bit 3: 1=nˆkter˜ Alt stisknut
+                                         bit 4: 1=Scroll Lock zapnut
+                                         bit 5: 1=Num Lock zapnut
+                                         bit 6: 1=Caps Lock zapnut
+                                         bit 7: 1=Insert zapnut
+              0040h:0018h  - roz¨¡©en˜ statut p©esmyka‡–
+                                         bit 0: 1=lev˜ Ctrl stisknut
+                                         bit 1: 1=lev˜ Alt stisknut
+                                         bit 2: 1=kl vesa SysRq stisknuta
+                                         bit 3: 1=prob¡h  obsluha Pause
+                                         bit 4: 1=kl vesa Scroll Lock stisknuta
+                                         bit 5: 1=kl vesa Num Lock stisknuta
+                                         bit 6: 1=kl vesa Caps Lock stisknuta
+                                         bit 7: 1=kl vesa Insert stisknuta
+                             Pozn.: Opakovan˜m  nulov n¡m  bitu 7 lze dos hnout
+                                    autorepeat u Insert.
+              0040h:0096h  - bit 4: 1=je roz¨¡©en  kl vesnice AT 101/102 kl ves
+              0040h:0097h  - bit 0: 1=sv¡t¡ Scroll Lock
+                             bit 1: 1=sv¡t¡ Num Lock
+                             bit 2: 1=sv¡t¡ Caps Lock
+                             bit 6: 1=indik tory LED vysl ny na kl vesnici
+              Ke zmˆnˆ stavu LED posta‡¡ zmˆnit stav p©esmyka‡– 0040h:0017h.
+INT 0Ah  - p©eru¨en¡ p©i zpˆtn‚m bˆhu EGA, kask dn¡ p©eru¨en¡ AT (IRQ 2)
+INT 0Bh  - p©eru¨en¡ od s‚riov‚ho portu COM 2 a COM 4 (IRQ 3)
+           Adresa port– je ulo‘ena na 0040h:0002h (COM 2) a 0040h:0006h (COM 4)
+INT 0Ch  - p©eru¨en¡ od s‚riov‚ho portu COM 1 a COM 3 (IRQ 4)
+           Adresa port– je ulo‘ena na 0040h:0000h (COM 1) a 0040h:0004h (COM 3)
+INT 0Dh  - p©eru¨en¡ od ©adi‡e pevn‚ho disku XT a od tisk rny LPT2/LPT4 (IRQ 5)
+           Adresa port– je ulo‘ena na 0040h:000Ah (LPT 2) a 0040h:000Eh (LPT 4)
+           T‚‘ p©eru¨en¡ AT p©i chybˆ pamˆti - slovn¡ operace na offetu 0FFFFh
+INT 0Eh  - p©eru¨en¡ od ©adi‡e pru‘n˜ch disk– (IRQ 6)
+INT 0Fh  - p©eru¨en¡ od tisk rny LPT1/LPT3 (IRQ 7), p©eru¨. AT p©i matem. chybˆ
+           Adresa port– je ulo‘ena na 0040h:0008h (LPT 1) a 0040h:000Ch (LPT 3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+INT 10h  - obsluha displeje, v AH je po‘adovan  funkce
+
+              AH = 0  nastaven¡ videom¢du AL
+                       U EGA a VGA se nastaven¡m bitu 7 displej nema‘e.
+ÚÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³0,1³ text  ³ 40x25 ³ 16 barev³adresa B800h³8 str nek  ³(CGA, EGA, VGA)     ³
+³2,3³ text  ³ 80x25 ³ 16 barev³adresa B800h³8 str nek  ³(CGA, EGA, VGA)     ³
+³4,5³grafika³320x200³  4 barvy³adresa B800h³4/8 str nek³(CGA, EGA, VGA)     ³
+³ 6 ³grafika³640x200³  2 barvy³adresa B800h³4/8 str nek³(CGA, EGA, VGA)     ³
+³ 7 ³ text  ³ 80x25 ³monochrom³adresa B000h³1/8 str nek³(MDA,Herc.,EGA,VGA) ³
+³13 ³grafika³320x200³ 16 barev³adresa A000h³8 str nek  ³(EGA, VGA)          ³
+³14 ³grafika³640x200³ 16 barev³adresa A000h³4 str nky  ³(EGA, VGA)          ³
+³15 ³grafika³640x350³monochrom³adresa A000h³2 str nky  ³(EGA, VGA)          ³
+³16 ³grafika³640x350³ 16 barev³adresa A000h³2 str nky  ³(EGA, VGA)          ³
+³17 ³grafika³640x480³  2 barvy³adresa A000h³1 str nka  ³(VGA)               ³
+³18 ³grafika³640x480³ 16 barev³adresa A000h³1 str nka  ³(VGA)               ³
+³19 ³grafika³320x200³256 barev³adresa A000h³1 str nka  ³(VGA)               ³
+ÀÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+              AH=1   nastaven¡ velikosti kurzoru (pouze textov‚ m¢dy)
+                     CH=za‡ tek, CL=konec (m¢dy 0 a‘ 3 = 0-7, m¢d 7 = 0-13)
+              AH=2   nastaven¡ pozice kurzoru (BH=str nka, DH=© dek, DL=pozice)
+              AH=3   navr cen¡ pozice a velikosti kurzoru (vstup BH=str nka,
+                     v˜stup -> DH=© dek, DL=pozice, CH=za‡ tek, CL=konec kurz.)
+              AH=4   ‡ten¡ pozice svˆteln‚ho pera (nem  ji‘ VGA)
+              AH=5   nastaven¡ aktivn¡ str nky displeje na AL
+              AH=6   rolov n¡ okna o AL © dk– nahoru (BH=barva nov˜ch © dk–,
+                     CH=horn¡  © dek, CL=lev  pozice, DH=spodn¡ © dek, DL=prav 
+                     pozice); pou‘¡v  se t‚‘ k vymaz n¡ okna (AL=0)
+              AH=7   rolov n¡ okna o AL © dk– dol– (jako p©ede¨l  slu‘ba)
+              AH=8   ‡ten¡  znaku  a  atributu  z  pozice kurzoru (t‚‘ grafick‚
+                     m¢dy) (vstup BH=str nka, v˜stup AL=znak, AH=atribut)
+              AH=9   z pis   znaku  a  atributu  na  pozici  kurzoru  (AL=znak,
+                     BH=str nka, BL=atribut barvy, CX=po‡et z pis–)
+              AH=0Ah z pis znaku na pozici kurzoru, barva z–st v  p–vodn¡
+              AH=0Bh nastaven¡ palet barev (m¢dy CGA);
+                      BH=0: BL=pozad¡ 0-31 (graf. m¢d) nebo okol¡ (text. m¢d)
+                      BH=1: (m¢dy 4 a 5) BL=0 palety bez modr‚, BL=1 s modrou
+              AH=0Ch z pis grafick‚ho bodu (AL=barva, CX=X, DX=Y, BH=str nka)
+              AH=0Dh ‡ten¡ grafick‚ho bodu (CX=X, DX=Y, BH=str nka -> AL=barva)
+              AH=0Eh z pis   znaku   v  telegrafn¡m  m¢du  (AL=znak,  BL=barva,
+                     BH=str nka);  v  textov‚m  m¢du  z–st v   barva obrazovky;
+                     interpretuj¡  se ©¡dic¡ znaky 08h (BS), 0Dh (CR), 0Ah (LF)
+                     a 09h (TAB), p©esahem konce obrazovky © dky roluj¡
+              AH=0Fh navr cen¡ videom¢du (->AL m¢d, AH=pozic/© dek, BH=str nka)
+              AH=10H nastaven¡ palet EGA, VGA
+                      AL=0   nastaven¡ registru BL (0-15) na paletu BH (0-63)
+                      AL=1   nastaven¡ registru okol¡ na paletu BH (0-63)
+                      AL=2   nastaven¡ registr– a okol¡ na palety ES:DX (17 B)
+                      AL=3   nastaven¡ blik n¡ (BL=1) / jasn‚ho pozad¡ (BL=0)
+                      AL=10h nastaven¡   registru  BX  (0  a‘  255)  karty  VGA
+                             (CH=zelen  0-63, CL=modr  0-63, DH=‡erven  0-63)
+                      AL=12h nastaven¡  CX  registr–  od BX karty VGA na palety
+                             ES:DX (polo‘ky po 3 bajtech: zelen , modr , ‡erv.)
+              AH=11h gener tor znak– EGA/VGA
+                    AL=0,10h na‡ten¡  u‘iv.  text. font– (ES:BP=fonty, CX=po‡et
+                             znak–, DX=po‡ t. znak, BL=blok 0-3, BH=bajt–/znak)
+                    AL=1,11h na‡ten¡ text. fontu 8x14 (BL=blok fontu 0-3)
+                    AL=2,12h na‡ten¡ text. fontu 8x8 (BL=blok fontu 0-3)
+                    AL=3     nastaven¡  bloku  font–  (BL=bit  0  a 1: blok pro
+                             bˆ‘n˜ text, bit 2 a 3: blok pro vysv¡cen˜ text)
+                    AL=4,14h na‡ten¡ text. fontu 8x16 (BL=blok fontu 0-3)
+                    AL=20h   na‡ten¡ u‘iv.graf.font– 8x8 (ES:BP=fonty)->INT 1Fh
+                    AL=21h   na‡ten¡  u‘iv.  graf. font– (ES:BP=fonty, CX=bajt–
+                             na  znak, BL=po‡et © dk–: 0=po‡et © dk– v DL, 1=14
+                             © dk–, 2=25 © dk–, 3=43 © dk–, 4=25 © dk–)
+
+                      AL=
+
+
+
+
+
+
+
+
+               K¢dy kl ves (CapsLock je vypnut˜, NumLock zapnut˜)
+               --------------------------------------------------
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   kl vesa   ³kodºbuff.XT, slu‘ba 00hºbuff. kl vesnice ATº   slu‘ba 10h (AT) º
+º             ³60hº    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ¶
+º     Esc     ³01hº011B³011B³011B³  - º011B³011B³011B³01F0º011B³011B³011B³0100º
+º     1 !     ³02hº0231³0221³  - ³7800º0231³0221³  - ³7800º0231³0221³  - ³7800º
+º     2 @     ³03hº0332³0340³0300³7900º0332³0340³0300³7900º0332³0340³0300³7900º
+º     3 #     ³04hº0433³0423³  - ³7A00º0433³0423³  - ³7A00º0433³0423³  - ³7A00º
+º     4 $     ³05hº0534³0524³  - ³7B00º0534³0524³  - ³7B00º0534³0524³  - ³7B00º
+º     5 %     ³06hº0635³0625³  - ³7C00º0635³0625³  - ³7C00º0635³0625³  - ³7C00º
+º     6 ^     ³07hº0736³075E³071E³7D00º0736³075E³071E³7D00º0736³075E³071E³7D00º
+º     7 &     ³08hº0837³0826³  - ³7E00º0837³0826³  - ³7E00º0837³0826³  - ³7E00º
+º     8 *     ³09hº0938³092A³  - ³7F00º0938³092A³  - ³7F00º0938³092A³  - ³7F00º
+º     9 (     ³0Ahº0A39³0A28³  - ³8000º0A39³0A28³  - ³8000º0A39³0A28³  - ³8000º
+º     0 )     ³0Bhº0B30³0B29³  - ³8100º0B30³0B29³  - ³8100º0B30³0B29³  - ³8100º
+º     - _     ³0Chº0C2D³0C5F³0C1F³8200º0C2D³0C5F³0C1F³8200º0C2D³0C5F³0C1F³8200º
+º     = +     ³0Dhº0D3D³0D2B³  - ³8300º0D3D³0D2B³  - ³8300º0D3D³0D2B³  - ³8300º
+º  Back Space ³0Ehº0E08³0E08³0E7F³  - º0E08³0E08³0E7F³0EF0º0E08³0E08³0E7F³0E00º
+º     Tab     ³0Fhº0F09³0F00³  - ³  - º0F09³0F00³9400³A500º0F09³0F00³9400³A500º
+º      Q      ³10hº1071³1051³1011³1000º1071³1051³1011³1000º1071³1051³1011³1000º
+º      W      ³11hº1177³1157³1117³1100º1177³1157³1117³1100º1177³1157³1117³1100º
+º      E      ³12hº1265³1245³1205³1200º1265³1245³1205³1200º1265³1245³1205³1200º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍ¼
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   kl vesa   ³kodºbuff.XT, slu‘ba 00hºbuff. kl vesnice ATº   slu‘ba 10h (AT) º
+º             ³60hº    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ¶
+º      R      ³13hº1372³1352³1312³1300º1372³1352³1312³1300º1372³1352³1312³1300º
+º      T      ³14hº1474³1454³1414³1400º1474³1454³1414³1400º1474³1454³1414³1400º
+º      Y      ³15hº1579³1559³1519³1500º1579³1559³1519³1500º1579³1559³1519³1500º
+º      U      ³16hº1675³1655³1615³1600º1675³1655³1615³1600º1675³1655³1615³1600º
+º      I      ³17hº1769³1749³1709³1700º1769³1749³1709³1700º1769³1749³1709³1700º
+º      O      ³18hº186F³184F³180F³1800º186F³184F³180F³1800º186F³184F³180F³1800º
+º      P      ³19hº1970³1950³1910³1900º1970³1950³1910³1900º1970³1950³1910³1900º
+º     [ {     ³1Ahº1A5B³1A7B³1A1B³  - º1A5B³1A7B³1A1B³1AF0º1A5B³1A7B³1A1B³1A00º
+º     ] }     ³1Bhº1B5D³1B7D³1B1D³  - º1B5D³1B7D³1B1D³1BF0º1B5D³1B7D³1B1D³1B00º
+º    Enter    ³1Chº1C0D³1C0D³1C0A³  - º1C0D³1C0D³1C0A³1CF0º1C0D³1C0D³1C0A³1C00º
+º   [Enter]   ³1Chº1C0D³1C0D³1C0A³  - ºE00D³E00D³E00A³A600ºE00D³E00D³E00A³A600º
+º    Ctrl-    ³1Dhº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º      A      ³1Ehº1E61³1E41³1E01³1E00º1E61³1E41³1E01³1E00º1E61³1E41³1E01³1E00º
+º      S      ³1Fhº1F73³1F53³1F13³1F00º1F73³1F53³1F13³1F00º1F73³1F53³1F13³1F00º
+º      D      ³20hº2064³2044³2004³2000º2064³2044³2004³2000º2064³2044³2004³2000º
+º      F      ³21hº2166³2146³2106³2100º2166³2146³2106³2100º2166³2146³2106³2100º
+º      G      ³22hº2267³2247³2207³2200º2267³2247³2207³2200º2267³2247³2207³2200º
+º      H      ³23hº2368³2348³2308³2300º2368³2348³2308³2300º2368³2348³2308³2300º
+º      J      ³24hº246A³244A³240A³2400º246A³244A³240A³2400º246A³244A³240A³2400º
+º      K      ³25hº256B³254B³250B³2500º256B³254B³250B³2500º256B³254B³250B³2500º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍ¼
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   kl vesa   ³kodºbuff.XT, slu‘ba 00hºbuff. kl vesnice ATº   slu‘ba 10h (AT) º
+º             ³60hº    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ¶
+º      L      ³26hº266C³264C³260C³2600º266C³264C³260C³2600º266C³264C³260C³2600º
+º     ; :     ³27hº273B³273A³  - ³  - º273B³273A³  - ³27F0º273B³273A³  - ³2700º
+º     ' "     ³28hº2827³2822³  - ³  - º2827³2822³  - ³28F0º2827³2822³  - ³2800º
+º     ` ~     ³29hº2960³297E³  - ³  - º2960³297E³  - ³29F0º2960³297E³  - ³2900º
+º lev˜ Shift- ³2Ahº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º     \ |     ³2Bhº2B5C³2B7C³2B1C³  - º2B5C³2B7C³2B1C³2BF0º2B5C³2B7C³2B1C³2B00º
+º      Z      ³2Chº2C7A³2C5A³2C1A³2C00º2C7A³2C5A³2C1A³2C00º2C7A³2C5A³2C1A³2C00º
+º      X      ³2Dhº2D78³2D58³2D18³2D00º2D78³2D58³2D18³2D00º2D78³2D58³2D18³2D00º
+º      C      ³2Ehº2E63³2E43³2E03³2E00º2E63³2E43³2E03³2E00º2E63³2E43³2E03³2E00º
+º      V      ³2Fhº2F76³2F56³2F16³2F00º2F76³2F56³2F16³2F00º2F76³2F56³2F16³2F00º
+º      B      ³30hº3062³3042³3002³3000º3062³3042³3002³3000º3062³3042³3002³3000º
+º      N      ³31hº316E³314E³310E³3100º316E³314E³310E³3100º316E³314E³310E³3100º
+º      M      ³32hº326D³324D³320D³3200º326D³324D³320D³3200º326D³324D³320D³3200º
+º     , <     ³33hº332C³333C³  - ³  - º332C³333C³  - ³33F0º332C³333C³  - ³3300º
+º     . >     ³34hº342E³343E³  - ³  - º342E³343E³  - ³34F0º342E³343E³  - ³3400º
+º     / ?     ³35hº352F³353F³  - ³  - º352F³353F³  - ³35F0º352F³353F³  - ³3500º
+º     [/]     ³35hº352F³352F³  - ³  - ºE02F³E02F³9500³A400ºE02F³E02F³9500³A400º
+º prav˜ Shift-³36hº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º Print Screen³37hº  - ³  - ³7200³  - º  - ³  - ³7200³  - º  - ³  - ³7200³  - º
+º     [*]     ³37hº372A³372A³  - ³  - º372A³372A³9600³37F0º372A³372A³9600³3700º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍ¼
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   kl vesa   ³kodºbuff.XT, slu‘ba 00hºbuff. kl vesnice ATº   slu‘ba 10h (AT) º
+º             ³60hº    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ¶
+º     Alt-    ³38hº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+ºSpace(mezera)³39hº3920³3920³3920³3920º3920³3920³3920³3920º3920³3920³3920³3920º
+º  Caps Lock  ³3Ahº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º     F1      ³3Bhº3B00³5400³5E00³6800º3B00³5400³5E00³6800º3B00³5400³5E00³6800º
+º     F2      ³3Chº3C00³5500³5F00³6900º3C00³5500³5F00³6900º3C00³5500³5F00³6900º
+º     F3      ³3Dhº3D00³5600³6000³6A00º3D00³5600³6000³6A00º3D00³5600³6000³6A00º
+º     F4      ³3Ehº3E00³5700³6100³6B00º3E00³5700³6100³6B00º3E00³5700³6100³6B00º
+º     F5      ³3Fhº3F00³5800³6200³6C00º3F00³5800³6200³6C00º3F00³5800³6200³6C00º
+º     F6      ³40hº4000³5900³6300³6D00º4000³5900³6300³6D00º4000³5900³6300³6D00º
+º     F7      ³41hº4100³5A00³6400³6E00º4100³5A00³6400³6E00º4100³5A00³6400³6E00º
+º     F8      ³42hº4200³5B00³6500³6F00º4200³5B00³6500³6F00º4200³5B00³6500³6F00º
+º     F9      ³43hº4300³5C00³6600³7000º4300³5C00³6600³7000º4300³5C00³6600³7000º
+º     F10     ³44hº4400³5D00³6700³7100º4400³5D00³6700³7100º4400³5D00³6700³7100º
+º  Num Lock   ³45hº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º Scroll Lock ³46hº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º    Break    ³46hº  - ³  - ³0000³  - º  - ³  - ³0000³  - º  - ³  - ³0000³  - º
+º     [7]     ³47hº4737³4700³7700³  - º4737³4700³7700³  - º4737³4700³7700³  - º
+º    Home     ³47hº4700³4700³7700³  - º47E0³47E0³77E0³9700º47E0³47E0³77E0³9700º
+º     [8]     ³48hº4838³4800³  - ³  - º4838³4800³8D00³  - º4838³4800³8D00³  - º
+º Up (nahoru) ³48hº4800³4800³  - ³  - º48E0³48E0³8DE0³9800º48E0³48E0³8DE0³9800º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍ¼
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   kl vesa   ³kodºbuff.XT, slu‘ba 00hºbuff. kl vesnice ATº   slu‘ba 10h (AT) º
+º             ³60hº    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ¶
+º     [9]     ³49hº4939³4900³8400³  - º4939³4900³8400³  - º4939³4900³8400³  - º
+º   Page Up   ³49hº4900³4900³8400³  - º49E0³49E0³84E0³9900º49E0³49E0³84E0³9900º
+º     [-]     ³4Ahº4A2D³4A2D³  - ³  - º4A2D³4A2D³8E00³4AF0º4A2D³4A2D³8E00³4A00º
+º     [4]     ³4Bhº4B34³4B00³7300³  - º4B34³4B00³7300³  - º4B34³4B00³7300³  - º
+º Left (vlevo)³4Bhº4B00³4B00³7300³  - º4BE0³4BE0³73E0³9B00º4BE0³4BE0³73E0³9B00º
+º     [5]     ³4Chº4C35³  - ³  - ³  - º4C35³4CF0³8F00³  - º4C35³4C00³8F00³  - º
+º     [6]     ³4Dhº4D36³4D00³7400³  - º4D36³4D00³7400³  - º4D36³4D00³7400³  - º
+ºRight(vpravo)³4Dhº4D00³4D00³7400³  - º4DE0³4DE0³74E0³9D00º4DE0³4DE0³74E0³9D00º
+º     [+]     ³4Ehº4E2B³4E2B³  - ³  - º4E2B³4E2B³9000³4EF0º4E2B³4E2B³9000³4E00º
+º     [1]     ³4Fhº4F31³4F00³7500³  - º4F31³4F00³7500³  - º4F31³4F00³7500³  - º
+º     End     ³4Fhº4F00³4F00³7500³  - º4FE0³4FE0³75E0³9F00º4FE0³4FE0³75E0³9F00º
+º     [2]     ³50hº5032³5000³  - ³  - º5032³5000³9100³  - º5032³5000³9100³  - º
+º Down (dol–) ³50hº5000³5000³  - ³  - º50E0³50E0³91E0³A000º50E0³50E0³91E0³A000º
+º     [3]     ³51hº5133³5100³7600³  - º5133³5100³7600³  - º5133³5100³7600³  - º
+º  Page Down  ³51hº5100³5100³7600³  - º51E0³51E0³76E0³A100º51E0³51E0³76E0³A100º
+º     [0]     ³52hº5230³5200³  - ³  - º5230³5200³9200³  - º5230³5200³9200³  - º
+º   Insert    ³52hº5200³5200³  - ³  - º52E0³52E0³92E0³A200º52E0³52E0³92E0³A200º
+º     [.]     ³53hº532E³5300³  - ³  - º532E³5300³9300³  - º532E³5300³9300³  - º
+º   Delete    ³53hº53E0³53E0³  - ³  - º53E0³53E0³93E0³A300º53E0³53E0³93E0³A300º
+º   Sys Rqst  ³54hº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍ¼
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   kl vesa   ³kodºbuff.XT, slu‘ba 00hºbuff. kl vesnice ATº   slu‘ba 10h (AT) º
+º             ³60hº    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º    ³Shft³Ctrl³Alt º
+ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ×ÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ¶
+º \ | zdvojen ³56hº2B5C³2B7C³2B1C³  - º565C³567C³561C³  - º565C³567C³561C³  - º
+º     F11     ³57hº  - ³  - ³  - ³  - º8500³8700³8900³8B00º8500³8700³8900³8B00º
+º     F12     ³58hº  - ³  - ³  - ³  - º8600³8800³8A00³8C00º8600³8800³8A00³8C00º
+º ... prefix  ³E0hº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º .... pause  ³E1hº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º .... ready  ³FAhº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º ... repeat  ³FEhº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+º ..... full  ³FFhº  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º  - ³  - ³  - ³  - º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍÊÍÍÍÍÏÍÍÍÍÏÍÍÍÍÏÍÍÍÍ¼
+Kl vesy   ozna‡en‚  lomen˜mi  z vorkami  []  jsou  kl vesy  v  numerick‚m  poli
+kl vesnice.
+

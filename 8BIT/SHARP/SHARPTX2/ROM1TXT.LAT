@@ -1,0 +1,1858 @@
+                        - 1 -
+
+***************************************************************
+
+        K O M E N T O V A N í    V í P I S     R O M
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        Producent by JoeSoft
+                                        Josef Mikel
+                                756 27  Mal  Bystýice 51
+
+
+***************************************************************
+
+Pro lepç¡ orientaci jsou vçechna Ÿ¡sla ps na  v  hexadecim ln¡m
+tvaru  a  jsou   upravena   na   stejnì   poŸet   psanìch  m¡st,
+t.j.  4  nebo  2    (N vest¡ nejsou ve vìpisu  pou§iv na a tud¡§
+Ÿ¡slo  0F800H je ps no jako F800).  ¬¡sla  pou§¡v na v koment ýi
+jsou ps na dekadicky.
+
+Pou§it‚ skratky:
+Acc     - registr A = akumul tor
+PPRG    - podprogram
+
+
+0000    JP   E800       ;start syst‚mu
+0003    JP   07E6       ;naŸte  z  kl vesnice  do  pamØti od  DE
+                        ;ý dek o d‚lce max. 80 znak… vŸetnØ CR
+0006    JP   090E       ;pýesune  kursor  na  dalç¡  ý dek
+0009    JP   0918       ;pýesune  kursor  na  dalç¡  ý dek, pokud
+                        ;nebylo pýedt¡m
+000C    JP   0920       ;vytiskne mezeru do pozice kursoru
+000F    JP   0924       ;tabelace mezerami po 10 znac¡ch
+0012    JP   0935       ;tisk ASCII znaku v akumul toru
+0015    JP   0893       ;tisk ýetØzce adresov n‚ko DE a ukonŸen‚ko
+                        ;0D (CR)
+0018    JP   08A1       ;tisk ýetØzce adresovan‚ho DE a ukonŸen‚ho
+                        ;0D bez ý¡d¡c¡ch znak… (pohyb kursoru ...)
+001B    JP   08DB       ;pýeŸte znak z kl vesnice v ASCII do Acc
+001E    JP   0A32       ;test ý¡d¡c¡ch kl ves (SHIFT,CTRL,BREAK)
+0021    JP   0436       ;nahraje hlaviŸku na p sek (10F0-)
+0024    JP   0475       ;nahraje pamØt dle hlaviŸky na p sek
+0027    JP   04D8       ;nahraje hlaviŸku z p sky
+002A    JP   04F8       ;nahraje pamØœ z p sky dle hlaviŸky
+002D    JP   0588       ;verufikuje nahran  data
+0030    JP   01C7       ;hran¡ hudby od DE ukonŸen‚ 0D   (CR)
+0033    JP   0308       ;nadstav¡ Ÿas dle akumul toru a DE
+0036    NOP
+0037    NOP
+0038    JP   1038       ;pýeruçovac¡ program, zmØna AM / PM
+003B    JP   0358       ;pýeŸte Ÿas do akumul toru a DE
+003E    JP   0577       ;p¡pnut¡ 880 Hz  (BEEP)
+0041    JP   02E5       ;nadstav¡ tempo hudby dle akumul toru
+0044    JP   02AB       ;zvuk o frekvenci 1.108405 Mhz / (11A1-2)
+0047    JP   02BE       ;ukonŸ¡ kran¡ hudby z PPRG 0044
+
+                        - 2 -
+
+        inicializace  syst‚mu a skok na  00AD  pokud je odpojena
+        spodn¡ ROM. Pokud je pýipojena pak skok E800 (=RESET)
+
+004A    LD   SP,10F0    ;inicializace z sobn¡ku
+004D    IM1
+004F    CALL 073E       ;inicializace obvodu 8255
+0052    CALL 0A32       ;test ý¡d¡c¡ch kl ves
+0055    JR   NC,0070    ;nen¡ CTRL ani SHIFT
+0057    CP   20H
+0059    JR   NZ,0070    ;nen¡ CTRL
+
+        odpojen¡ cel‚ ROM a skok na adresu 0000 v RAM.Program si
+        vytvoý¡ 5-ti bajtì podprogram od odresy FFF0
+
+005B    OUT  (E1),A     ;odpoven¡ VRAM a spodn¡ ROM
+005D    LD   DE,FFF0
+0060    LD   HL,006B
+0063    LD   BC,0005
+0066    LDIR            ;vytvoýen¡ programu od adresy FFF0
+0068    JP   FFF0       ;skok na tento podprogram
+
+        data pro vytvoýen¡ podprogramu
+
+006B    OUT  (E0),A     ;odpojen¡ horn¡ ROM
+006D    JP   0000       ;skok na 0000 v RAM
+
+        pokraŸov n¡ inicializace syst‚mu
+
+0070    LD   B,FF
+0072    LD   HL,10F1
+0075    CALL 0FD8       ;nulov n¡ 256 B od adresy 10F1 (hlaviŸka
+                        ;programu)
+0078    LD   A,16
+007A    CALL 0012       ;tisk CLEAR
+007D    LD   A,71
+007F    LD   HL,D800
+0082    CALL 09D5       ;zaplnØn¡ 800 B od adresy D800  hodnotou
+                        ;71 (barvy VRAM)
+0085    LD   HL,03D8
+0088    LD   A,C3
+008A    LD   (1038),A   ;inicializace skoku pýi pýeruçen¡ do ROM
+008D    LD   (1039),HL
+0090    LD   A,4
+0092    LD   (119E),A   ;tempo 4
+0095    CALL 02BE       ;zastaven¡ hran¡ hudby
+0098    CALL 0009       ;kursor na n sleduj¡c¡ ý dek
+009B    LD   DE,06E7
+009E    RST  18         ;tisk '** MONITOR 1Z013B **'
+009F    CALL 0577       ;BEEP
+00A2    LD   A,1
+00A4    LD   (119D),A   ;zablokov n¡ p¡pan¡ p11ri stisku kl vesy
+00A7    LD   HL,E800
+00AA    LD   (HL),A
+00AB    JR   0102       ;pokud na E800 RAM pak skok na 00AD,
+                        ;pokud ROM pak sok na E800
+
+                                - 3 -
+
+        prvn¡  syst‚movì  program  umo§åuj¡c¡  skok  na  urŸenou
+        adresu (JUMP),listing a zad v n¡ do pamØti (DUMP,MEMORY),
+        pr ci s kazetovìm  magnetofonem (LOAD,SAVE,VERIFY), pr ci
+        s  tisk rnou (PRINT), p¡p n¡  pýi  stisku  kl ves  (BEEP)
+        a spuçtØn¡ programu od adresy 0000 v RAM
+
+00AD    CALL 0009       ;pýesune kursor na dalç¡ ý dek
+00B0    LD   A,'*'
+00B2    CALL 0012       ;tisk *
+00B5    LD   DE,11A3
+00B8    CALL 0003       ;zad n¡ textu
+00BB    LD   A,(DE)     ;naŸten¡ zadan‚ho znaku
+00BC    INC  DE
+00BD    CP   0D
+00BF    JR   Z,00AD     ;posledn¡ znak => zad n¡ dalç¡ho pý¡kazu
+00C1    CP   'J'
+00C3    JR   Z,00F3     ;JUMP
+00C5    CP   'L'
+00C7    JR   Z,0111     ;LOAD
+00C9    CP   'F'
+00CB    JR   Z,00FF     ;pokud pýipojena spodn¡ ROM, pak skok na
+                        ;adresu E800 (=RESET)
+00CD    CP   'B'
+00CF    JR   Z,00F7     ;BEEP ON/OFF
+00D1    CP   '#'
+00D3    JR   Z,005B     ;spuçtØn¡ programu od adresy 0000 RAM
+00D5    CP   'P'
+00D7    JR   Z,0155     ;pr ce s tisk rnou; tiskne text za  P na
+                        ;tisk rnØ s mo§nost¡  vyu§it¡  textov‚ho
+                        ;i grafick‚ho m¢du
+00D9    CP   'M'
+00DB    JP   Z,07A8     ;MEMORY
+00DE    CP   'S'
+00E0    JP   Z,0F5E     ;SAVE ; za parametrem  S  mus¡  okam§itØ
+                        ;m sledovat      poŸ teŸn¡,      koncov 
+                        ;a startovac¡ adresa programu
+00E3    CP   'V'
+00E5    JP   Z,0FC8     ;VERIFY
+00E8    CP   'D'
+00EA    JP   Z,0D29     ;DUMP
+00ED    NOP
+
+00EE    NOP
+00EF    NOP
+00F0    NOP
+00F1    JR   00BB       ;hled n¡ nov‚ho, zn m‚ho znaku
+
+        skok dle 4 ASCII adresovanìch DE, pokud nelze pýev‚st na
+        Ÿ¡slo => skok 00AD
+
+00F3    CALL 013D       ;pýevod  4  ASCII  od DE na Ÿ¡slo, pokud
+                        ;chyba => skok 00AD
+00F6    JP   (HL)       ;skok
+
+                                - 4 -
+
+        BEEP ON/OFF  - vynegov n¡ bitu b0 (119D)
+        pokud pýipojena spodn¡ ROM => skok na E800
+
+00F7    LD   A,(119D)   ;naŸten¡ syst‚mov‚ promØnn‚
+00FA    RRA
+00FB    CCF             ;negace bitu b0
+00FC    RLA
+00FD    JR   00A4       ;ulo§en¡ vìsledku s kontrolou  pýipojen¡
+                        ;spodn¡ ROM
+
+        pokud na adrese  F000  je  um¡stØna 00 pak  skok na tutu
+        adresu,jinak skok na 00AD
+
+00FF    LD   HL,F000
+
+        pokud  na adrese HL um¡stØna 00 pak skok na tutu adresu,
+        jinak skok 00AD
+
+0102    LD   A,(HL)
+0103    OR   A
+0104    JR   NZ,00AD    ;nevyçla 0 => skok na 00AD
+0106    JP   (HL)       ;skok na urŸenou adresu
+
+        skok na 00AD s tiskem 'CHECK SUM ER.', pokud Acc <> 2
+
+0107    CP   2
+
+        skok na 00AD s tiskem 'CHECK SUM ER.',pokud nadstavem ZF
+
+0109    JR   Z,00AD     ;skok na 00AD
+
+        skok na 00AD s tiskem 'CHECK SUM ER.'
+
+010B    LD   DE,0147
+010E    RST  18         ;tisk ýetØzce od DE
+010F    JR   00AD       ;skok na 00AD
+
+        rutina LOAD
+
+0111    CALL 04D8       ;nahr n¡ hlaviŸky
+0114    JR   C,0107     ;chyba nebo BREAK => n vrat
+0116    CALL 0009       ;pýesun kursoru na dalç¡ ý dek
+0119    LD   DE,09A0
+011C    RST  18         ;tisk 'LOADING '
+011D    LD   DE,10F1
+0120    RST  18         ;tisk n zvu programu
+0121    CALL 04F8       ;nahr n¡ tØla programu
+0124    JR   C,0107     ;chyba nebo BREAK => n vrat
+0126    LD   HL,(1106)  ;startovac¡ adresa
+0129    LD   A,H
+012A    CP   12
+012C    JR   C,010F     ;pokud startovac¡ adresa menç¡ 1200 ,pak
+                        ;skok na 00AD
+011E    JP   (HL)       ;spuçœØn¡ programu
+
+                                - 5 -
+
+        naŸte z kl vesnice do pamØti ý dek od adresy 11A3; BREAK
+        => skok 00AD
+
+012F    EX   (SP),HL    ;HL=n vratov  adresa
+0130    POP  BC
+0131    LD   DE,11A3
+0134    CALL 3          ;naŸten¡ ý dku z kl vesnice od DE
+0137    LD   A,(DE)     ;naŸten¡ 1. znaku
+0138    CP   18 
+013A    JR   Z,010F     ;BREAK => skok na 00AD
+013C    JP   (HL)       ;n vrat
+
+        pýevod 4 ASCII od DE do HL, pokud nelze => skok na 00AD
+
+013D    EX   (SP),IY    ;IY=n vratov  adresa
+013F    POP  AF
+0140    CALL 0410       ;pýevod 4 ASCII od DE do HL; nelze =>SCF
+0143    JR   C,010F     ;nelze => skok na 00AD
+0145    JP   (IY)       ;n vrat
+
+        data tisku
+        
+0147    DEFM 'CHECK SUM ER.'+0D
+
+        podprogramy pro pr ci s tisk rnou
+
+0155    LD   A,(DE)
+0156    CP   '&'
+0158    JR   NZ,0170    ;druhì znak za P nen¡ & => tisk textu za
+                        ;P na tisk rnØ
+015A    INC  DE
+015B    LD   A,(DE)     ;naŸten¡ dalç¡ho znaku
+015C    CP   'L'
+015E    JR   Z,0176     ;textovì m¢d 40 znak… na ý dek
+0160    CP   'S'
+0162    JR   Z,017B     ;textovì m¢d 80 znak… na ý dek
+0164    CP   'C'
+0166    JR   Z,018B     ;PCOLOR +1
+0168    CP   'G'
+016A    JR   Z,0184     ;GRAPH
+016C    CP   'T'
+016E    JR   Z,0180     ;PTEST
+0170    CALL 01A5       ;tisk ýetØzce od DE na tisk rnØ
+0173    JP   00AD       ;n vrat
+
+        40 znak… na ý dek
+
+0176    LD   DE,0470    ;data tisku
+0179    JR   0170
+
+        80 znak… na ý dek
+
+017B    LD   DE,03D5    ;data tisku
+017E    JR   0170
+
+                                - 6 -
+
+        PTEST
+
+0180    LD   A,04       ;k¢d pro PTEST
+0182    JR   0186       ;tisk
+
+        GRAPH
+
+0184    LD   A,02       ;k¢d pro grafiku
+0186    CALL 018F       ;tisk Acc na tisk rnØ
+0189    JR   015A       ;naŸten¡ novìch znak…
+
+        PCOLOR - n slwduj¡c¡ barva
+
+018B    LD   A,1D
+018D    JR   0186
+
+        tisk akumul toru na tisk rnØ; pokud BREAK =>skok na 00AD
+                A=0, F=NC Z PE P , B=p…vodn¡ Acc, C=1
+
+018F    LD   C,00
+0191    LD   B,A        ;ulo§en¡ Acc
+0192    CALL 01B6       ;Ÿek , a§ bude tisk rna pýipravena
+0195    LD   A,B        ;vyzvednut¡ Acc
+0196    OUT  (FF),A     ;vysl n¡ Acc na tisk rnu
+0198    LD   A,80
+019A    OUT  (FE),A     ;o§iven¡ sign lu pro pý¡jem dat
+019C    LD   C,01
+019E    CALL 01B6       ;Ÿek , a§ tisk rna pýevezme data
+01A1    XOR  A
+01A2    OUT  (FE),A     ;vynulov n¡ sign lu pro pý¡jem dat
+01A4    RET
+
+        tisk ýeœezce od DE ukonŸen‚ho 0D na tisk rnØ
+                -
+
+01A5    PUSH DE
+01A6    PUSH BC
+01A7    PUSH AF
+01A8    LD   A,(DE)     ;naŸten¡ znaku
+01A9    CALL 018F       ;tisk Acc na tisk rnØ
+01AC    LD   A,(DE)     ;odnoven¡ znaku
+01AD    INC  DE
+01AE    CP   0D         ;konec (CR)
+01B0    JR   NZ,01A8    ;dokud nen¡ konec => opakuj tisk
+01B2    POP  AF
+01B3    POP  BC
+01B4    POP  DE
+01B5    RET
+
+                                - 7 -
+
+        Ÿek , a§ na vstupu STA z PIO bude stejnì sign l, jako je
+        hodnota v C pokud BREAK => skok na 00AD
+                A=C, F=NC Z PO P
+
+01B6    IN   A,(FE)
+01B8    AND  0D         ;Acc=STA (BUSY)
+01BA    CP   C
+01BB    RET  Z          ;stejn‚ v C => n vrat
+01BC    CALL 001E       ;test ý¡d¡c¡ch kl ves (BREAK)
+01BF    JR   NZ,01B6    ;nen¡ BREAK => Ÿekej d l
+01C1    LD   SP,10F0    ;inicializace z sobn¡ku
+01C4    JP   00AD
+
+        hran¡ hudby adresovan‚ DE a ukonŸen‚ 0D (CR) nebo C8
+                A=0D nebo C8 dle konce,F=NC Z PO P nen¡-li BREAK
+                SCF => BREAK!
+
+01C7    PUSH BC
+01C8    PUSH DE
+01C9    PUSH HL
+01CA    LD   A,02
+01CC    LD   (11A0),A   ;oktava 2
+01CF    LD   B,01       ;prvn¡ wait velmi kr tkì
+01D1    LD   A,(DE)     ;naŸten¡ znaku
+01D2    CP   0D
+01D4    JR   Z,0211     ;konec
+01D6    CP   C8
+01D8    JR   Z,0211     ;konec
+01DA    CP   CF         ;grafickì znak spodn¡ pomlky (pod 2)
+01DC    JR   Z,0205     ;ni§ç¡ okt va
+01DE    CP   '-'
+01E0    JR   Z,0205     ;ni§ç¡ okt va
+01E2    CP   '+'
+01E4    JR   Z,020D     ;vyçç¡ okt va
+01E6    CP   D7         ;grafickì znak horn¡ pomlky (pod 2)
+01E8    JR   Z,020D     ;vyçç¡ okt va
+01EA    CP   '#'
+01EC    LD   HL,026C    ;tabulka frekvenc¡ jednotlivìch t¢n…
+01EF    JR   NZ,01F5
+01F1    LD   HL,0284    ;noty s # => zmØna tabulky frekvenc¡
+01F4    INC  DE
+01F5    CALL 021C       ;naŸten¡ frekvence na  (11A1-2)  a d‚lky
+                        ;trv n¡ do C
+01F8    JR   C,01D1     ;znak, kterì nelze zahr t => dalç¡
+01FA    CALL 02C8       ;wait B*1/35 s. =>dohraje pýedchoz¡ t¢n
+01FD    JR   C,0214     ;BREAK => n vrat
+01FF    CALL 02AB       ;vygenerov n¡ hudby o f=1.1 Mhz/(11A1-2)
+                        ;pýes 8253
+0202    LD   B,C        ;naŸten¡ d‚lky
+0203    JR   01D1       ;naŸten¡ dalç¡ch dat
+
+                                - 8 -
+
+0205    LD   A,3
+0207    LD   (11A0),A   ;zmençen¡ okt vy (z 2 na 3)
+020A    INC  DE         ;zvØŸen¡ adresy dat
+020B    JR   01D1       ;Ÿten¡ dalç¡ch dat
+
+020D    LD   A,1
+020F    JR   0207       ;zvØtçen¡ okt vy (z 2 na 1)
+
+0211    CALL 02C8       ;wait b*1/35 s.
+0214    PUSH AF         ;uchov n¡ carry
+0215    CALL 02BE       ;zasteven¡ hran¡ hudby
+0218    POP  AF         ;vyzvednut¡ carry
+0219    JP   069B       ;n vrat
+
+        naŸten¡ frekvence a d‚lky t¢nu
+                A=0, F=NC Z PE P, C=dan  d‚lka, DE=n sleduj¡c¡
+                znak, HL=?
+                pokud neexistuj¡c¡ znak = SCF
+
+021C    PUSH BC
+021D    LD   B,8        ;existuje 8 r…znìch t¢n…
+021F    LD   A,(DE)     ;naŸten¡ t¢nu
+0220    CP   (HL)       ;porovn n¡ s daty
+0221    JR   Z,22C      ;t¢n byl najden
+0223    INC  HL
+0224    INC  HL         ;pýeskoŸen¡ dat frekvence na n sleduj¡c¡
+                        ;t¢n
+0225    INC  HL
+0226    DJNZ 0220       ;opakuj 8*
+0228    SCF             ;t¢n nenajden
+0229    INC  DE
+022A    POP  BC
+022B    RET             ;n vrat
+022C    INC  HL         ;HL=poŸ tek dat frekvence
+022D    PUSH DE
+022E    LD   E,(HL)
+022F    INC  HL
+0230    LD   D,(HL)     ;do DE naŸtena frekvence
+0231    EX   DE,HL      ;naŸten  frekvence do HL
+0232    LD   A,H
+0233    OR   A
+0234    JR   Z,023F     ;hran¡ mezery nez vis¡ na okt vØ
+0236    LD   A,(11A0)   ;okt va
+0239    DEC  A          ;zmençi  o 1
+023A    JR   Z,023F
+023C    ADD  HL,HL      ;dokud nen¡ okt va nulov  =>zdvojn sobuj
+                        ;frekvenci
+023D    JR   0239
+023F    LD   (11A1),HL  ;ulo§en¡ vypoŸten‚ frekvence na (11A1-2)
+0242    LD   HL,11A0
+0245    LD   (HL),02    ;inicializace okt vy na 2
+0247    DEC  HL
+0248    POP  DE
+0249    INC  DE
+
+                                - 9 -
+
+024A    LD   A,(DE)     ;naŸten¡ n sleduj¡c¡ho znaku
+024B    LD   B,A        ;ulo§en¡ do B
+024C    AND  F0
+024E    CP   30
+0250    JR   Z,0255     ;n sleduj¡c¡ znak je Ÿ¡slo => pýepoŸti
+                        ;d‚lku trv n¡ t¢nu
+0252    LD   A,(HL)     ;n sleduj¡c¡ znak nen¡ Ÿ¡slo => nech
+                        ;p…vodn¡ d‚lku t¢nu
+0253    JR   025A
+0255    INC  DE
+0256    LD   A,B        ;navr cen¡ ulo§en‚ho Acc
+0257    AND  0F         ;vynulov n¡ prvn¡ poloviny
+0259    LD   (HL),A     ;a ulo§en¡ do syst‚mov‚ promØn‚
+025A    LD   HL,029C    ;HL=data d‚lek
+025D    ADD  A,L        ;pýiŸten¡ Ÿ¡sla d‚lky
+025E    LD   L,A
+025F    LD   C,(HL)     ;C=urŸen  d‚lka
+0260    LD   A,(119E)
+0263    LD   B,A        ;B=tempo hudby
+0264    XOR  A          ;A=0
+0265    ADD  A,C        ;dle tempa n sobit d‚lku
+0266    DJNZ 0265
+0268    POP  BC
+0269    LD   C,A        ;d‚lka ulo§ena do C
+026A    XOR  A
+026B    RET
+
+        n sleduj¡ data frekvenc¡ k jednotlivìm t¢n…m a d‚lky
+
+026C    DEFM'C'         DEFW 0845
+026F    DEFM'D'         DEFW 075F
+0272    DEFM'E'         DEFW 0691
+0275    DEFM'F'         DEFW 0633
+0278    DEFM'G'         DEFW 0586
+027B    DEFM'A'         DEFW 04EC
+027E    DEFM'B'         DEFW 0464
+0281    DEFM'R'         DEFW 0000
+
+0284    DEFM'C'         DEFW 07CF
+0287    DEFM'D'         DEFW 06F5
+028A    DEFM'E'         DEFW 0633
+028D    DEFM'F'         DEFW 05DA
+0290    DEFM'G'         DEFW 0537
+0293    DEFM'A'         DEFW 04A5
+0296    DEFM'B'         DEFW 0423
+0299    DEFM'R'         DEFW 0000
+
+029C    DEFB 01,02,03,04,06,08,0C,10,18,20
+
+                                - 10 -
+
+        zvØtçen¡ DE o 4
+                DE=DE+4
+
+02A6    INC  DE
+02A7    INC  DE
+02A8    INC  DE
+02A9    INC  DE
+02AA    RET
+
+        hran¡ hudby a frekvenci f=1.1Mhz / (11A1-2) pýes 8255,
+        pokud (11A1)=0, pak zastaven¡ hran¡
+                A=0 pokud nehraje, A=1 pokud hraje, F=? ,HL=?
+
+02AB    LD   HL,(11A1)  ;HL= frekvence
+02AE    LD   A,H
+02AF    OR   A
+02B0    JR   Z,02BE     ;(11A2)=0 => zastaven¡ hran¡
+02B2    PUSH DE
+02B3    EX   DE,HL      ;frekvence do DE
+02B4    LD   HL,E004
+02B7    LD   (HL),E     ;ulo§en¡ frekvence do Ÿ¡taŸe
+02B8    LD   (HL),D
+02B9    LD   A,01
+02BB    POP  DE
+02BC    JR   02C4       ;aktivace GATE do 1
+
+        zastaven¡ hran¡ hudby
+                A=0, F=NC Z PE P
+
+02BE    LD   A,36
+02C0    LD   (E007),A   ;nadstaven¡ Ÿ¡taŸe pro z pis obou slabik
+                        ;v m¢du 3,bin rnØ
+02C3    XOR  A
+02C4    LD   (E008),A   ;nulov n¡ sign lu GATE
+02C7    RET
+
+        wait B*1/35 s.; pokud BREAK => SCF
+                HL=E000, AF=?, B=?
+
+02C8    LD   HL,E000
+02CB    LD   (HL),F8    ;aktivace 8 ý dku kl vesnice
+02CD    INC  HL
+02CE    LD   A,(HL)     ;naŸten¡ zm Ÿklìch kl ves
+02CF    AND  81         ;vìbØr SHIFT + ESC
+02D1    JR   NZ,02D5    ;nen¡ BREAK => wait b* 1/35 s
+02D3    SCF
+02D4    RET             ;BREAK => n vrat
+
+                                - 11 -
+
+        wait B*1/35 s.
+                A=0, F=NC Z PE P , B=0
+
+02D5    LD   A,(E008)
+02D8    RRCA            ;vìbØr kmitoŸtu pro tempo hudby 35 Hz
+02D9    JR   C,02D5     ;kmitoŸet  je st le v 1
+02DB    LD   A,(E008)
+02DE    RRCA
+02DF    JR   NC,02DB    ;kmitoŸet je v 0
+02E1    DJNZ 02D5       ;opakuj B:
+02E3    XOR  A
+02E4    RET
+
+        nadstav‚n¡ tempa do syst‚mov‚ promØnn‚
+                -
+
+02E5    PUSH AF
+02E6    PUSH BC
+02E7    AND  0F         ;vynulov n¡ horn¡ poloviny Ÿ¡sla
+02E9    LD   B,A
+02EA    LD   A,08
+02EC    SUB  B          ;odeŸten¡ jej od 8 (z0=>8, z1=>7, ...)
+02ED    LD   (119E),A   ;ulo§en¡ do syst‚mov‚ promØnn‚
+02F0    POP  BC
+02F1    POP  AF
+02F2    RET
+
+        nadstav‚n¡ do carry a Acc poŸ tku ý dk ze syst‚movìch
+        promØnnìch, vyu§¡vanìch pýi spojitosti nØkterìch ý dk…
+                HL=souýadnice kursoru, AF=?, DE=?
+
+02F3    LD   HL,1173    ;poŸ tek dat
+02F6    LD   A,(1172)   ;A=Y-ov  souýadnice kursoru
+02F9    ADD  A,L        ;pýiŸten¡ k dat…m
+02FA    LD   L,A
+02FB    LD   A,(HL)     ;naŸten¡ k¢du
+02FC    INC  HL         ;zvØŸen¡ adresy dat
+02FD    RL   (HL)
+02FF    OR   (HL)
+0300    RR   (HL)
+0302    RRCA            ;do carry => bit z tohoto ý dku,
+                        ;do Acc z n sleduj¡c¡ho
+0303    EX   DE,HL      ;DE = hodnota adresy,ze kter‚ Ÿteny data
+0304    LD   HL,(1171)  ;HL= souýadnice kursoru
+0307    RET
+
+                                - 12 -
+
+        nadstaven¡ Ÿasu dle Acc (AM/PM) a DE (Ÿas v sekund ch)
+        do Ÿ¡taŸ…
+                A=C0-E, F=NC Z PO P
+
+0308    DI
+0309    PUSH BC
+030A    PUSH DE
+030B    PUSH HL
+030C    LD   (119B),A   ;ulo§en¡ AM/PM do syst‚mov promØnn‚
+030F    LD   A,F0
+0311    LD   (119C),A   ;ulo§en¡ do syst. promØnn‚ chod hodim
+0314    LD   HL,A8C0    ;=12 hodim v sekund ch
+0317    XOR  A
+0318    SBC  HL,DE      ;HL=zbytek Ÿasu do 12 hodin (za jak
+                        ;dlouho 12 hod.)
+031A    PUSH HL
+031B    NOP
+031C    EX   DE,HL      ;DE=za jak dlouho zmØna AM/PM
+031D    LD   HL,E007    ;inicializace Ÿ¡taŸ…
+0320    LD   (HL),74    ;Ÿ¡taŸ 1:bin rn¡, obØ slabiky v m¢du 2
+0322    LD   (HL),B0    ;Ÿ¡taŸ 2:bin rn¡, obØ slabiky v m¢du 0
+0324    DEC  HL
+0325    LD   (HL),E     ;ulo§en¡ do Ÿ¡t. 2 zbytku Ÿasu do 12 hod
+0326    LD   (HL),D
+0327    DEC  HL
+0328    LD   (HL),0A    ;ulo§em¡ do Ÿ¡taŸe 1 hodnoty 10
+032A    LD   (HL),00
+032C    INC  HL
+032D    INC  HL
+032E    LD   (HL),80    ;vzorkov n¡ Ÿ¡taŸe 2 pro Ÿten¡
+0330    DEC  HL
+0331    LD   C,(HL)     ;pýeŸten¡ Ÿasu
+0332    LD   A,(HL)
+0333    CP   D
+0334    JR   NZ,0331    ;na Ÿ¡tŸi st le jinì Ÿas ne§ zadanì
+0336    LD   A,C
+0337    CP   E
+0338    JR   NZ,0331    ;na Ÿ¡tŸi st le jinì Ÿas ne§ zadanì
+033A    DEC  HL
+033B    NOP
+033C    NOP
+033D    NOP
+
+033E    LD   (HL),FB    ;ulo§en¡ do Ÿ¡taŸe vstupn¡ kmitoŸet
+                        ;(3CFBH=15611)
+0340    LD   (HL),3C
+0342    INC  HL
+0343    POP  DE
+0344    LD   C,(HL)     ;naŸten¡ Ÿasu
+0345    LD   A,(HL)
+0346    CP   D
+
+                                - 13 -
+
+0347    JR   NZ,0344    ;na Ÿ¡tŸi jinì Ÿas ne§ zadanì
+0349    LD   A,C
+034A    CP   E
+034B    JR   NZ,0344    ;na Ÿ¡tŸi jinì Ÿas ne§ zadanì
+034D    POP  HL
+034E    POP  DE
+034F    POP  BC
+0350    EI
+0351    RET
+
+        data pro BEEP
+
+0352    DEFM '+A0'+0D
+
+        naŸten¡ Ÿasu z Ÿ¡taŸ… do DE a Acc
+                A=PM/AM, DE=Ÿas v sekund ch, F=?
+
+0356    NOP
+0357    NOP
+0358    PUSH HL
+0359    LD   HL,E007
+035C    LD   (HL),80    ;vzorkuj Ÿ¡taŸ 2 pro Ÿten¡
+035E    DEC  HL
+035F    DI      
+0360    LD   E,(HL)     ;naŸten¡ Ÿasu
+0361    LD   D,(HL)
+0362    EI
+0363    LD   A,E
+0364    OR   D
+0365    JR   Z,0375     ;Ÿas je nulovì => dej do naŸten‚ho -1s
+0367    XOR  A
+0368    LD   HL,A8C0    ;=12 hodin v sekund ch
+036B    SBC  HL,DE      ;odeŸten¡ 12 hodin od pýeŸten‚ho Ÿasu
+036D    JR   C,037F     ;pýeŸtenì Ÿas vØtç¡ 12 hodin
+036F    EX   DE,HL      ;vìsledek do DE
+0370    LD   A,(119B)   ;syst‚mov  promØnn  pro AM/PM
+0373    POP  HL
+0374    RET0
+
+0375    LD   DE,A8C0    ;12 hodin v sekund ch
+0378    LD   A,(119B)   ;A=AM/PM
+037B    XOR  1          ;negace vìsledku
+037D    POP  HL
+037E    RET
+
+037F    DI
+0380    LD   HL,E006
+0383    LD   A,(HL)
+0384    CPL
+0385    LD   E,A        ;de DE pýejde negovanì Ÿas
+0386    LD   A,(HL)
+0387    CPL
+0388    LD   D,A
+0389    EI
+038A    INC  DE
+038B    JR   0378       ; a do Acc negovan‚ AM/PM
+
+                                - 14 -
+
+        pýeruçovac¡ program, zmØna AM/PM
+                -
+
+038D    PUSH AF
+038E    PUSH BC
+038F    PUSH DE
+0390    PUSH HL
+0391    LD   HL,119B
+0394    LD   A,(HL)     ;naŸten¡ AM/PM
+0395    XOR  1          ;negace vìsledku
+0397    LD   (HL),A     ; a jeho opØtovn‚ ulo§en¡
+0398    LD   HL,E007
+039B    LD   (HL),80    ;vzorkov n¡ Ÿ¡taŸe 2 pro Ÿten¡
+039D    DEC  HL
+039E    PUSH HL
+039F    LD   E,(HL)     ;naŸten¡ Ÿasu do DE (m…§e bìt menç¡ 0)
+03A0    LD   D,(HL)
+03A1    LD   HL,A8C0
+03A4    ADD  HL,DE      ;pýiŸten¡ k 12 hodin m
+03A5    DEC  HL         ;zmençen¡ o 2  = vykompenzov‚n¡ rozd¡lu
+                        ;pýi mØrØn¡
+03A6    DEC  HL
+03A7    EX   DE,HL      ;vìslednì Ÿas do DE
+03A8    POP  HL
+03A9    LD   (HL),E     ;ulo§en¡ tohoto Ÿasu do Ÿ¡taŸ…
+03AA    LD   (HL),D
+03AB    POP  HL
+03AC    POP  DE
+03AD    POP  BC
+03AE    POP  AF
+03AF    EI
+03B0    RET
+
+        tisk mezery a obsahu pamØœov‚ buåky (HL)
+                A=(HL), F=?
+
+03B1    CALL 0920       ;tisk mezery
+
+        tisk obsahu pameœov‚ buåky (HL)
+                A=(HL), F=?
+
+03B4    LD   A,(HL)     ;naŸten¡ Ÿ¡sla
+03B5    CALL 03C3       ;tisk odsahu Acc
+03B8    LD   A,(HL)     ;obnoven¡ Ÿ¡sla
+03B9    RET
+
+        tisk obsahu reg. p ru HL
+                AF=?
+
+03BA    LD   A,H
+03BB    CALL 03C3       ;tisk obsahu Acc
+03BE    LD   A,L1
+03BF    JR   03C3       ;tisk obsahu Acc
+
+                                - 15 -
+
+        tisk obcahu Acc
+                AF=?
+
+03C1    NOP
+03C2    NOP
+03C3    PUSH AF
+03C4    RLCA            ;vìmØna horn¡ch a spodn¡ch 4 bit… Acc
+03C5    RLCA
+03C6    RLCA
+03C7    RLCA
+03C8    CALL 03DA       ;pýevod spodn¡ poloviny Acc na ASCII
+03CB    CALL 0012       ;tisk Acc
+03CE    POP  AF
+
+        tisk obsahu spodn¡ poloviny Acc 
+                AF=?
+
+03CF    CALL 03DA       ;pýevod spodn¡ poloviny Acc na ASCII
+03D2    JP   0012       ;tisk Acc
+
+        data protisk rnu (80 znak… na ý dek)
+
+03D5    DEFB 01,09,09,09,0D
+
+        pýevod spodn¡ch 4 bit… Acc na ASCII  (0A => 41='A')
+                A=vìsledek, F=NC NZ P
+
+03DA    AND  0F         ;vynulov n¡ horn¡ poloviny
+03DC    CP   0A
+03DE    JR   C,03E2     ;pokud menç¡ 10 => pýiŸti jen 30
+03E0    ADD  A,7        ;rozd¡l mezi 9 a A v ASCII je 7
+03E2    ADD  A,30
+03E4    RET
+
+        pýevod ASCII znaku v Acc na Ÿ¡slo, pokud nejde => SCF
+                AF=?
+
+03E5    SUB  30
+03E7    RET  C          ;Ÿ¡slo menç¡ ne§ '0'
+03E8    CP   0A
+03EA    CCF
+03EB    RET  NC         ;Ÿ¡slo od '0' do '9'(ASCII od 30 do 39)
+03EC    SUB  7
+03EE    CP   10
+03F0    CCF
+03F1    RET  C          ;Ÿ¡slo > 'F'
+03F2    CP   0A
+03F4    RET             ;Ÿ¡slo od 'A' do 'F'(ASCII od 41 do 46)
+
+                                - 16 -
+
+        viz 03E5
+
+03F5    NOP
+03F6    NOP
+03F7    NOP
+03F8    NOP
+03F9    JR   03E5
+
+        data tisku
+
+03FB    DEFW '| PLAY'+0D
+0402    DEFW '| RECORD.'+0D
+
+        pýevod 4 ASCII od DE na Ÿ¡slo do HL, pokud nejde => SCF
+                AF=?,HL=vìsledek
+
+040C    NOP
+040D    NOP
+040E    NOP2
+040F    NOP
+0410    PUSH DE
+0411    CALL 041F       ;pýevod 2 ASCII od DE na Ÿ¡slo do Acc
+0414    JR   C,041D     ;nelze pýev‚st
+0416    LD   H,A        ;vìsledek ulo§en do H
+0417    CALL 041F       ;pýevod 2 ASCII od DE na Ÿ¡slo do HL
+041A    JR   C,041D     ;nelze pýev‚st
+041C    LD   L,A        ;druhì vìsledek do L
+041D    POP  DE
+041E    RET
+
+        pýevod 2 ASCII od DE na Ÿ¡slo do Acc, pokud nejde => SCF
+                A=vìsledek, F=?, DE=DE+2
+
+041F    PUSH BC
+0420    LD   A,(DE)     ;naŸten¡ znaku
+0421    INC  DE
+0422    CALL 039F       ;pýevod ASCII znaku v Acc na Ÿ¡slo
+0425    JR   C,0434     ;nelze pýev‚st
+0427    RRCA            ;zarotov n¡ vìsledku na prvn¡ pozice
+0428    RRCA
+0429    RRCA
+042A    RRCA
+042B    LD   C,A        ;ulo§en¡ vìsledku do C
+042C    LD   A,(DE)     ;naŸten¡ dalç¡ho znaku
+042D    INC  DE
+042E    CALL 03F9       ;pýevod ASCII znaku v Acc na Ÿ¡slo
+0431    JR   C,0434     ;nelze pýev‚st
+0433    OR   C          ;pýiŸten¡ vìsledku k pýeçl‚mu vìsledku
+0434    POP  BC
+0435    RET
+
+                                - 17 -
+
+        nahraje hlaviŸku programu um¡stØnou od adresy 10F0 na
+        mag. p sek
+                AF=?; BREAK => SCF
+
+0436    DI
+0437    PUSH DE
+0438    PUSH BC
+0439    PUSH HL
+043A    LD   D,D7       ;k¢d nahr v n¡ na kazatu (pro tisk)
+043C    LD   E,CC       ;k¢d hlaviŸky
+043E    LD   HL,10F0    ;adresa od kter‚ um¡stØn program
+0441    LD   BC,0080    ;d‚lka programu
+0444    CALL 071A       ;vìpoŸet kontroln¡ho souŸtu hlaviŸky
+0447    CALL 069F       ;rozbØh motoru
+044A    JR   C,0464     ;BREAK=> n vrat
+044C    LD   A,E
+044D    CP   CC
+044F    JR   NZ,04E5    ;nezapisuje se hlaviŸka, ale tØlo
+                        ;=> u§ nic netiskni
+0451    CALL 9          ;kursor na dalç¡ ý dek
+0454    PUSH DE
+0455    LD   DE,0467
+0458    RST  18         ;tisk 'WRITING'
+0459    LD   DE,10F1
+045C    RST  18         ;tisk n zvu programu
+045D    POP  DE
+045E    CALL 077A       ;z pis pilotn¡ho t¢nu a znaŸky
+0461    CALL 048A       ;z pis dat (2*)
+0464    JP   0554       ;n vrat se zastaven¡m motoru
+
+        data tisku
+
+0467    DEFW 'WRITING '+0D
+
+        data pro tisk rnu   (40 znak… na ý dek)
+
+0470    DEFB 01,09,09,0B,0D3
+
+        nahraje tØlo souboru dle hlaviŸky (od 10F0-) na p sek
+                AF=? ;BREAK => SCF
+
+0475    DI
+0476    PUSH DE
+0477    PUSH BC
+0478    PUSH HL
+0479    LD   D,D7       ;k¢d pro nahr v n¡ na kazetu  (pro tisk)
+047B    LD   E,53       ;k¢d dat
+047D    LD   BC,(1102)  ;d‚lka
+0481    LD   HL,(1104)  ;adresa,od kter‚ ulo§en program
+0484    LD   A,B
+0485    OR   C
+0486    JR   Z,04D2     ;d‚lka nulov  => n vrat
+0488    JR   0444       ;nahr n¡ dat (2*)
+
+                                - 18 -
+
+        program n sleduj¡c¡ po nahr n¡ pilotn¡ho t¢nu a znaŸky
+        => nahr n¡ dat od adresy HL a d‚lkou BC   (2*)
+                AF=?; pokud vçe v poý dku => carry=0:pokud BREAK
+                 => A=2,SCF , pokud chyba pýi Ÿten¡ => A=1,SCF
+
+048A    PUSH DE
+048B    PUSH BC
+048C    PUSH HL
+048D    LD   D,2        ;probØhne 2*
+048F    LD   A,F8
+0491    LD   (E000),A   ;aktivace 8 ý dku kl vesnice
+0494    LD   A,(HL)
+0495    CALL 0776       ;SAVE Acc
+0498    LD   A,(E001)   ;naŸten¡ zm Ÿklìch kl ves
+049B    AND  81         ;vìbØr SHIFT a ESC
+049D    JP   NZ,04A5    ;nen¡ BREAK
+04A0    LD   A,2
+04A2    SCF             ;BREAK => n vrat s Acc=2 a SCF
+04A3    JR   04D2
+04A5    INC  HL         ;zvØŸen¡ adresy
+04A6    DEC  BC         ;zmençen¡ d‚lky
+04A7    LD   A,B
+04A8    OR   C
+04A9    JP   NZ,0494    ;opakuj, dokud d‚lka nebyde nulov 
+04AC    LD   HL,(1197)  ;naŸten¡ kontroln¡ho souŸtu
+04AF    LD   A,H
+04B0    CALL 0767       ;z pis prvn¡ho byte
+
+04B3    LD   A,L
+04B4    CALL 0767       ;z pid druh‚ho byte
+04B7    CALL 0A1A       ;z pis jedniŸkov‚ho bitu na konec
+04BA    DEC  D          
+04BB    JP   NZ,04C2    ;z pis dat podruh‚
+04BE    OR   A          ;vynulov n¡ carry
+04BF    JP   04D2       ;n vrat
+
+04C2    LD   B,0
+04C4    CALL 0A01       ;z pis 356* nulovì bit (pilotn¡ t¢n)
+04C7    DEC  B
+04C8    JP   NZ,04C4
+04CB    POP  HL         ;obnoven¡ poŸ teŸn¡ adresy a b‚lky dat
+04CC    POP  BC
+04CD    PUSH BC
+04CE    PUSH HL
+04CF    JP   0494       ;opakuj nahr v n¡
+
+04D2    POP  HL
+04D3    POP  BC
+04D4    POP  DE
+04D5    RET4
+
+                                - 19 -
+
+        nahr n¡ hlaviŸky z magnetofonu do pamØti od 10F0-
+                C=nule pokud start 04D6, jinak nezmØnØno
+                AF=?; pokud vçe v poý dku => carry=0:pokud
+                BREAK => A=2,SCF, pokud chyba pýi Ÿten¡
+                 => A=1,SCF
+
+04D6    LD   C,0        ;nepovinn  instrukce, po n vratu C=0
+04D8    DI
+04D9    PUSH DE
+04DA    PUSH BC
+04DB    PUSH HL
+04DC    LD   D,D2       ;k¢d Ÿten¡ z magnetofonu (pýi tisku)
+04DE    LD   E,CC       ;k¢d hlaviŸky
+04E0    LD   BC,0080    ;d‚lka
+04E3    LD   HL,10F0    ;adresa, od kter‚ ullo§en
+04E6    CALL 069F       ;rozbØh motoru
+04E9    JP   C,0572     ;BREAK
+04EC    CALL 065B       ;hled  pilotn¡ t¢n se znaŸkou
+04EF    JP   C,0572     ;BREAK
+04F2    CALL 050E       ;nahr n¡ dat (2* pokud nutn‚)
+04F5    JP   0554       ;n vrat
+
+        nahr ni tØla z magnetofonu dle hlaviŸky (10F0-)
+                AF=?; pokud vçe v poý dku => carry=0:pokud BREAK
+                => A=2,SCF , pokud chyba pýi Ÿten¡ => A=1,SCF
+
+04F8    DI
+04F9    PUSH DE
+04FA    PUSH BC
+04FB    PUSH HL
+04FC    LD   D,D2       ;k¢d Ÿten¡ z magnetofonu
+04FE    LD   E,53       ;k¢d tØla
+0500    LD   BC,(1102)  ;d‚lka
+0504    LD   HL,(1104)  ;adresa, od kter‚ ulo§en
+0507    LD   A,B
+0508    OR   C
+0509    JP   Z,0554     ;d‚lka nulov  => n vrat
+050C    JR   04E6       ;nahr n¡ tØla
+
+        nahr n¡ dat z magnetofonu, pokud nutn‚, pak 2 pokusy
+                AF=?; pokud vçe v poý dku => carry=0:pokud BREAK
+                => A=2,SCF, pokud chyba pýi Ÿten¡ => A=1,SCF
+
+050E    PUSH DE
+050F    PUSH BC
+0510    PUSH HL
+0511    LD   H,2
+0513    LD   BC,E001    ;pro Ÿten¡ kl vesnice
+0516    LD   DE,E002    ;pro Ÿten¡ sign lu z magnetofonu
+0519    CALL 0601       ;Ÿek  na n bØh jedniŸkov‚ho sign lu
+
+                                - 20 -
+
+051C    JR   C,0572     ;BREAK => n vrat s Acc=2 a SCF
+051E    CALL 0A4A       ;wait 0,23 ms
+0521    LD   A,(DE)
+0522    AND  20
+0524    JP   Z,0519     ;sign l je nulovì (nulovì bit)=>znovu,
+                        ;Ÿek  na 1
+0526    LD   D,H        ;do D  poŸet pokus…
+0528    LD   HL,0000
+052B    LD   (1197),HL  ;nulov n¡ souŸtu
+052E    POP  HL         ;obnoven¡ poŸ teŸn¡ adresy a d‚lky
+052F    POP  BC
+0530    PUSH BC
+0531    PUSH HL
+0532    CALL 0624       ;naŸten¡ byte
+0535    JR   C,0572     ;BREAK => n vrat s Acc=2 a SCF
+0537    LD   (HL),A     ;ulo§en¡ byte na adresu
+0538    INC  HL         ;zvØtçen¡ ukl dac¡ adresy
+0539    DEC  BC         ;zmençen¡ d‚lky
+053A    LD   A,B
+053B    OR   C5
+053C    JR   NZ,0532    ;dokud nen¡ d‚lka nulov  => opakuj
+                        ;nahr v n¡ byte
+053E    LD   HL,(1197)  ;pýeŸten¡ kontroln¡ho souŸtu
+0541    CALL 0624       ;naŸetn¡ bytu kontroln¡ho souŸtu
+0544    JR   C,0572     ;BREAK => n vrat s Acc=2 a SCF
+0546    LD   E,A        ;ulo§en¡ do E
+0547    CALL 0624       ;naŸten¡ bytu kontroln¡ho souŸtu
+054A    JR   C,0572     ;BREAK => n vrat s Acc=2 a SCF
+054C    CP   L          ;porovn n¡ s vypoŸtenìm souŸtem 
+054D    JR   NZ,0565    ;chyba => druhì pokus nebo n vrat
+                        ;s Acc=1 a SCF
+054F    LD   A,E        ;porovn n¡ druh‚ho byte
+0550    CP   H
+0551    JR   NZ,0565    ;chyba => druhì pokus nebo n vrat
+                        ;s Acc=1 a SCF
+0553    XOR  A          ;nulov n¡ carry
+0554    POP  HL
+0555    POP  BC
+0556    POP  DE
+0557    CALL 700        ;zastaven¡ motoru
+055A    PUSH AF
+055B    LD   A,(119C)   ;syst‚mov  promØnn  chodu hodin
+055E    CP   F0
+0560    JR   NZ,0563    ;hodiny nejdou => pýeruçen¡ nepovoluj
+0562    EI
+0563    POP  AF
+0564    RET
+
+                                - 21 -
+
+0565    DEC  D
+0566    JR   Z,056E     ;u§ byl druhì pokus =>n vrat s A=1 a SCF
+0568    LD   H,D
+0569    CALL 0FE2       ;hled  pilotn¡ t¢n
+056C    JR   0513       ;opakuj Ÿten¡
+056E    LD   A,1
+0570    JR   0574       ;n vrat s Acc=1 a SCF
+
+0572    LD   A,2        ;n vrat s Acc=2 a SCF
+0574    SCF
+0575    JR   0554
+
+        BEEP (asi 880 Hz)
+                A=0D, F=NC Z PO P
+
+0577    PUSH DE
+0578    LD   DE,0352    ;data t¢nu
+057B    RST  30         ;hran¡ hudby od DE
+057C    POP  DE
+057D    RET
+
+        blik n¡ kursoru s kontrolou kl vesnice
+                A=stlaŸen  kl vesa ve videok¢du,F=NC Z PE P,
+                pokud nic nestlaŸeno, pokud ano, pak F=NZ
+
+057E    CALL 09FF       ;blik n¡ kursoru
+0581    CALL 08CA       ;vstup z kl vesnice ve videok¢du
+0584    CP   F0         ;pokud nic=> nadstav¡ Z
+0586    RET
+
+        verifink tØla programu
+                AF=?; pokud vçe v poý dku => carry=0:pokud BREAK
+                => A=2,SCF , pokud chyba pýi Ÿten¡ => A=1,SCF
+
+0587    NOP
+0588    DI
+0589    PUDH DE
+058A    PUSH BC
+058B    PUSH HL
+058C    LD   BC,(1102)  ;d‚lka programu
+0590    LD   HL,(1104)  ;adresa,od kter‚ ulo§en
+0593    LD   D,D2       ;k¢d nahr v n¡ z kazety
+0595    LD   E,53       ;k¢d tØla
+0597    LD   A,B
+0598    OR   C
+0599    JR   Z,0554     ;nulov  d‚lka => n vrat
+059B    CALL 071A       ;vìpoŸet kontroln¡ho souŸtu
+059E    CALL 069F       ;rozbØh motoru
+05A1    JR   C,0572     ;BREAK => n vrat s dvojkou v Acc a SCF
+05A3    CALL 065B       ;hled  pilotn¡ t¢n se znaŸkou
+05A6    JR   C,0572     ;BREAK => n vrat s dvojkou v Acc a SCF
+05A8    CALL 05AD       ;verifink dat
+05AB    JR   0554       ;n vrat
+
+                                - 22 -
+
+        verifink dat, n sleduje po najden¡ pilotn¡ho t¢nu a
+        znaŸku programu
+                AF=?; pokud vçe v poý dku => carry=0:pokud BREAK
+                => A=2,SCF, pokud chyba pýi Ÿten¡ => A=1,SCF            
+
+05AD    PUSH DE
+05AE    PUSH BC
+05AF    PUSH HL
+05B0    LD   H,2        ;data nahr ny dvakr t za sebou
+05B2    LD   BC,E001    ;adresa pro Ÿten¡ kl vesnice
+05B5    LD   HL,E002    ;adresa pro Ÿten¡ dat z magnetofonu
+05B8    CALL 0601       ;Ÿek  na n bØk jedniŸky
+05BB    JP   C,0572     ;BREAK => n vrat s dvojkou v Acc a SCF
+05BE    CALL 0A4A       ;wait 0.23 ms
+05C1    LD   A,(DE)     ;naŸten¡ sign lu z magnetofonu
+05C2    AND  20
+05C4    JP   Z,05B8     ;je nula (nulovì bit), opakuj dokud
+                        ;nen¡ jedniŸka
+05C7    LD   D,H        ;D=poŸ¡tadlo program… (2*)
+05C8    POP  HL         ;obnoven¡ d‚lky a poŸ teŸn¡ adresu
+05C9    POP  BC
+05CA    PUSH BC
+05CB    PUSH HL
+05CC    CALL 0624       ;naŸten¡ byre
+05CF    JR   C,0572     ;BREAK => n vrat s dvojkou v Acc a SCF
+05D1    CP   (HL)       ;porovn n¡ s obsahem pam. buåky
+05D2    JR   NZ,056E    ;nesouhlas => n vrat s Acc = 1 a SCF
+05D4    INC  HL         ;zvØtçen¡ adresy
+05D5    DEC  BC         ;zmençen¡ d‚lky
+05D6    LD   A,B
+05D7    OR   C
+05D8    JR   NZ,05CC    ;dokud nen¡ d‚lka nulov  => opakuj
+05DA    LD   HL,(1199)  ;naŸten¡ kontroln¡ho souŸtu
+05DD    CALL 0624       ;naŸten¡ byte z magnetofonu
+05E0    CP   H          ;porovn n¡ prvn¡ slabiky
+05E1    JR   NZ,056E    ;nesouhlas => n vrat s Acc = 1 a SCF
+05E3    CALL 0624       ;naŸten¡ bytu z magnetofonu
+05E6    CP   L
+05E7    JR   NZ,056E    ;nesouhlas => n vrat s Acc = 1 a SCF
+05E9    DEC  D
+05EA    JP   Z,0553     ;konec, probØhlo dvakr t
+05ED    LD   H,D
+05EE    JR   05B2       ;opakuj podruh‚
+
+        navr t¡ znak pod kursorem do VRAM
+                HL=pozice kursoru
+
+05F0    PUSH AF
+05F1    LD   A,(118E)   ;A=znak pod kursorem
+05F4    CALL 0FB1       ;do HL naŸte pozici kursoru
+05F7    LD   (HL),A     ;ulo§en¡ znaku do Vram
+05F8    POP  AF
+05F9    RET
+
+                                - 23 -
+
+        pýesun kursoru na n sleduj¡c¡ ýadek a tisk obsahu HL
+                AF=?
+
+05FA    CALL 0009       ;pýesun kursoru na n sleduj¡c¡ ý dek
+05FD    CALL 03BA       ;tisk obsahu reg. p ru HL
+0600    RET
+
+        Ÿek n¡ na n bØ§nou hranu jedniŸky z magnetofonu; pokud
+        BREAK => SCF
+                AF=? (CY pokud BREAK)
+        pýed skokem nutno BC=E001 a DE=E002
+
+0601    LD   A,F8
+0603    LD   (E000),A   ;aktivace 8.ý dku kl vesnice
+0606    NOP
+0607    LD   A,(BC)     ;naŸten¡ zm Ÿklìch kl ves
+0608    AND  81         ;vìbØr SHIFT a ESC
+060A    JR   NZ,060E    ;nen¡ BREAK
+060C    SCF             ;BREAK => n vrat s nadstavenìm CY
+060D    RET
+
+060E    LD   A,(DE)
+060F    AND  20         ;naŸten¡ sign lu z magnetofonu
+0611    JR   NZ,0607    ;jeçtØ je jedniŸka => Ÿekej znovu s
+                        ;kontrolou BREAK
+0613    LD   A,(BC)     ;naŸten¡ zm Ÿklìch kl ves
+0614    AND  81         ;vìbØr SHIFT a ESC
+0616    JR   NZ,061A    ;nen¡ BREAK
+0618    SCF             ;BREAK => n vrat s nadstaven¡m CY
+0619    RET
+
+061A    LD   A,(DE)
+061B    AND  20         ;naŸten¡ sign lu z magnetofonu
+061D    JR   Z,0613     ;jeçtØ je nula => Ÿekej znovu s
+                        ;kontrolou BREAK
+061F    RET             ;nen¡ nula => zapoŸala jedniŸka =>n vrat
+
+        nahr n¡ jednoho byte z magnetofonu, poŸ¡t  kontroln¡
+        souŸet na adrese 1197
+                A=nahranì byte, F=CY pokud BREAK
+
+0620    NOP
+0621    NOP
+0622    NOP
+0623    NOP
+0624    PUSH BC
+0625    PUSH DE
+0626    PUSH HL
+0627    LD   HL,0800    ;H=poŸ¡tadlo(8 bit…),L=nahr vanì byte(0)
+062A    LD   BC,E001    ;pro Ÿten¡ kl vesnice
+062D    LD   DE,E002    ;pro Ÿten¡ magnetofonu
+0630    CALL 0601       ;Ÿek  na n bØk jedniŸky
+0633    JP   C,0654     ;BREAK
+0636    CALL 0A4A       ;wait 0.23 ms
+
+                                - 24 -
+
+0639    LD   A,(DE)
+063A    AND  20         ;naŸten¡ sign lu z magnetofonu
+063C    JP   Z,0649     ;jeçtØ je nulovì => pýehr v  se nulovì
+                        ;bit (CY=0)
+063F    PUSH HL         ;bit byl jedniŸkovì (kr tkì sign l 1)
+0640    LD   HL,(1197)
+0643    INC  HL         ;zvìçen¡ kontroln¡ho souŸtu
+0644    LD   (1197),HL
+0647    POP  HL
+0648    SCF             ;CY=1
+0649    LD   A,L
+064A    RLA             ;zarotov n¡ naŸten‚ho bitu do L
+064B    LD   L,A
+064C    DEC  H          ;zmenŸen¡ poŸ¡tadla
+064D    JP   NZ,0630    ;opakuj 8*
+0650    CALL 0601       ;Ÿek  na n bØ§nou hranu jedniŸky
+0653    LD   A,L        ;vìsledek do Acc
+0654    POP  HL
+0655    POP  DE
+0656    POP  BC
+0657    RET
+
+        Hled  pilotn¡ t¢n se znaŸkou 20 (40) byt… dle E
+                AF=? (CY=BREAK)
+
+0658    NOP
+0659    NOP
+065A    NOP
+065B    CALL 0FE2       ;hled  pilotn¡ t¢n
+065E    PUSH BC
+065F    PUSH DE
+0660    PUSH HL
+0661    LD   HL,2828    ;d‚lka znaŸky 40 byt… (40*jedniŸka a 40*
+                        ;nula) =hlaviŸka
+0664    LD   A,E
+0665    CP   CC
+0667    JR   Z,066C
+0669    LD   HL,1414    ;d‚lka znaŸky jen 20 (tØlo programu)
+066C    LD   (1195),HL  ;ulo§en¡ d‚lky znaŸky
+066F    LD   BC,E001    ;pro Ÿten¡ kl vesnice
+0672    LD   DE,E002    ;pro Ÿten¡ magnetofonu
+0675    LD   HL,(1195)  ;naŸten¡ d‚lky znaŸky
+0678    CALL 0601       ;Ÿek  na n bØh jedniŸky
+067B    JR   C,069B     ;BREAK !
+067D    CALL 0A4A       ;wait 0.23 ms
+0680    LD   A,(DE)
+0681    AND  20         ;naŸten¡ sign lu s magnetofonu
+0683    JR   Z,0675     ;jeçtØ je nula (nulovì bit) => opakuj
+0685    DEC  H          ;bit byl jedniŸkovì => Ÿti znaŸku,
+                        ;zmençi d‚lku
+0686    JR   NZ,0678    ;dokud nen¡ cel  znaŸka
+0688    CALL 0601       ;Ÿek  na n bØh jedniŸky
+068B    JR   C,069B     ;BREAK !
+
+                                - 25 -
+
+068D    CALL 0A4A       ;wait 0.23 ms
+0690    LD   A,(DE)
+0691    AND  20         ;naŸten¡ sign lu
+0693    JR   NZ,0675    ;je nenulovì => nen¡ znaŸka,opakuj znovu
+0695    DEC  L
+0696    JR   NZ,0688    ;dokud nen¡ pýeŸtena cel  znaŸka
+0698    CALL 0601       ;Ÿek  na n bØh jedniŸky
+069B    POP  HL
+069C    POP  DE
+069D    POP  BC
+069E    RET
+
+        rozbØh motoru (pokud nutnì, pak tisk PLAY nebo
+        RECORD PLAY dle D)
+                AF=? (CY pokud BREAK)
+
+069F    PUSH BC
+06A0    PUSH DE
+06A1    PUSH HL
+06A2    LD   B,0A
+06A4    LD   A,(E002)
+06A7    AND  10         ;naŸten¡ stavu motoru
+06A9    JR   Z,06B9     ;motor stoj¡
+06AB    LD   B,FF       ;motor bØ§¡ => n vrat
+06AD    CALL 0996       ;wait 3.4 ms
+06B0    JR   06B4       ;opakuj 255*
+
+06B2    JR   069F       ;mo§nì start programu
+
+06B4    DJNZ 06AD       ;dokonŸen¡ wait,celkem 0.87 s a n vrat
+06B6    XOR  A          ;CY=0
+06B7    JR   069F       ;n vrat
+
+06B9    LD   A,6
+06BB    LD   HL,E003
+06BE    LD   (HL),A     ;pokus o rozbØh motoru
+06BF    INC  A
+06C0    LD   (HL),A
+06C1    DJNZ 06A4       ;opakuj 10* pokus o rozbØh motoru
+06C3    CALL 0009       ;motor st le stoj¡ => pýesun kursoru na
+                        ;novì ý dek
+06C6    LD   A,D        ;k¢d typu nahr v n¡
+06C7    CP   D7 
+06C9    JR   Z,06D0     ;SAVE => tisk PLAY
+06CB    LD   DE,03FB    ;LOAD => tisk PLAY
+06CE    JR   06D7
+06D0    LD   DE,0402    ;data tisku
+06D3    RST  18         ;tisk
+06D4    LD   DE,03DF    ;data tisku
+06D7    RST  18         ;tisk
+06D8    LD   A,(E002)
+06DB    AND  10         ;naŸten¡ stavu motoru
+06DD    JR   NZ,06AB    ;motor bØ§¡ => n vrat
+
+                                - 26 -
+
+06DF    CALL 0A32       ;test BREAK
+06E2    JR   NZ,06D8    ;nen¡ => opakuj test motoru
+06E4    SCF             ;BREAK => n vrat s CY
+06E5    JR   06B7
+
+        data tisku
+
+06E7    DEFM '**  MONITOR 1Z-013B  **'+0D
+
+        10* pokus o rozbØh motoru
+                -
+
+06FF    NOP
+0700    PUSH AF
+0701    PUSH BC
+0702    PUSH DE
+0703    LD   B,0A
+0705    LD   A,(E002)
+0708    AND  10         ;naŸten¡ stavu motoru
+070A    JR   Z,0717     ;motor bØ§¡ => n vrat
+070C    LD   A,6
+070E    LD   (E003),A   ;pokus o rozbØh motoru
+0711    INC  A
+0712    LD   (E003),A
+0715    DJNZ 0705       ;opakuj 10*
+0717    JP   0EE6
+
+        vìpoŸet kontroln¡ho souŸtu pamØti od HL a d‚lky BC,
+        vìsledek ulo§¡ na adresy 1197 a 1199
+                A=?, F= Z,NC,?
+
+071A    PUSH BC
+071B    PUSH DE
+071C    PUSH HL
+071D    LD   DE,0000    ;vynulov n¡ souŸtu
+0720    LD   A,B
+0721    OR   C
+0722    JR   NZ,072F    ;nebyl posledn¡ byte bloku (d‚lka <> 0)
+0724    EX   DE,HL      ;souŸet dokonŸen, vìsledek do HL
+0725    LD   (1197),HL  ;ulo§en¡ vìsledk…
+0728    LD   (1199),HL
+072B    POP  HL
+072C    POP  DE
+072D    POP  BC
+072E    RET
+
+072F    LD   A,(HL)     ;naŸten¡ byte
+0730    PUSH BC         ;ulo§en¡ d‚lky souboru
+0731    LD   B,8        ;8 bit… v byte
+0733    RLCA
+0734    JR   NC,0737    ;bit nulovì => nepýiŸ¡tat
+0736    INC  DE         ;bit jedniŸkovì => pýiŸti k souŸtu 1
+0737    DJNZ 0733       ;opakuj 8*
+0739    POP  BC         ;obnov d‚lku bloku
+073A    INC  HL         ;zvØŸ adresu
+073B    DEC  BC         ;zmençi d‚lku
+073C    JR   0720       ;opakuj poŸ¡t n¡
+
+                                - 27 -
+
+        inicializace obvodu 8255
+                HL=E003
+
+073E    LD   HL,E003
+0741    LD   (HL),8A    ;PA=0 vìstup, PB=0 vstup,
+                        ;PC 0-3 vìstup 4-7 vstup
+0743    LD   (HL),7     ;bit na ovl d n¡ motoru do 1
+0745    LD   (HL),5     ;povolen¡ pýeruçen¡ Ÿ¡taŸe 2
+0747    RET
+
+        wait ~ 0.11 ms
+                A=0, F=Z,P,NC,PO
+
+0748-58 NOP
+0759    LD   A,1B
+075B    DEC  A
+075C    JP   NZ,075B    ;doku nen¡ A=0
+075F    RET
+
+        wait 0.1 ms
+                A=0, F=NC,Z,P,PE
+
+0760    LD   A,19
+0762    DEC  A
+0763    JR   NZ,0762    ;opakuj, dokud Acc nenulovì
+0766    RET
+
+        z pis Acc na magnetofon s pýedcoz¡m z pisem jedniŸky
+                AF=? (Z,NC,P)
+
+0767    PUSH BC
+0768    LD   B,8        ;byte m  8 bit…
+076A    CALL 0A1A       ;z pis jedniŸkov‚ho bitu
+076D    RLCA            ;vytotov n¡ krajn¡ho bitu
+076E    CALL C,0A1A     ;pokud jedniŸkovì=>z pis jedniŸkov. bitu
+0771    CALL NC,0A01    ;pokud nulovì => z pis nulov‚ho bitu
+0774    DEC  B
+0775    JP   NZ,076D    ;z pis vçech 8 bit…
+0778    POP  BC
+0779    RET
+
+        z pis pilotn¡ho t¢nu a znaŸky dle E
+                AF=? (Z)
+
+077A    PUSH BC
+077B    PUSH DE
+077C    LD   A,E        ;do Acc pýejde k¢d (hlaviŸka/tØlo)
+077D    LD   BC,55F0    ;d‚lka pilotn¡ho t¢nu
+0780    LD   DE,2828    ;poŸet bit… znaŸku (40)
+0783    CP   CC         ;porovn n¡ k¢du
+0785    JP   Z,078E     ;pokud se nahr v  hlaviŸka
+0788    LD   BC,2AF8    ;nahr v  se tØlo => kratç¡ pilotn¡ t¢n
+078B    LD   DE,1414    ;  a poŸet bit… znaŸky jen 20
+078E    CALL 0A01       ;z pis nulov‚ho bitu
+
+                                - 28 -
+
+0791    DEC  BC
+0792    LD   A,B
+0793    OR   C
+0794    JR   NZ,078E    ;opakuj, dokud BC nenulov‚
+0796    CALL 0A1A       ;z pis jedniŸkov‚ho bitu
+0799    DEC  D
+079A    JR   NZ,0796    ;tolikr t opakuj, jak dlouh  znaŸka
+079C    CALL 0A01       ;z pis nulov‚ho bitu
+079F    DEC  C
+07A0    JR   NZ,079C    ;tolikr t opakuj, jak dlouh  znaŸka
+07A2    CALL 0A1A
+07A5    POP  DE
+07A6    POP  BC
+07A7    RET
+
+        podprogram zad v n¡ do pamØti (M)
+                ?(n vrat na  00AD po BREAK)
+
+07A8    CALL 013D       ;4 ASCII adresovan‚ DE pýevede do HL
+07AB    CALL 05FA       ;tisk obsahu HL na novì ý dek
+07AE    CALL 03B1       ;tisk mezery a obsahu (HL)
+07B1    CALL 0920       ;tisk mezery
+07B4    CALL 012F       ;naŸte z kl vesnice ýadek od 11A3
+07B7    CALL 0410       ;4 ASCII adresoven‚ DE pýevede do HL
+07BA    JR   C,07D7     ;nelze pýev‚st
+07BC    CALL 02A6       ;DE=DE+4
+07BF    INC  DE         ;pýeskoŸen¡ adresy a mezery
+07C0    CALL 041F       ;2 ASCII adresovan‚ DE pýevede do Acc
+07C3    JR   C,07AB     ;nelze pýev‚st
+07C5    CP   (HL)       ;porovn n¡ napsan‚ho byte s obsahem
+                        ;pamØœov‚ buåky
+07C6    JR   NZ,07AB    ;jsou r…zn  => novì tisk adresy a obsahu
+                        ;pam. buåky
+07C8    INC  DE         ;pýeskoŸen¡ mezery
+07C9    LD   A,(DE)     ;naŸten¡ dalç¡ho znaku
+07CA    CP   0D
+07CC    JR   Z,07D4     ;ý dek ukonŸen, odesl n bez naps n¡
+                        ;nov‚ho Ÿ¡sla
+07CE    CALL 041F       ;2 ASCII adresovan‚ DE pýevede do Acc
+07D1    JR   C,07AB     ;nelze pýev‚st
+07D3    LD   (HL),A     ;ulo§en¡ naŸten‚ho znaku do pamØti
+07D4    INC  HL         ;zvØtçen¡ adresy
+07D5    JR   07AB       ;opakuj dokud nen¡ BREAK
+
+07D7    LD   H,B        ;obnov HL na pýedchoz¡ hodnotu
+07D8    LD   L,C
+07D9    JR   07AB       ;opakuj, dokud nen¡ BREAK
+
+        data tisku ?
+
+07DB    DEFW 'NK'+0D
+07DE    DEFB 3B,0D,3B,0D,3B,20,20,20
+
+                                - 29 -
+
+        naŸten¡ do pamØti adresovan‚ DE ý dek z kl vesnice
+        (max 79 znak… +CR)
+                -
+
+07E6    PUSH AF
+07E7    PUSH BC
+07E8    PUSH HL
+07E9    PUSH DE
+07EA    CALL 09B3       ;Acc=zm Ÿkl  kl vesa s blik n¡m kursoru
+07ED    PUSH AF
+07EE    LD   B,A        ;uchov n¡ hodnoty
+07EF    LD   A,(119D)   ;Acc <= obsah promØnØ pro BEEP pýi
+                        ;stisku kl vesy
+07F2    RRCA
+07F3    CALL NC,0577    ;m  bìt BEEP
+07F6    LD   A,B        ;obnoven¡ hodnoty Acc
+07F7    LD   HL,1170
+07FA    AND  F0
+07FC    CP   C0         ;kontrola ý¡d¡c¡ch znak…
+07FE    POP  DE         ;D <= zm Ÿkl  kl vesa
+07FF    LD   A,B        ;Acc <= zm Ÿkl  kl vesa
+0800    JR   NZ,0818    ;nen¡ ý¡d¡c¡ znak
+0802    CP   CD
+0804    JR   Z,085B     ;CR
+0806    CP   CB
+0808    JP   Z,0822     ;BREAK
+080B    CP   CF         ;libra v grafice
+080D    JR   Z,0818     ;libra v grafice
+080F    CP   C7
+0811    JR   NC,081D    ;ostatn¡ ý¡d¡c¡ znaky (pohyb kursoru..)
+0813    RR   E
+0815    LD   A,B
+0816    JR   NC,081D    ;nen¡ SHIFT a kl vesa=>tisk INST,ALPHA..
+0818    CALL 0BD5       ;ulo§en¡ znaku do VRAM
+081B    JR   07AE       ;opakuj dokud nen¡ CR nebo BREAK
+
+081D    CALL 0DDC       ;risk ý¡dic¡ch znak…
+0820    JR   07EA       ;opakuj Ÿten¡ dalç¡ch kl ves
+
+0822    POP  HL         ;HL = p…vodn¡ DE
+0823    PUSH HL
+0824    LD   (HL),1B    ;ulo§en¡ k¢du BREAK
+0826    INC  HL
+0827    LD   (HL),0D
+0829    JR   087E       ;n vrat
+
+082B    RRCA
+082C    JR   NC,0865    ;n sleduj¡c¡ ý dek nespojen
+                        ;(je jen 1 obrazovì ý dek)
+082E    JR   0863       ;n sleduj¡c¡ ý dek spojen
+                        ;(jsou 2 obrazov‚ ý dky)
+
+                                - 30 -
+
+        vstup z kl vesnice s pýedchoz¡m waitem
+                AF,BC=?
+
+0830    CALL 0996       ;wait 3.4 ms
+0833    CALL 0A50       ;vstup z kl vesnice
+0836    RET
+
+        pokraŸov n¡ programu pro naŸten¡ ý dku z kl vesnice
+
+0837-5A NOP
+085B    CALL 02F3       ;do CF a Acc naŸte poŸ tky ý dku
+                        ;(spojitosti ý dk…)
+085E    LD   B,28       ;=40 =1 obrazovì ý dek
+0860    JR   NC,082B    ;pýedch zej¡c¡ ý dek nespojenì
+0862    DEC  H          ;Y-ov  souýadnice -1 => posun na zaŸ.
+                        ;zad van‚ho ý dku
+0863    LD   B,50       ;=80 =2 obrazov‚ ý dky
+0865    LD   L,0        ;X-ov  souýadnice = 
+0867    CALL 0FB4       ;pýevod obsahu HL na pozici kursoru
+086A    POP  DE         ;obnova DE
+086B    PUSH DE
+086C    LD   A,(HL)     ;naŸten¡ znaku z VRAM
+086D    CALL 0BCE       ;pýevod z video na ASCII
+0870    LD   (DE),A     ;ulo§en¡ znaku do pamØti
+0871    INC  HL         ;zvØŸen¡ adres
+0872    INC  DE
+0873    DJNZ 086C       ;opakuj dle d‚lky ý dku
+0875    EX   DE,HL
+0876    LD   (HL),0D    ;ý‚dek ukonŸi k¢dem CR
+0878    DEC  HL
+0879    LD   A,(HL)     ;naŸten¡ pýedchoz¡ho znaku
+087A    CP   20         ;porovn n¡ s k¢dem mezery
+087C    JR   Z,0876     ;dokud nenaraz¡ na text => zamØåuj
+                        ;nezery za k¢d CR
+087E    CALL 090E       ;tisk 'CR'
+0881    POP  DE
+0882    POP  HL
+0883    POP  BC
+0884    POP  AF
+0885    RET
+
+        tisk ýetØzce adresovan‚ho DE a okonŸen‚ho k¢dem 'CR'
+                -
+
+0886-92 NOP
+
+0893    PUSH AF
+0894    PUSH BC
+0895    PUSH DE
+0896    LD   A,(DE)     ;naŸten¡ znaku
+0897    CP   0D         ;porovn n¡ s k¢dem 'CR'
+0899    JR   Z,08A7     ;n vrat
+089B    CALL 0935       ;tisk Acc s ohledem na ý¡d¡c¡ znaky
+089E    INC  DE         ;zvØtçen¡ adresy
+089F    JR   0896       ;opakuj, dokud nen¡ konec
+
+                                - 31 -
+
+        tisk ýetØzce adresovan‚ho DE a okonŸen‚ho k¢dem 'CR',
+        netiskne ý¡d¡c¡ znaky
+                -
+
+08A1    PUSH AF
+08A2    PUSH BC
+08A3    PUSH DE
+08A4    LD   A,(DE)     ;naŸten¡ znaku
+08A5    CP   0D         ;porovn n¡ s k¢dem 'CR'
+08A7    JP   Z,0EE6     ;n vrat
+08AA    CALL 0BB9       ;pývede ASCII na display k¢d
+08AD    CALL 096C       ;ulo§en¡ Acc do VRAM
+08B0    INC  DE         ;zvØtçen¡ adresy
+08B1    JR   08A4       ;opakuj, dokud nen¡ konec
+
+        Ÿ sti programu 08CA (naŸten¡ kl vesy ve video-k¢du)
+
+08B3    LD   DE,0C2A    ;data re§imu SHIFT+kl vesa
+08B6    JR   08FA       ;naŸten¡ k¢du kl vesy a n vrat
+
+08B8    LD   A,CB       ;k¢d 'BREAK'
+08BA    OR   A          ;nulov n¡ C, nadstaven¡ Z
+08BB    JR   08D6       n vrat
+
+        naŸten¡ znaku z kl vesnice v ASCII k¢du
+                AF=? (Z => nic nezm Ÿkl‚)
+
+08BD    CALL 08CA       ;vstup z kl vesnice ve video-k¢du
+08C0    SUB  F0
+08C2    RET  Z          ;zjistØno nic zmaŸkl‚ => n vrat se Z
+08C3    ADD  A,F0       ;pýoŸten¡ odeŸten‚ho k¢du
+08C5    JP   0BCE       ;pýevod display na ASCII k¢d
+
+        naŸten¡ znaku z kl vesnice ve video-k¢du
+                AF=?
+
+08C8    NOP
+08C9    NOP
+08CA    PUSH BC
+08CB    PUSH DE
+08CC    PUSH HL
+08CD    CALL 0830       ;vstup z kl vesnice
+08D0    LD   A,B        ;Acc = funkŸn¡ promØnn 
+08D1    RLCA
+08D2    JR   C,08DA     ;je nØco zm Ÿkl‚
+08D4    LD   A,F0       ;nic zm Ÿkl‚ => ulo§en¡ k¢du F0
+08D6    POP  HL
+08D7    POP  DE
+08D8    POP  BC
+08D9    RET
+
+                                - 32 -
+
+08DA    LD   DE,0BEA    ;data norm ln¡ho re§imu
+08DD    LD   A,B        ;Acc = funkŸn¡ promØnn 
+08DE    CP   88
+08E0    JR   Z,08B8     ;BREAK
+08E2    LD   H,0        ;HL=C (poýadov‚ Ÿislo kl vesy v tabulce)
+08E4    LD   L,C
+08E5    BIT  5,A
+08E7    JR   NZ,08F7    ;CTRL + kl vesa
+08E9    LD   A,(1170)   ;naŸten¡ syst.promØnn‚ pro
+                        ;grafickì/norm ln¡ re§im
+08EC    RRCA
+08ED    JP   C,08FE     ;grafickì re§im
+08F0    LD   A,B        ;Acc = funkŸn¡ promØnn 
+08F1    RLA
+08F2    RLA
+08F3    JR   C,08B3     ;kl vesa byla zm Ÿkl  z roveå se SHIFT
+08F5    JR   08FA       ;byla zm Ÿkl  jen samostatn  kl vesa
+
+08F7    LD   DE,0CAA    ;data re§imu CTRL+kl vesa
+08FA    ADD  HL,DE      ;pýiŸten¡ poýadov‚ho Ÿ¡sla kl vesy
+08FB    LD   A,(HL)     ;naŸten¡ k¢du kl vesy
+08FC    JR   08D6       ;n vrat
+
+08FE    BIT  6,B
+0900    JR   Z,0909     ;byla zm Ÿkl  kl vesa spolu se
+                        ;SHIFT-em v gr. re§imu
+0902    LD   DE,0CE9    ;data re§imu kl vesa v grafick m re§imu
+0905    ADD  HL,DE      ;pýiŸten¡ poýadov‚ho Ÿ¡sla kl vesy
+0906    SCF
+0907    JR   08FB       ;naŸten¡ k¢du kl vesy a n vrat
+
+0909    LD   DE,0C6A    ;data re§imu SHIFT+kl vesa v grafick‚m
+                        ;re§imu
+090C    JR   08FA       ;pýiŸten¡ poýadov. Ÿ¡sla kl vesy,naŸten¡
+                        ;k¢du a n vrat
+
+        pýesun kursoru na novì ý dek (tisk CR)
+                AF=?
+
+090E    XOR  A
+090F    LD   (1194),A   ;vynulov n¡ promØnn‚ pro tabelaci
+0912    LD   A,CD       ;k¢d 'CR'
+0914    JR   0959       ;tisk ý¡d¡c¡ho znaku
+
+        pokud nen¡ kursor na nov‚m ý dku => tisk 'CR'
+
+
+0916    NOP
+0917    NOP
+0918    LD   A,(1194)   ;naŸten¡ syst‚mov‚ promØnn‚ pro tabelaci
+091B    OR   A
+091C    RET  Z          ;pokud je nulov  => n vrat
+091D    JR   090E       ;pýesun kursoru na novì ý dek
+
+                                - 33 -
+
+        tisk mezery do pozice kursoru
+                AF=?
+
+091F    NOP
+0920    LD   A,20       ;k¢d mezery     
+0922    JR   0935       ;tisk Acc
+
+        tabelace mezerami (po 10 znac¡ch)
+                AF=?
+
+0924    CALL 000C       ;tisk mezery do pizice kursoru
+0927    LD   A,(1194)   ;naŸten¡ syst‚mov‚ promØnn‚ pro tabelaci
+092A    OR   A
+092B    RET  Z          ;je nulov  => n vrat
+092C    SUB  0A         ;odeŸten¡ 10
+092E    JR   C,0924     ;je menç¡ ne§ 10
+0930    JR   NZ,092C    ;je vØtç¡ 10 => znovu odeŸti 10
+                        ;je presnØ 10
+
+        tisk Acc s ohledem na ý¡d¡c¡ znaky a promØnnou
+        pro tabelaci
+                F=?
+
+0932    NOP
+0933    NOP
+0934    NOP
+0935    CP   0D
+0937    JR   Z,090E     ;pýesun kursoru na novì ý dek
+0939    PUSH BC
+093A    LD   C,A        ;C=znak na tisk
+093B    LD   B,A        ;ulo§en¡ znaku
+093C    CALL 0946       ;tisk ASCII v C
+093F    LD   A,B        ;obnoven¡ Acc
+0940    POP  BC
+0941    RET
+
+        data tisku
+
+0942    DEFW 'OK!'+0D
+
+        tisk ASCII v C
+                AF,C=?
+
+0946    LD   A,C        ;A = znak na tisk
+
+        tisk ASCII v Acc
+                AF,C=?
+
+0947    CALL 0BB9       :pýevod ASCII na display-k¢d
+
+                                - 34 -
+
+        tisk video-znaky v Acc
+                AF,C=?
+
+094A    LD   C,A
+094B    CP   F0
+094D    RET  Z          ;netisknutelnì znak => n vrat
+094E    AND  F0
+0950    CP   C0
+0952    LD   A,C
+0953    JR   NZ,096C    ;nen¡ ý¡d¡c¡ znak => ulo§en¡ tohoto
+                        ;znaku do VRAM
+0955    CP   C7
+0957    JR   NC,096C    ;pokud INST,ALPHA,CR..=> ulo§en¡ tohoto
+                        ;znaku do VRAM
+0959    CALL 0DDC       ;tisk pohubu kursoru..
+095C    CP   C3
+095E    JR   Z,096F     ;pokud pohyb kursoru v pravo => zvØŸ
+                        ;promØnou tabelace
+0960    CP   C5
+0962    JR   Z,0967     ;pokud HOME => vynuloj promØnou tabelace
+0964    CP   C6
+0966    RET  NZ         ;pokud jin‚ ne§ CLR => n vrat
+0967    XOR  A
+0968    LD   (1194),A   ;vynulov n¡ promØn‚ tabelace (HOME,CLR)
+096B    RET
+
+        ulo§en¡ Acc do VRAM na pozici kursoru,kontrola promØn‚
+        tabelace
+                AF=?
+
+096C    CALL 0DB5       ;ulo§en¡ Acc do VRAM s kontrolou
+                        ;spojitosti ý dk…
+096F    LD   A,(1194)   ;naŸten¡ promØnn‚ pro tabelaci
+0972    INC  A          ;zvØtçen¡ o 1
+0973    CP   50         ;=80 =2 obrazov‚ ý dky
+0975    JR   C,0968     ;n vrat
+0977    SUB  50         ;odeŸten¡ 80
+0979    JR   0968       ;n vrat
+
+        navr cen¡ znaku pod kursorem do VRAM, patý¡ k programu
+        blik n¡ kursoru od 09E3
+
+097B    LD   A,(118E)   ;naŸten¡ znaku pod kursorem
+097E    JR   09EF       ;ulo§en¡ tohoto znaku do VRAM
+
+        Ÿ sti programu 0A32 (test funkŸn¡ch kl ves)
+
+0980    BIT  5,A
+0982    JR   Z,0986     ;je zm Ÿkl‚ CTRL
+0984    OR   A          ;nen¡ SHIFT ani CTRL => nulov n¡ CF
+0985    RET

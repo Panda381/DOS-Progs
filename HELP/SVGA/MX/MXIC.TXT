@@ -1,0 +1,69 @@
+MX 86000   512K, 800x600x256c/1024x768x16c
+MX 86010   1MB, 1024x768x26colors
+
+
+3C4h index 30h-33h (R/W):  Scratch
+Note: used by MXIC utilities to store the old IRQ 2 interrupt address.
+
+3C4h index 34h (R/W): 
+bit 0-1  Monitor type: 0=VGA, 1=8514A, 2=NEC 3D, 3=NEC 4D
+
+3C4h index 65h (R/W):
+bit   6  Set to enable access to extended registers (3C4h index 8-FFh).
+
+3C4h index 90h (R/W):
+bit 0-1  ??
+
+3C4h index A7h (W?):  Enable extensions
+bit 0-7  Writing 87h to this register enables the MXIC extensions,
+         writing 0 disables them.
+
+3C4h index C2h (R/W):
+bit 2-3  Video RAM installed: 0=256k, 1=512k, 2=1M
+
+3C4h index C3h (R/W):
+bit   2  Set to enable banked access via index C5h.
+      7  Bus width?. 0=8 bit, 1=16 bit.
+
+3C4h index C5h (R/W):  Bank register
+bit 0-3  Write bank in 64k blocks.
+    4-7  Read bank in 64k blocks
+
+3C4h index F0h (R/W):
+bit 0-1  3 if interlaced, 0 if not.
+      3  If clear the display will wrap at 256K.
+
+3C4h index F1h (R/W):
+bit   0  Display Start Address bit 16 (bit 17 may be in bit 1 ??)
+
+3C4h index F2h (R/W):
+bit   7  Set if IRQ2 enabled, clear if not.
+
+Apparently the sequencer (3C4/5h) does not decode bit 3-4 of the index, thus
+index 7 is duplicated at 0Fh, 17h and 1Fh.
+
+
+Test for MXIC chip:
+
+old:=rdinx($3C4,$A7);
+wrinx($3C4,$A7,0);     {Disable extensions}
+if not testinx($3C4,$C5) then
+begin
+  wrinx($3C4,$A7,$87);
+  if testinx($3C4,$C5) then
+    if (rdinx($3C4,$26) and 1)=0 then MXIC MX86010
+                                 else MXIC MX86000
+end;
+wrinx($3C4,$A7,old);
+
+
+  Video modes:
+    50h  T   132   25   16  (8x16)
+    51h  T   132   30   16  (8x16)
+    55h  G   800  600   16  PL4
+    56h  G  1024  768   16  PL4
+    57h  G   640  350  256  P8
+    58h  G   640  400  256  P8
+    59h  G   640  480  256  P8
+    5Ah  G   800  600  256  P8
+    5Bh  G  1024  768  256  P8

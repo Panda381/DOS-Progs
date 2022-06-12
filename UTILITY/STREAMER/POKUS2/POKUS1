@@ -1,0 +1,1338 @@
+
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+;
+; P©enosov  rychlost 115200 Baud
+; 8 datov˜ch bit–, bez parity, 1 START bit, 1 STOP bit
+; 86.80555556 us na bajt
+; 230 bajt– celkem na sektor (19965 us)
+; -----------------------------------------------------------------------------
+; Struktura sektoru:
+;           0: (4) absolutn¡ ‡as za‡ tku nahr vky (po‡et sekund od 1.1.1980)
+;           4: (2) celkov  d‚lka nahr vky v sekund ch/2 (max. 36 hodin)
+;                        (0FFFFh = 36 hodin 24 minut 30 sekund a v¡ce)
+;           6: (2) aktu ln¡ ‡¡slo bloku 0 a‘ 16383
+;                  b14: 0=datov˜ sektor (0 a‘ 255), 1=korek‡n¡ sektor (0 a‘ 32)
+;                  b15: 0=datov˜ blok, 1=adres ©ov˜ blok
+;           8: (1) aktu ln¡ ‡¡slo sektoru v bloku 0 a‘ 255
+;                      korek‡n¡ sektor  33 -> z vˆre‡n˜ synchroniza‡n¡ sektor
+;                      korek‡n¡ sektor 255 -> po‡ te‡n¡ synchroniza‡n¡ sektor
+;           9: (1) informace o dˆlen¡ blok– do skupin
+;                  b0  a‘ b3 : po‡et datov˜ch blok– ve skupinˆ 1 a‘ 16
+;                  b4  a‘ b7 : oddˆlovac¡ mezera mezi skupinami (2 a‘ 32 sekund)
+;
+;   - Po‡ te‡n¡ synchroniza‡n¡ sektor obsahuje na pozici 10: offset popisova‡e
+;        prvn¡ho souboru v bloku (0ffffh = neza‡¡n  ‘ dn˜ popisova‡ souboru).
+;   - Pro synchroniza‡n¡ sektory jsou n sleduj¡c¡ bajty nastaveny na 0FFh.
+;
+;          10: (1) kontroln¡ sou‡et XOR © dku z hlav¡
+;
+;          11: (198) data (18 © dk– x (10 bajt– + 1 kontroln¡))
+;
+;         209: (11) kontroln¡ opravn˜ © dek XOR pro data i z hlav¡
+;
+;         220: (2) kontroln¡ sou‡et cel‚ho sektoru CRC (i se z hlav¡m)
+;
+;         222: (1) £vodn¡ synchronizace 0ffh
+;         223: (2) sn¡mkov  synchronizace 0ffh
+;         225: (3) z vˆre‡n  synchronizace 0ffh
+;         228: (1) START bajt 02h
+;         229: (1) START bajt 0e5h
+; -----------------------------------------------------------------------------
+; Struktura bloku:
+;          256 sektor– data (v matici 16*16)
+;           16 kontroln¡ sektory © dk– XOR
+;           16 kontroln¡ sektory sloupc– XOR
+;            1 kontroln¡ sektor celkov˜ XOR
+;   celkem 289 sektor– na blok
+; -----------------------------------------------------------------------------
+; €asov n¡:
+;    1 sektor = 230 bajt– * 86.80555556 us = 19965.277779 us,  u‘ite‡n˜ch 180 B
+;         efektivn¡ rychlost 9015.65217 B/sekundu, vy‘aduje pamˆŸ 224 Bajt–
+;    1 blok = 289 sektor– * 19.965277779 ms = 5.76996527 s, u‘ite‡n˜ch 256 sekt.
+;         rychlost 7986.18325 B/sekundu, vy‘aduje pamˆŸ 64736 Bajt–
+;    1 blok p©enese 46080 B, vy‘aduje 64736 B
+;      najednou se p©enesou 4 bloky, vy‘aduj¡ 262144 Bajt– pamˆti (184320 B)
+;    ‡as pro 4 bloky: 23.07986108 sek., mezera asi 7 sekund, celkem 30 sekund
+;    efektivn¡ rychlost = 6144 B/sek. = 368.640 KB/min = 22.118 MB/hod.
+; -----------------------------------------------------------------------------
+; Popisova‡ souboru:
+;        0: (1) d‚lka popisova‡e
+;        1: (1) atributy
+;        2: (2) ‡as
+;        4: (2) datum
+;        6: (2) ‡¡slo po‡ te‡n¡ho aloka‡n¡ho bloku
+;        8: (4) velikost (bajt–)
+;       12: (2) po‡ te‡n¡ ‡¡slo bloku
+;       14: (1) po‡ te‡n¡ ‡¡slo sektoru
+;       15: (1) po‡ te‡n¡ offset v sektoru
+;       16: (x) pln‚ jm‚no souboru ASCII (d‚lka podle bajtu d‚lky)
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+
+b0       EQU       1
+b1       EQU       2
+b2       EQU       4
+b3       EQU       8
+b4       EQU       10h
+b5       EQU       20h
+b6       EQU       40h
+b7       EQU       80h
+b8       EQU       100h
+b9       EQU       200h
+b10      EQU       400h
+b11      EQU       800h
+b12      EQU       1000h
+b13      EQU       2000h
+b14      EQU       4000h
+b15      EQU       8000h
+
+HI       EQU       256
+
+UVSYNCH  EQU       100                      ; £vodn¡ synchroniza‡n¡ sektory
+ZAVSYNCH EQU       30                       ; z vˆre‡n‚ synchroniza‡n¡ sektory
+
+Code     SEGMENT
+         ASSUME    cs:Code,ds:Code
+         ORG       100h
+
+; ------ p©edefinov n¡ ukazatele z sobn¡ku
+
+Start:   cmp       sp,offset Zasob          ; je z sobn¡k OK ?
+         jb        Start1                   ; nedostatek pamˆti
+         mov       sp,offset Zasob          ; p©edefinov n¡ z sobn¡ku
+
+; ------ zmen¨en¡ bloku programu na minimum
+
+         mov       bx,(offset(Zasob-Start)+10fh)/16 ; velikost programu
+         mov       ah,4ah
+         int       21h                      ; zmen¨en¡ bloku programu
+         jnc       Start2
+
+; ------ chyba - nedostatek pamˆti
+
+Start1:  mov       dx,offset MemTxt
+         mov       ah,9
+         int       21h
+         int       20h
+
+; ------ vytvo©en¡ bufferu soubor–
+
+Start2:  mov       bx,(289*180+15)/16       ; velikost bufferu soubor–
+         mov       ah,48h
+         int       21h                      ; vytvo©en¡ bufferu soubor–
+         jc        Start1                   ; chyba - nedostatek pamˆti
+         mov       ds:[BuffSeg],ax          ; adresa bufferu soubor–
+
+; ------ vytvo©en¡ bufferu sektor–
+
+         mov       bx,-1
+         mov       ah,48h
+         int       21h
+         jnc       Start1
+         mov       ah,48h
+         int       21h                      ; vytvo©en¡ maxim ln¡ho bufferu
+         jc        Start1                   ; nedostatek pamˆti
+         cmp       bx,(289+20)*(224/16)     ; minim ln¡ velikost bufferu
+         jb        Start1                   ; nedostatek pamˆti
+
+; ------ v˜po‡et parametr– bufferu sektor–
+
+         mov       ds:[SektBSeg],ax         ; adresa za‡ tku bufferu sektor–
+         add       ax,bx                    ; adresa konce bufferu sektor–
+         mov       ds:[SektESeg],ax         ; adresa konce bufferu sektor–
+         xchg      ax,bx                    ; AX <- velikost bufferu sektor–
+         xor       dx,dx
+         mov       bx,224/16                ; velikost jednoho sektoru
+         div       bx                       ; v˜po‡et po‡tu sektor–
+         mov       ds:[SektMax],ax          ; maxim ln¡ po‡et sektor–
+         sub       ds:[SektESeg],dx         ; oprava konce bufferu sektor–
+         sub       ax,15                    ; p r sektor– rezerva
+         xor       dx,dx
+         mov       bx,289+2                 ; po‡et sektor– na blok (+ synch.)
+         div       bx                       ; v˜po‡et po‡tu blok–
+         mov       ds:[MaxDBlok],ax         ; maxim ln¡ po‡et datov˜ch blok–
+
+
+
+
+         cmp       byte ptr ds:[80h],1
+         jbe       Start000
+         jmp       Starr
+
+Start000:
+         mov       ax,ds:[SektBSeg]
+         mov       ds:[SektSeg],ax
+
+;         mov       ax,ds:[BuffSeg]
+;         mov       es,ax
+;         xor       di,di
+;         mov       cx,289*180/2
+;         cld
+;         mov       ax,-1
+;         rep       stosw
+
+         call      RSoub
+
+         call      KodSYNU                  ; k¢dov n¡ £vodn¡ho synchr. sektoru
+
+         mov       cx,289
+         mov       ax,ds:[BuffSeg]
+         mov       es,ax
+         xor       si,si
+Start001:call      KodSekt
+         add       si,180
+         loop      Start001
+
+         call      KodSYNZ                  ; k¢dov n¡ z vˆre‡n‚ho synch.sektoru
+
+         mov       byte ptr ds:[CitByte],0
+         mov       word ptr ds:[CitSekt],0
+
+         mov       ax,ds:[SektBSeg]
+         mov       ds:[SektSeg],ax
+
+         mov       word ptr ds:[SektUkaz],0
+         mov       word ptr ds:[CitSynch],80 ; po‡et synchroniz. sektor–
+
+         cli
+         call      InitVys
+         jnc       Start01
+         jmp       Start12
+
+Start01: mov       al,0ffh
+         mov       dx,ds:[AdrPort]
+         out       dx,al
+         add       dx,5
+         in        al,dx
+         sti
+
+Start02:
+
+Start11:  sti
+
+         push      ds
+         xor       ax,ax
+         mov       ds,ax
+         mov       ax,ds:[41ch]
+         cmp       ax,ds:[41ah]
+         pop       ds
+         jne       start13
+
+         cmp       word ptr ds:[CitSekt],289
+         jb        Start11
+
+start13:
+         call      DeInit                   ; odinstalov n¡ portu COM
+
+         mov       ah,1
+         int       16h
+         jz        start12
+         mov       ah,0
+         int       16h
+start12:
+
+         int       20h
+
+; -----------------------------------------------------------------------------
+;        p©¡jem
+; -----------------------------------------------------------------------------
+;þ
+Starr:
+         mov       ax,ds:[SektBSeg]
+         mov       ds:[SektSeg],ax
+
+         cli
+         call      InitPri
+         jnc       Starr01
+         jmp       Starr2
+
+Starr01: mov       dx,ds:[AdrPort]
+         in        al,dx
+         add       dx,5
+         in        al,dx
+
+         mov       byte ptr ds:[CitByte],-4
+         mov       word ptr ds:[CitSekt],0
+         mov       word ptr ds:[SektUkaz],0
+         mov       word ptr ds:[CitSynch],12 ; po‡et synchroniz. sektor–
+
+         sti
+
+         mov       es,ds:[SektSeg]
+         xor       di,di
+
+Starr02:
+
+Starr1:  sti
+
+         push      ds
+         xor       ax,ax
+         mov       ds,ax
+         mov       ax,ds:[41ch]
+         cmp       ax,ds:[41ah]
+         pop       ds
+         jne       starr3
+
+         cmp       word ptr ds:[CitSekt],289
+         jb        Starr1
+
+Starr3:  call      DeInit
+
+         mov       ax,ds:[SektBSeg]
+         mov       ds:[SektSeg],ax
+
+         mov       ax,ds:[BuffSeg]
+         mov       es,ax
+         xor       di,di
+         xor       si,si
+         mov       cx,289
+;         mov       word ptr ds:[SektUkaz],0
+Starr32: call      DekSekt
+         add       di,180
+         loop      Starr32
+
+         call      WSoub
+
+         mov       ah,1
+         int       16h
+         jz        starr2
+         mov       ah,0
+         int       16h
+Starr2:
+         mov       ax,4c00h
+         int       21h
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+RSoub    PROC      NEAR
+
+         mov       dx,offset Soubor
+         mov       ax,3d00h
+         int       21h
+         jc        RSoub9
+         mov       bx,ax
+
+         push      ds
+         mov       ax,ds:[BuffSeg]
+         mov       ds,ax
+         xor       dx,dx
+         mov       cx,289*180
+         mov       ah,3fh
+         int       21h
+         pop       ds
+
+         mov       ah,3eh
+         int       21h
+RSoub9:  ret
+
+RSoub    ENDP
+
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+
+WSoub    PROC      NEAR
+
+         mov       dx,offset Soubor2
+         mov       ah,3ch
+         xor       cx,cx
+         int       21h
+         jc        WSoub9
+         mov       bx,ax
+
+         push      ds
+         mov       ax,ds:[BuffSeg]
+         mov       ds,ax
+         xor       dx,dx
+         mov       cx,289*180
+         mov       ah,40h
+         int       21h
+         pop       ds
+
+         mov       ah,3eh
+         int       21h
+WSoub9:  ret
+
+WSoub    ENDP
+
+
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+;
+;                           Zpracov n¡ dat
+;
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+;þ
+; -----------------------------------------------------------------------------
+;        zak¢dov n¡ sektoru ES:SI (a p©id n¡ k seznamu sektor–)
+; -----------------------------------------------------------------------------
+
+KodSekt  PROC      NEAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      bx
+         push      cx
+         push      dx
+         push      si
+         push      di
+         push      ds
+         push      es
+
+; ------ ukl dac¡ adresa sektoru
+
+         push      si
+         push      es
+         mov       es,ds:[SektSeg]          ; segment sektoru
+         add       word ptr ds:[SektSeg],224/16 ; posun ukazatele sektor–
+
+; ------ p©enesen¡ z hlav¡ sektoru
+
+         xor       di,di
+         mov       si,offset Zahlavi        ; z hlav¡ sektoru
+         mov       cx,10/2                  ; d‚lka z hlav¡ sektoru
+         cld
+         rep       movsw                    ; p©enesen¡ z hlav¡ sektoru
+
+; ------ p©enesen¡ dat sektoru
+
+         pop       ds                       ; DS <- segment dat sektoru
+         pop       si
+         mov       dx,18                    ; po‡et © dk– dat
+KodSekt1:inc       di                       ; p©esko‡en¡ bajtu sou‡tu XOR
+         mov       cl,10/2
+         rep       movsw                    ; p©enesen¡ jednoho © dku dat
+         dec       dx                       ; ‡¡ta‡ © dk– dat
+         jnz       KodSekt1                 ; p©enesen¡ dal¨¡ho © dku dat
+
+; ------ v˜po‡et kontroln¡ho bajtu © dk– dat XOR
+
+         push      es
+         pop       ds                       ; DS <- adresa sektoru
+         xor       di,di
+         mov       dx,19                    ; po‡et © dk– dat se z hlav¡m
+KodSekt2:mov       cl,10                    ; d‚lka jednoho © kdu
+         mov       al,0                     ; v˜choz¡ hodnota sou‡tu
+KodSekt3:xor       al,ds:[di]
+         inc       di
+         loop      KodSekt3                 ; dal¨¡ bajt © dku
+         stosb                              ; ulo‘en¡ kontroln¡ho bajtu XOR
+         dec       dx                       ; ‡¡ta‡ © dk–
+         jnz       KodSekt2                 ; v˜po‡et dal¨¡ho © dku dat
+
+; ------ v˜po‡et kontroln¡ho opravn‚ho © dku XOR
+
+         xor       si,si
+         mov       dx,11                    ; po‡et sloupc– dat
+KodSekt4:mov       cl,19                    ; po‡et © dk– dat
+         mov       al,0                     ; v˜zhoz¡ hodnota kontroln¡ho sou‡tu
+KodSekt5:xor       al,ds:[si]
+         add       si,11                    ; adresa dal¨¡ho © dku dat
+         loop      KodSekt5                 ; bajt v dal¨¡m © dku sloupce
+         stosb                              ; ulo‘en¡ kontroln¡ho bajtu XOR
+         sub       si,19*11-1               ; adresa za‡ tku dal¨¡ho soupce
+         dec       dx                       ; ‡¡ta‡ sloupc– dat
+         jnz       KodSekt4                 ; v˜po‡et dal¨¡ho sloupce dat
+
+; ------ v˜po‡et kontroln¡ho sou‡tu dat CRC
+
+         xor       si,si                    ; SI <- za‡ tek dat sektoru
+         mov       cx,19*11                 ; velikost bloku dat
+         mov       dx,-1
+         call      CheckSum                 ; v˜po‡et kontroln¡ho sou‡tu dat
+         mov       ds:[di],dx               ; ulo‘en¡ kontroln¡ho sou‡tu dat
+         mov       word ptr ds:[di+2],-1    ; synchroniza‡n¡ bajty
+
+; ------ n vrat registr–
+
+         pop       es
+         pop       ds
+         pop       di
+         pop       si
+         pop       dx
+         pop       cx
+         pop       bx
+         pop       ax
+         ret
+
+KodSekt  ENDP
+
+; -----------------------------------------------------------------------------
+;        zak¢dov n¡ £vodn¡ho synchroniza‡n¡ho sektoru
+; -----------------------------------------------------------------------------
+
+KodSYNU  PROC      NEAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      cx
+         push      si
+         push      di
+         push      es
+
+; ------ ukl dac¡ adresa sektoru
+
+         mov       es,ds:[SektSeg]          ; segment sektoru
+         add       word ptr ds:[SektSeg],224/16 ; posun ukazatele sektor–
+         xor       di,di
+
+; ------ p©enesen¡ z hlav¡ sektoru
+
+         mov       si,offset Zahlavi        ; z hlav¡ sektoru
+         mov       cx,10/2                  ; d‚lka z hlav¡ sektoru
+         cld
+         rep       movsw                    ; p©enesen¡ z hlav¡ sektoru
+
+; ------ korekce polo‘ek v z hlav¡
+
+         mov       byte ptr es:[di-2],255   ; ozna‡en¡ synchroniza‡n¡ho sektoru
+         or        byte ptr es:[di-3],b14/HI ; p©¡znak korek‡n¡ho sektoru
+         mov       ax,ds:[FileOffs]         ; offset prvn¡ho souboru
+         stosw
+
+; ------ vymaz n¡ zbytku sektoru
+
+         mov       ax,-1
+         mov       cx,(224-12)/2            ; d‚lka zbytku dat ve slovech
+         rep       stosw                    ; vymaz n¡ zbytku sektoru
+
+; ------ n vrat registr–
+
+         pop       es
+         pop       di
+         pop       si
+         pop       cx
+         pop       ax
+         ret
+
+KodSYNU  ENDP
+
+; -----------------------------------------------------------------------------
+;        zak¢dov n¡ z vˆre‡n‚ho synchroniza‡n¡ho sektoru
+; -----------------------------------------------------------------------------
+
+KodSYNZ  PROC      NEAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      cx
+         push      si
+         push      di
+         push      es
+
+; ------ ukl dac¡ adresa sektoru
+
+         mov       es,ds:[SektSeg]          ; segment sektoru
+         add       word ptr ds:[SektSeg],224/16 ; posun ukazatele sektor–
+         xor       di,di
+
+; ------ p©enesen¡ z hlav¡ sektoru
+
+         mov       si,offset Zahlavi        ; z hlav¡ sektoru
+         mov       cx,10/2                  ; d‚lka z hlav¡ sektoru
+         cld
+         rep       movsw                    ; p©enesen¡ z hlav¡ sektoru
+
+; ------ korekce polo‘ek v z hlav¡
+
+         mov       byte ptr es:[di-2],33    ; ozna‡en¡ synchroniza‡n¡ho sektoru
+         or        byte ptr es:[di-3],b14/HI ; p©¡znak korek‡n¡ho sektoru
+
+; ------ vymaz n¡ zbytku sektoru
+
+         mov       ax,-1
+         mov       cx,(224-10)/2            ; d‚lka zbytku dat ve slovech
+         rep       stosw                    ; vymaz n¡ zbytku sektoru
+
+; ------ n vrat registr–
+
+         pop       es
+         pop       di
+         pop       si
+         pop       cx
+         pop       ax
+         ret
+
+KodSYNZ  ENDP
+
+; -----------------------------------------------------------------------------
+;        dek¢dov n¡ sektoru na adresu ES:DI
+; -----------------------------------------------------------------------------
+
+DekSekt  PROC      NEAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      bx
+         push      cx
+         push      dx
+         push      si
+         push      di
+         push      ds
+
+; ------
+
+         mov       ax,ds:[SektSeg]
+         add       word ptr ds:[SektSeg],224/16
+         mov       ds,ax
+         xor       si,si
+
+         add       si,11
+         cld
+         mov       dx,18
+DekSekt2:mov       cx,10
+         rep       movsb
+         inc       si
+         dec       dx
+         jnz       DekSekt2
+
+; ------ n vrat registr–
+
+         pop       ds
+         pop       di
+         pop       si
+         pop       dx
+         pop       cx
+         pop       bx
+         pop       ax
+         ret
+
+DekSekt  ENDP
+
+; -----------------------------------------------------------------------------
+;        Kontroln¡ sou‡et CRC bloku dat
+; -----------------------------------------------------------------------------
+; VSTUP: DS:SI=za‡ tek bloku dat
+;        CX=po‡et bajt–
+;        DX=vstupn¡ hodnota kontroln¡ho sou‡tu
+; VSTUP:DX=v˜stupn¡ hodnota kontroln¡ho sou‡tu
+; -----------------------------------------------------------------------------
+
+CheckSum PROC      NEAR
+
+         push      ax
+         push      cx
+         push      di
+
+         jcxz      CheckSm2                 ; nen¡ ‘ dn˜ bajt
+         mov       di,cx                    ; po‡et bajt– pro kontroln¡ sou‡et
+         cld                                ; smˆr nahoru
+
+CheckSm1:lodsb                              ; a = fgetc(fp);
+         xor       al,dh                    ; d = a ^= d;
+         mov       dh,al
+         mov       cl,4
+         shr       al,cl                    ; a >>= 4;
+         xor       al,dh                    ; d = a ^= d;
+         mov       dh,al
+         mov       cl,3
+         ror       al,cl                    ; a = (a >> 3) | (a << 5);
+         mov       ch,al                    ; f = a;
+         and       al,1fh                   ; a &= 0x1f;
+         xor       al,dl                    ; e = a ^= e;
+         mov       dl,al
+         mov       al,ch                    ; a = f;
+         ror       al,1                     ; a = (a >> 1) | (a << 7);
+         and       al,0f0h                  ; a &= 0xf0;
+         xor       al,dl                    ; e = a ^= e;
+         mov       dl,al
+         mov       al,ch                    ; a = f & 0xe0;
+         and       al,0e0h
+         xor       al,dh                    ; a ^= d;
+         mov       dh,dl                    ; d = e;
+         mov       dl,al                    ; e = a;
+
+         dec       di
+         jnz       CheckSm1                 ; dal¨¡ bajt
+
+CheckSm2:pop       di
+         pop       cx
+         pop       ax
+         ret
+
+CheckSum ENDP
+
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+;
+;                        Obsluha vys¡l n¡ a p©¡jmu dat
+;
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+;þ
+; -----------------------------------------------------------------------------
+;        inicializace portu na vys¡l n¡
+; -----------------------------------------------------------------------------
+
+InitVys  PROC      NEAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      bx
+         push      cx
+         push      dx
+         push      es
+
+; ------ adresa portu
+
+         push      ds
+         mov       bx,ds:[Port]             ; ‡¡slo portu COMn
+         shl       bx,1
+         xor       ax,ax
+         mov       ds,ax                    ; DS <- 0
+         mov       dx,ds:[bx+400h]          ; adresa portu
+         pop       ds
+         or        dx,dx
+         stc
+         jz        InitVys8                 ; neplatn  adresa portu COM
+         mov       ds:[AdrPort],dx          ; adresa portu COM
+
+; ------ zru¨en¡ po‘adavk– od portu
+
+         cli
+         in        al,dx                    ; zru¨en¡ p©ij¡mac¡ho bufferu
+         inc       dx                       ; 1: registr povolen¡ p©eru¨en¡
+         xor       al,al                    ; AL <- 0
+         out       dx,al                    ; z kaz v¨ech p©eru¨en¡
+         add       dx,3                     ; 4: ©¡dic¡ registr modemu
+         out       dx,al                    ; z kaz p©eru¨en¡ a sign l– modemu
+         inc       dx                       ; 5: stavov˜ registr linky
+         in        al,dx                    ; zru¨en¡ po‘adavk– od linky
+         inc       dx                       ; 6: stavov˜ registr modemu
+         in        al,dx                    ; zru¨en¡ po‘adavk– modemu
+
+; ------ £schova p–vodn¡ho p©eru¨en¡ COM
+
+         call      GetICom                  ; poskytnut¡ ‡¡sla p©eru¨en¡ COM
+         push      ax
+         mov       ah,35h
+         int       21h
+         mov       word ptr ds:[OldComm],bx
+         mov       word ptr ds:[OldComm+2],es
+         pop       ax
+
+; ------ instalace obsluhy p©eru¨en¡ COM
+
+         push      ax
+         push      ds
+         push      cs
+         pop       ds
+         mov       ah,25h
+         mov       dx,offset IntVys         ; adresa obsluhy vys¡la‡e
+         int       21h                      ; instalace obsluhy vys¡la‡e
+         pop       ds
+         pop       ax
+
+; ------ inicializace portu COM
+
+         mov       dx,ds:[AdrPort]          ; adresa portu COM
+         add       dx,3                     ; 3: ©¡dic¡ registr linky
+         mov       al,10000011b
+         out       dx,al                    ; DLAB, 8 bit– bez parity, 1 STOP b.
+         inc       dx                       ; 4: ©¡dic¡ registr modemu
+         mov       al,1011b                 ; OUT2 a RTS+DTR
+         out       dx,al                    ; ©¡dic¡ registr modemu
+         sub       dx,4                     ; 0: registr dˆli‡ky LOW
+         mov       al,1
+         out       dx,al                    ; dˆlic¡ pomˆr 1
+         inc       dx                       ; 1: registr dˆli‡ky HIGH
+         mov       al,0
+         out       dx,al
+         inc       dx
+         inc       dx                       ; 3: ©¡dic¡ registr linky
+         mov       al,00000011b             ; 8 bit– bez parity, 1 STOP bit
+         out       dx,al
+         dec       dx                       ; 2:
+         dec       dx                       ; 1:
+         mov       al,0010b                 ; p©eru¨en¡ po vysl n¡ znaku
+         out       dx,al
+
+; ------ nastaven¡ registru p©eru¨en¡
+
+         in        al,[21h]
+         mov       ds:[OldInt],al           ; £schova masky p©eru¨en¡
+         mov       al,ah
+         out       [21h],al                 ; povoleno p©eru¨en¡
+         clc
+
+; ------ n vrat registr–
+
+InitVys8:pop       es
+         pop       dx
+         pop       cx
+         pop       bx
+         pop       ax
+         ret
+
+InitVys  ENDP
+
+; -----------------------------------------------------------------------------
+;        inicializace portu na p©¡jem
+; -----------------------------------------------------------------------------
+
+InitPri  PROC      NEAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      bx
+         push      cx
+         push      dx
+         push      es
+
+; ------ adresa portu
+
+         push      ds
+         mov       bx,ds:[Port]             ; ‡¡slo portu COMn
+         shl       bx,1
+         xor       ax,ax
+         mov       ds,ax                    ; DS <- 0
+         mov       dx,ds:[bx+400h]          ; adresa portu
+         pop       ds
+         or        dx,dx
+         stc
+         jz        InitPri8                 ; neplatn  adresa portu COM
+         mov       ds:[AdrPort],dx          ; adresa portu COM
+
+; ------ zru¨en¡ po‘adavk– od portu
+
+         cli
+         in        al,dx                    ; zru¨en¡ p©ij¡mac¡ho bufferu
+         inc       dx                       ; 1: registr povolen¡ p©eru¨en¡
+         xor       al,al                    ; AL <- 0
+         out       dx,al                    ; z kaz v¨ech p©eru¨en¡
+         add       dx,3                     ; 4: ©¡dic¡ registr modemu
+         out       dx,al                    ; z kaz p©eru¨en¡ a sign l– modemu
+         inc       dx                       ; 5: stavov˜ registr linky
+         in        al,dx                    ; zru¨en¡ po‘adavk– od linky
+         inc       dx                       ; 6: stavov˜ registr modemu
+         in        al,dx                    ; zru¨en¡ po‘adavk– modemu
+
+; ------ £schova p–vodn¡ho p©eru¨en¡ COM
+
+         call      GetICom                  ; poskytnut¡ ‡¡sla p©eru¨en¡ COM
+         push      ax
+         mov       ah,35h
+         int       21h
+         mov       word ptr ds:[OldComm],bx
+         mov       word ptr ds:[OldComm+2],es
+         pop       ax
+
+; ------ instalace obsluhy p©eru¨en¡ COM
+
+         push      ax
+         push      ds
+         push      cs
+         pop       ds
+         mov       ah,25h
+         mov       dx,offset IntPri         ; adresa obsluhy p©ij¡ma‡e
+         int       21h                      ; instalace obsluhy p©ij¡ma‡e
+         pop       ds
+         pop       ax
+
+; ------ inicializace portu COM
+
+         mov       dx,ds:[AdrPort]          ; adresa portu COM
+         add       dx,3                     ; 3: ©¡dic¡ registr linky
+         mov       al,10000011b
+         out       dx,al                    ; DLAB, 8 bit– bez parity, 1 STOP b.
+         inc       dx                       ; 4: ©¡dic¡ registr modemu
+         mov       al,1010b                 ; OUT2 a RTS
+         out       dx,al                    ; ©¡dic¡ registr modemu
+         sub       dx,4                     ; 0: registr dˆli‡ky LOW
+         mov       al,1
+         out       dx,al                    ; dˆlic¡ pomˆr 1
+         inc       dx                       ; 1: registr dˆli‡ky HIGH
+         mov       al,0
+         out       dx,al
+         inc       dx
+         inc       dx                       ; 3: ©¡dic¡ registr linky
+         mov       al,00000011b             ; 8 bit– bez parity, 1 STOP bit
+         out       dx,al
+         dec       dx                       ; 2:
+         dec       dx                       ; 1:
+         mov       al,0101b                 ; p©eru¨en¡ p©i p©¡jmu znaku
+         out       dx,al
+
+; ------ nastaven¡ registru p©eru¨en¡
+
+         in        al,[21h]
+         mov       ds:[OldInt],al           ; £schova masky p©eru¨en¡
+         mov       al,ah
+         out       [21h],al                 ; povoleno p©eru¨en¡
+         clc
+
+; ------ n vrat registr–
+
+InitPri8:pop       es
+         pop       dx
+         pop       cx
+         pop       bx
+         pop       ax
+         ret
+
+InitPri  ENDP
+
+; -----------------------------------------------------------------------------
+;        poskytnut¡ ‡¡sla p©eru¨en¡ (-> AL) a masky p©eru¨en¡ COM (-> AH)
+; -----------------------------------------------------------------------------
+
+GetICom  PROC      NEAR
+
+         mov       ax,(NOT b4+b1)*HI + 0ch  ; COM1 a COM3
+         test      byte ptr ds:[Port],b0    ; je COM1 nebo COM3 ?
+         jz        GetICom2                 ; je COM1 nebo COM3
+         mov       ax,(NOT b3+b1)*HI + 0bh  ; COM2 a COM4
+GetICom2:ret
+
+GetICom  ENDP
+
+; -----------------------------------------------------------------------------
+;        p©eru¨en¡ p©i vys¡l n¡ sektoru
+; -----------------------------------------------------------------------------
+
+IntVys   PROC      FAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      bx
+         push      dx
+         push      ds
+         push      es
+
+; ------ p©¡prava registr–
+
+         push      cs
+         pop       ds
+
+; ------ prvn¡ ‡ten¡ stavov‚ho registru p©eru¨en¡
+
+         mov       dx,ds:[AdrPort]          ; adresa portu COM
+         mov       es,ds:[SektSeg]
+         inc       dx
+         inc       dx
+         in        al,dx                    ; stavov˜ registr p©eru¨en¡
+         jmp       short IntVys2
+
+; ------ test, zda je dal¨¡ p©eru¨en¡ od portu
+
+IntVys1: mov       dx,ds:[AdrPort]          ; adresa portu COM
+         inc       dx
+         inc       dx
+         in        al,dx                    ; stavov˜ registr p©eru¨en¡
+         test      al,1                     ; je dal¨¡ p©eru¨en¡ ?
+         jnz       IntVys9                  ; nen¡ dal¨¡ p©eru¨en¡
+
+; ------ test, zda je p©eru¨en¡ p©i vys¡l n¡
+
+IntVys2: cmp       al,2                     ; p©eru¨en¡ p©i vys¡l n¡ ?
+         jne       IntVys8                  ; nen¡ p©eru¨en¡ p©i vys¡l n¡
+
+         dec       dx
+         dec       dx
+
+; ------ zv˜¨en¡ ‡¡ta‡e bajt– sektoru
+
+         mov       ah,ds:[CitByte]          ; ‡¡ta‡ bajt– sektoru
+         inc       ah
+         mov       ds:[CitByte],ah          ; nov˜ ‡¡ta‡ bajt– sektoru
+
+; ------ test, zda jsou data sektoru
+
+         cmp       ah,224+1                 ; jsou data sektoru ?
+         jae       IntVys3                  ; nejsou data
+
+; ------ vysl n¡ datov‚ho bajtu
+
+         mov       bx,ds:[SektUkaz]         ; ukazatel dat sektoru
+         mov       al,es:[bx]               ; bajt sektoru k vysl n¡
+         inc       bx
+         mov       ds:[SektUkaz],bx         ; nov˜ ukazatel dat sektoru
+         jmp       short IntVys7
+
+; ------ za‡ tek synchronizace
+
+IntVys3: jne       IntVys4                  ; nen¡ za‡ tek synchronizace
+         add       dx,4
+         mov       al,1000b
+         out       dx,al
+         sub       dx,4
+
+; ------ konec synchronizace
+
+IntVys4: cmp       ah,226+1
+         jne       IntVys5
+         add       dx,4
+         mov       al,1011b
+         out       dx,al
+         sub       dx,4
+
+; ------ prvn¡ startovac¡ bajt
+
+IntVys5: cmp       ah,228+1
+         jb        IntVys6
+         mov       al,2                     ; prvn¡ startovac¡ bajt
+         je        IntVys7
+
+; ------ druh˜ startovac¡ bajt
+
+         mov       word ptr ds:[SektUkaz],0
+         cmp       word ptr ds:[CitSynch],0 ; je synchroniza‡n¡ sektor ?
+         je        IntVys55                 ; nen¡ synchroniza‡n¡ sektor
+         dec       word ptr ds:[CitSynch]   ; sn¡‘en¡ ‡¡ta‡e sektor–
+         jmp       short IntVys56
+IntVys55:inc       word ptr ds:[CitSekt]    ; zv˜¨en¡ ‡¡ta‡e sektor–
+         add       word ptr ds:[SektSeg],224/16
+         mov       es,ds:[SektSeg]
+IntVys56:mov       byte ptr ds:[CitByte],0  ; inicializace ‡¡ta‡e
+         mov       al,0e5h                  ; druh˜ startovac¡ bajt
+         jmp       short IntVys7
+
+; ------ vysl n¡ datov‚ho bajtu
+
+IntVys6: mov       al,0ffh
+IntVys7: out       dx,al
+         inc       dx
+         inc       dx
+
+; ------ zru¨en¡ stavov‚ho registru linky
+
+IntVys8: add       dx,3                     ; 5: stavov˜ registr linky
+         in        al,dx                    ; zru¨en¡ po‘adavku od reg. linky
+         jmp       IntVys1            ; dal¨¡ test
+
+; ------ n vrat registr–
+
+IntVys9: mov       al,20h
+         out       [20h],al                 ; uvolnˆn¡ ©adi‡e p©eru¨en¡
+         pop       es
+         pop       ds
+         pop       dx
+         pop       bx
+         pop       ax
+         iret
+
+IntVys   ENDP
+
+; -----------------------------------------------------------------------------
+;        p©eru¨en¡ p©i p©¡jmu sektoru
+; -----------------------------------------------------------------------------
+
+IntPri   PROC      FAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      bx
+         push      dx
+         push      ds
+         push      es
+
+; ------ p©¡prava registr–
+
+         push      cs
+         pop       ds
+
+; ------ prvn¡ ‡ten¡ stavov‚ho registru p©eru¨en¡
+
+         mov       dx,ds:[AdrPort]          ; adresa portu COM
+         mov       es,ds:[SektSeg]
+         inc       dx
+         inc       dx
+         in        al,dx                    ; stavov˜ registr p©eru¨en¡
+         jmp       short IntPri2
+
+; ------ test, zda je dal¨¡ p©eru¨en¡ od portu
+
+IntPri1: mov       dx,ds:[AdrPort]          ; adresa portu COM
+         inc       dx
+         inc       dx
+         in        al,dx                    ; stavov˜ registr p©eru¨en¡
+         test      al,1                     ; je dal¨¡ p©eru¨en¡ ?
+         jz        IntPri2
+         jmp       IntPri9                  ; nen¡ dal¨¡ p©eru¨en¡
+
+; ------ test, zda je p©eru¨en¡ p©i p©¡jmu
+
+IntPri2: cmp       al,4                     ; p©eru¨en¡ p©i p©¡jmu ?
+         jne       IntPri8                  ; nen¡ p©eru¨en¡ p©i p©¡jmu
+
+; ------ p©¡jem datov‚ho bajtu
+
+         dec       dx
+         dec       dx
+         in        al,dx                    ; p©¡jem bajtu
+         inc       dx
+         inc       dx
+
+; ------ ‡¡ta‡ bajt– sektoru
+
+         mov       ah,ds:[CitByte]          ; ‡¡ta‡ bajt– sektoru
+         cmp       ah,222                   ; je platn˜ bajt ?
+         jae       IntPri3                  ; nen¡ platn˜ bajt
+
+; ------ p©¡jem platn‚ho bajtu sektoru
+
+IntPri25:mov       bx,ds:[SektUkaz]         ; ukazatel dat sektoru
+         mov       es:[bx],al               ; ulo‘en¡ p©ijat‚ho bajtu
+         inc       bx
+         mov       ds:[SektUkaz],bx         ; nov˜ ukazatel dat sektoru
+         jmp       short IntPri6
+
+; ------ p©¡jem startovac¡ho bajtu
+
+IntPri3: cmp       ax,0fe02h                ; prvn¡ startovac¡ bajt ?
+         je        IntPri6                  ; prvn¡ startovac¡ bajt
+         cmp       ax,0ffe5h                ; druh˜ startovac¡ bajt ?
+         je        IntPri6                  ; druh˜ startovac¡ bajt
+
+; ------ 2 synchroniza‡n¡ bajty
+
+         cmp       al,0ffh                  ; synchronizace ?
+         jne       IntPri7                  ; nen¡ synchronizace
+         cmp       ah,-2                    ; je posledn¡ bajt ?
+         je        IntPri61                 ; je posledn¡ bajt - nezv˜¨¡ se
+
+; ------ zv˜¨en¡ ‡¡ta‡e bajt– sektoru
+
+IntPri6: inc       ah
+IntPri61:mov       ds:[CitByte],ah          ; nov˜ ‡¡ta‡ bajt– sektoru
+         cmp       ah,222                   ; jsou ji‘ v¨echny bajty sektoru ?
+         jne       IntPri8                  ; nejsou je¨tˆ v¨echny bajty sektoru
+         cmp       byte ptr ds:[CitSynch],0 ; ‡ek  se na synchroniza‡n¡ sektor ?
+         je        IntPri62                 ; ne‡ek  se na synchronizaci
+
+         cmp       byte ptr es:[8],255      ; je sektor 255 ?
+         jne       IntPri66                 ; nen¡ sektor 255
+         test      byte ptr es:[7],b14/HI   ; je synchroniza‡n¡ sektor ?
+         jz        IntPri66                 ; nen¡ synchroniza‡n¡ sektor
+         dec       byte ptr ds:[CitSynch]   ; sn¡‘en¡ ‡¡ta‡e synch. sektor–
+         jmp       short IntPri66
+
+IntPri62:cmp       byte ptr es:[8],255      ; je sektor 255 ?
+         jne       IntPri64                 ; nen¡ sektor 255
+         test      byte ptr es:[7],b14/HI   ; je synchroniza‡n¡ sektor ?
+         jnz       IntPri66                 ; je synchroniza‡n¡ sektor
+
+IntPri64:inc       word ptr ds:[CitSekt]    ; zv˜¨en¡ ‡¡ta‡e sektor–
+         add       word ptr ds:[SektSeg],224/16
+         mov       es,ds:[SektSeg]
+IntPri66:mov       word ptr ds:[SektUkaz],0 ; oprava ukazatele sektoru
+IntPri7: mov       byte ptr ds:[CitByte],-4 ; ‡¡ta‡ startovac¡ch bajt–
+
+; ------ zru¨en¡ stavov‚ho registru linky
+
+IntPri8: add       dx,3                     ; 5: stavov˜ registr linky
+         in        al,dx                    ; zru¨en¡ po‘adavku od reg. linky
+         jmp       IntPri1                  ; dal¨¡ test
+
+; ------ n vrat registr–
+
+IntPri9: mov       al,20h
+         out       [20h],al                 ; uvolnˆn¡ ©adi‡e p©eru¨en¡
+         pop       es
+         pop       ds
+         pop       dx
+         pop       bx
+         pop       ax
+         iret
+
+IntPri   ENDP
+
+; -----------------------------------------------------------------------------
+;        odinstalov n¡ port–
+; -----------------------------------------------------------------------------
+
+DeInit   PROC      NEAR
+
+; ------ £schova registr–
+
+         push      ax
+         push      dx
+
+; ------ n vrat masky p©eru¨en¡
+
+         cli
+         mov       al,ds:[OldInt]           ; p–vodn¡ maska p©eru¨en¡
+         out       [21h],al                 ; n vrat masky p©eru¨en¡
+
+; ------ z kaz p©eru¨en¡ od portu
+
+         mov       dx,ds:[AdrPort]          ; 0: adresa portu
+         in        al,dx                    ; zru¨en¡ p©ijat‚ho znaku
+         inc       dx                       ; 1: ©¡dic¡ registr p©eru¨en¡
+         xor       al,al                    ; v¨echna p©eru¨en¡ zak z na
+         out       dx,al                    ; z kaz v¨ech p©eru¨en¡
+         inc       dx                       ; 2: stavov˜ registr p©eru¨en¡
+         in        al,dx                    ; zru¨en¡ stavov‚ho registru p©eru¨.
+         inc       dx                       ; 3: ©¡dic¡ registr linky
+         inc       dx                       ; 4: ©¡dic¡ registr modemu
+         xor       al,al                    ; v¨echny sign ly vypnuty
+         out       dx,al                    ; vypnut¡ v¨ech sign l– modemu
+         inc       dx                       ; 5: stavov˜ registr linky
+         in        al,dx                    ; zru¨en¡ stavov‚ho registru linky
+         inc       dx                       ; 6: stavov˜ registr modemu
+         in        al,dx                    ; zru¨en¡ stavov‚ho registru modemu
+
+; ------ uvolnˆn¡ ©adi‡e p©eru¨en¡
+
+         mov       al,20h
+         out       [20h],al
+
+; ------ n vrat obsluhy p©eru¨en¡
+
+         call      GetICom                  ; poskytnut¡ p©eru¨en¡ COM
+         mov       ah,25h
+         push      ds
+         lds       dx,ds:[OldComm]          ; p–vodn¡ adresa INT COM
+         int       21h                      ; n vrat p–vodn¡ adresy portu
+         pop       ds
+         sti
+
+; ------ inicializace hodin
+
+         call      InitClk                  ; n vrat nastaven¡ hodin
+
+; ------ n vrat registr–
+
+         pop       dx
+         pop       ax
+         ret
+
+DeInit   ENDP
+
+; ------ n vrat p©¡znaku p©ete‡en¡ p©es p–lnoc
+
+         jne       InitClk2                 ; nen¡ p©ete‡en¡ p©es p–lnoc
+         xor       ax,ax
+         mov       es,ax
+         mov       byte ptr es:[470h],dl    ; n vrat p©¡znaku p©ete‡en¡ p–lnoci
+
+; ------ n vrat p©¡znaku p©ete‡en¡ p©es p–lnoc
+
+         jne       InitClk2                 ; nen¡ p©ete‡en¡ p©es p–lnoc
+         xor       ax,ax
+         mov       es,ax
+         mov       byte ptr es:[470h],dl    ; n vrat p©¡znaku p©ete‡en¡ p–lnoci
+         mov       byte ptr es:
+
+; ------ konverze z BCD form tu na bin rn¡
+
+InitClk2:mov       al,ch                    ; hodina
+         call      BcdBin                   ; konverze na bin rn¡ tvar
+         mov       ch,al
+         mov       al,cl                    ; minuta
+         call      BcdBin                   ; konverze na bin rn¡ tvar
+         mov       cl,al
+         mov       al,dh                    ; sekunda
+         call      BcdBin                   ; konverze na bin rn¡ tvar
+         mov       dh,al
+
+; ------ nastaven¡ ‡asu
+
+         xor       dl,dl                    ; setina sekundy
+         mov       ah,2dh
+         int       21h                      ; nastaven¡ syst‚mov‚ho ‡asu
+
+; ------ n vrat registr–
+
+InitClk8:pop       es
+         pop       dx
+         pop       cx
+         pop       bx
+         pop       ax
+         ret
+
+InitClk  ENDP
+
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+;
+;                                     data
+;
+; °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+;þ
+; ------ parametry pro komunika‡n¡ port
+
+Port     dw        0                        ; ‡¡slo datov‚ho portu
+AdrPort  dw        3f8h                     ; adresa portu COM
+OldComm  dd        0                        ; p–vodn¡ adresa komunika‡n¡ho portu
+OldInt   db        0                        ; p–vodn¡ registr p©eru¨en¡
+
+; ------ ukazatel sektor–
+
+VysDBlok dw        0                        ; po‡et vys¡lan˜ch datov˜ch blok–
+PriDBlok dw        0                        ; po‡et p©ij¡man˜ch datov˜ch blok–
+MaxDBlok dw        0                        ; maxim ln¡ po‡et datov˜ch blok–
+SektBSeg dw        0                        ; adresa za‡ tku bufferu sektor–
+SektESeg dw        0                        ; adresa konce bufferu sektor–
+SektMax  dw        0                        ; maxim ln¡ po‡et sektor– v bufferu
+SektSeg  dw        0                        ; segment aktu ln¡ho bufferu sektor–
+SektUkaz dw        0                        ; ukazatel dat v aktu ln¡m sektoru
+CitSekt  dw        0                        ; ‡¡ta‡ po‡tu sektor–
+
+CitSynch dw        0                        ; ‡¡ta‡ synchroniza‡n¡ch sektor–
+CitByte  db        0                        ; ‡¡ta‡ bajt– sektoru
+
+Soubor   db        'POKUS1',0
+Soubor2  db        'POKUS2',0
+
+; ------ z hlav¡ sektoru (10 bajt–)
+
+         EVEN
+Zahlavi  label     byte
+TimeBeg  dd        0                        ; absolutn¡ ‡as za‡ tku nahr vky
+TimeDel  dw        0                        ; d‚lka cel‚ nahr vky (sek.)
+AktBlok  dw        0                        ; aktu ln¡ ‡¡slo bloku
+AktSekt  db        0                        ; ‡¡slo aktu ln¡ho sektoru
+InfBlok  db        0                        ; informace o organizaci blok–
+
+FileOffs dw        -1                       ; offset prvn¡ho souboru v bloku
+
+; ------ datov˜ buffer soubor– (velikost pro 1 datov˜ blok = 289*180 B)
+
+BuffSeg  dw        0                        ; segment bufferu soubor–
+BuffNum  dw        0                        ; po‡et bajt– v bufferu soubor–
+
+; ------ texty - mohou se po startu p©epsat z sobn¡kem
+
+;UvTxt    db        'STREAMER V1.0 - Video Streamer; (c) Miroslav Nemecek',13,10,'$'
+MemTxt   db        'CHYBA - nedostatek pameti ke spusteni programu !',13,10,'$'
+
+         dw        200h dup(?)
+Zasob    label     word                     ; konec z sobn¡ku
+
+Code     ENDS
+
+         END       Start
+
+; ------ parametry pro komunika‡n¡ port
+
+Port     dw        0                        ; ‡¡slo datov‚ho portu
+AdrPort  dw        3f8h                     ; adresa portu COM
+OldComm  dd        0                        ; p–vodn¡ adresa komunika‡n¡ho portu
+OldInt   db        0                        ; p–vodn¡ registr p©eru¨en¡
+
+SektSeg  dw        0                        ; segment aktu ln¡ho bufferu sektor–
+SektUkaz dw        0                        ; ukazatel dat v aktu ln¡m sektoru
+SektSeg  dw        0                        ; segment aktu ln¡ho bufferu sektor–
+SektUkaz dw        0                        ; ukazatel dat v aktu ln¡m sektoru
+CitSekt  dw        0                        ; ‡¡ta‡ po‡tu sektor–
+
+CitSynch dw        0                        ; ‡¡ta‡ synchroniza‡n¡ch sektor–
+CitByte  db        0                        ; ‡¡ta‡ bajt– sektoru
+
+Soubor   db        'POKUS1',0
+Soubor2  db        'POKUS2',0
+
+FileOffs dw        -1                       ; offset prvn¡ho souboru v bloku
+
+BuffSeg  dw        0                        ; segment bufferu soubor–
+BuffNum  dw        0                        ; po‡et bajt– v bufferu soubor–
+
+MemTxt   db        'CHYBA - nedostatek pameti ke spusteni programu !',13,10,'$'
+ 
+ 
+         END       Start
+

@@ -1,0 +1,305 @@
+
+                                   +-------+
+                                   | INKEY |
+                                   +-------+
+                          ovládání bufferu klávesnice
+
+
+SYNTAXE:   INKEY  [#] [?] [@] [!] ["text"] ['text'] [$hex] [klávesa]
+               # ........... zobrazení obsahu bufferu klávesnice
+               ? ........... test pøipravenosti znaku (0=není pøipraven)
+               @ ........... vstup znaku z klávesnice (0=není znak)
+               ! ........... vyprázdnìní bufferu klávesnice
+               "text" ...... zadání 1 nebo více ASCII znakù
+               'text' ...... zadání 1 nebo více ASCII znakù
+               $hex ........ zadání klávesy v HEX kódu
+               klávesa ..... zadání klávesy jménem
+
+Program INKEY slouí k ovládání bufferu klávesnice - vkládání a vyjímání znakù.
+Umoòuje  vloení  kódù  kláves do bufferu klávesnice z povelového souboru tak,
+jakoby  byly  zadány  z klávesnice. Tato funkce je urèena pøedevším k vytváøení
+makra  pøed  startem  urèitého programu. Lze takto pøeddefinovat èinnost, která
+probìhne  ihned  po  startu  poadovaného  programu - napø. nastavení pøepínaèù
+programu èi spuštìní urèité akce v programu.
+
+Buffer  klávesnice je umístìn v základní pamìti poèítaèe (tzv. pamì dat BIOS).
+Jeho velikost je 16 znakù. Programem INKEY proto lze pøeddefinovat maximálnì 16
+kláves, ostatní klávesy se ignorují a neukládají se. Po ukonèení programu INKEY
+se  navrací  návratovı  kód  odpovídající poètu kláves, které nebyly uloeny do
+bufferu klávesnice (kromì funkcí "?" a "@"). Rùzné zpùsoby zadávání kódù kláves
+lze spolu kombinovat.
+
+Parametr  "#"  zobrazí  pøipravené  kódy kláves v bufferu klávesnice BIOS v HEX
+kódu.  Tuto  funkci  lze  vyuít  k  stanovení  kódù neznámıch kláves a k jinım
+testovacím  úèelùm.  Kódy  kláves  v  bufferu klávesnice se mohou lišit od kódù
+navrácenıch  napø.  slubami  DOS. Napø. rozšíøené kódy kláves AT mohou bıt pøi
+nìkterıch funkcích zrušeny nebo zkonvertovány na kódy bìnıch kláves.
+
+Parametr  "?"  slouí  k  testu,  zda  je  pøipraven znak z klávesnice (tj. zda
+uivatel  bìhem  èinnosti  povelového  souboru  stiskl  klávesu). INKEY navrátí
+návratovı  kód 0, není-li pøipraven znak z klávesnice a 1, je-li pøipraven. Pøi
+testu pøipravenosti klávesy se pouívá sluba DOS (èíslo 0bh).
+
+Parametr "@" pøevezme pøipravenı znak z klávesnice a navrátí jeho ASCII hodnotu
+jako  návratovı  kód  programu.  Není-li  pøipraven  ádnı znak, navrátí kód 0.
+Øídicí  klávesy  nemající  ASCII  kód  (jako  F1, HOME apod.) jsou ignorovány a
+vypuštìny.  Malá písmena jsou konvertována na velká. Pøi vstup znaku se pouívá
+sluba DOS (èíslo 6).
+
+Parametr  "!" je povel pro vyprázdnìní bufferu klávesnice. Je vyprázdnìn buffer
+klávesnice DOS i BIOS.
+
+Znakem  " (dvojité uvozovky) nebo ' (jednoduché uvozovky) lze vloit do bufferu
+klávesnice  øetìzec ASCII znakù. Vkládanı text je ukonèen stejnım znakem, jakım
+byl  zahájen,  uvnitø  textu  lze  proto  pouít  jinı  znak  uvozovek, ne byl
+zahajovací  znak. Znak uvozovek shodnı se zahajovacím znakem lze vloit zadáním
+dvou shodnıch znakù uvozovek za sebou.
+
+Parametrem   "$"  lze  vloit  do  bufferu  klávesnice  kód  klávesy  zadanı  v
+hexadecimálním  kódu  (1  nebo  2 bajty). Kódy kláves jsou uvedeny v tabulce na
+konci.
+
+Klávesy  lze  do  bufferu  klávesnice vloit té zadáním jejich jména. Povolená
+jména  kláves  jsou:  Esc,  BackSpace  (nebo BS), Tab, Enter, PrintScreen (nebo
+PrScr),  Space  (nebo Spc), F1 a F12, Up, Left, Right, Down, Home, End, PageUp
+(nebo PgUp), PageDown (nebo PgDwn), Insert (nebo Ins) a Delete (nebo Del). Pøed
+jménem  klávesy  mùe  bıt  jméno  pøesmykaèe:  Shift-,  Ctrl- nebo Alt-. Další
+povolená  oznaèení  kláves  jsou  Ctrl-písmeno, Ctrl-[, Ctrl-\, Ctrl-], Ctrl-^,
+Ctrl-_  a  kombinace  Alt-znak. Velká a malá písmena nejsou rozlišována. Uvnitø
+jména klávesy se nesmí pouít oddìlovací mezera.
+
+
+                 Kódy kláves AT (pøesmykaè CapsLock je vypnutı)
+                 ----------------------------------------------
++------------------------+----------+---------+---------+--------+
+|                        |          |  Shift- |  Ctrl-  |  Alt-  |
++------------------------+----------+---------+---------+--------+
+|          Esc           |   $011B  |  $011B  |  $011B  |  $01F0 |
+|          1 !           |   $0231  |  $0221  |     -   |  $7800 |
+|          2 @           |   $0332  |  $0340  |  $0300  |  $7900 |
+|          3 #           |   $0433  |  $0423  |     -   |  $7A00 |
+|          4 $           |   $0534  |  $0524  |     -   |  $7B00 |
+|          5 %           |   $0635  |  $0625  |     -   |  $7C00 |
+|          6 ^           |   $0736  |  $075E  |  $071E  |  $7D00 |
+|          7 &           |   $0837  |  $0826  |     -   |  $7E00 |
+|          8 *           |   $0938  |  $092A  |     -   |  $7F00 |
+|          9 (           |   $0A39  |  $0A28  |     -   |  $8000 |
+|          0 )           |   $0B30  |  $0B29  |     -   |  $8100 |
+|          - _           |   $0C2D  |  $0C5F  |  $0C1F  |  $8200 |
+|          = +           |   $0D3D  |  $0D2B  |     -   |  $8300 |
+|        BackSpace       |   $0E08  |  $0E08  |  $0E7F  |  $0EF0 |
+|          Tab           |   $0F09  |  $0F00  |  $9400  |  $A500 |
+|           Q            |   $1071  |  $1051  |  $1011  |  $1000 |
+|           W            |   $1177  |  $1157  |  $1117  |  $1100 |
+|           E            |   $1265  |  $1245  |  $1205  |  $1200 |
+|           R            |   $1372  |  $1352  |  $1312  |  $1300 |
+|           T            |   $1474  |  $1454  |  $1414  |  $1400 |
+|           Y            |   $1579  |  $1559  |  $1519  |  $1500 |
+|           U            |   $1675  |  $1655  |  $1615  |  $1600 |
+|           I            |   $1769  |  $1749  |  $1709  |  $1700 |
+|           O            |   $186F  |  $184F  |  $180F  |  $1800 |
+|           P            |   $1970  |  $1950  |  $1910  |  $1900 |
+|          [ {           |   $1A5B  |  $1A7B  |  $1A1B  |  $1AF0 |
+|          ] }           |   $1B5D  |  $1B7D  |  $1B1D  |  $1BF0 |
+|         Enter          |   $1C0D  |  $1C0D  |  $1C0A  |  $1CF0 |
+|           A            |   $1E61  |  $1E41  |  $1E01  |  $1E00 |
+|           S            |   $1F73  |  $1F53  |  $1F13  |  $1F00 |
+|           D            |   $2064  |  $2044  |  $2004  |  $2000 |
+|           F            |   $2166  |  $2146  |  $2106  |  $2100 |
+|           G            |   $2267  |  $2247  |  $2207  |  $2200 |
+|           H            |   $2368  |  $2348  |  $2308  |  $2300 |
+|           J            |   $246A  |  $244A  |  $240A  |  $2400 |
+|           K            |   $256B  |  $254B  |  $250B  |  $2500 |
+|           L            |   $266C  |  $264C  |  $260C  |  $2600 |
+|          ; :           |   $273B  |  $273A  |     -   |  $27F0 |
+|          ' "           |   $2827  |  $2822  |     -   |  $28F0 |
+|          ` ~           |   $2960  |  $297E  |     -   |  $29F0 |
+|          \ |           |   $2B5C  |  $2B7C  |  $2B1C  |  $2BF0 |
+|           Z            |   $2C7A  |  $2C5A  |  $2C1A  |  $2C00 |
+|           X            |   $2D78  |  $2D58  |  $2D18  |  $2D00 |
+|           C            |   $2E63  |  $2E43  |  $2E03  |  $2E00 |
+|           V            |   $2F76  |  $2F56  |  $2F16  |  $2F00 |
+|           B            |   $3062  |  $3042  |  $3002  |  $3000 |
+|           N            |   $316E  |  $314E  |  $310E  |  $3100 |
+|           M            |   $326D  |  $324D  |  $320D  |  $3200 |
+|          , <           |   $332C  |  $333C  |     -   |  $33F0 |
+|          . >           |   $342E  |  $343E  |     -   |  $34F0 |
+|          / ?           |   $352F  |  $353F  |     -   |  $35F0 |
+|      PrintScreen       |      -   |     -   |  $7200  |     -  |
+|          [*]           |   $372A  |  $372A  |  $9600  |  $37F0 |
+|     Space (mezerník)   |   $3920  |  $3920  |  $3920  |  $3920 |
+|          F1            |   $3B00  |  $5400  |  $5E00  |  $6800 |
+|          F2            |   $3C00  |  $5500  |  $5F00  |  $6900 |
+|          F3            |   $3D00  |  $5600  |  $6000  |  $6A00 |
+|          F4            |   $3E00  |  $5700  |  $6100  |  $6B00 |
+|          F5            |   $3F00  |  $5800  |  $6200  |  $6C00 |
+|          F6            |   $4000  |  $5900  |  $6300  |  $6D00 |
+|          F7            |   $4100  |  $5A00  |  $6400  |  $6E00 |
+|          F8            |   $4200  |  $5B00  |  $6500  |  $6F00 |
+|          F9            |   $4300  |  $5C00  |  $6600  |  $7000 |
+|          F10           |   $4400  |  $5D00  |  $6700  |  $7100 |
+|          [7]           |   $4737  |  $4700  |  $7700  |     -  |
+|         Home           |   $47E0  |  $47E0  |  $77E0  |  $9700 |
+|          [8]           |   $4838  |  $4800  |  $8D00  |     -  |
+|    Up (kurzor nahoru)  |   $48E0  |  $48E0  |  $8DE0  |  $9800 |
+|          [9]           |   $4939  |  $4900  |  $8400  |     -  |
+|        PageUp          |   $49E0  |  $49E0  |  $84E0  |  $9900 |
+|          [-]           |   $4A2D  |  $4A2D  |  $8E00  |  $4AF0 |
+|          [4]           |   $4B34  |  $4B00  |  $7300  |     -  |
+|   Left (kurzor vlevo)  |   $4BE0  |  $4BE0  |  $73E0  |  $9B00 |
+|          [5]           |   $4C35  |  $4CF0  |  $8F00  |     -  |
+|          [6]           |   $4D36  |  $4D00  |  $7400  |     -  |
+|  Right (kurzor vpravo) |   $4DE0  |  $4DE0  |  $74E0  |  $9D00 |
+|          [+]           |   $4E2B  |  $4E2B  |  $9000  |  $4EF0 |
+|          [1]           |   $4F31  |  $4F00  |  $7500  |     -  |
+|          End           |   $4FE0  |  $4FE0  |  $75E0  |  $9F00 |
+|          [2]           |   $5032  |  $5000  |  $9100  |     -  |
+|   Down (kurzor dolù)   |   $50E0  |  $50E0  |  $91E0  |  $A000 |
+|          [3]           |   $5133  |  $5100  |  $7600  |     -  |
+|       PageDown         |   $51E0  |  $51E0  |  $76E0  |  $A100 |
+|          [0]           |   $5230  |  $5200  |  $9200  |     -  |
+|        Insert          |   $52E0  |  $52E0  |  $92E0  |  $A200 |
+|          [.]           |   $532E  |  $5300  |  $9300  |     -  |
+|        Delete          |   $53E0  |  $53E0  |  $93E0  |  $A300 |
+|          F11           |   $8500  |  $8700  |  $8900  |  $8B00 |
+|          F12           |   $8600  |  $8800  |  $8A00  |  $8C00 |
+|          [/]           |   $E02F  |  $E02F  |  $9500  |  $A400 |
+|        [Enter]         |   $E00D  |  $E00D  |  $E00A  |  $A600 |
++------------------------+----------+---------+---------+--------+
+Ctrl-Break ........... $0000
+
+Klávesy   oznaèené  lomenımi  závorkami  []  jsou  klávesy  v  numerickém  poli
+klávesnice.
+
+
+Pøíklad 1:
+----------
+inkey "inkey" Enter
+
+Pøíklad 2:
+----------
+@echo off
+echo Zobrazeni kodu klaves; preruseni klávesou ESC
+:start
+inkey !
+:cyklus
+inkey ?
+if not errorlevel == 1 goto cyklus
+inkey # @
+if not errorlevel == 27 goto start
+if errorlevel == 28 goto start
+
+Pøíklad 3:
+----------
+echo off
+cls
+echo.
+echo +---------------------------------------+
+echo | Zadejte pocatecni pismeno prikazu DOS |
+echo +---------------------------------------+
+echo |   Attrib                 Label        |
+echo |   Break                  MkDir        |
+echo |   Cls                    Path         |
+echo |   Dir                    Rename       |
+echo |   Erase (Delete)         Set          |
+echo |   Format                 Type         |
+echo |   Help                   Ver          |
+echo +------------------------ Esc = prerus -+
+echo.
+:Cekej
+inkey @
+if not errorlevel == 1 goto Cekej
+if errorlevel == 87 goto Cekej
+if errorlevel == 86 goto _Ver
+if errorlevel == 85 goto Cekej
+if errorlevel == 84 goto _Type
+if errorlevel == 83 goto _Set
+if errorlevel == 82 goto _Rename
+if errorlevel == 81 goto Cekej
+if errorlevel == 80 goto _Path
+if errorlevel == 78 goto Cekej
+if errorlevel == 77 goto _MkDir
+if errorlevel == 76 goto _Label
+if errorlevel == 73 goto Cekej
+if errorlevel == 72 goto _Help
+if errorlevel == 71 goto Cekej
+if errorlevel == 70 goto _Format
+if errorlevel == 69 goto _Erase
+if errorlevel == 68 goto _Dir
+if errorlevel == 67 goto _Cls
+if errorlevel == 66 goto _Break
+if errorlevel == 65 goto _Attrib
+if errorlevel == 28 goto Cekej
+if not errorlevel = 27 goto Cekej
+goto Konec
+
+:_Attrib
+inkey "ATTRIB "
+goto Konec
+
+:_Break
+inkey "BREAK "
+goto Konec
+
+:_Cls
+inkey "CLS"
+goto Konec
+
+:_Dir
+inkey "DIR "
+goto Konec
+
+:_Erase
+inkey "ERASE "
+goto Konec
+
+:_Format
+inkey "FORMAT "
+goto Konec
+
+:_Help
+inkey "HELP "
+goto Konec
+
+:_Label
+inkey "LABEL "
+goto Konec
+
+:_MkDir
+inkey "MKDIR "
+goto Konec
+
+:_Path
+inkey "PATH "
+goto Konec
+
+:_Rename
+inkey "RENAME "
+goto Konec
+
+:_Set
+inkey "SET "
+goto Konec
+
+:_Type
+inkey "TYPE "
+goto Konec
+
+:_Ver
+inkey "VER"
+
+:Konec
+
+
+INKEY vyaduje k provozu poèítaè IBM PC/XT/AT nebo plnì kompatibilní a operaèní
+systém DOS verze minimálnì 2.00.
+
+                  +-----------------------------------------+
+                  |                  GOLEM                  |
+                  | P.O.Box 66, 756 61 Ronov pod Radhoštìm |
+                  |          tel/fax: (0651) 54044          |
+                  +-----------------------------------------+
+                  | Tento program je souèástí programového  |
+                  |      balíku DOS Manaer verze 1.55      |
+                  +-----------------------------------------+
+

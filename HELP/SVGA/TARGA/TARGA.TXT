@@ -1,0 +1,539 @@
+Targa
+Targa+
+
+Usually the Targa+ operates in Non-Contigous mode where the 16 I/O registers
+used are spread in 4 groups of 4 registers each separated by 400h. By setting
+a jumper the Targa+ can operate in Contigous mode where the 16 registers are
+laid out sequentially. Also the base I/O address is set by jumpers.
+
+Note that this is one adapter where the indexed registers can really be 16bit
+wide, so that the notation W(R/W) indicates ONE 16bit index, not two 8bit ones
+
+        Contiguous:  Non-Contiguous:   Read:       Write:
+Reg00:    + 00h        + 0000h        VIDSTAT     COLOR0
+Reg01:    + 01h        + 0001h                    COLOR1
+Reg02:    + 02h        + 0002h        CTL         COLOR2
+Reg03:    + 03h        + 0003h        MASKL       COLOR3
+Reg04:    + 04h        + 0400h        LBNK        VIDCON
+Reg05:    + 05h        + 0401h        READAD      INDIRECT
+Reg06:    + 06h        + 0402h        MODE1       HUESAT
+Reg07:    + 07h        + 0403h        OVSTRT      OVSTRT
+Reg08:    + 08h        + 0800h        USCAN       MASKL
+Reg09:    + 09h        + 0801h        MASKH       MASKH
+Reg10:    + 0Ah        + 0802h        OSCAN       LBNK
+Reg11:    + 0Bh        + 0803h        HBNK        HBNK
+Reg12:    + 0Ch        + 0C00h        ROWC        ROWC
+Reg13:    + 0Dh        + 0C01h        MODE2       MODE2
+Reg14:    + 0Eh        + 0C02h        RBL         WBL
+Reg15:    + 0Fh        + 0C03h        RBH         WBH
+
+
+Reg00 (R):  VIDSTAT
+bit   0  If set an odd field is being displayed if clear an even field.
+      1  If clear a sync signal is detected indicating that an external video
+         source is connected to the Targa+
+
+Reg00 (W):  COLOR0
+bit 0-7  Low byte of the Border Color
+Note: this register is also accessible as ADV index E0h
+
+Reg01 (W):  COLOR1
+bit 0-7  Second byte of the Border Color
+Note: this register is also accessible as ADV index E1h
+
+Reg01 (R):  CTL
+bit   0  Set whenever a vertical blanking occurs. Cleared when this register
+         is read
+    1-3  The version number for the Targa chipset
+    4-7  Memory configuration. Ah: T16, Bh: T16P, Eh: T16/32, Fh: T16/32P
+          or T64
+
+Reg02 (W):  COLOR2
+bit 0-7  Third byte of the Border Color.
+         When in 16bit mode this should be set to 0.
+Note: this register is also accessible as ADV index E2h
+
+Reg03 (R):  MASKL
+This is the read port for Reg08
+
+Reg03 (W):  COLOR3
+bit 0-7  High byte of the Border Color.
+         When in 16 or 24bit mode this should be set to 0
+Note: this register is also accessible as ADV index E3h
+
+Reg04 (R):  LBNK
+This is the read port for Reg10
+
+Reg04 (W):  VIDCON
+bit   0  LiveMixSrc. 0: Bilevel Blending, 1: Dynamic Blending
+    1-5  Contrast. 10h is nominal
+      6  Set if inputting from a RGB source, clear for Composite or S-video
+         inputs.
+Note: This register is also present at Advanced index E4h.
+
+Reg05 (R):  READAD
+bit   3  INAE. If set the Targa+ is in Advanced Operating Mode
+Note: This is the read port for the ADVANCED register (Std indirect 90h)
+
+Reg05 (W):  INDIRECT
+bit 0-7  If the Targa+ is in Advanced Mode (the INAE bit is set) this is the
+         index register for the Advanced registers.
+         Write the index to this register and read/write the data at Reg14.
+
+Reg06 (R):  MODE1
+This is the read port for Reg12
+
+Reg06 (W):  HUESAT
+bit 0-4  Hue for input composite video. Nominal 10h
+    5-7  Saturation for input composite video. Nominal 4
+
+Reg07 (R/W):  OVSTRT
+bit 0-7  Used for standard Targa mode
+
+Reg08 (R):  USCAN
+Reading this register places the Targa+ in underscan mode
+
+Reg08 (W):  MASKL
+bit 0-7  Low mask byte. Each bit set will protect the corresponding bit(s) in
+         memory from change during CPU access. This does not affect capture!
+Note: This register can be read from Reg03
+
+Reg09 (R/W):  MASKH
+bit 0-7  High mask byte. Each bit set will protect the corresponding bit(s) in
+         memory from change during CPU access. This does not affect capture!
+
+Reg10 (R):  OSCAN
+Reading this register places the Targa+ in overscan mode
+
+Reg10 (W):  LBNK
+bit 0-5  32K bank number for the lower half of the 64K window
+Note: This register can be read from Reg04
+
+Reg11 (R/W):  HBNK
+bit 0-5  32K bank number for the upper half of the 64K window
+
+Reg12 (R):  ROWCNT
+bit 0-7  This register is 0 when the display is in retrace, or else the number
+         of the line currently being displayed
+
+Reg12 (W):  MODE1
+bit   0  If set the video memory is enabled, if clear the video memory is
+         disabled and can not be read or written.
+    3-5  In Targa compatibility mode this selects one of eight 64K video
+         memory blocks
+      6  MOD. If clear the INDIRECT register (reg05) is an index to the
+         advanced indirect registers. If set the INDIRECT register is an index
+         to the standard indirect registers.
+Note: This register can be read from Reg06
+
+Reg13 (R/W):  MODE2
+bit 2-3  ZOOM factor. 0: none, 1: x2, 2: x4, 3: x8
+    4-5  DISPMODE.
+           0: Display from memory with fixed color border
+           1: Live video with fixed color border
+           2: Overlay mode with live border
+           3: Live mode with live border
+      6  Enables the capture feature.
+      7  GENLOCK. If set the Targa+ will attempt to sync to the clock supplied
+         with the incoming video. If clear the Targa+ is in Master Mode and
+         provides its own video timing control
+
+Reg14 W(R/W):  RB/WB
+bit 0-15  Data port for the Advanced registers. The index is written to Reg05
+          and the data is read or written in this register.
+          Some of the Advanced registers are 8bits and some 16bits.
+
+ADV index 20h W(R/W):  CLOCK
+bit 0-10  The 13.5MHz clock is divided by this value to get the line clock.
+          I.e.. 858 gives 13.5MHz/858 = 15.734KHz (NTSC frequency).
+
+ADV index 21h (R/W):  GENCTRL
+bit    0  Vertical Preload Mode. If set the vertical counter is reset every
+          time the frame alignment is found to be false, if clear the vertical
+          counter is reset only after 7 consecutive fields are found to be
+          misaligned.
+     1-2  Field. Selects the field which is used for frame alignment.
+            0: Odd field, 1: Even field, 2: either field is used.
+     3-5  (R) If bit 0 is clear, this is the number of consecutive
+          misalignments which has happened.
+
+ADV index 40h W(R/W):  VTOTAL
+bit 0-10  This is twice the number of lines in a field. If the value is odd,
+          interlaced timing will be generated.
+   11-15  Should be set to 0
+
+ADV index 41h W(R/W):  HTOTAL
+bit  0-8  This is the number of SGCLK pulses in half a scanline
+    9-15  Should be set to 0
+
+ADV index 42h W(R/W):  SYNC
+bit  0-3  This is twice the number of scanlines used for vertical sync.
+     4-7  Should be set to 0
+    8-13  This is half the number of SGCLK pulses in one horizontal sync
+          pulse.
+   14-15  Should be set to 0
+
+ADV index 43h W(R/W):  HPHASE
+bit  0-8  When the Targa+ is in Slave Genlock mode, this is the number of
+          SGCLK pulses before a Horizontal Reference pulse is generated.
+          Depending on bit 9 this is from the start or the middle of the line.
+       9  If set the value in bits 0-8 is from the middle of the scanline,
+          if clear it is from the beginning of the scanline.
+   10-15  Should be set to 0
+
+ADV index 44h W(R/W):  VBEND
+bit 0-10  This is twice the number of scanlines blanked for each field.
+   11-15  Should be set to 0
+
+ADV index 45h W(R/W):  HBSTRT
+bit  0-8  The number of SGCLK pulses from the middle of the scanline to the
+          start of the Horizontal Blanking.
+       9  Should be set to 1
+   10-15  Should be set to 0
+
+ADV index 46h W(R/W):  HBEND
+bit  0-8  The number of SGCLK pulses from the end of the scanline to the end
+          of Horizontal Blanking.
+    9-15  Should be set to 0
+
+ADV index 47h W(R/W):  VSTRT
+bit 0-10  This is twice the scanline where display starts. If this value is
+          larger than VEND (index 44h) a border is shown in the color defined
+          by COLOR0-3 (Reg00-Reg03).
+   11-15  Should be set to 0
+
+ADV index 48h W(R/W):  VEND
+bit 0-10  This is twice the number of the scanline where display stops.
+          If this value is smaller then VTOTAL (index 40h) a border is shown
+          in the color defined by COLOR0-3 (Reg00-Reg03).
+   11-15  Should be set to 0
+
+ADV index 49h W(R/W):  HSTRT
+bit  0-9  The number of SGCLK pulses from the end of the scanline until
+          display starts. If this value is larger than HBEND (index 46h) a
+          border is shown in the color defined by COLOR0-3 (Reg00-Reg03).
+   10-15  Should be 0
+
+ADV index 4Ah W(R/W):  HEND
+bit  0-9  The number of SGCLK pulses from the middle of the scanline until the
+          display stops. If this value is smaller then HBSTRT (index 45h) a
+          border is shown in the color defined by COLOR0-3 (Reg00-Reg03).
+   10-15  Should be 0
+
+ADV index 4Bh W(R/W):  BURST
+bit  0-6  The number of SGCLK pulses from the start of Horizontal Blanking to
+          the start of the color burst signal.
+       7  Should be set to 0
+    8-13  The width of the color burst in SGCLK pulses.
+   14-15  Should be set to 0
+
+ADV index 4Ch W(R/W):  SGCNTRL1
+bit  0-3  Delay for sync outputs in number of pixels. Typically 9.
+     4-7  Delay for the composite blanking in number of pixels.
+          Typically 5.
+       8  Should be set to 0
+       9  Number of refresh cycles per scan lines
+   10-15  Should be set to 0
+
+ADV index 4Dh W(R/W):  SGCNTRL2
+bit    0  Should be set to 0
+       1  If set use Meander burst mode (PAL), if clear use normal burst mode
+          (NTSC).
+     2-3  The field generated when doing non-interlaced scanning.
+          In normal burst mode (NTSC) 0: Even field, 1: Odd field.
+          In Meander burst mode (PAL) 0: field0, 1: field1, 2: field2,
+            3: field3
+       4  If set the new sync generator is used for access to the new Targa+
+          feature set, if clear the original sync generator is used for
+          compatibility with the original Targa
+       5  If set video display is enabled.
+       6  If set video refresh is enabled.
+       7  If set enables the sync outputs (Horizontal Sync, Vertical Sync,
+          Composite Sync, Composite Blanking, Color Burst and half
+          horizontal rate signal used for PAL). If clear these outputs are
+          held in their inactive state.
+    8-15  Should be set to 0
+
+ADV index 4Eh W(R/W):  SGSTATUS
+bit  0-1  The current field being displayed.
+          In normal burst mode (NTSC): 0: Even field, 1: Odd field
+          In Meander burst mode (PAL):
+            0: field0, 1: field1, 2: field2, 3: field3
+       2  If set the Targa+ is producing vertical sync.
+       3  The vertical drive signal
+       4  If set the Targa+ is producing vertical sync.
+    5-15  Should be set to 0
+
+ADV index 53h W(R/W):  LINECNT
+bit  0-9  The number of the scanline being displayed.
+   10-15  Should be set to 0
+Note: the lower 8 bits can also be read from the ROWCNT (Reg12) register.
+
+ADV index 80h W(R/W):  TOP
+bit  0-9  This is display line the display wraps to when it reaches the line
+          in BOT. In interlaced modes this is half the line number
+
+ADV index 81h W(R/W):  BOT
+bit  0-9  When the display reaches this line it wraps to the line in TOP
+          In interlaced modes this is half the line number
+
+ADV index 82h W(R/W):  VPAN
+bit  0-9  This is the line number the display starts at for each field.
+          This is coded as 511-(Physical row / 2)
+
+ADV index 84h (R/W):  DSCAN
+bit    0  If clear the display is interlaced.
+     1-6  Should be set to 0
+       7  If the display is non-interlaced (bit 0 is set) this bit selects
+          whether the first line displayed is from the odd or even bank.
+            0: Odd, 1: Even
+
+ADV index 85h (R/W):  CLOCKMODE
+bit  0-1  Clocking mode:
+            0: Up to 512 pixels per scanline, interlaced. PCLK from 9.5 to
+               11.5MHz. Can both display and capture.
+                  PCLK = SGCLK = SCLK = MCLK/4
+            1: Up to 512 pixels per scanline, non-interlaced. PCLK from 19 to
+               23MHz. Display only.
+                  PCLK = SCLK = MCLK/2,  SGCLK = MCLK/4
+            2: Hiresolution interlaced modes. PCLK from 11.5 to 13MHz and from
+               13.5 to 15MHz. Can both display and capture.
+                  PCLK = SGCLK = MCLK/2,  SCLK = MCLK/4
+            3: Hiresolution non-interlaced modes. PCLK from 23 to 26MHz and
+               from 27 to 30MHz. Display only.
+                  PCLK = MCLK, SGCLK = SCLK = MCLK/2
+     2-3  Should be set to 0
+       4  Set if in hiresolution modes (>512 pixels across).
+     5-6  These bits must be preserved when writing this register
+       7  Should be set to 0
+
+ADV index 90h (R/W):  ADVANCED
+bit  0-1  Memory mode. 0: 8bit per pixel, 1: 16bit, 2: 24bit, 3: 32bit.
+       2  Set in 16 and 32 bit modes except 16bit hiresolution modes.
+       3  INAE. If set the Targa+ is in Advanced Operation mode, if clear in
+          Standard Operation mode.
+     4-5  Must be set to 0
+       6  If set interrupts are active high, if clear active low.
+       7  If set interrupts are enabled, if clear disabled.
+
+ADV index 91h (R/W):  WAIT
+bit  0-1  Wait states for reads:  0: 1, 1: 2, 2: 4, 3: 0
+     2-3  Wait states for writes:  0: 1, 1: 2, 2: 4, 3: 0
+     4-5  Wait states for I/O ops:  0: 1, 1: 2, 2: 4, 3: 0
+       6  DacClk. Clock signal for I2C bus. This bit should be preserved
+          unless the I2C bus is being accessed.
+       7  DacData. Data signal for I2C bus. This bit should be preserved
+          unless the I2C bus is being accessed.
+
+ADV index 92h (R/W):  CEM
+bit  0-3  ByCap. Each bit if set enables capture via one channel.
+          Bit 0 is the Blue channel, bit 1 is the Green, bit 2 is the Red
+          and bit 3 is the Alpha channel.
+
+ADV index A0h W(R/W):  TAP
+bit  0-9  In Advanced Operating Mode this is the number of the first pixel
+          displayed in each line. In DSCAN or Hires mode this is in units of
+          two pixels
+
+ADV index A1h (R/W):  MEMORY
+bit    0  Must be preserved.
+     1-4  Video Memory base address:
+                 BigBank/Linear mode:    Bank mode:
+             0:     illegal                80000h
+             1:     100000h                90000h
+             2:     200000h                A0000h
+             3:     300000h                B0000h
+             4:     400000h                C0000h
+             5:     500000h                D0000h
+             6:     600000h                E0000h
+             7:     700000h                F0000h
+             8:     800000h               illegal
+             9:     900000h               illegal
+            Ah:     A00000h               illegal
+            Bh:     B00000h               illegal
+            Ch:     C00000h               illegal
+            Dh:     D00000h               illegal
+            Eh:     E00000h               illegal
+            Fh:     F00000h               illegal
+     5-6  Memory addressing:
+            0  Bank addressing
+            2  BigBank addressing
+            3  Linear Addressing
+       7  If clear memory transfers are 16bit
+
+ADV index B0h W(R/W):  BITCAP
+bit 0-15  Should be set to FFFFh. Reserved for future use.
+
+ADV index D0h (R/W):  VGA
+bit    0  Set if each line is wider than 512 pixels.
+       2  compareEnb. See index EAh bits 0-1.
+     3-4  OverlayVGASrc. Determines the VGA overlay mode.
+            0: VGA only, 1: TARGA+ only, 2: TARGA+ overlay (TARGA+ specifies
+               overlay), 3: VGA overlay (VGA specifies overlay)
+       5  MixLock. Used to lock the mixer in the off state.
+          Should be set to 1 for compatibility with the original Targa.
+       7  Diff8. If set the difference between the 8bit live signal and an
+          8bit memory image is produced at the output of the mixer.
+
+ADV index D1h (R/W):  COMP0
+bit  0-7  Low byte of the 24bit COMP register used in VGA and TARGA+ overlay
+          compare
+
+ADV index D2h (R/W):  COMP1
+bit  0-7  Middle byte of the 24bit COMP register used in VGA and TARGA+
+          overlay compare. This byte is not used in 8bit modes
+
+ADV index D3h (R/W):  COMP2/VGAMASK
+bit  0-7  High byte of the 24bit COMP register used in VGA and TARGA+
+          overlay compare. This byte is only used in 24bit modes.
+          This value is also used as a mask value for the TARGA+ and VGA 8bit
+          overlay compare modes
+
+ADV index D8h (R/W):  LUT WRITE
+bit  0-7  This is the write index into the RAMDAC palette. First write the
+          index of the palette color to this register, then write three times
+          to the LUT COLOR PALETTE register (index D9h) (red, green and then
+          blue). When the blue data is written, this register is automatically
+          incremented.
+          This is functionally equivalent to the VGA register 3C8h
+
+ADV index D9h (R/W):  LUT COLOR PALETTE
+bit  0-7  Palette data.
+          This is functionally equivalent to the VGA register 3C9h
+
+ADV index DAh (R/W):  LUT MASK
+bit  0-7  This value is anded with the color index before it reaches the
+          palette chip.
+          This is functionally equivalent to the VGA register 3C6h
+
+ADV index DBh (R/W):  LUT READ
+bit  0-7  This is the read index into the RAMDAC palette. First write the
+          index of the palette color to this register, then read three times
+          from the LUT COLOR PALETTE register (index D9h) (red, green and then
+          blue). When the blue data is read, this register is automatically
+          incremented.
+          This is functionally equivalent to the VGA register 3C7h
+
+ADV index DEh (R/W):  LUT COMMAND
+bit  0-1  Selects the frequency band.
+       2  Enables the sync generator if set. Should be set for proper
+          operation.
+       3  DacEnb. Should be set (1) for proper operation.
+       4  Should be set (1).
+       5  Selects whether a 0 IRE or 7.5 IRE blanking pedestal is used.
+          Should be set to 0 for PAL signals.
+     6-7  Should be set to 0.
+
+ADV index E0h (R/W):  COLOR0
+bit 0-7  Low byte of the Border Color
+Note: this register can also be written to at Reg00
+
+ADV index E1h (R/W):  COLOR1
+bit 0-7  Second byte of the Border Color
+Note: this register can also be written to at Reg01
+
+ADV index E2h (R/W):  COLOR2
+bit 0-7  Third byte of the Border Color
+Note: this register can also be written to at Reg02
+
+ADV index E3h (R/W):  COLOR3
+bit 0-7  High byte of the Border Color
+Note: this register can also be written to at Reg03
+
+ADV index E4h (R/W):  VIDCON
+bit   0  LiveMixSrc. 0: Bilevel Blending, 1: Dynamic Blending
+    1-5  Contrast. 10h is nominal
+      6  Set if inputting from a RGB source, clear for Composite or S-video
+         inputs.
+Note: This register can also be written to at Reg04
+
+ADV index E5h (R/W):  LIVEMIXZERO
+bit  0-7  Used with the chromakeyer as an amplitude adjustment.
+          The LIVEMIX control signal to the digital Blender is calculated as:
+            (LiveMixIn - LIVEMIXZERO) << LiveMixGain
+          LiveMixGain is bits 6-7 of the BUFFERPORT register
+
+ADV index E6h (R/W):  HUESAT
+Note: This register can also be written to at Reg06
+
+ADV index E7h (R/W):  SVIDEO
+bit  0-6  Should be set to 1
+       7  SVHS. If VIDCON (ADV index E4h) bit 6 is clear this bit selects
+          whether the input is a standard composite signal (0) or Svideo (1).
+          Svideo means you have separate Y and C signals.
+
+ADV index E8h (R/W):  VIDEOMODE
+bit  0-1  BufferPortSrc. Only valid if index E9h bit 0 is 0.
+          Determines the input to the Buffer Port Input of the Blender
+           0: 8bits, 1: lower 16bits, 2: upper 16bits, 3: 24bits
+     2-3  Which8. Selects the byte (Red, Green, Blue or Alpha) sent to the
+          Blender Input 2 (in 8bit mode) or used as overlay control data (in
+          32bit mode). 0: Blue, 1: Green, 2: Red, 3: Alpha
+       4  MonoSrc. If bits 5-6 are 0 this selects the source of the monochrome
+          capture. 0: green input channel, 1: Chromakeyer
+     5-6  CM. TARGA+ capture mode:  0: Mono, 2: 16bit color, 3: 24bit color
+       7  bbyp.  If set the Blender is bypassed and the output to the DACs is
+          directly from the VRAM
+
+ADV index E9h (R/W):  BUFFERPORT
+bit    0  BufferPortColor.  If set the Buffer Port Input of the Blender is fed
+          from the Border Color registers, if clear from VRAM
+       1  LivePortColor. If set (and BLENDER1 bit 4 is set) the Live Port of
+          the Blender receives bits 0-14 of the border color registers, rather
+          than from VRAM
+       2  LiveMixColor. If set, Color3 provides the LIVEMIX control signal
+     3-4  LutByp. Contro9ls whether the output of the Blender is passed
+          through or around the LUTs
+       5  Alpha8. Data width of the Alpha channel. 8bit if set, 7 if clear.
+     6-7  LiveMixGain. Shiftvalue for the alpha control values passed to the
+          blender. 0: Normal, 1: Shift left 1 bit, 2: Shift left 2 bits.
+
+ADV index EAh (R/W):  MIXCTRL3
+bit  0-1  overlaySrc. Specifies the source of the overlay control signal.
+          If index D0h bit 2 is set, the source is:
+            0: 8bit masked compare, 2: 15/24 bit compare
+          if clear, the source is:
+            0: bit 15 of VRAM, 1: bit 31 of VRAM, 2: 0
+       2  overlayInv. If set the overlay control data is inverted before being
+          used.
+       3  liveMixInv. If set the Alpha control signal is inverted before
+          reaching the blender.
+       4  CM3. If set the Targa+ recaptures the blended output from the
+          blenders.
+     5-7  Reserved. Should be set to 0
+
+ADV index EBh (R/W):  LIVEPORT
+bit  0-2  Reserved. Should be set to 0
+       3  livePortWord. Only valid if bit 4 set and index E9h bit 1 is clear.
+          If set the upper 16 bits of VRAM are sent to the blender, if clear
+          the lower 16 bits are used
+       4  livePortSrc. If set the blender is fed from the border color
+          registers or from VRAM, if clear live data is fed to the blender.
+       5  live8. Only active if bit 4 is set and 
+       6  fgp. Controls the ForeGround processor used in conjugation with the
+          chromakeyer.
+       7  Reserved. Should be set to 0
+
+ADV index ECh (R/W):  INVERT
+bit    0  ZeroBlue. If set the blue signal does not participate in the
+          calculation of chroma signal
+       1  Chroma. If set the chromaOut signal only depends on the blue input
+     2-5  Should be set to 9
+       6  GreenKey. If set the red signal input does not participate in the
+          calculation of the chroma signal, if clear the green input is left
+          out.
+       7  livePortInv. If set the live data being routed to Blender Input 1
+          will be inverted
+Note: The chroma output is:
+      ChromaOut = [(blur - max(red,green))* (1-zeroBlue)] +
+               [(255-(green*GreenKey)+(red*(1-Greenkey)))]*(1-chroma)
+
+ADV index EDh (R/W):  NOTOVLLEVEL
+bit  0-7  This value is used as a constant blend value when the B-level blend
+          mode is selected (bit 0 of VIDCON (ADV index E4h) is 0) and the OVL
+          signal is 0
+
+ADV index EEh (R/W):  OVLLEVEL
+bit  0-7  This value is used as a constant blend value when the B-level blend
+          mode is selected (bit 0 of VIDCON (ADV index E4h) is 0) and the OVL
+          signal is 1

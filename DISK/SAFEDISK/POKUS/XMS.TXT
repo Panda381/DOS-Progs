@@ -1,0 +1,299 @@
+--------m-2F4300-----------------------------
+INT 2F - EXTENDED MEMORY SPECIFICATION (XMS) v2+ - INSTALLATION CHECK
+        AX = 4300h
+Return: AL = 80h XMS driver installed
+        AL <> 80h no driver
+Notes:  XMS gives access to extended memory and noncontiguous/nonEMS memory
+          above 640K
+        this installation check DOES NOT follow the format used by other
+          software
+SeeAlso: AX=4310h
+Index:  installation check;XMS version 2+
+--------m-2F4308-----------------------------
+INT 2F U - HIMEM.SYS v2.77+ - GET A20 HANDLER NUMBER
+        AX = 4308h
+Return: AL = 43h if supported
+            BL = A20 handler number (value of /MACHINE:nn switch)
+            BH = AT A20 switch time (00h medium, 01h fast, 02h slow)
+SeeAlso: AX=4309h,AX=4330h
+--------m-2F4309-----------------------------
+INT 2F U - HIMEM.SYS v3.09+ - GET XMS HANDLE TABLE
+        AX = 4309h
+Return: AL = 43h if function supported
+            ES:BX -> XMS handle table (see below)
+Note:   HIMEM.SYS v3.09 is part of MS-DOS 6.0.
+SeeAlso: AX=4308h
+
+Format of XMS handle table:
+Offset  Size    Description
+ 00h    BYTE    ??? (01h in HIMEM.SYS v3.09)
+ 01h    BYTE    size of one handle??? (0Ah in HIMEM.SYS v3.09)
+ 02h    WORD    value of /numhandles= parameter (default = 20h)
+ 04h    DWORD   pointer to XMS handle array (see below)
+
+Format of XMS handle [array]:
+Offset  Size    Description
+ 00h    BYTE    flag 01h=free, 02h=used, 04h=unused
+ 01h    BYTE    lock count (00h=unlocked)
+ 02h    DWORD   address of XMS block in KB (shift left by 10 for abs. address)
+ 06h    DWORD   size of XMS block in KB
+--------m-2F4310-----------------------------
+INT 2F - EXTENDED MEMORY SPECIFICATION (XMS) v2+ - GET DRIVER ADDRESS
+        AX = 4310h
+Return: ES:BX -> driver entry point
+Note:   HIMEM.SYS v2.77 chains to previous handler if AH is not 00h or 10h
+SeeAlso: AX=4300h
+
+Perform a FAR call to the driver entry point with AH set to the function code
+        AH      function
+        00h  Get XMS version number
+             Return: AX = XMS version (in BCD, AH=major, AL=minor)
+                     BX = internal revision number
+                     DX = 0001h if HMA (1M to 1M + 64K) exists
+                          0000h if HMA does not exist
+        01h  Request High Memory Area (1M to 1M + 64K)
+             DX = memory in bytes (for TSR or device drivers)
+                  FFFFh if application program
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,90h,91h,92h) (see below)
+        02h  Release High Memory Area
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,90h,93h) (see below)
+        03h  Global enable A20, for using the HMA
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,82h) (see below)
+        04h  Global disable A20
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,82h,94h) (see below)
+        05h  Local enable A20, for direct access to extended memory
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,82h) (see below)
+        06h  Local disable A20
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,82h,94h) (see below)
+        07h  Query A20 state
+             Return: AX = 0001h enabled
+                        = 0000h disabled
+                     BL = error code (00h,80h,81h) (see below)
+        08h  Query free extended memory, not counting HMA
+             BL = 00h (some implementations leave BL unchanged on success)
+             Return: AX = size of largest extended memory block in KB
+                     DX = total extended memory in KB
+                     BL = error code (00h,80h,81h,A0h) (see below)
+        09h  Allocate extended memory block
+             DX = Kbytes needed
+             Return: AX = 0001h success
+                           DX = handle for memory block
+                        = 0000h failure
+                           BL = error code (80h,81h,A0h) (see below)
+        0Ah  Free extended memory block
+             DX = handle of block to free
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,A2h,ABh) (see below)
+        0Bh  Move extended memory block
+             DS:SI -> EMM structure (see below)
+             Note: if either handle is 0000h, the corresponding offset is
+                   considered to be an absolute segment:offset address in
+                   directly addressable memory
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h-82h,A3h-A9h) (see below)
+        0Ch  Lock extended memory block
+             DX = handle of block to lock
+             Return: AX = 0001h success
+                           DX:BX = 32-bit linear address of locked block
+                        = 0000h failure
+                           BL = error code (80h,81h,A2h,ACh,ADh) (see below)
+             Note: MS Windows 3.x rejects this function for handles allocated
+                        after Windows started
+        0Dh  Unlock extended memory block
+             DX = handle of block to unlock
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,A2h,AAh) (see below)
+        0Eh  Get handle information
+             DX = handle for which to get info
+             Return: AX = 0001h success
+                           BH = block's lock count
+                           BL = number of free handles left
+                           DX = block size in KB
+                        = 0000h failure
+                           BL = error code (80h,81h,A2h) (see below)
+             BUG: MS Windows 3.10 acts as though unallocated handles are in use
+             Note: MS Windows 3.00 has problems with this call
+        0Fh  Reallocate extended memory block
+             DX = handle of block
+             BX = new size of block in KB
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,81h,A0h-A2h,ABh) (see below)
+        10h  Request upper memory block (nonEMS memory above 640K)
+             DX = size of block in paragraphs
+             Return: AX = 0001h success
+                           BX = segment address of UMB
+                           DX = actual size of block
+                        = 0000h failure
+                           BL = error code (80h,B0h,B1h) (see below)
+                           DX = largest available block
+        11h  Release upper memory block
+             DX = segment address of UMB to release
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,B2h) (see below)
+        12h  (XMS v3.0) Reallocate upper memory block
+             DX = segment address of UMB to resize
+             BX = new size of block in paragraphs
+             Return: AX = 0001h success
+                        = 0000h failure
+                           BL = error code (80h,B0h,B2h) (see below)
+                           DX = maximum available size (RM386)
+        34h  (QEMM 5.11 only, undocumented) ???
+        44h  (QEMM 5.11 only, undocumented) ???
+        80h  (Netroom RM386 v6.00) Reallocate upper memory block
+             this function is identical to function 12h
+        81h  (Netroom RM386 v6.00) re-enable HMA allocation
+             Return: AX = 0001h (success)
+        82h  (Netroom RM386 v6.00) Cloaking API
+             DX = XMS handle of block containing protected-mode code
+             CL = code size (00h 16-bit, else 32-bit)
+             ESI, EDI = parameters to pass to protected-mode code
+             Return: AX = status
+                         0001h success
+                         0000h failed
+                             BL = error code (A2h,B0h) (see below)
+             Note: this calls offset 0 in the XMS memory block with
+                EBX = physical address of block's start
+                CS = code selector for XMS block at EBX (16-bit or 32-bit)
+                DS = data selector for XMS block, starting at EBX
+                ES = selector for V86 memory access to full real-mode 1088K
+                GS = selector for full flat address space
+                ESI, EDI from V86 mode
+        83h  (Netroom RM386 v6.00) Create new UMB entry
+             BX = segment of high-memory block
+             DX = first page of start of block
+             CX = number of consecutive pages in block
+             DI = start of UMB in block
+             Return: AX = 0001h (success)
+                     DI = segment of first high-DOS block
+             Note: the new UMB is not linked into the high-memory chain
+        84h  (Netroom RM386 v6.00) Get all XMS handles info
+             CX = size of buffer for handle info
+             ES:DI -> buffer for handle info (see below)
+             Return: AX = 0001h (success)
+                     DX = current number of allocated XMS handles
+        88h  (XMS v3.0) Query free extended memory
+             Return: EAX = largest block of extended memory, in KB
+                     BL = status
+                         00h success
+                         80h not implemented (i.e. on a 286 system)
+                         81h VDISK detected
+                         A0h all extended memory allocated
+                     ECX = physical address of highest byte of memory
+                                (valid even on error codes 81h and A0h)
+                     EDX = total Kbytes of extended memory (0 if status A0h)
+        89h  (XMS v3.0) Allocate any extended memory
+             EDX = Kbytes needed
+             Return: AX = 0001h success
+                            DX = handle for allocated block (free with AH=0Ah)
+                        = 0000h failure
+                            BL = status (80h,81h,A0h,A1h,A2h) (see below)
+        8Eh  (XMS v3.0) Get extended EMB handle information
+             DX = handle
+             Return: AX = 0001h success
+                            BH = block's lock count
+                            CX = number of free handles left
+                            EDX = block size in KB
+                        = 0000h failure
+                            BL = status (80h,81h,A2h) (see below)
+             BUG: DOS 6.0 HIMEM.SYS leaves CX unchanged
+        8Fh  (XMS v3.0) Reallocate any extended memory block
+             DX = unlocked handle
+             EBX = new size in KB
+             Return: AX = 0001h success
+                        = 0000h failure
+                            BL = status (80h,81h,A0h-A2h,ABh) (see below)
+Notes:  HIMEM.SYS requires at least 256 bytes free stack space
+        the XMS driver need not implement functions 10h through 12h to be
+          considered compliant with the standard
+BUG:    HIMEM v3.03-3.07 crash on an 80286 machine if any of the 8Xh functions
+          are called
+
+Error codes returned in BL:
+ 00h    successful
+ 80h    function not implemented
+ 81h    Vdisk was detected
+ 82h    an A20 error occurred
+ 8Eh    a general driver error
+ 8Fh    unrecoverable driver error
+ 90h    HMA does not exist
+ 91h    HMA is already in use
+ 92h    DX is less than the /HMAMIN= parameter
+ 93h    HMA is not allocated
+ 94h    A20 line still enabled
+ A0h    all extended memory is allocated
+ A1h    all available extended memory handles are allocated
+ A2h    invalid handle
+ A3h    source handle is invalid
+ A4h    source offset is invalid
+ A5h    destination handle is invalid
+ A6h    destination offset is invalid
+ A7h    length is invalid
+ A8h    move has an invalid overlap
+ A9h    parity error occurred
+ AAh    block is not locked
+ ABh    block is locked
+ ACh    block lock count overflowed
+ ADh    lock failed
+ B0h    only a smaller UMB is available
+ B1h    no UMB's are available
+ B2h    UMB segment number is invalid
+
+Format of EMM structure:
+Offset  Size    Description
+ 00h    DWORD   number of bytes to move (must be even)
+ 04h    WORD    source handle
+ 06h    DWORD   offset into source block
+ 0Ah    WORD    destination handle
+ 0Ch    DWORD   offset into destination block
+Notes:  if source and destination overlap, only forward moves (source base
+          less than destination base) are guaranteed to work properly
+        if either handle is zero, the corresponding offset is interpreted
+          as a real-mode address referring to memory directly addressable
+          by the processor
+
+Format of XMS handle info [array]:
+Offset  Size    Description
+ 00h    BYTE    handle
+ 01h    BYTE    lock count
+ 02h    DWORD   handle size
+ 06h    DWORD   handle physical address (only valid if lock count nonzero)
+--------m-2F4320-----------------------------
+INT 2F U - HIMEM.SYS - Mach 20 SUPPORT
+        AX = 4320h
+        ???
+Return: ???
+--------m-2F4330-----------------------------
+INT 2F UC - HIMEM.SYS v2.77+ - GET EXTERNAL A20 HANDLER ADDRESS
+        AX = 4330h
+Return: AL = 80h if external A20 handler provided
+            ES:BX -> external A20 handler
+            CL = ???
+Note:   HIMEM.SYS calls this function to allow an external program to provide
+          an A20 handler (i.e. to support a machine not supported by HIMEM
+          itself)
+
+External A20 handler called with:
+        AX = function
+            0000h disable A20
+            0001h enable A20
+        Return: AX = status
+                    0000h failure
+                    0001h successful
+SeeAlso: AX=4308h,AX=4310h

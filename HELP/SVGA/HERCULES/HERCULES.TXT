@@ -1,0 +1,132 @@
+Hercules Graphics Adapter
+
+3B0h  synonym for 3B4h
+
+3B1h  synonym for 3B5h
+
+3B2h  synonym for 3B4h
+
+3B3h  synonym for 3B5h
+
+
+3B4h (W): Index register.
+          The value written to this register selects which of the data
+          registers will be accessed at 3B5h.
+
+3B4h index 00h (W): Horizontal Total Register
+Bit 0-7  Number of characters (-1) in a scan line incl. retrace.
+
+3B4h index 01h (W): Horizontal Displayed Register
+Bit 0-7  Number of characters (-1) displayed during a scan line.
+
+3Bh index 02h (W): Horizontal Sync Position Register
+Bit 0-7  Number of characters displayed before Horizontal Sync pulse starts.
+
+3B4h index 03h (W): Horizontal Sync Width Register
+Bit 0-7  Number of character clocks during a Horizontal Sync pulse.
+
+3B4h index 04h (W): Vertical Total Register
+Bit 0-6  Number of character rows in a frame. This is adjusted by the number
+         of scanlines in a character (index 9) and the Vertical Adjust (index
+         5).
+
+3B4h index 05h (W): Vertical Total Adjust Register
+Bit 0-3  Number of scanlines added to the Vertical Total time.
+
+3B4h index 06h (W): Vertical Displayed Register
+Bit 0-6  Number of character rows displayed per frame.
+
+3B4h index 07h (W): Vertical SyncPosition Register
+Bit 0-6  Number of character rows displayed before the Vertical Sync pulse
+         starts.
+
+3B4h index 08h (W): Interlace Mode Register
+
+3B4h index 09h (W): Maximum Scan Line Register
+Bit 0-3  Number of scanlines (-1) in a character row.
+
+3B4h index 0Ah (W): Cursor Start Register
+Bit 0-4  The scanline (starting from 0) within the character where the
+         cursor starts.
+    5-6  Cursor Attributes:
+           0,2: Cursor is blinking at the blink rate.
+             1: Cursor is turned off.
+             3: Cursor is blinking at half the blink rate.
+         The default blink rate is 1/16 of the frame rate (8 frames on, 8
+         off).
+
+3B4h index 0Bh (W): Cursor End Register
+Bit 0-4  The scanline (starting from 0) within the character where the
+         cursor ends. If the start position (index 0Ah) is larger than this
+         value, no cursor is shown. 
+
+3B4h index 0Ch (W): Start Address High Register
+Bit 0-5  The upper 6 bits of the address of the start of the display.
+         The lower 8 bits are in index 0Dh.
+
+3B4h index 0Dh (W): Start Address Low Register
+Bit 0-7  The lower 8 bits of the address of the start of the display.
+         The upper 6 bits are in index 0Ch.
+
+3B4h index 0Eh (W): Cursor Location High Register
+Bit 0-5  The upper 6 bits of the address of the start of the cursor.
+         The lower 8 bits are in index 0Fh.
+
+3B4h index 0Fh (W): Cursor Location Low Register
+Bit 0-7  The lower 8 bits of the address of the start of the cursor.
+         The upper 6 bits are in index 0Eh.
+
+3B4h index 10h (W): Light Pen High Register
+Bit 0-5  The upper 6 bits of the latched address of the lightpen strobe.
+         The lower 8 bits are in index 11h.
+
+3B4h index 11h (W): Light Pen Low Register
+Bit 0-7  The lower 8 bits of the latched address of the lightpen strobe.
+         The upper 6 bits are in index 10h.
+
+
+
+3B8h (W)
+bit   1  Hercules graphics mode if set, text mode else
+      3  Video enabled if set
+      5  Blink enabled if set
+      7  Graphics page 1 displayed if set, page 0 else
+
+3BAh (R):  Status Register
+bit   0  Horizontal sync
+      3  Video signal
+      7  Vertical sync
+
+3BAh (W):  Mode Select Register
+bit   3  132-column text for monochrome
+
+3BBh (W):  Lightpen Strobe Reset
+         Writing to this register will clear the lightpen strobe.
+
+3BFh (W):
+bit   0  Setting of graphics mode bit (3B8h bit 1) enabled if set
+      1  Setting of graphics page bit (3B8h bit 7) enabled if set
+
+
+  ID Hercules Graphics Card:
+
+  old:=rdinx($3B4,$a);
+  outp($3B5,6);         {Change Cursor End}
+  for x:=1 to 50 do;    {Wait for CRTC to respond}
+  val:=inp($3B5);
+  outp($3B5,old);
+  if val=6 then
+  begin
+    x:=50000;
+    repeat
+      dec(x);
+      y:=inp($3BA);
+    until (y and $80)=0) or (x=0);
+    if x=0 then __MDA__
+    else 
+      case y and $70 of
+        $50:Hercules Incolor;
+        $10:Hercules Graphics Plus
+      else Hercules Graphics Card;  
+      end;
+  end;

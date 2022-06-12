@@ -1,0 +1,4972 @@
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Function 11H: Character Generator Interface
+
+Caller registers:
+
+     AH    =    11H
+
+Load alphanumeric character definitions.
+
+     User-specified character definition table:
+     AL    =    0
+     BH    =    points (bytes per character definition)
+     BL    =    table in character generator RAM
+     CX    =    number of characters defined in table
+     DX    =    ASCII code of first character defined
+     ES:BP =    address of user-specified table
+
+     ROM BIOS 8-by-14 character definitions:
+     AL    =    1
+     BL    =    table in character generator RAM
+
+     ROM BIOS 8-by-8 character definitions:
+     AL    =    2
+     BL    =    table in character generator RAM
+
+     ROM BIOS 8-by-16 character definitions:
+     AL    =    4
+     BL    =    table in character generator RAM
+
+Select displayed character definition tables.
+
+     AL    =    3
+     BL    =    value for Character Map Select register (EGA, VGA)
+           =    character generator RAM table numbers (MCGA)
+
+Load alphanumeric character definitions and program the CRT Controller.
+
+     User-specified character definition table:
+     AL    =    10H
+     BH    =    points
+     BL    =    table in character generator RAM
+     CX    =    number of characters defined in table
+     DX    =    ASCII code of first character defined
+     ES:BP =    address of user-specified table
+
+     ROM BIOS 8-by-14 character definitions:
+     AL    =    11H
+     BL    =    table in character generator RAM
+
+     ROM BIOS 8-by-8 character definitions:
+     AL    =    12H
+     BL    =    table in character generator RAM
+
+     ROM BIOS 8-by-16 character definitions:
+     AL    =    14H
+     BL    =    table in character generator RAM
+
+Load graphics character definitions.
+
+     User-specified 8-by-8 character definition table for interrupt 1FH
+     vector:
+     AL    =    20H
+     ES:BP =    address of user-specified character definition table
+
+     User-specified character definition table:
+     AL    =    21H
+     BL    =    0  (character rows per screen specified in DL)
+           =    1  14 character rows per screen
+           =    2  25 character rows per screen
+           =    3  43 character rows per screen
+     CX    =    points (bytes per character definition)
+     DL    =    character rows per screen (when BL = 0)
+     ES:BP =    address of user-specified character definition table
+
+     ROM BIOS 8-by-14 character definitions:
+     AL    =    22H
+     BL    =    character rows per screen (as above)
+     DL    =    (as above)
+
+     ROM BIOS 8-by-8 character definitions:
+     AL    =    23H
+     BL    =    character rows per screen (as above)
+     DL    =    (as above)
+
+     ROM BIOS 8-by-16 character definitions:
+     AL    =    24H
+     BL    =    character rows per screen (as above)
+     DL    =    (as above)
+
+Get current character generator information.
+
+     AL    =    30H
+     BH    =    0  Contents of interrupt 1FH vector
+           =    1  Contents of interrupt 43H vector
+           =    2  Address of ROM 8-by-14 character table
+           =    3  Address of ROM 8-by-8 character table
+           =    4  Address of second half of ROM 8-by-8 character table
+           =    5  Address of ROM 9-by-14 alternate character table
+           =    6  Address of ROM 8-by-16 character table
+           =    7  Address of ROM 9-by-16 alternate character table
+
+     Returned values:
+     CX    =    POINTS (height of character matrix)
+     DL    =    ROWS (displayed character rows - 1)
+     ES:BP =    address of character definition table
+
+Video Display Data Area updates:
+
+     0040:004C  CRT_LEN
+     0040:0060  CURSOR_MODE
+     0040:0084  ROWS
+     0040:0085  POINTS
+
+     INT 10H function 11H comprises a gamut of subfunctions that support
+     both the alphanumeric and the graphics character generators on the
+     EGA, the MCGA, and the VGA. You choose a subfunction with the value
+     you specify in AL. The contents of the other registers depend on the
+     subfunction.
+
+
+     AL = 0, 1, 2, or 4
+     You can use subfunctions 0, 1, 2, and 4 to load a table of character
+     definitions into video RAM for use by the character generator.
+     (Chapter 10 describes this in detail.) All four subfunctions are
+     available on the VGA. On the EGA, the BIOS ignores subfunction 4. The
+     MCGA BIOS does not contain an 8-by-14 character definition table, so
+     calls with AL = 1 are treated as calls with AL = 4.
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+     On the MCGA, character definitions in character generator RAM are not
+     displayed until they are loaded into the character generator's
+     internal font pages (see Chapter 10). To accomplish this through the
+     video BIOS, follow each call to function 11H performed with AL = 0, 1,
+     2, or 4 with a call to function 11H with AL = 3.
+
+     The MCGA's CRTC can only display characters that are 2, 4, 6, 8, 10,
+     12, 14, or 16 lines high. Thus, BH should specify one of these values.
+     Also, for compatibility with the VGA BIOS, the MCGA BIOS routine
+     extends character definitions for 14-line characters into definitions
+     for 16-line characters by duplicating the 14th line of each character
+     definition.
+
+
+     AL = 3
+     On the EGA and the VGA, when AL = 3, function 11H loads the value
+     passed in BL into the Sequencer's Character Map Select register. On
+     the EGA and the MCGA, bits 0 and 1 of BL indicate which of four 256-
+     character tables is used when bit 3 of a character's attribute byte is
+     0. Bits 2 and 3 of BL indicate which table is used when bit 3 of a
+     character's attribute is 1. On the VGA, bits 0, 1, and 4 specify one
+     of eight tables to be used when a character's attribute bit 3 is 0,
+     and bits 2, 3, and 5 specify the table used when attribute bit 3 is 1.
+
+     If both bit fields in BL specify the same character definition table,
+     only that table is loaded and displayed.
+
+     AL = 10H, 11H, 12H, or 14H
+     Subfunctions 10H, 11H, 12H, and 14H are analogous to subfunctions 0,
+     1, 2, and 4 in that they load an alphanumeric character definition
+     table into video RAM. The difference is that, for these subfunctions
+     on the EGA and the VGA, the BIOS reprograms the CRT Controller to
+     accommodate the height of the character matrix. On the MCGA, calls to
+     function 11H with AL = 10H, 11H, 12H, and 14H are treated as calls to
+     functions 0, 1, 2, and 4 respectively.
+
+     NOTE: Disable alphanumeric cursor emulation before using these
+     subfunctions on the EGA. The EGA BIOS cursor emulation routine does
+     not always produce a satisfactory alphanumeric cursor. (Chapter 3
+     discusses this in detail.)
+
+
+     AL = 20H
+     If AL = 20H, the address in ES:BP is copied into the interrupt 1FH
+     vector at 0000:007C. This vector points to a table of 8-by-8 character
+     definitions for ASCII codes 80H through FFH. This character definition
+     table is used by the BIOS in CGA-compatible 320-by-200 4-color and
+     640-by-200 2-color graphics modes.
+
+
+     AL = 21H, 22H, 23H, or 24H
+     Subfunctions 21H, 22H, 23H, and 24H are analogous to subfunctions 0,
+     1, 2, and 4 respectively. The BIOS updates the interrupt 43H vector
+     and the Video Display Data Area variables POINTS and ROWS with values
+     that describe the specified graphics character definitions.
+
+     The BIOS does not reprogram the CRT Controller when it loads graphics-
+     mode character definition tables.
+
+
+     AL = 30H
+     If AL = 30H, INT 10H function 11H returns information about the
+     character generator's current status. The value in POINTS in the Video
+     Display Data Area is copied into register CX, the value of ROWS is
+     returned in DL, and the address of one of eight character definition
+     tables is returned in ES:BP. The value in BH indicates which table's
+     address is returned.
+
+     NOTE: If you call this subfunction on the EGA with BH equal to 6 or 7,
+     or on the MCGA with BH equal to 5 or 7, the address returned in ES:BP
+     is undefined.
+
+     To select an 80-by-43 alphanumeric mode on a 350-line display, invoke
+     INT 10H function 11H to load the ROM 8-by-8 character set and
+     reprogram the CRTC to display 43 character rows. (Dividing 350 lines
+     by 8 lines per character gives 43 character rows.) The following
+     example assumes that the EGA is already in an 80-by-25 alphanumeric
+     mode (BIOS mode number 3 or 7).
+
+        mov  ax,40h
+        mov  es,ax
+
+        push es:[87h]               ; preserve INFO
+        or   byte ptr es:[87h],1    ; disable cursor emulation
+        mov  ax,1112h               ; AH := 11H (INT 10H function number)
+                                    ; AL := 12H (subfunction:  load 8x8
+                                    ;  alphanumeric characters, reprogram
+                                    ;  CRTC)
+        mov  bl,0                   ; BL := table 0 in character generator
+                                    ;  RAM
+        int  10h
+        pop  es:[87h]               ; restore INFO
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Function 12H: Video Subsystem Configuration (Alternate Select)
+
+Caller registers:
+
+     AH    =    12H
+
+Return video configuration information:
+
+     BL    =    10H
+
+     Returned values:
+     BH    =    default BIOS video mode
+                0  Color
+                1  Monochrome
+     BL    =    amount of EGA video RAM
+                0  64 KB
+                1  128 KB
+                2  192 KB
+                3  256 KB
+     CH    =    feature bits
+     CL    =    configuration switch setting
+
+Select alternate Print Screen routine:
+
+     BL    =    20H
+
+Select scan lines for alphanumeric modes:
+
+     BL    =    30H
+     AL    =    0  200 scan lines
+                1  350 scan lines
+                2  400 scan lines
+
+     Returned value:
+     AL    =    12H
+
+Select default palette loading:
+
+     BL    =    31H
+     AL    =    0  Enable default palette loading
+           =    1  Disable default palette loading
+
+     Returned value:
+     AL    =    12H
+
+CPU access to video RAM:
+
+     BL    =    32H
+     AL    =    0  Enable CPU access to video RAM and I/O ports
+           =    1  Disable CPU access to video RAM and I/O ports
+
+     Returned value:
+     AL    =    12H
+
+Gray-scale summing:
+
+     BL    =    33H
+     AL    =    0  Enable gray-scale summing
+           =    1  Disable gray-scale summing
+
+     Returned value:
+     AL    =    12H
+
+Cursor emulation:
+
+     BL    =    34H
+     AL    =    0  Enable cursor emulation
+           =    1  Disable cursor emulation
+
+     Returned value:
+     AL    =    12H
+
+PS/2 video display switching:
+
+     BL    =    35H
+     AL    =    0  Initial adapter video off
+                1  Initial planar video on
+                2  Switch active video off
+                3  Switch inactive video on
+     ES:DX =    address of 128-byte save area (for AL = 0, 2, or 3)
+
+     Returned value:
+     AL    =    12H
+
+Video refresh control:
+
+     BL    =    36H
+     AL    =    0  Enable refresh
+                1  Disable refresh
+
+     Returned value:
+     AL    =    12H
+
+Video Display Data Area updates:
+
+     (see below)
+
+     INT 10H function 12H comprises nine subfunctions selected using the
+     value in BL.
+
+
+     BL = 10H
+     When BL = 10H on the EGA and the VGA, this BIOS routine returns
+     information about the configuration of the video subsystem. This
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+     information is copied from INFO and INFO_3 in the Video Display Data
+     Area. These variables are initialized in the BIOS power-on startup
+     code.
+
+     The value returned in BH reflects whether the video subsystem is
+     configured for a color (BH = 0) or monochrome (BH = 1) video mode.
+     Bits 0 and 1 in BL indicate how much video RAM is present. The values
+     returned in CH and CL are derived from the INFO_3 byte. Bits 4 through
+     7 of INFO_3 (input from the EGA feature connector) are copied to bits
+     0 through 3 of CH. Bits 0 through 3 of INFO_3 (configuration switch
+     settings) are copied to bits 0 through 3 of CL.
+
+
+     BL = 20H
+     When BL = 20H on the MCGA, the EGA, and the VGA, the BIOS points the
+     interrupt 5 vector at 0000:0014 to an alternate Print Screen routine
+     contained in the video ROM BIOS. The difference between this routine
+     and the default planar BIOS routine is that the video ROM version uses
+     the Video Display Data Area variable ROWS to determine the number of
+     character rows to print. The PC/XT and PC/AT planar BIOS versions
+     always print 25 rows.
+
+
+     BL = 30H
+     When BL = 30 on the VGA, the BIOS routine updates bits 0-3 of the
+     INFO_3 byte (0040:0088) and bits 7 and 4 of the Flags byte at
+     0040:0089. INT 10H function 0 refers to INFO_3 and the Flags byte to
+     determine whether to configure the video subsystem for a 200-line,
+     350-line, or 400-line mode when it establishes an alphanumeric video
+     mode. You can thus select among 200-line, 350-line, and 400-line
+     alphanumeric modes by first executing INT 10H function 12H with BL =
+     30H and AL = 0, 1, or 2, and then calling INT 10H function 0 to set
+     the video mode.
+
+     This function normally returns the value 12H in AL. If the VGA is
+     inactive (bit 3 of INFO is set to 1), the function returns with
+     AL = 0.
+
+
+     BL = 31H
+     When BL = 31H on the MCGA or VGA, the BIOS routine updates bit 3 of
+     the Flags byte at 0040:0089 to indicate whether ROM BIOS default
+     palette values should be loaded when a video mode is selected using
+     INT 10H function 0. If the value 0 is passed in AL, bit 3 of the Flags
+     byte is set to 0 to enable default palette setting. If AL = 1, bit 3
+     is set to 1 to disable default palette setting.
+
+     When a valid value is passed in AL, the function returns with AL =
+     12H.
+
+     BL = 32H
+     When BL = 32H on the MCGA or the VGA, the value in AL specifies
+     whether CPU access to the video buffer and I/O ports is enabled (AL =
+     0) or disabled (AL = 1). Although the hardware interface for control
+     of video addressing differs on the MCGA, the VGA, and the VGA Adapter,
+     this BIOS function is the same in all three subsystems (see Chapter
+     2).
+
+     When a valid value is passed in AL, the function returns with AL =
+     12H.
+
+     NOTE: Although the EGA video BIOS does not support this function, you
+     can control CPU addressing of video RAM on the EGA by updating bit 1
+     of the Miscellaneous Output register (3C2H).
+
+
+     BL = 33H
+     When BL = 33H on the MCGA or the VGA, the BIOS routine updates bit 1
+     of the Flags byte at 0040:0089 to indicate whether red-green-blue
+     color values should be averaged to gray-scale values when INT 10H
+     functions 0 and 10H update the video DAC color registers. If the value
+     0 is passed in AL, bit 1 of the Flags byte is set to 1 to enable gray-
+     scale summing. If AL = 1, bit 1 is set to 0 to disable gray-scale
+     summing.
+
+     When a valid value is passed in AL, the function returns with 
+     AL = 12H.
+
+
+     BL = 34H
+     When BL = 34H on the VGA, the BIOS routine updates bit 0 of INFO
+     (0040:0087) to indicate whether BIOS cursor emulation is in effect. If
+     the value 0 is passed in AL, bit 0 of INFO is set to 0 to enable
+     cursor emulation. If AL = 1, bit 0 is set to 1 to disable cursor
+     emulation.
+
+     When a valid value is passed in AL, the function returns with 
+     AL = 12H.
+
+
+     BL = 35H
+     INT 10H function 1AH with BL = 35H provides a set of routines that
+     support switching between two PS/2 video subsystems in the same
+     computer. In a computer that contains two different PS/2-compatible
+     video subsystems, calls to this function let a program separately
+     access the video BIOS on a video adapter and the video BIOS on a PS/2
+     motherboard.
+
+     When you boot a PS/2 that contains a PS/2-compatible video adapter,
+     the adapter subsystem is always the active subsystem by default. To
+     use the PS/2's planar (motherboard) subsystem, you must use the
+     display switch interface to disable the adapter subsystem and enable
+     the planar subsystem.
+
+     You can specify four related subfunctions for function 12H with 
+     BL = 35H, using the value passed in register AL. The four subfunctions
+     are designed to be called in pairs. Subfunctions 0 and 1 should be
+     called once each to initialize the BIOS display switch interface and
+     to establish a default video mode for the planar video subsystem.
+     Subsequent calls to subfunctions 2 and 3 then let you switch between
+     the two video subsystems.
+
+     When AL = 0, the adapter BIOS initializes the display switch
+     interface. First, the adapter BIOS calls the motherboard BIOS to set
+     bit 6 of the Flags byte at 0040:0089 to 1 to indicate that the
+     interface is supported. Next, the current Video Display Data Area and
+     video interrupt vectors are preserved in the 128-byte buffer whose
+     address is passed in ES:DX, and the video interrupt vectors are
+     redirected to the motherboard BIOS. Finally, the adapter's video
+     buffer and control port addressing are disabled (see INT 10H function
+     12H, BL = 32H).
+
+     When AL = 1, the motherboard BIOS establishes a default 80-by-25
+     alphanumeric mode on the planar video subsystem.
+
+     When AL = 2 and bit 6 of the Flags byte is 1, the contents of the
+     Video Display Data Area and video interrupt vectors are copied to the
+     128-byte buffer whose address is passed in ES:DX, and the video
+     interrupt vectors are redirected to the currently inactive BIOS. Then
+     video buffer and control port addressing are disabled for the
+     currently active subsystem. A call to this subfunction should normally
+     be followed by a call with AL = 3.
+
+     When AL = 3 and bit 6 of the Flags byte is 1, the contents of the
+     Video Display Data Area and interrupt vectors are restored from the
+     buffer whose address is in ES:DX. (This buffer should contain
+     information previously saved by a call with AL = 0 or AL = 2.) Then
+     video buffer and control port addressing are enabled, using the
+     restored video information.
+
+     When a valid value is passed in AL, and when both the adapter BIOS and
+     the planar BIOS support the display switch interface, each of the four
+     subfunctions returns with AL = 12H.
+
+     NOTE: The PS/2 Model 30 BIOS (dated 12/12/86 and earlier) and the PS/2
+     Model 25 BIOS (dated 6/26/87) contain a bug that makes the display
+     switch interface unusable. The problem should be corrected in later
+     BIOS versions.
+
+
+     BL = 36H
+     When BL = 36H on the VGA, the value in AL specifies whether the BIOS
+     routine enables (AL = 0) or disables (AL = 1) video refresh.
+     (Temporarily disabling video refresh can speed software that performs
+     repeated video memory accesses.) Bit 5 of the VGA's Sequencer Clocking
+     Mode register (01H) controls whether video refresh is enabled or
+     disabled. When the value 0 is passed in AL, bit 5 is set to 0 to
+     enable video refresh; when AL is 1, bit 5 is set to 1 to disable video
+     refresh.
+
+     The function always returns with AL = 12H.
+
+     To obtain EGA configuration information, call INT 10H function 12H
+     with BL = 10H:
+
+        mov  ah,12h
+        mov  bl,10h
+        int  10h
+
+     To vector the EGA BIOS alternate Print Screen routine, call INT 10H
+     function 12H with BL = 20H:
+
+        mov  ah,12h
+        mov  bl,20h
+        int  10h
+
+     To implement display switching between a VGA Adapter and the MCGA in a
+     PS/2 Model 30:
+
+; save areas for video BIOS display switch interface
+
+VGAsave   db   128 dup(?)     ; save area for VGA
+MCGAsave  db   128 dup(?)     ; save area for MCGA
+
+; initialize display switching (execute this code only once)
+
+     mov  ax,1200h            ; AH := 12H (INT 10H function number)
+                              ; AL := 0
+     mov  bl,35h              ; BL := 35H (display switch interface)
+     mov  dx,seg VGAsave
+     mov  es,dx
+     mov  dx,offset VGAsave   ; ES:DX -> save area for VGA BIOS info
+     int  10h
+     cmp  al,12h
+     jne  Error               ; exit if display switching not supported
+
+     mov  ax,1201h
+     mov  bl,35h
+     int  10h                 ; disable adapter, enable planar video
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+; switch from planar (MCGA) to adapter (VGA) subsystem
+
+     mov  ax,1202h            ; AL := 2 (switch active
+                              ;  video off)
+     mov  bl,35h
+     mov  dx,seg VGAsave
+     mov  es,dx
+     mov  dx,offset VGAsave   ; ES:DX -> save area for
+                              ;  currently active subsystem
+     int  10h
+
+     mov  ax,1203h            ; AL := 3 (switch inactive
+                              ;  video on)
+     mov  bl,35h
+     mov  dx,offset MCGAsave  ; ES:DX -> save area for
+                              ;  subsystem to be made active
+     int  10h
+
+; (to switch from adapter to planar, interchange VGAsave and
+;  MCGAsave in the calls with AL = 2 and AL = 3)
+
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Function 13H: Display Character String
+
+Caller registers:
+
+     AH    =    13H
+     AL    =    0  BL contains attribute for string. Cursor position
+                   not updated.
+           =    1  BL contains attribute for string. Cursor position
+                   updated.
+           =    2  String contains embedded attribute bytes. Cursor
+                   position not updated.
+           =    3  String contains embedded attribute bytes. Cursor
+                   position updated.
+     BH    =    video page
+     BL    =    attribute
+     CX    =    string length
+     DH    =    character row
+     DL    =    character column
+     ES:BP =    address of start of string
+
+Returned values:
+
+     (none)
+
+Video Display Data Area updates:
+
+     0040:0050  CURSOR_POSN
+
+     INT 10H function 13H writes a character string into the video buffer.
+     Bell, backspace, linefeed, and carriage-return characters embedded in
+     the string are treated as commands rather than displayable characters.
+     If the string cannot be displayed in one row of characters, function
+     13H wraps the string around to the start of the next line. Function
+     13H also scrolls the screen upward as necessary.
+
+     The string is copied from the address you specify in ES:BP to the
+     location in the video buffer indicated by registers DH and DL
+     (character row and column) and register BH (video page). You must also
+     specify the number of characters in the string in register CX.
+
+     Function 13H comprises four subfunctions that are selected according
+     to the value in AL. These four subfunctions allow you to select the
+     method of specifying display attributes for characters in the string
+     and to control the cursor's final position after the string is
+     displayed.
+
+     You can specify the attribute used for each character either in BL
+     (AL = 0 or 1) or by pairing each character code with its attribute in
+     the string itself (AL = 2 or 3). Also, you can indicate whether the
+     cursor will stay in place after the string is written (AL = 0 or 2) or
+     will move to the character position just past the end of the string
+     (AL = 1 or 3).
+
+     In all graphics modes except 320-by-200 256-color mode, setting bit 7
+     of the attribute value in BL to 1 causes the BIOS to XOR the string
+     into the video buffer.
+
+     The video page specified in BH must be 0 in 320-by-200 4-color mode.
+
+     NOTE: On the PC/AT, the EGA, and the MCGA, linefeed and carriage-
+     return characters are always written to the currently displayed video
+     page, regardless of the value you specify in BH. If you write a string
+     containing any of these control characters to a video page not
+     currently displayed, function 13H writes them to the wrong video page.
+
+     The following routine writes the string "Hello, World" into the video
+     buffer in video page 0 at row 12, column 34. An attribute value of 7
+     is used for all characters in the string.
+
+        mov  ax,1300h               ; AH := 13H (INT 10H function number)
+                                    ; AL := 0 (attribute specified in BL,
+                                    ;  don't move the cursor)
+        mov  bh,0                   ; BH := video page
+        mov  bl,7                   ; BL := attribute
+        mov  cx,12                  ; CX := number of characters to display
+        mov  dh,12                  ; DH := row 12
+        mov  dl,34                  ; DL := column 34
+        mov  bp,seg HelloString
+        mov  es,bp
+        mov  bp,offset HelloString  ; ES:BP := string address
+        int  10h
+        .
+        .
+        .
+HelloString  db      'Hello, World'
+
+     This example displays the digits 1 through 7 in the upper left corner
+     of video page 0. The attribute used for each digit corresponds to the
+     digit:
+
+        mov  ax,1303h               ; AH := 13H (INT 10H function number)
+                                    ; AL := 3 (string contains embedded
+                                    ;  attribute bytes, move cursor to end
+                                    ;  of string)
+        mov  bh,0                   ; BH := video page
+        mov  cx,7                   ; CX := number of characters to display
+        mov  dx,0                   ; DH := row 0
+                                    ; DL := column 0
+        mov  bp,seg StringData
+        mov  es,bp
+        mov  bp,offset StringData   ; ES:BP := address of string
+        int  10h
+        .
+        .
+        .
+StringData   db      '1',1,'2',2,'3',3,'4',4,'5',5,'6',6,'7',7
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Function 14H: (PC Convertible only)
+
+
+Function 15H: (PC Convertible only)
+
+
+Function 16H: (reserved)
+
+
+Function 17H: (reserved)
+
+
+Function 18H: (reserved)
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Function 19H: (reserved)
+
+
+Function 1AH: Video Display Combination
+
+Caller registers:
+
+     AH    =    1AH
+
+Return video display combination:
+
+     AL    =    0
+
+     Returned values:
+     AL    =    1AH
+     BL    =    active display
+     BH    =    inactive display
+
+Set video display combination:
+
+     AL    =    1
+     BL    =    active display
+     BH    =    inactive display
+
+     Returned value:
+     AL    =    1AH
+
+Video Display Data Area update:
+
+     0040:008A  DCC byte
+
+     INT 10H function 1AH returns or updates the video BIOS video display
+     combination status. This status is represented in the DCC byte at
+     0040:008A in the Video Display Data Area. This byte contains an index
+     into the ROM BIOS Display Combination Code table, which contains a
+     list of byte pairs that specify valid combinations of one or two video
+     subsystems. Video subsystems are designated by the following values.
+
+     FFH       Unrecognized video subsystem
+       0        No display
+       1       MDA with monochrome display
+       2       CGA with color display
+       3       (reserved)
+       4       EGA with color display
+       5       EGA with monochrome display
+       6       Professional Graphics Controller
+       7       VGA with analog monochrome display
+       8       VGA with analog color display
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+       9       (reserved)
+     0AH       MCGA with digital color display
+     0BH       MCGA with analog monochrome display
+     0CH       MCGA with analog color display
+
+     AL = 0
+     When AL = 0 on the MCGA or the VGA, the video BIOS routine uses the
+     value in the DCC byte as an index into its Display Combination Code
+     table and copies the 2-byte table entry into BH and BL. If two video
+     subsystems are present, one subsystem must be monochrome and the other
+     color; the BIOS routine determines which is active by examining bits 4
+     through 5 of EQUIP_FLAG (0040:0010).
+
+
+     AL = 1
+     When AL = 1 on the MCGA or the VGA, the BIOS routine scans the Display
+     Combination Code table for the combination specified in BH and BL. If
+     the specified combination is found in the table, the DCC byte is
+     updated with the appropriate index into the table. If the specified
+     combination is not found, 0FFH is stored in the DCC byte.
+
+     When a valid value (0 or 1) is passed in AL, INT 10H function 1AH
+     returns with AL = 1AH.
+
+     The following sequence returns the display combination in registers BH
+     and BL.
+
+        mov  ax,1A00h               ; AH := 1AH (INT 10H function number)
+                                    ; AL := 0
+        int  10h
+        cmp  al,1AH
+        jne  ErrorExit              ; jump if function not supported
+                                    ; at this point BL = active display
+                                    ; BH = inactive display
+
+     If this sequence is executed on a PS/2 Model 30 with an analog
+     monochrome display attached to the MCGA and a monochrome display
+     attached to an MDA, the values returned are:
+
+      AL    =    1AH
+      BL    =    0BH  (active display = MCGA with analog monochrome)
+      BH    =      1  (inactive display = MDA with digital monochrome) 
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Function 1BH: Video BIOS Functionality/State Information
+
+Caller registers:
+
+     AH    =    1BH
+     BX    =    implementation type (must be 0)
+     ES:DI =    address of 64-byte buffer
+
+Returned values:
+
+
+     ES:DI =    buffer updated with function and state information
+     AL    =    1BH
+
+Video Display Data Area updates:
+
+    (none)
+
+     INT 10H function 1BH returns a table of video BIOS state information
+     on the MCGA and the VGA. The table contains dynamic information (shown
+     in Figure A-14) that is determined when function 1BH is invoked, as
+     well as static information (shown in Figure A-15) describing the
+     capabilities of the video BIOS itself.
+
+     The dynamic information is copied into the 64-byte buffer whose
+     address is passed to the BIOS routine in ES:DI. The 32-bit address of
+     the static information table is returned as bytes 0 through 3 of the
+     dynamic information table.
+
+     When called with BX = 0, INT 10H function 1BH always returns with
+     AL = 1BH.
+
+
+Offset    Data Type        Description
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+0         Dword            Address of static functionality table
+4         Byte             Video mode
+5         Word             Number of displayed character columns
+7         Word             Length of displayed portion of video buffer
+                             in bytes
+9         Word             Start address of upper left corner of video
+                             buffer
+0BH       16-byte array    Table of cursor locations (column, row) for
+                             eight video pages
+1BH       Byte             Cursor end line
+1CH       Byte             Cursor start line
+1DH       Byte             Active video page
+1EH       Word             I/O port for CRTC Address register
+20H       Byte             CRT_MODE_SET (current value of 3x8H register)
+21H       Byte             CRT_PALETTE (current value of 3x9H register)
+22H       Byte             Number of displayed character rows
+23H       Word             POINTS (height of displayed character matrix)
+25H       Byte             Active display combination code
+26H       Byte             Inactive display combination code
+27H       Word             Number of displayed colors (0 for monochrome)
+29H       Byte             Number of video pages supported
+2AH       Byte             Raster scan lines:
+                             0: 200 lines
+                             1: 350 lines
+                             2: 400 lines
+                             3: 480 lines
+2BH       Byte             Alphanumeric character table used when attribute
+                              bit 3 is 0 (VGA only)
+2CH       Byte             Alphanumeric character table used when attribute
+                             bit 3 is 1 (VGA only)
+2DH       Byte             Miscellaneous state information (bits are set
+                             to 1 if state is true)
+                           Bit 0: all modes active on all video subsystems
+                             (always 0 on MCGA)
+                           Bit 1: gray-scale summing enabled
+                           Bit 2: monochrome display attached
+                           Bit 3: default palette loading disabled
+                           Bit 4: cursor emulation enabled
+                           Bit 5: blinking attribute enabled
+                           (bits 6-7 reserved)
+2EH       Byte             (reserved)
+2FH       Byte             (reserved)
+30H       Byte             (reserved)
+31H       Byte             Video RAM available
+                             0: 64K
+                             1: 128K
+                             2: 192K
+                             3: 256K
+32H       Byte             Save area status (bits are set to 1 if state
+                             is true)
+                           Bit 0: two alphanumeric character sets are
+                             active (VGA only)
+                           Bit 1: dynamic save area is active
+                           Bit 2: alphanumeric character set override is
+                             active
+                           Bit 3: graphics character set override is active
+                           Bit 4: palette override is active
+                           Bit 5: display combination code extension is
+                             active
+                           (bits 6-7 reserved)
+33H through 3FH            (reserved)
+     Figure A-14.  Dynamic video state table returned by INT 10H
+     function 1BH.
+
+
+Offset    Data Type      Description
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+0         Byte           Video modes supported (bits = 1 if a mode is
+                           supported)
+                           Bit 0: mode 0
+                           Bit 1: mode 1
+                           Bit 2: mode 2
+                           Bit 3: mode 3
+                           Bit 4: mode 4
+                           Bit 5: mode 5
+                           Bit 6: mode 6
+                           Bit 7: mode 7
+1         Byte           Video modes supported (bits = 1 if a mode is
+                           supported)
+                           Bit 0: mode 8
+                           Bit 1: mode 9
+                           Bit 2: mode 0AH
+                           Bit 3: mode 0BH
+                           Bit 4: mode 0CH
+                           Bit 5: mode 0DH
+                           Bit 6: mode 0EH
+                           Bit 7: mode 0FH
+2         Byte           Video modes supported (bits = 1 if a mode is
+                           supported)
+                           Bit 0: mode 10H
+                           Bit 1: mode 11H
+                           Bit 2: mode 12H
+                           Bit 3: mode 13H
+                           Bit 4: (reserved)
+                           Bit 5: (reserved)
+                           Bit 6: (reserved)
+                           Bit 7: (reserved)
+3         Byte           (reserved)
+4         Byte           (reserved)
+5         Byte           (reserved)
+6         Byte           (reserved)
+7         Byte           Scan lines available in alphanumeric modes
+                           (bits = 1 if supported)
+                           Bit 0: 200 lines
+                           Bit 1: 350 lines
+                           Bit 2: 400 lines
+8         Byte           Maximum number of displayable alphanumeric
+                           character sets
+9         Byte           Number of available alphanumeric character
+                           definition tables in character generator RAM
+0AH       Byte           Miscellaneous video BIOS capabilities (bits = 1
+                           if available)
+                           Bit 0: all modes on all monitors (INT 10H
+                             function 0) (Note: This bit is always 0 on
+                             MCGA)
+                           Bit 1: gray-scale summing (INT 10H function 10H
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                             and 12H)
+                           Bit 2: character set loading (INT 10H function
+                             11H)
+                           Bit 3: default palette loading (INT 10H
+                             function 0)
+                           Bit 4: cursor emulation (INT 10H function 1)
+                           Bit 5: 64-color palette (INT 10H function 10H)
+                           Bit 6: video DAC loading (INT 10H function 10H)
+                           Bit 7: control of video DAC via Attribute
+                             Controller Color Select (INT 10H function 10H)
+0BH       Byte           Miscellaneous video BIOS capabilities (bits = 1
+                           if available)
+                           Bit 0: light pen support (INT 10H function 4)
+                           Bit 1: save/restore video state (INT 10H
+                             function 1CH)
+                           Bit 2: blinking/background intensity (INT 10H
+                             function 10H)
+                           Bit 3: Display Combination Code (INT 10H
+                             function 1AH)
+                           (bits 4-7 reserved)
+0CH       Byte           (reserved)
+0DH       Byte           (reserved)
+0EH       Byte           Save area capabilities
+                           Bit 0: multiple alphanumeric character sets
+                           Bit 1: dynamic save area
+                           Bit 2: alphanumeric character set override
+                           Bit 3: graphics character set override
+                           Bit 4: palette override
+                           Bit 5: Display Combination Code extension
+                           (bits 6-7 reserved)
+0FH       Byte           (reserved)
+     Figure A-15.  Static functionality table. This table's address is
+     returned by INT 10H function 1BH. The table describes the capabilities
+     of the ROM BIOS in the video subsystem.
+
+
+     The following sequence returns video BIOS state information in the
+     buffer whose address is passed in ES:DI.
+
+        mov     ax,1B00h                ; AH := 1BH (INT 10H function
+                                        ;         number)
+                                        ; AL := 0
+        mov     bx,0                    ; BX := 0 (Implementation type)
+        mov     di,seg StateTable
+        mov     es,di
+        mov     di,offset StateTable    ; ES:DI -> buffer
+        int     10h
+        cmp     al,1BH
+        jne     ErrorExit               ; jump if function not supported
+        .
+        .                               ; at this point StateTable contains
+        .                               ;  the dynamic information table
+StateTable db 64 dup(?)
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Function 1CH: Save or Restore Video State
+
+Caller registers:
+
+     AH    =    1CH
+
+Return save/restore buffer size:
+
+     AL    =    0
+     CX    =    requested states
+                Bit 0:       video hardware state
+                Bit 1:       video BIOS data areas
+                Bit 2:       video DAC state
+                Bits 3-0FH:  reserved
+
+     Returned values:
+     AL    =    1CH
+     BX    =    buffer size in 64-byte blocks
+
+Save requested state(s):
+
+     AL    =    1
+     CX    =    requested states (as above)
+     ES:BX =    buffer address
+
+Restore requested state(s):
+
+     AL    =    2
+     CX    =    requested states (as above)
+     ES:BX =    buffer address
+
+Video Display Data Area updates:
+
+     (see below)
+
+     INT 10H function 1CH, supported only on the VGA, lets you save and
+     restore the state of the video hardware and video ROM BIOS. INT 10H
+     function 1CH comprises three subfunctions selected by the value passed
+     in AL. For each subfunction, you must set the low-order three bits in
+     CX to indicate the combination of video subsystem states you wish to
+     save or restore. You must also pass the address of a save/restore
+     buffer in ES:BX whenever you use function 1CH to save or restore the
+     video state.
+
+
+     AL = 0
+     When AL = 0, function 1CH returns the size of the buffer required to
+     store the state information for states requested in CX. The value
+     returned in BX is in 64-byte blocks. 
+
+     Function 1CH returns AL = 1CH when called with AL = 0 and at least one
+     of the low-order three bits in CX set to 1.
+
+
+     AL = 1
+     When AL = 1, function 1CH copies the state information requested in CX
+     into the buffer whose address is passed in ES:BX.
+
+
+     AL = 2
+     When AL = 2, function 1CH restores the video hardware state, the BIOS
+     state, or both using information saved in the buffer whose address is
+     passed in ES:BX.
+
+     NOTE: The BIOS routine may modify the current video state as it
+     executes function 1CH. If you plan not to change the video state after
+     saving it with function 1CH, restore the video state immediately
+     afterward (using function 1CH with  AL = 2) to ensure that it isn't
+     inadvertently modified.
+
+     The following sequence runs under MS-DOS version 2.0 or later. It
+     calls MS-DOS INT 21H function 48H to allocate RAM for a save/restore
+     buffer. It then calls INT 10H function 1CH to save the current video
+     state.
+
+        mov  ax,1C00h               ; AH := 1CH (INT 10H function number)
+                                    ; AL := 0
+        mov  cx,111b                ; CX := 111b (all three video states)
+        int  10h
+        cmp  al,1Ch
+        jne  ErrorExit              ; jump if function not supported
+        shl  bx,1                   ; convert number of 64-byte blocks
+        shl  bx,1                   ;  to number of 16-byte blocks
+        mov  ah,48h                 ; AH := 48H (MS-DOS INT 21H function
+                                    ;        number)
+        int  21h                    ; AX := segment of allocated buffer
+        jc   ErrorExit              ; jump if error
+        mov  es,ax
+        xor  bx,bx                  ; ES:BX -> buffer
+        mov  cx,111b                ; CX := 111b (all three video states)
+        mov  ax,1C01h               ; AH := INT 10H function number
+                                    ; AL := 1
+        int  10h                    ; save video state in buffer
+
+
+
+                    Appendix B  Printing the Screen
+
+
+
+     Many computer users find it convenient to "snapshot" the current
+     contents of the video display. Although all members of the IBM PC and
+     PS/2 series come with a short ROM BIOS routine that dumps the contents
+     of the video buffer to a printer, you may need to write your own video
+     snapshot program to supplement the ROM routine. This appendix
+     discusses how to use the BIOS screen dump utility, as well as why and
+     how to write your own.
+
+
+Alphanumeric Modes
+
+
+     You invoke the motherboard ROM's alphanumeric screen dump routine by
+     executing software interrupt 5. (The ROM BIOS keyboard handler issues
+     this interrupt when you press Shift-PrtSc.) This routine copies the
+     contents of the currently displayed video page to the printer in
+     80-by-25 or 40-by-25 alphanumeric mode. The routine prints only the
+     ASCII character codes, ignoring the attribute bytes in the video
+     buffer.
+
+
+EGA, MCGA, VGA
+
+     The EGA, the MCGA, and the VGA ROM BIOS contain a more flexible
+     version of the INT 5 screen dump routine. That version uses the Video
+     Display Data Area value ROWS (0040:0084) to determine how many rows of
+     characters to print. (The motherboard ROM version always prints 25
+     rows.) An IBM PC/XT or PC/AT uses the motherboard version by default.
+     To make the EGA or VGA ROM BIOS routine accessible through interrupt
+     5, call INT 10H function 12H with BL = 20H. This points the interrupt
+     5 vector to the more flexible routine.
+
+
+Block Graphics Characters
+
+     Because most printers are designed to work with many different
+     computers, not just IBM PCs, manufacturers do not always design their
+     printers to print the same 256 ASCII characters that the video
+     hardware displays in alphanumeric modes. In particular, the characters
+     used for block graphics are not always available on PC-compatible
+     printers. These characters may print differently than they are
+     displayed or they may not print at all.
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+
+Graphics Modes
+
+
+     The ROM BIOS does not support screen dumps in graphics modes, so in
+     these modes you must use some other program to print the video
+     buffer's contents.
+
+
+GRAPHICS
+
+     GRAPHICS is a RAM-resident graphics-mode screen dump program that
+     Microsoft supplies as part of MS-DOS under the name GRAPHICS.COM or
+     GRAPHICS.EXE. This program establishes a memory-resident screen dump
+     program for CGA graphics modes (320-by-200 4-color and 640-by-200
+     2-color) when executed. The program uses an IBM- or Epson-compatible
+     dot-matrix printer for output.
+
+     The RAM-resident portion of GRAPHICS traps interrupt 5 and tests the
+     current video mode. If a graphics mode is active, it performs the
+     screen dump. Otherwise, the BIOS interrupt 5 routine gets control and
+     performs the alphanumeric-mode screen dump. Thus, once GRAPHICS.COM or
+     GRAPHICS.EXE has been executed, you can obtain a graphics-mode screen
+     dump by pressing Shift-PrtSc, just as you would in alphanumeric video
+     modes.
+
+
+Writing a Screen Dump Routine
+
+     If you want screen snapshots in native EGA, VGA, or MCGA graphics
+     modes or on a Hercules adapter, or if GRAPHICS produces unsatisfactory
+     output on your printer, you can write your own screen dump routine.
+     Listing B-1 is an example of a simple routine for CGA graphics modes.
+     ScreenDumpCGA can be incorporated into an assembly-language program or
+     a high-level-language program by calling it with the appropriate
+     register values and memory model. (See Chapter 13 for more on this
+     topic.) You might also build ScreenDumpCGA into a Terminate-but-Stay-
+     Resident program that, like GRAPHICS, chains into the interrupt 5
+     vector and executes whenever Shift-PrtSc is pressed.
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+     Listing B-1.  A simple screen dump routine for the
+     CGA.
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+     ScreenDumpCGA copies pixels from the video buffer into an inter-
+     mediate print buffer. It formats the print buffer so that its contents
+     can be sent directly to the printer (an Epson MX-80 in this example).
+     Since the video buffer can be accessed randomly, ScreenDumpCGA reads
+     pixels from it in an order that is conveniently transmitted to the
+     printer.
+
+     The heart of ScreenDumpCGA is the subroutine TranslatePixels. This
+     routine maps pixels from the video buffer into the print buffer. In
+     this example, the routine is short and fast, because it uses a simple
+     transformation to convert video buffer pixels to printer pixels.
+     Because the Epson MX-80 prints vertically oriented groups of pixels
+     (see Figure B-1), the easiest way to print an image from  the
+     horizontally mapped video buffer is to rotate it by 90 degrees.
+
+     To customize ScreenDumpCGA, concentrate on how best to map pixels from
+     the video buffer to your printer. Change the TranslatePixels routine
+     to scale or rotate the pixels differently, or modify ScreenDumpCGA to
+     change the order in which the contents of the video buffer are copied
+     to the printer.
+
+
+              * ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+              * ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ³
+              * ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ³  ³
+     Printed  * ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ³  ³  ³
+     pixels   * ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ³  ³  ³  ³
+              * ÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ³  ³  ³  ³  ³
+              * ÄÄÄÄÄÄÄÄÄÄ¿  ³  ³  ³  ³  ³  ³
+              * ÄÄÄÄÄÄÄ¿  ³  ³  ³  ³  ³  ³  ³
+                        ³  ³  ³  ³  ³  ³  ³  ³
+                        ³  ³  ³  ³  ³  ³  ³  ³
+                        0  1  2  3  4  5  6  7 ÄÄÄÄÄÄÄÄBit number
+
+     Figure B-1.  Pixel mapping for a typical dot-matrix graphics printer.
+     As the print head moves across the page, it prints eight rows of
+     pixels at a time. Each byte of data transmitted to the printer
+     controls 8 vertical pixels as shown.
+
+
+     For example, you could modify ScreenDumpCGA and TranslatePixels  to
+     dump the contents of the EGA or VGA video buffer in 640-by-350 16-
+     color mode as in Listing B-2. The modified routine prints all nonzero
+     pixels in the video buffer as black dots. Note how the Graphics
+     Controller's read mode 1 simplifies this task in TranslatePixels.
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+     Listing B-2.  An EGA screen printing routine.
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+RAM-Based Alphanumeric Character Definitions
+
+     You can also modify the graphics-mode screen dump routine to print
+     RAM-based characters used in alphanumeric modes on the EGA, MCGA, VGA,
+     HGC+, and InColor Card. The technique is to use the character codes
+     stored in the displayed portion of the video buffer to index the bit
+     patterns in character definition RAM. The bit pattern that defines
+     each character can then be used as a dot pattern for the printer.
+
+     As an example, Listing B-3 shows how this can be done for the
+     characters defined in the default character definition table in memory
+     map 2 on the EGA or VGA. The routine prints each column of characters
+     in the video buffer by filling the buffer (PrintBuf) with the bit
+     patterns that define each of the characters. Memory map 0 (containing
+     the character codes) and map 2 (containing the character definitions)
+     are addressed separately in the subroutine TranslatePixels by
+     programming the Sequencer and Graphics Controller as discussed in
+     Chapter 10.
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+     Listing B-3.  Using RAM-based character definition tables to print
+     the character set.
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+
+                Appendix C  Identifying Video Subsystems
+
+
+
+     Programs need to determine the configuration of the video hardware on
+     which they are run for two reasons. One is to maintain portability. A
+     program that recognizes the video subsystems in the computer in which
+     it runs can adapt itself to specific hardware configurations. Imagine,
+     for example, a program that displays both text and graphics images.
+     This program could display text and graphics on a single screen in a
+     computer with only one video subsystem, but it could also take full
+     advantage of a dual-display configuration by placing text on one
+     screen and graphics on the other.
+
+     Another reason to enable a program to examine its video hardware
+     environment is to allow use of the fastest possible video output
+     routines. For example, if your program runs in an alphanumeric mode on
+     a CGA, you may need to avoid snow by synchronizing with the CRT
+     Controller's timing signals. However, this overhead can be avoided if
+     the program is running on some other video subsystem. If your program
+     "knows" that it's not running on a CGA, it can use faster video output
+     routines that omit the overhead of avoiding snow.
+
+
+CGA and Clones
+
+
+     Unfortunately, for Color Graphics Adapters and clones, no reliable way
+     exists to determine whether the hardware manages conflicts over video
+     buffer memory access without display interference (see Chapter 3). If
+     your program must run on  a CGA, you might wish to ask the user to
+     configure your alphanumeric output routines by testing whether or not
+     they produce snow.
+
+     You can also detect whether your program is running on a CGA work-
+     alike that does not have the alphanumeric snow problem. If you know
+     that your program may run on a CGA work-alike such as the video
+     hardware built into a COMPAQ or an AT&T 6300, you can search the ROM
+     BIOS for a string indicating the name of the computer, for example,
+     "COMPAQ". You might also inspect the ROM BIOS ID byte at F000:FFFE to
+     determine whether your program is running on a member of the IBM PC
+     family that does not have the snow problem (such as the PCjr).
+
+
+Other Video Adapters
+
+
+     Although determining whether a particular CGA or clone has a problem
+     with alphanumeric snow can be hard, distinguishing among the various
+     common IBM video adapters is relatively easy. Some of the techniques
+     described in this appendix rely on serendipitous peculiarities of
+     different adapters' firmware or hardware, but all are based on IBM and
+     Hercules recommendations.
+
+
+PS/2s
+
+
+     On the PS/2s, INT 10H function 1AH lets you determine which video
+     subsystems are present and active in the computer (see Appendix A). Of
+     course, the PS/2 video BIOS does not recognize non-IBM video adapters.
+     For example, if you use a Hercules adapter in a PS/2 Model 30, a
+     call to INT 10H function 1AH returns only the information that
+     an MDA-compatible adapter is present in the system. Identifying
+     the adapter is then up to you.
+
+     VideoID, the routine in Listing C-1, detects the presence of either
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+     one or two adapters. If two adapters are present, VideoID indicates
+     which is active (that is, which one the BIOS is currently using for
+     output). The techniques used to identify each adapter are described in
+     the listing.
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+     Listing C-1.  A routine to identify PC and PS/2 video
+     subsystems.
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+     The VideoID routine checks for adapters by a process of elimination.
+     For example, if the routine is run on a PS/2, the INT 10H call returns
+     the desired information. On PC/XTs and PC/ATs, if an EGA with a
+     monochrome display is detected, there is no reason to look for an MDA
+     or a Hercules card in the same system. If a monochrome adapter is
+     present, the routine differentiates between the MDA and the various
+     Hercules adapters.
+
+       ÉÍÍÍ»     INT 10H function 1AH on the VGA adapter fails to report 
+       º T º     the presence of the MCGA when the adapter is installed in
+       º I º     a PS/2 Model 30. Also, function 1AH in the MCGA ignores
+       º P º     the presence of an EGA if one is installed in a Model 30.
+       ÈÍÍÍ¼     If you are concerned about these combinations, you must
+                 test for them explicitly after you call INT 10H function
+                 1AH. (In the first situation, inspect the motherboard BIOS
+                 identfication byte at F000:FFFE to detect the presence of
+                 a Model 30. In the second situation, execute INT 10H
+                 function 12H with BL = 10H to detect the presence of an
+                 EGA.)
+
+     The C program in Listing C-2 demonstrates how you might use VideoID.
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+     Listing C-2.  Calling VideoID from a C program.
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+
+Glossary
+
+
+     This glossary includes some of the acronyms, abbreviations, buzzwords,
+     engineering terms, and programming jargon that appear frequently
+     throughout this book.
+
+     80x86: Refers to all the processors in the Intel 8086 family. The IBM
+     PCs and PS/2s all use one of these processors: 8086, 8088, 80286, or
+     80386.
+
+     active display: In a computer that contains two video subsystems and
+     displays, the display to which a program sends its output.
+
+     adapter: A modular, plug-in circuit that performs a specialized task
+     such as generating video output. Well-known IBM PC video adapters
+     include the MDA, CGA, HGC, EGA, and VGA Adapter.
+
+     ANSI: American National Standards Institute. One of ANSI's many
+     activities is to certify the standardization of programming tools,
+     including languages (such as C and FORTRAN) and software interfaces
+     (such as GKS).
+
+     APA: All Points Addressable; describes graphics modes on the CGA, EGA,
+     and Hercules graphics cards.
+
+     API: Application Program Interface; a set of system-level routines
+     that can be used in an application program for basic input and output,
+     file management, and so on. In a graphics-oriented operating
+     environment like Microsoft Windows, high-level support for video
+     graphics output is part of the API.
+
+     ASCII: American Standard Code for Information Interchange. The ASCII
+     standard specifies the basic character set used in IBM PCs and PS/2s.
+
+     aspect ratio: The ratio of a video screen's width to its height. A
+     typical IBM PC display has an aspect ratio of about 4:3. This term is
+     also frequently used to describe pixels: If you think of a pixel as
+     being rectangular, its aspect ratio would be the ratio of its width to
+     height.
+
+     attributes: Color, intensity, blinking, and other displayed
+     characteristics of characters or pixels.
+
+     BIOS: Basic Input/Output System; a low-level programming interface to
+     the system's major I/O devices.
+
+     bit plane: Video RAM containing formatted graphics data. In IBM video
+     subsystems up to four bit planes can be addressed in parallel, with
+     pixel values represented by the bits at corresponding locations in the
+     bit planes.
+
+     CGA: IBM's Color Graphics Adapter.
+
+     character code: A numeric code associated with a character. The
+     default ASCII character set used in all PCs and PS/2s comprises 256
+     8-bit character codes.
+
+     character matrix: The rectangular array of pixels in which characters
+     are displayed on the screen. On IBM's Monochrome Display Adapter, each
+     character is displayed in a character matrix that is 9 dots wide and
+     14 dots high. On the Color Graphics Adapter, the character matrix is 8
+     by 8.
+
+     character set: A set of alphabetic and numeric characters and symbols.
+
+     clipping: The process of determining which portions of a graphics
+     image lie within a specified boundary.
+
+     code page: A character set designed for use with computers. Each
+     character in a code page is associated with a numeric code (such as an
+     ASCII or EBCDIC code).
+
+     CPU: Central Processing Unit, or the main processor in a computer. For
+     example, the CPU is an Intel 8088 in PCs and an 80286 in PC/ATs.
+
+     CRT: Cathode Ray Tube, or the picture tube you see when you look at
+     your computer monitor. Some people refer to the entire monitor (the
+     tube and its associated circuitry) as a CRT.
+
+     CRTC: CRT Controller; a chip that controls a video display's timing
+     signals.
+
+     DGIS: Direct Graphics Interface Specification; a firmware graphics
+     interface designed for video subsystems based on hardware graphics
+     coprocessors.
+
+     display: A video monitor.
+
+     driver: Software or firmware that directly programs a specific
+     hardware unit such as a video adapter or a printer.
+
+     EBCDIC: Extended Binary Coded Decimal Interchange Code; the character-
+     set implementation used on IBM mainframe computers.
+
+     EGA: Enhanced Graphics Adapter.
+
+     font: A description of the style and shapes of the characters in a
+     character set.
+
+     gate array: An integrated circuit that is partly prefabricated in its
+     manufacture. An application-specific integrated circuit based on gate
+     array technology can be less expensive and manufactured more rapidly
+     than a custom integrated circuit.
+
+     GKS: Graphical Kernel System; a standard high-level graphics
+     interface.
+
+     HGC: Hercules monochrome Graphics Card.
+
+     HGC+ (HGC Plus): Hercules Graphics Card Plus; a monochrome video
+     adapter like the HGC, but with a hardware character generator that
+     can use RAM-based character sets.
+
+     InColor: Hercules InColor Card; a 16-color version of the HGC+.
+
+     latch: A hardware register external to the CPU and used for transient
+     storage of data. For example, the EGA Graphics Controller uses four
+     internal 8-bit latches to mediate data transfers between the bit
+     planes and the CPU.
+
+     LSI: Large Scale Integration.
+
+     MCGA: Multi-Color Graphics Array; the video subsystem integrated into
+     the PS/2 Model 30. Also, Memory Controller Gate Array, one of the
+     components of the Model 30's video subsystem.
+
+     MDA: IBM's Monochrome Display Adapter.
+
+     MDPA: Monochrome Display and Printer Adapter; same as an MDA.
+
+     monitor: The hardware that displays your computer's video output;
+     comprises a CRT (cathode ray tube) and associated circuitry.
+
+     MPA: Monochrome/Printer Adapter; same as an MDA.
+
+     palette: A range of colors that can be displayed by a video subsystem.
+
+     pel: A pixel.
+
+     PGA: Professional Graphics Adapter; another name for IBM's PGC.
+
+     PGC: IBM's Professional Graphics Controller.
+
+     pixel: One dot or point in an image that is composed of a matrix of
+     dots or points. The image on the video screen or on a page printed by
+     a dot-matrix printer is composed of a large number of pixels. (The
+     word "pixel" is a rough acronym for "picture element.")
+
+     planar BIOS: BIOS routines found in ROM on the IBM PC or PS/2
+     motherboard.
+
+     PS/2: Personal System/2.
+
+     PS/2 Display Adapter: A VGA-compatible IBM video adapter that may be
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+     used in a PC/XT, PC/AT, or PS/2 Model 30; commonly called "VGA
+     Adapter."
+
+     raster: The group of closely spaced horizontal scan lines that makes
+     up a displayed video image.
+
+     RGB: Red, Green, Blue; the three primary colors displayed by the
+     monitors used in PC and PS/2 video subsystems. All other colors are
+     blends of these three primaries. Video displays that are driven by
+     separate red, green, and blue signals are often called RGB displays.
+
+     scan line: One horizontal line traced across the screen by a CRT's
+     electron beam.
+
+     VDI: Computer Graphics Virtual Device Interface; a proposed ANSI
+     standard high-level graphics interface. The Graphics Development
+     Toolkit (GDT) sold by IBM and Graphics Software Systems is a
+     commercial implementation of VDI.
+
+     VGA: Video Graphics Array. People refer to the video subsystem
+     integrated into the PS/2 Models 50, 60, and 80, as well as the IBM
+     PS/2 Display Adapter, as the "VGA." Strictly speaking, however, the
+     VGA is the circuitry in the video subsystem that performs the tasks of
+     the CRT Controller, the Sequencer, the Graphics Controller, and the
+     Attribute Controller. Most of this circuitry is contained in a single
+     VLSI chip.
+
+     VGA Adapter: The IBM PS/2 Display Adapter.
+
+     video buffer: A buffer that contains the data that appears on the
+     video display; variously known as a "display buffer," "frame buffer,"
+     "refresh buffer," or "regenerative buffer."
+
+     Video Control Data Area: Part of the Video Display Data Area. The
+     block of RAM from 0040:0049 through 0040:0066 is Video Control Data
+     Area 1; the block between 0040:0084 and 0040:008A is Video Control
+     Data Area 2.
+
+     Video Display Data Area: A global data area maintained by the ROM BIOS
+     for storage of parameters related to its INT 10H video I/O routines.
+
+     VLSI: Very Large Scale Integration.
+
+
+
+     Richard Wilton
+
+
+     Richard Wilton has been programming computers since the late
+     1960s. He has written systems software and graphics applications in
+     FORTRAN, Pascal, C, Forth, and assembly language. His articles and
+     reviews have appeared in several computer publications, including
+     BYTE, Computer Language, and The Seybold Outlook on Professional
+     Computing. Wilton lives in Los Angeles, California.
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 1-1.  SetVmode().
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 1-1'
+                NAME    SetVmode
+                PAGE    55,132
+
+;
+; Name:         SetVmode
+;
+; Function:     Call IBM ROM BIOS to set a video display mode.
+;
+; Caller:       Microsoft C:
+;
+;                       void SetVmode(n);
+;
+;                       int n;                  /* video mode */
+;
+
+ARGn            EQU     byte ptr [bp+4] ; stack frame addressing
+
+EQUIP_FLAG      EQU     byte ptr ds:[10h]
+
+CGAbits         EQU     00100000b       ; bits for EQUIP_FLAG
+MDAbits         EQU     00110000b
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  _SetVmode
+_SetVmode       PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    ds
+
+                mov     ax,40h
+                mov     ds,ax           ; DS -> Video Display Data Area
+
+                mov     bl,CGAbits      ; BL := bits indicating presence
+                                        ;  of CGA
+
+                mov     al,ARGn         ; AL := desired video mode number
+
+                mov     ah,al          ; test if desired mode is monochrome
+                and     ah,7
+                cmp     ah,7
+                jne     L01             ; jump if desired mode not 7 or 0Fh
+
+                mov     bl,MDAbits      ; BL := bits indicating presence
+                                        ;  of MDA
+
+L01:            and     EQUIP_FLAG,11001111b
+                or      EQUIP_FLAG,bl   ; set bits in EQUIP_FLAG
+
+                xor     ah,ah           ; AH := 0 (INT 10h function number)
+
+                push    bp
+                int     10h           ; call ROM BIOS to set the video mode
+                pop     bp
+
+                pop     ds              ; restore caller registers & return
+                mov     sp,bp
+                pop     bp
+                ret
+
+_SetVmode       ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 1-2.  GetVmode().
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 1-2'
+                NAME    GetVmode
+                PAGE    55,132
+
+;
+; Name:         GetVmode
+;
+; Function:     Call IBM ROM BIOS to set a video display mode.
+;
+; Caller:       Microsoft C:
+;
+;                       int     GetVmode();
+;
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  _GetVmode
+_GetVmode       PROC    near
+
+                push    bp         ; preserve caller registers
+                mov     bp,sp
+
+                mov     ah,0Fh     ; AH := 0Fh (INT 10h function number)
+
+                push    bp
+                int     10h        ; call ROM BIOS to get video mode number
+                pop     bp
+
+                xor     ah,ah      ; AX := video mode number
+
+                mov     sp,bp
+                pop     bp
+                ret
+
+_GetVmode       ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 1-3.  A C program based on SetVmode().
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+/* Listing 1-3 */
+
+main( argc, argv )
+int     argc;
+char    **argv;
+{
+      int     ModeNumber;
+      void    SetVmode();
+
+
+      if (argc != 2)                  /* verify command line syntax */
+      {
+        printf( "\nSyntax:  SETVMODE n\n" );
+        exit( 1 );
+      }
+
+      sscanf( argv[1], "%x", &ModeNumber ); /* get desired mode number */
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+      SetVmode( ModeNumber );               /* call ROM BIOS via INT 10h */
+}
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 1-4.  A C program based on GetVmode().
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+/* Listing 1-4 */
+
+main()
+{
+        int     GetVmode();
+        return( GetVmode() );
+}
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 1-5.  Microsoft C's int86() function.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+/* Listing 1-5 */
+
+#include        "dos.h"
+
+main()
+{
+        struct  BYTEREGS regs;     /* BYTEREGS defined in dos.h */
+
+
+        regs.ah = 0x0F;            /* AH=0x0F (ROM BIOS function number) */
+
+        int86( 0x10, &regs, &regs );  /* perform interrupt 10h */
+
+        return( (int)regs.al );
+}
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 2-1.  Reading the 6845 Cursor Location registers.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     ax,40h
+        mov     es,ax                ; ES := video BIOS data segment
+        mov     dx,es:[63h]          ; DX := 3x4h (3B4h or 3D4h)
+
+        mov     al,0Eh
+        out     dx,al                ; select 6845 Cursor Location
+                                     ;  High register
+        inc     dx
+        in      al,dx                ; read selected register at 3x5h
+        mov     ah,al                ; AH := high byte of cursor
+                                     ;  location
+        dec     dx
+        mov     al,0Fh
+        out     dx,al                ; select Cursor Location Low register
+
+        inc     dx
+        in      al,dx                ; AX := offset of cursor relative
+                                     ;  to start of video buffer
+
+; convert to character row and column
+
+        mov     dx,es:[4Eh]          ; DX := CRT_START (buffer start offset
+                                     ;  in bytes)
+        shr     dx,1                 ; convert to words
+        sub     ax,dx                ; subtract from cursor offset
+        div     byte ptr es:[4Ah]    ; divide by CRT_COLS
+        xchg    ah,al                ; AH := row, AL := column
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 2-2.  Timing the horizontal blanking interval on the CGA
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 2-2'
+                NAME    HRTimeout
+                PAGE    55,132
+
+;
+; Name:         HRTimeout
+;
+; Function:     Determine a timeout value for horizontal blanking interval
+;
+; Caller:       Microsoft C:
+;
+;                       int HRTimeout();
+;
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  _HRTimeout
+_HRTimeout      PROC    near
+
+                push    bp           ; usual C prologue to establish
+                mov     bp,sp        ;  stack frame
+
+                mov     ax,40h
+                mov     es,ax        ; ES := video BIOS data segment
+
+                mov     dx,es:[63h]  ; DX := port for CRTC Address register
+                add     dl,6         ; DX := port for CRTC Status register
+
+; synchronize with start of refresh cycle
+
+L01:            in      al,dx        ; AL := CRTC status
+                test    al,8         ; test bit 3
+                jz      L01          ; loop while NOT in vertical retrace
+
+L02:            in      al,dx
+                test    al,8
+                jnz     L02          ; loop during vertical retrace
+
+; synchronize with a horizontal scan and time the horizontal blanking
+;  interval
+
+                mov     cx,0FFFFh    ; CX := loop counter
+
+                cli                  ; disable interrupts
+
+L03:            in      al,dx
+                test    al,1
+                jnz     L03          ; loop while Display Enable is
+                                     ;  inactive
+
+L04:            in      al,dx
+                test    al,1
+                jz      L04          ; loop while Display Enable is active
+
+L05:            in      al,dx
+                test    al,1
+                loopnz  L05          ; decrement CX and loop while Display
+                                     ;  Enable is inactive
+
+                sti                  ; enable interrupts again
+
+                mov     ax,cx        ; AX := loop counter
+                neg     ax
+                shl     ax,1         ; AX := timeout value
+
+                mov     sp,bp        ; discard stack frame and return to C
+                pop     bp
+                ret
+
+_HRTimeout      ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 2-3.  Updating the EGA or VGA Attribute Controller 
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; program the Attribute Controller directly
+
+        mov     ax,40h
+        mov     es,ax                ; ES := video BIOS data segment
+        mov     dx,es:[63h]          ; DX := 3x4h (3B4h or 3D4h)
+        add     dl,6                 ; DX := 3xAh (CRT Status Register)
+
+        cli                          ; clear the interrupts
+        in      al,dx                ; reset Attribute Controller flip-flop
+        push    dx                   ; preserve Status Reg port
+
+        mov     dl,0C0h              ; DX := 3C0h
+        mov     al,RegNumber
+        out     dx,al                ; write to Address Register
+        jmp     $+2                  ; waste a few cycles so that Attribute
+                                     ;  Controller can respond
+        mov     al,DataValue
+        out     dx,al                ; write to data register
+
+        pop     dx                   ; DX := 3xAh
+        in      al,dx                ; reset that flip-flop
+        mov     dl,0C0h
+        mov     al,20h               ; restore palette
+        out     dx,al
+        sti                          ; enable interrupts
+
+
+; using the video BIOS
+
+        mov     ax,1000h             ; AH := 10h (INT 10h function number)
+                                     ; AL := 0 (Set individual Attribute
+                                     ;  Controller register)
+        mov     bl,RegNumber
+        mov     bh,DataValue
+        int     10h
+
+
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 2-4.  Configuring a Hercules adapter for 720-by-348 graphics mode
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 2-4'
+                NAME    HercGraphMode
+                PAGE    55,132
+
+;
+; Name:         HercGraphMode
+;
+; Function:     Establish Hercules 720x348 graphics mode on HGC, HGC+,
+;                InColor
+;
+; Caller:       Microsoft C:
+;
+;                               void HercGraphMode();
+;
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                PUBLIC  _HercGraphMode
+_HercGraphMode  PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    si
+                push    di
+
+; Update Video BIOS Data Area with reasonable values
+
+                mov     ax,40h
+                mov     es,ax
+                mov     di,49h          ; ES:DI := 0040:0049 (BIOS data
+                                        ;  area)
+
+                mov     si,offset DGROUP:BIOSData
+                mov     cx,BIOSDataLen
+                rep     movsb           ; update BIOS data area
+
+; Set Configuration Switch
+
+                mov     dx,3BFh         ; DX := Configuration Switch port
+                mov     al,1            ; AL bit 1 := 0 (exclude 2nd 32K of
+                                        ;                 video buffer)
+                                       ; AL bit 0 := 1 (allow graphics mode
+                out     dx,al          ;                setting via 3B8h)
+
+; Blank the screen to avoid interference during CRTC programming
+
+                mov     dx,3B8h     ; DX := CRTC Mode Control register port
+                xor     al,al       ; AL bit 3 := 0 (disable video signal)
+                out     dx,al       ; blank the screen
+
+; Program the CRTC
+
+                sub     dl,4        ; DX := CRTC Address reg port 3B4h
+
+                mov     si,offset DGROUP:CRTCParms
+                mov     cx,CRTCParmsLen
+
+L01:            lodsw               ; AL := CRTC register number
+                                    ; AH := data for this register
+                out     dx,ax
+                loop    L01
+
+; Set graphics mode
+
+                add     dl,4        ; DX := 3B8h (CRTC Mode Control reg)
+                mov     al,CRTMode  ; AL bit 1 = 1 (enable graphics mode)
+                                    ;    bit 3 = 1 (enable video)
+                out     dx,al
+
+                pop     di          ; restore registers and exit
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_HercGraphMode  ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+                                ; These are the parameters recommended by
+                                ;  Hercules.
+                                ; They are based on 16 pixels/character and
+                                ;  4 scan lines per character.
+
+CRTCParms       DB      00h,35h ; Horizontal Total:  54 characters
+                DB      01h,2Dh ; Horizontal Displayed:  45 characters
+                DB      02h,2Eh ; Horizontal Sync Position:  at 46th
+                                ;  character
+                DB      03h,07h ; Horizontal Sync Width:  7 character
+                                ;  clocks
+
+                DB      04h,5Bh ; Vertical Total:  92 characters
+                                ;  (368 lines)
+                DB      05h,02h ; Vertical Adjust:  2 scan lines
+                DB      06h,57h ; Vertical Displayed:  87 character rows
+                                ;  (348 lines)
+                DB      07h,57h ; Vertical Sync Position:  after 87th char
+                                ;  row
+                DB      09h,03h ; Max Scan Line:  4 scan lines per char
+
+CRTCParmsLen    EQU     ($-CRTCParms)/2
+
+BIOSData        DB      7       ; CRT_MODE
+                DW      80      ; CRT_COLS
+                DW      8000h   ; CRT_LEN
+                DW      0       ; CRT_START
+                DW      8 dup(0) ; CURSOR_POSN
+                DW      0       ; CURSOR_MODE
+                DB      0       ; ACTIVE_PAGE
+CRTCAddr        DW      3B4h    ; ADDR_6845
+CRTMode         DB      0Ah     ; CRT_MODE_SET (value for port 3B8h)
+                DB      0       ; CRT_PALETTE (unused)
+
+BIOSDataLen     EQU     $-BIOSData
+
+_DATA           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 2-5.  Enable or disable video I/O port and buffer addressing
+              on an MCGA or VGA.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     ah,12h                ; AH := 12h (INT 10h function number)
+        mov     al,1                  ; AL := 1 (disable addressing)
+                                      ; (use AL = 0 to enable addressing)
+        mov     bl,32h                ; INT 10H subfunction number
+        int     10h
+
+        cmp     al,12h
+        jne     ErrorExit             ; jump if BIOS does not support this
+                                      ;  function
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-1.  Resetting the Enable Blink bit on the MDA or CGA.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     ax,40h
+        mov     es,ax           ; ES := video BIOS data segment
+        mov     dx,es:[63h]     ; DX := 3B4h (MDA) or
+                                ;  3D4h (CGA) from ADDR_6845
+        add     dl,4            ; DX := 3x8h (CRT Mode Control reg)
+        mov     al,es:[65h]     ; AL := current value of reg (CRT_MODE_SET)
+        and     al,11011111b    ; zero bit 5
+        out     dx,al           ; update the register
+        mov     es:[65h],al     ; update the BIOS data area
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-2.  Setting and resetting the Enable Blink bit on
+              the MCGA, EGA, or VGA.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     bl,0                    ; BL := value for Enable Blink bit
+        mov     ax,1003h                ; AH := INT 10H function number
+                                        ; AL := subfunction number
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-3.  Palette register programming on the EGA or VGA.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; updating apalette register directly:
+
+        mov     ax,40h
+        mov     es,ax                  ; ES := video BIOS data segment
+        mov     dx,es:[63h]            ; DX := CRTC address reg (3x4h)
+        add     dl,6                   ; DX := Status reg (3xAh)
+        push    dx                     ;preserve this value
+        cli
+        in      al,dx                  ; reset Attribute Controller address
+                                       ;  flip-flop
+        mov     dl,0C0h                ; DX := 3C0h
+        mov     al,PaletteRegNumber
+        out     dx,al                  ; update one palette register
+        mov     al,PaletteRegValue
+        out     dx,al
+        pop     dx                     ; DX := Status register port
+        in      al,dx                  ; reset the flip-flop
+        mov     dl,0C0h
+        mov     al,20h
+        out     dx,al                  ; set bit 5 of
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                                       ;  Attribute Controller address reg
+        sti
+
+
+; updating a palette register using the video BIOS
+
+        mov     bl,PaletteRegNumber
+        mov     bh,PaletteRegValue
+        mov     ax,1000h               ; AH := INT 10H function number
+                                       ; AL := subfunction number
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-4.  InColor Exception register programming.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     ax,0017h          ; AH bit 5 := 0 (disable
+                                  ;  monochrome attributes)
+                                  ; AH bit 4 := 0 (disable palette)
+                                  ; AH bits 0-3 := 0 (default cursor color)
+                                  ; AL := 17h (Exception Register number)
+        mov     dx,3B4h           ; DX := I/O port
+        out     dx,ax
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-5.  InColor palette register programming.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     dx,3B4h               ; DX := CRTC address register
+        mov     al,1Ch                ; AL := 1Ch (Palette Register number)
+        out     dx,al
+        inc     dx                    ; DX := 3B5h
+        in      al,dx                 ; reset palette register index
+
+        mov     si,offset PaletteTable ; DS:SI ->Palette Table
+        mov     cx,16                 ; CX := number of palette registers
+L01:    lodsb                         ; AL := next byte from table
+        out     dx,al                 ; update next palette reg
+        loop    L01
+        .
+        .
+        .
+PaletteTable    db     00h,01h,02h,03h,04h,05h,06h,07h ;palette regs 0-7
+                db     38h,39h,3Ah,3Bh,3Ch,3Dh,3Eh,3Fh ;palette regs 8-0Fh
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-6.  Loading an alternative MCGA monochrome gray-scale palette.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     bx,0Fh                 ; BX := first video DAC
+                                       ;  Color register number
+        mov     di,offset VDACTable    ; DS:DI ->table
+
+L01:    mov     dh,[bx+di]             ; DH := red value
+        mov     ch,dh
+        mov     cl,dh                  ; green and blue values are the same
+        mov     ax,1010h               ; AH := INT 10h function number
+                                       ; AL := subfunction number
+        int     10h
+        dec     bx
+        jns     L01                    ; loop from register 0FH through
+                                       ;  register 0
+        .
+        .
+        .
+VDACTable       db      00h,05h,08h,0Bh,0Eh,11h,14h,18h
+                db      1Ch,20h,24h,28h,2Dh,32h,38h,3Fh
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-7.  Loading an alternative VGA monochrome gray-scale palette.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     bx,0Fh                ; BX := first Palette register number
+        mov     di,offset VDACTable   ; DS:DI -> table
+
+L01:    mov     dh,[bx+di]            ; DH := red value
+        mov     ch,dh
+        mov     cl,dh                 ; green and blue values are the same
+
+        push    bx                    ; preserve Palette register number
+        mov     ax,1007h              ; AH := INT 10h function number
+                                      ; AL := subfunction number 
+                                      ;  (read Palette register)
+        int     10h                   ; BH := Palette register value
+        mov     bl,bh
+        xor     bh,bh                 ; BX := desired video DAC 
+                                      ; Color register number
+
+        mov     ax,1010h              ; AH := INT 10h function number
+                                      ; AL := subfunction number
+        int     10h
+        pop     bx
+        dec     bx                    ; BX := next Palette register number
+        jns     L01                   ; loop from Palette registers 
+                                      ;  0FH through 0
+        .
+        .
+        .
+VDACTable       db      00h,05h,08h,0Bh,0Eh,11h,14h,18h
+                db      1Ch,20h,24h,28h,2Dh,32h,38h,3Fh
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-8.  Setting a border color.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; updating the CRT Color Register directly (CGA only)
+
+        mov     ax,40h
+        mov     es,ax                   ; ES := video BIOS data segment
+        mov     dx,es:[63h]             ; DX := 3D4H (ADDR_6845)
+        add     dl,5                    ; DX := 3D9H (CRT Color Select reg)
+        mov     al,es:[66h]             ; AL := current value of reg 
+                                        ;  (CRT_PALETTE)
+        and     al,11110000b            ; zero bits 0-3
+        or      al,BorderValue          ; update bits 0-3
+        out     dx,al                   ; update the register
+        mov     es:[66h],al             ; update the BIOS data area
+
+
+; using the video BIOS interface (CGA, EGA, VGA)
+
+        mov     bl,BorderValue
+        mov     bh,0                    ; BH := subfunction number
+        mov     ah,0Bh                  ; AH := INT 10h function number
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-9.  Display alphanumeric text on the CGA by blanking the display.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 3-9'
+                NAME    DisplayText
+                PAGE    55,132
+
+;
+; Name:         DisplayText
+;
+; Function:     Display an alphanumeric string without interference on the
+;                CGA
+;
+; Caller:       Microsoft C:
+;
+;                       int DisplayText1(buf,n,offset);
+;
+;                       char *buf;           /* buffer containing text in
+;                                               CGA alphanumeric format
+;                                               (alternating character 
+;                                               codes and attribute 
+;                                               bytes) */
+;
+;                       int n;               /* buffer length in bytes */
+;
+;                       unsigned int offset; /* offset into video buffer */
+;
+
+Set80X25        EQU     (1 SHL 0)       ; bit masks for Mode Control 
+                                        ;  Register
+Set320X200      EQU     (1 SHL 1)
+BlackAndWhite   EQU     (1 SHL 2)
+EnableVideo     EQU     (1 SHL 3)
+Set640X200      EQU     (1 SHL 4)
+EnableBlink     EQU     (1 SHL 5)
+
+ARGbuf          EQU     word ptr [bp+4] ; stack frame addressing
+ARGn            EQU     word ptr [bp+6]
+ARGoffset       EQU     word ptr [bp+8]
+TIMEOUT         EQU     6               ; Horizontal timeout loop limit
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  _DisplayText
+_DisplayText    PROC    near
+
+                push    bp              ; usual C prologue to establish
+                mov     bp,sp           ;  stack frame and preserve 
+                                        ;  registers
+                push    di
+                push    si
+
+                mov     ax,0B800h
+                mov     es,ax
+                mov     di,ARGoffset    ; ES:DI -> destination in video 
+                                        ;  buffer
+                mov     si,ARGbuf       ; DS:SI -> source buffer
+                mov     bx,ARGn
+                shr     bx,1            ; BX := buffer length in words
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                mov     dx,3DAh         ; DX := CGA Status Port
+
+; wait for start of vertical blanking interval
+
+L01:            mov     cx,TIMEOUT      ; CX := loop counter (timeout 
+                                        ;  value)
+
+L02:            in      al,dx           ; AL := video status
+                test    al,8
+                jnz     L02             ; loop if vertical sync active
+                test    al,1
+                jz      L02             ; loop if Display Enable active
+
+                cli                     ; disable interrupts
+
+L03:            in      al,dx
+                test    al,1
+                loopnz  L03             ; loop until end of horizontal 
+                                        ;  blanking or timeout
+
+                sti                     ; reenable interrupts
+
+                jz      L01             ; loop if no timeout
+
+; blank the display
+
+                mov     dl,0D8h         ; DX := 3D8h (Mode Control 
+                                        ;  register)
+                mov     al,(Set80X25 OR EnableBlink)
+                out     dx,al           ; turn video off
+
+; copy the data to the video buffer
+
+                mov     cx,bx           ; CX := buffer length in words
+                rep     movsw
+
+; reenable the display
+
+                or      al,EnableVideo
+                out     dx,al
+
+                pop     si              ; usual C epilogue to restore 
+                pop     di              ;  registers and discard
+                                        ;  stack frame
+                mov     sp,bp
+                pop     bp
+                ret
+
+_DisplayText    ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-10.  Display alphanumeric text on the CGA during horizontal
+               and vertical blanking intervals.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 3-10'
+                NAME    DisplayText
+                PAGE    55,132
+
+;
+; Name:         DisplayText
+;
+; Function:     Display an alphanumeric string without interference on the 
+;                CGA
+;
+; Caller:       Microsoft C:
+;
+;                       int DisplayText(buf,n,offset);
+;
+;                       char *buf;            /* buffer containing text 
+;                                                in CGA alphanumeric
+;                                                format (alternating
+;                                                character codes and
+;                                                attribute bytes) */
+;
+;                       int n;                /* buffer length in bytes */
+;
+;                       unsigned int offset; /* offset into video buffer */
+;
+ARGbuf          EQU     word ptr [bp+4]
+ARGn            EQU     word ptr [bp+6]
+
+ARGoffset       EQU     word ptr [bp+8]
+TIMEOUT         EQU     6               ; horizontal timeout loop limit
+VBcount         EQU     250             ; number of words to write during
+                                        ;  vertical blanking interval
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  _DisplayText
+_DisplayText    PROC    near
+
+                push    bp              ; usual C prologue to establish
+                mov     bp,sp           ; stack frame and preserve 
+                                        ;  registers
+                push    di
+                push    si
+
+                mov     ax,0B800h
+                mov     es,ax
+                mov     di,ARGoffset    ; ES:DI -> destination in video 
+                                        ;  buffer
+                mov     si,ARGbuf       ; DS:SI -> source buffer
+                mov     cx,ARGn
+                shr     cx,1            ; CX := buffer length in words
+
+                mov     dx,3DAh         ; DX := CGA Status Port
+
+; write during remaining vertical blanking interval
+
+L01:            mov     bx,cx           ; preserve buffer length in BX
+                mov     cx,TIMEOUT      ; CX := horizontal timeout
+                cli                     ; disable interrupts during loop
+
+L02:            in      al,dx           ; AL := video status
+                test    al,1
+                loopnz  L02             ; loop while Display Enable 
+                                        ;  inactive
+                jz      L03             ; jump if loop did not time out
+
+                movsw                   ; copy one word
+                sti
+                mov     cx,bx           ; CX := buffer length
+                loop    L01
+
+                jmp     short L10       ; exit (entire string copied)
+
+; write during horizontal blanking intervals
+
+L03:            sti
+                mov     cx,bx           ; restore CX
+
+L04:            lodsw                   ; AL := character code
+                                        ; AH := attribute
+                mov     bx,ax           ; BX := character and attribute
+
+                push    cx              ; preserve word loop counter
+                mov     cx,TIMEOUT      ; CX := timeout loop limit
+
+                cli                     ; clear interrupts during one 
+                                        ;  scan line
+
+L05:            in      al,dx
+                test    al,1
+                loopnz  L05             ; loop during horizontal blanking 
+                                        ;  until timeout occurs
+                jnz     L07             ; jump if timed out (vertical
+                                        ;  blanking has started)
+L06:            in      al,dx
+                test    al,1
+                jz      L06             ; loop while Display Enable is 
+                                        ;  active
+
+                xchg    ax,bx           ; AX := character & attribute
+                stosw                   ; copy 2 bytes to display buffer
+
+                sti                     ; restore interrupts
+                pop     cx              ; CX := word loop counter
+                loop    L04
+
+                jmp     short L10       ; exit (entire string copied)
+
+; write during entire vertical blanking interval
+
+L07:            pop     bx              ; BX := word loop counter
+                dec     si
+                dec     si              ; DS:SI -> word to copy from buffer
+
+                mov     cx,VBcount      ; CX := # of words to copy
+                cmp     bx,cx
+                jnb     L08             ; jump if more than VBcount words 
+                                        ;  remain
+                                        ;  in buffer
+                mov     cx,bx           ; CX := # of remaining words in 
+                                        ;  buffer
+                xor     bx,bx           ; BX := 0
+                jmp     short L09
+
+L08:            sub     bx,cx           ; BX := (# of remaining words) -
+                                        ;  VBcount
+
+L09:            rep     movsw           ; copy to video buffer
+
+                mov     cx,bx           ; CX := # of remaining words
+                test    cx,cx
+                jnz     L01             ; loop until buffer is displayed
+
+L10:            pop     si              ; usual C epilogue to restore 
+                                        ;  registers
+                pop     di              ;  and discard stack frame
+                mov     sp,bp
+                pop     bp
+                ret
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+_DisplayText    ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-11.  Setting the CRTC Start Address registers.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     ax,40h
+        mov     es,ax               ; ES := video BIOS data segment
+        mov     dx,es:[63h]         ; DX := ADDR_6845
+
+        mov     al,0Ch              ; AL := reg number (Start Address High)
+        out     dx,al
+        inc     dx                  ; DX := 3x5h
+        mov     al,HiByte           ; AL := high-order byte of start offset
+        out     dx,al
+        dec     dx                  ; DX := 3x4h
+
+        mov     al,0Dh              ; AL := reg number (Start Address Low)
+        out     dx,al
+        inc     dx                  ; DX := 3x5h
+        mov     al,LoByte           ; AL := low-order byte of start offset
+        out     dx,al
+        mov     ah,HiByte           ; AX := start offset in words
+
+        shl     ax,1                ; AX := offset in bytes
+        mov     es:[4Eh],ax         ; update CRT_START
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-12.  Video page selection using the ROM BIOS.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     al,Vpage                ; AL := video page number
+        mov     ah,5                    ; AH := INT 10h function number
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-13.  Setting the cursor size.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; updating the CRTC registers directly
+
+        mov     ax,40h
+        mov     es,ax                   ; ES := video BIOS data segment
+        mov     dx,es:[63h]             ; DX := ADDR_6845
+
+        mov     al,0Ah                  ; AL := reg number (Cursor Start)
+        out     dx,al
+        inc     dx                      ; DX := 3x5h
+        mov     al,TopLine              ; AL := top scan line for cursor
+        out     dx,al
+        dec     dx                      ; DX := 3x4h
+
+        mov     al,0Bh                  ; AL := reg number (Cursor End)
+        out     dx,al
+        inc     dx                      ; DX := 3x5h
+        mov     al,BottomLine           ; AL := bottom scan line for cursor
+        out     dx,al
+
+        mov     ah,TopLine              ; AX := top and bottom lines
+        mov     es:[60h],ax             ; update CURSOR_MODE
+
+
+; using the video BIOS interface
+
+        mov     ch,TopLine
+        mov     cl,BottomLine
+        mov     ah,1                    ; AH := INT 10h function number
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-14.  Setting the cursor location.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; updating the CRTC registers directly
+
+        mov     ax,40h
+        mov     es,ax             ; ES := video BIOS data segment
+        mov     dx,es:[63h]       ; DX := ADDR_6845
+
+        mov     al,0Eh            ; AL := reg number (Cursor Location High)
+        out     dx,al
+        inc     dx                ; DX := 3x5h
+        mov     al,HiByte         ; AL := high-order byte of cursor offset
+        out     dx,al
+        dec     dx                ; DX := 3x4h
+
+        mov     al,0Fh            ; AL := reg number (Cursor Location Low)
+        out     dx,al
+        inc     dx                ; DX := 3x5h
+        mov     al,LoByte         ; AL := low-order byte of cursor offset
+        out     dx,al
+
+
+; using the video BIOS interface
+
+        mov     dh,CursorRow
+        mov     dl,CursorColumn
+        mov     bh,VideoPage
+        mov     ah,2              ; AH := INT 10h function number
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 3-15.  An invisible alphanumeric cursor for IBM video subsystems.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     cx,2000h                ; CH := top scan line for cursor
+                                        ; CL := bottom scan line for cursor
+        mov     ah,1                    ; AH := INT 10h function number
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-1.  Computing a pixel's address in 320-by-200 4-color mode
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 4-1'
+                NAME    PixelAddr04
+                PAGE    55,132
+
+;
+; Name:         PixelAddr04
+;
+; Function:     Determine buffer address of pixel in 320x200 4-color mode
+;
+; Caller:       AX = y-coordinate (0-199)
+;               BX = x-coordinate (0-319)
+;
+; Returns:      AH = bit mask
+;               BX = byte offset in buffer
+;               CL = number of bits to shift left
+;               ES = video buffer segment
+;
+
+
+OriginOffset    EQU     0               ; byte offset of (0,0)
+VideoBufferSeg  EQU     0B800h
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+                PUBLIC  PixelAddr04
+PixelAddr04     PROC    near
+
+                mov     cl,bl           ; CL := low-order byte of x
+
+                xchg    ah,al           ; AX := 100h * y
+                shr     ax,1            ; AL := 80h * (y&1)
+                add     bh,al           ; BX := x + 8000h*(y&1)
+                xor     al,al           ; AX := 100h*(y/2)
+                add     bx,ax           ; BX := x + 8000h*(y&1) + 
+                                        ;  100h*(y/2)
+                shr     ax,1
+                shr     ax,1            ; AX := 40h*(y/2)
+                add     bx,ax           ; BX := x + 8000h*(y&1) + 
+                                        ;  140h*(y/2)
+                shr     bx,1
+                shr     bx,1            ; BX := x/4 + 2000h*(y&1) + 
+                                        ;  50h*(y/2)
+                add     bx,OriginOffset ; BX := byte offset in video buffer
+
+                mov     ax,VideoBufferSeg
+                mov     es,ax           ; ES:BX := byte address of pixel
+
+                mov     ah,3            ; AH := unshifted bit mask
+                and     cl,ah           ; CL := x & 3
+                xor     cl,ah           ; CL := 3 - (x & 3)
+                shl     cl,1            ; CL := # bits to shift left
+
+                ret
+
+PixelAddr04     ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-2.  Computing a pixel's address in 640-by-200 2-color mode
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 4-2'
+                NAME    PixelAddr06
+                PAGE    55,132
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+;
+; Name:         PixelAddr06
+;
+; Function:     Determine buffer address of pixel in 640x200 2-color mode
+;
+; Caller:       AX = y-coordinate (0-199)
+;               BX = x-coordinate (0-639)
+;
+; Returns:      AH = bit mask
+;               BX = byte offset in buffer
+;               CL = number of bits to shift left
+;               ES = video buffer segment
+;
+
+OriginOffset    EQU     0               ; byte offset of (0,0)
+VideoBufferSeg  EQU     0B800h
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  PixelAddr06
+PixelAddr06     PROC    near
+
+                mov     cl,bl           ; CL := low-order byte of x
+
+                xchg    ah,al           ; AX := 100h * y
+                shr     bx,1            ; BX := x/2
+                shr     ax,1            ; AL := 80h*(y&1)
+                add     bh,al           ; BX := x/2 + 8000h*(y&1)
+                xor     al,al           ; AX := 100h*(y/2)
+                add     bx,ax           ; BX := x/2 + 8000h*(y&1) + 
+                                        ;  100h*(y/2)
+                shr     ax,1
+                shr     ax,1            ; AX := 40h*(y/2)
+                add     bx,ax           ; BX := x/2 + 8000h*(y&1) + 
+                                        ;  140h*(y/2)
+                shr     bx,1
+                shr     bx,1            ; BX := x/8 + 2000h*(y&1) +
+                                        ;  50h*(y/2)
+                add     bx,OriginOffset ; BX := byte offset in video buffer
+
+                mov     ax,VideoBufferSeg
+                mov     es,ax           ; ES:BX := byte address of pixel
+
+                and     cl,7            ; CL := x & 7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;  left
+                mov     ah,1            ; AH := unshifted bit mask
+
+                ret
+
+PixelAddr06     ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-3.  Computing a pixel's address in Hercules graphics mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 4-3'
+                NAME    PixelAddrHGC
+                PAGE    55,132
+
+;
+; Name:         PixelAddrHGC
+;
+; Function:     Determine buffer address of pixel in 720x348 Hercules 
+;                graphics
+;
+; Caller:       AX = y-coordinate (0-347)
+;               BX = x-coordinate (0-719)
+;
+; Returns:      AH = bit mask
+;               BX = byte offset in buffer
+;               CL = number of bits to shift left
+;               ES = video buffer segment
+;
+
+BytesPerLine    EQU     90
+OriginOffset    EQU     0               ; byte offset of (0,0)
+VideoBufferSeg  EQU     0B000h
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  PixelAddrHGC
+PixelAddrHGC    PROC    near
+
+                mov     cl,bl           ; CL := low-order byte of x
+
+                shr     ax,1            ; AX := y/2
+                rcr     bx,1            ; BX := 8000h*(y&1) + x/2
+                shr     ax,1            ; AX := y/4
+                rcr     bx,1            ; BX := 4000h*(y&3) + x/4
+                shr     bx,1            ; BX := 2000h*(y&3) + x/8
+                mov     ah,BytesPerLine
+                mul     ah              ; AX := BytesPerLine*(y/4)
+                add     bx,ax           ; BX := 2000h*(y&3) + x/8 + 
+                                        ; BytesPerLine*(y/4)
+                add     bx,OriginOffset ; BX := byte offset in video buffer
+
+                mov     ax,VideoBufferSeg
+                mov     es,ax           ; ES:BX := byte address of pixel
+
+                and     cl,7            ; CL := x & 7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;  left
+                mov     ah,1            ; AH := unshifted bit mask
+
+                ret
+
+PixelAddrHGC    ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-4.  Computing a pixel's address in CGA and VGA graphics modes.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 4-4'
+                NAME    PixelAddr10
+                PAGE    55,132
+
+;
+; Name:         PixelAddr10
+;
+; Function:     Determine buffer address of pixel in native EGA and VGA 
+;                modes:
+;                       320x200 16-color
+;                       640x200 16-color
+;                       640x350 16-color
+;                       640x350 monochrome (4-color)
+;                       640x480 2-color
+;                       640x480 16-color
+;
+; Caller:       AX = y-coordinate
+;               BX = x-coordinate
+;
+; Returns:      AH = bit mask
+;               BX = byte offset in buffer
+;               CL = number of bits to shift left
+;               ES = video buffer segment
+;
+
+BytesPerLine    EQU     80              ; bytes in one horizontal line
+OriginOffset    EQU     0               ; byte offset of (0,0)
+VideoBufferSeg  EQU     0A000h
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  PixelAddr10
+PixelAddr10     PROC    near
+
+                mov     cl,bl           ; CL := low-order byte of x
+                push    dx              ; preserve DX
+
+                mov     dx,BytesPerLine ; AX := y * BytesPerLine
+                mul     dx
+
+                pop     dx
+                shr     bx,1
+                shr     bx,1
+                shr     bx,1            ; BX := x/8
+                add     bx,ax           ; BX := y*BytesPerLine + x/8
+                add     bx,OriginOffset ; BX := byte offset in video buffer
+
+                mov     ax,VideoBufferSeg
+                mov     es,ax           ; ES:BX := byte address of pixel
+
+                and     cl,7            ; CL := x & 7
+                xor     cl,7            ; CL := number of bits to shift 
+                                        ;  left
+                mov     ah,1            ; AH := unshifted bit mask
+                ret
+
+PixelAddr10     ENDP
+
+_TEXT           ENDS
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-5.  Computing a pixel's address in 320-by-200 256-color mode
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 4-5'
+                NAME    PixelAddr13
+                PAGE    55,132
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+;
+; Name:         PixelAddr13
+;
+; Function:     Determine buffer address of pixel in 320x200 256-color mode
+;
+; Caller:       AX = y-coordinate (0-199)
+;               BX = x-coordinate (0-319)
+;
+; Returns:      BX = byte offset in buffer
+;               ES = video buffer segment
+;
+
+OriginOffset    EQU     0               ; byte offset of (0,0)
+VideoBufferSeg  EQU     0A000h
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                PUBLIC  PixelAddr13
+PixelAddr13     PROC    near
+
+                xchg    ah,al           ; AX := 256*y
+                add     bx,ax           ; BX := 256*y + x
+                shr     ax,1
+                shr     ax,1            ; AX := 64*y
+                add     bx,ax           ; BX := 320*y + x
+
+                add     bx,OriginOffset ; BX := byte offset in video buffer
+
+                mov     ax,VideoBufferSeg
+                mov     es,ax           ; ES:BX := byte address of pixel
+                ret
+
+PixelAddr13     ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-6.  Foreground color in CGA 640-by-200 2-color graphics.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+mov     ah,0Bh          ; AH := 0BH (INT 10H function number)
+mov     bh,0            ; BH := subfunction number
+mov     bl,ColorValue   ; BL := desired color (0-0FH)
+int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-7.  Four-color palettes in CGA 320-by-200 4-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; cyan-red-white
+
+mov     ax,40h
+mov     es,ax           ; ES := Video BIOS data segment
+mov     al,es:[65h]     ; AL := CRT_MODE_SET
+or      al,00000100b    ; AL bit 2 := 1
+mov     dx,3D8h         ; DX := Mode Control I/O port
+out     dx,al           ; update Mode Control register
+mov     es:[65h],al     ; update CRT_MODE_SET
+
+; green-red-yellow or cyan-violet-white
+
+mov     ax,40h
+mov     es,ax           ; ES := Video BIOS data segment
+mov     al,es:[65h]     ; AL := CRT_MODE_SET
+and     al,11111011b    ; AL bit 2 := 0
+mov     dx,3D8h         ; DX := Mode Control I/O port
+out     dx,al           ; update Mode Control register
+mov     es:[65h],al     ; update CRT_MODE_SET
+
+mov     al,es:[66h]     ; AL := CRT_PALETTE
+and     al,11011111b    ; AL bit 5 := 0
+or      al,PaletteSelect; 00000000b for green-red-yellow
+                        ; 00100000b for cyan-violet-white
+inc     dx              ; DX := Color Select I/O port
+out     dx,al           ; update Color Select register
+mov     es:[66h],al     ; update CRT_PALETTE
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 4-8.  Four-color palettes in CGA 320-by-200 4-color mode using
+              video BIOS.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; cyan-red-white
+
+        mov     ax,0005         ; AH := 0 (INT 10H function number)
+                                ; AL := 5 (320x200 4-color mode, color
+                                ;  burst disabled)
+        int     10h
+
+; green-red-yellow or cyan-violet-white
+
+        mov     ax,0004         ; AH := 0 (INT 10H function number)
+                                ; AL := 4 (320x200 4-color mode, color
+                                ;  burst enabled)
+        int     10h
+
+        mov     ah,0Bh          ; AH := INT 10H function number
+        mov     bh,1
+        mov     bl,PaletteID    ; 0 for green-red-yellow
+                                ; 1 for cyan-violet-white
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-1.  How to set Graphics Controller read and write modes. This
+              example sets read mode 0 and write mode 1 in 640-by-350
+              16-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                mov     ax,0105h     ; AH := 1 (reg 5 value)
+                                     ;  bit 3 := 0 (reead mode 0)
+                                     ;  bits 0-1 := 1 (write mode 1)
+                                     ; AL := register number
+                mov     dx,3CEh      ; DX := Graphics Controller port
+                out     dx,ax  
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-2.  Determining a pixel value in CGA 640-by-200 2-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-2'
+                NAME    ReadPixel06
+                PAGE    55,132
+
+;
+; Name:         ReadPixel06
+;
+; Function:     Read the value of a pixel in 640x200 2-color mode
+;
+; Caller:       Microsoft C:
+;
+;                       int ReadPixel06(x,y);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr06:near
+
+                PUBLIC  _ReadPixel06
+_ReadPixel06    PROC    near
+
+                push    bp            ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy       ; AX := y
+                mov     bx,ARGx       ; BX := x
+                call    PixelAddr06   ; AH := bit mask
+                                      ; ES:BX -> buffer
+                                      ; CL := # bits to shift
+
+                mov     al,es:[bx]    ; AL := byte containing pixel
+                shr     al,cl         ; shift pixel value to low-order bits
+                and     al,ah         ; AL := pixel value
+                xor     ah,ah         ; AX := pixel value
+
+                mov     sp,bp         ; restore caller registers and return
+                pop     bp
+                ret
+
+_ReadPixel06    ENDP
+
+_TEXT           ENDS
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-3.  Determining a pixel value in CGA 320-by-200 4-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-3'
+                NAME    ReadPixel04
+                PAGE    55,132
+
+;
+; Name:         ReadPixel04
+;
+; Function:     Read the value of a pixel in 320x200 4-color mode
+;
+; Caller:       Microsoft C:
+;
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+;                       int ReadPixel04(x,y);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr04:near
+
+                PUBLIC  _ReadPixel04
+_ReadPixel04    PROC    near
+
+                push    bp            ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy       ; AX := y
+                mov     bx,ARGx       ; BX := x
+                call    PixelAddr04   ; AH := bit mask
+                                      ; ES:BX -> buffer
+                                      ; CL := # bits to shift
+
+                mov     al,es:[bx]    ; AL := byte containing pixel
+                shr     al,cl         ; shift pixel value to low-order bits
+                and     al,ah         ; AL := pixel value
+                xor     ah,ah         ; AX := pixel value
+
+                mov     sp,bp         ; restore caller registers and return
+                pop     bp
+                ret
+
+_ReadPixel04    ENDP
+
+_TEXT           ENDS
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-4.  Determining a pixel value in native EGA graphics modes.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-4'
+                NAME    ReadPixel10
+                PAGE    55,132
+
+;
+; Name:         ReadPixel10
+;
+; Function:     Read the value of a pixel in native EGA graphics modes
+;
+; Caller:       Microsoft C:
+;
+;                       int ReadPixel10(x,y);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _ReadPixel10
+_ReadPixel10    PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    si
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift
+
+                mov     ch,ah
+                shl     ch,cl           ; CH := bit mask in proper position
+
+                mov     si,bx           ; ES:SI -> regen buffer byte
+                xor     bl,bl           ; BL is used to accumulate the 
+                                        ;  pixel value
+
+                mov     dx,3CEh         ; DX := Graphics Controller port
+                mov     ax,304h         ; AH := initial bit plane number
+                                        ; AL := Read Map Select register 
+                                        ;  number
+
+L01:            out     dx,ax           ; select bit plane
+                mov     bh,es:[si]      ; BH := byte from current bit plane
+                and     bh,ch           ; mask one bit
+                neg     bh              ; bit 7 of BH := 1 (if masked
+                                        ;  bit = 1)
+                                        ; bit 7 of BH := 0 (if masked  
+                                        ;  bit = 0)
+                rol     bx,1            ; bit 0 of BL := next bit from 
+                                        ;  pixel value
+                dec     ah              ; AH := next bit plane number
+                jge     L01
+
+                mov     al,bl           ; AL := pixel value
+                xor     ah,ah           ; AX := pixel value
+
+                pop     si              ; restore caller registers and 
+                                        ;  return
+                mov     sp,bp
+                pop     bp
+                ret
+
+_ReadPixel10    ENDP
+
+_TEXT           ENDS
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-5.  Determining a pixel value in EGA monochrome graphics mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-5'
+                NAME    ReadPixel0F
+                PAGE    55,132
+
+;
+; Name:         ReadPixel0F
+;
+; Function:     Read the value of a pixel in 640x350 monochrome mode
+;
+; Caller:       Microsoft C:
+;
+;                       int     ReadPixel0F(x,y);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _ReadPixel0F
+_ReadPixel0F    PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    si
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift
+
+; concatenate bits from bit planes 2 and 0
+
+                mov     ch,ah
+                shl     ch,cl           ; CH := bit mask in proper position
+                mov     si,bx           ; ES:SI -> regen buffer byte
+
+                mov     dx,3CEh         ; DX := Graphics Controller port
+                mov     ax,204h         ; AH := initial bit plane number
+                                        ; AL := Read Map Select register 
+                                        ;  number
+
+                xor     bl,bl           ; BL is used to accumulate the 
+                                        ;  pixel value
+
+L01:            out     dx,ax           ; (same as before)
+                mov     bh,es:[si]
+                and     bh,ch
+                neg     bh
+
+                rol     bx,1
+                sub     ah,2            ; decrement map number by 2
+                jge     L01
+
+                mov     al,bl
+                xor     ah,ah
+
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_ReadPixel0F    ENDP
+
+_TEXT           ENDS
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-6.  Determining a pixel value in 640-by-350 modes on
+              an EGA with 64 KB.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-6'
+                NAME    ReadPixel10
+                PAGE    55,132
+
+;
+; Name:         ReadPixel10
+;
+; Function:     Read the value of a pixel in 640x350 modes on 64K EGA
+;
+; Caller:       Microsoft C:
+;
+;                       int     ReadPixel10(x,y);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _ReadPixel10
+_ReadPixel10    PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    si
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift
+
+; concatenate bits from bit planes 2 and 0 (even byte address)
+;  or 3 and 1 (odd byte address)
+
+                mov     ch,ah
+                shl     ch,cl           ; CH := bit mask in proper position
+
+                mov     si,bx           ; ES:SI -> regen buffer byte
+
+                mov     ah,bl           ; AH := low-order byte of address
+                and     ax,100h         ; AH := low-order bit of address
+                                        ; AL := 0
+                add     ax,204h         ; AH := initial bit plane number (2 
+                                        ;  or 3)
+                                        ; AL := Read Map Select register 
+                                        ;  number
+
+                mov     dx,3CEh         ; DX := Graphics Controller port
+                xor     bl,bl           ; BL is used to accumulate the 
+                                        ;  pixel value
+
+L01:            out     dx,ax           ; (same as before)
+                mov     bh,es:[si]
+                and     bh,ch
+                neg     bh
+
+                rol     bx,1
+                sub     ah,2
+                jge     L01
+
+                mov     al,bl
+                xor     ah,ah
+
+                pop     si
+                mov     sp,bp
+                pop     bp
+                ret
+
+_ReadPixel10    ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-7.  Determining a pixel value in InColor graphics mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-7'
+                NAME    ReadPixelInC
+                PAGE    55,132
+
+;
+; Name:         ReadPixelInC
+;
+; Function:     Read the value of a pixel in InColor 720x348 16-color mode
+;
+; Caller:       Microsoft C:
+;
+;                       int     ReadPixelInC(x,y);
+;
+;                       int x,y;
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+DefaultRWColor  EQU     0Fh             ; default value for R/W Color 
+                                        ;  Register
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddrHGC:near
+
+                PUBLIC  _ReadPixelInC
+_ReadPixelInC   PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+                push    si
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift
+
+; set up to examine each bit plane separately
+
+                mov     si,bx           ; ES:SI -> buffer
+
+                shl     ah,cl
+                mov     cl,ah           ; CL := bit mask in proper position
+
+                mov     dx,3B4h         ; DX := graphics control port
+
+                mov     ax,0F01Ah       ; AH bits 4-7 := 1111b (background 
+                                        ;  value)
+                                        ; AL := 1Ah (R/W Color Register)
+                out     dx,ax           ; set background value
+
+                mov     bx,800h         ; BH := 1000b (initial "don't care" 
+                                        ;  bits)
+                                        ; BL := 0 (initial value for 
+                                        ;  result)
+
+                dec     ax              ; AL := 19h (R/W Control Register 
+                                        ;  number)
+
+; loop across bit planes by updating "don't care" bits
+
+L01:            mov     ah,bh           ; AH bits 0-3 := next "don't care" 
+                                        ;  bits
+                                        ; AH bit 6 := 0 (Mask Polarity bit)
+                xor     ah,1111b        ; invert "don't care" bits
+                out     dx,ax           ; set R/W Control Register
+
+                mov     ch,cl           ; CH := bit mask
+                and     ch,es:[si]      ; latch bit planes
+                                        ; CH <> 0 if bit in latch is set
+
+                neg     ch              ; cf set if CH <> 0
+                rcl     bl,1            ; accumulate result in BL
+
+                shr     bh,1            ; BH := shifted "don't care" bits
+                jnz     L01             ; loop until shifted out of BH,
+                                        ;  at which point BX = pixel value
+; restore default state
+
+                mov     ah,40h          ; AH := default R/W Control 
+                                        ;  Register value
+                out     dx,ax
+
+                inc     ax              ; AL := 1Ah (R/W Color Register 
+                                        ;  number)
+                mov     ah,DefaultRWColor
+                out     dx,ax
+
+                mov     ax,bx           ; AX := pixel value
+
+                pop     si              ; restore caller registers and 
+                                        ;  return
+                mov     sp,bp
+                pop     bp
+                ret
+
+_ReadPixelInC   ENDP
+
+_TEXT           ENDS
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-8.  Determining a pixel value in MCGA and VGA
+              640-by-480 2-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-8'
+                NAME    ReadPixel11
+                PAGE    55,132
+
+;
+; Name:         ReadPixel11
+;
+; Function:     Read the value of a pixel in 640x480 2-color mode (MCGA or 
+;                VGA)
+;
+; Caller:       Microsoft C:
+;
+;                       int ReadPixel11(x,y);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _ReadPixel11
+_ReadPixel11    PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift
+
+                mov     al,es:[bx]      ; AL := byte containing pixel
+                shr     al,cl           ; shift pixel value to low-order 
+                                        ;  bits
+                and     al,ah           ; AL := pixel value
+                xor     ah,ah           ; AX := pixel value
+
+                mov     sp,bp           ; restore caller registers and 
+                                        ;  return
+                pop     bp
+                ret
+
+_ReadPixel11    ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-9.  Determining a pixel value in MCGA and VGA 320-by-200
+              256-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-9'
+                NAME    ReadPixel13
+                PAGE    55,132
+
+;
+
+; Name:         ReadPixel13
+;
+; Function:     Read the value of a pixel in 320x200 256-color mode
+;                (MCGA and VGA)
+;
+; Caller:       Microsoft C:
+;
+;                       int ReadPixel13(x,y);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr13:near
+
+                PUBLIC  _ReadPixel13
+_ReadPixel13    PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr13     ; ES:BX -> buffer
+
+                mov     al,es:[bx]      ; AL := pixel value
+                xor     ah,ah           ; AX := pixel value
+
+                mov     sp,bp
+                pop     bp
+                ret
+
+_ReadPixel13    ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-10.  Setting a pixel value in CGA and 640-by-200 2-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-10'
+                NAME    SetPixel06
+                PAGE    55,132
+
+;
+; Name:         SetPixel06
+;
+; Function:     Set the value of a pixel in 640x200 2-color mode
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr06:near
+
+                PUBLIC  _SetPixel06
+_SetPixel06     PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr06     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     al,ARGn         ; AL := unshifted pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;  position
+
+                jmp     word ptr SetPixelOp06   ; jump to Replace, AND,
+                                                ;  OR or XOR routine
+
+
+                                        ; routine to Replace pixel value
+
+ReplacePixel06: not     ah              ; AH := inverse bit mask
+                and     es:[bx],ah      ; zero the pixel value
+                or      es:[bx],al      ; set the pixel value
+                jmp     short L02
+
+
+                                        ; routine to AND pixel value
+ANDPixel06:     test    al,al
+                jnz     L02             ; do nothing if pixel value = 1
+
+L01:            not     ah              ; AH := inverse of bit mask
+                and     es:[bx],ah      ; set bit in video buffer to 0
+                jmp     short L02
+
+
+                                        ; routine to OR pixel value
+ORPixel06:      test    al,al
+                jz      L02             ; do nothing if pixel value = 0
+
+                or      es:[bx],al      ; set bit in video buffer
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                jmp     short L02
+
+
+                                        ; routine to XOR pixel value
+XORPixel06:     test    al,al
+                jz      L02             ; do nothing if pixel value = 0
+
+                xor     es:[bx],al      ; XOR bit in video buffer
+
+
+L02:            mov     sp,bp           ; restore caller registers and 
+                                        ;  return
+                pop     bp
+                ret
+
+_SetPixel06     ENDP
+
+_TEXT           ENDS
+
+_DATA           SEGMENT word public 'DATA'
+
+SetPixelOp06    DW      ReplacePixel06  ; contains addr of pixel operation
+
+_DATA           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-11.  Setting a pixel value in CGA 320-by-200 2-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-11'
+                NAME    SetPixel04
+                PAGE    55,132
+
+;
+; Name:         SetPixel04
+;
+; Function:     Set the value of a pixel in 320x200 4-color mode
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr04:near
+
+                PUBLIC  _SetPixel04
+_SetPixel04     PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+
+                call    PixelAddr04     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     al,ARGn
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper
+                                        ;  position
+
+                jmp     word ptr SetPixelOp04   ; jump to Replace, AND,
+                                                ;  OR or XOR routine
+
+
+                                        ; routine to Replace pixel value
+
+ReplacePixel04: not     ah              ; AH := inverse bit mask
+                and     es:[bx],ah      ; zero the pixel value
+                or      es:[bx],al      ; set the pixel value
+                jmp     short L02
+
+                                        ; routine to AND pixel value
+
+ANDPixel04:     not     ah              ; AH := inverse bit mask
+                or      al,ah           ; AL := all 1's except pixel value
+                and     es:[bx],al
+                jmp     short L02
+
+
+ORPixel04:      or      es:[bx],al      ; routine to OR pixel value
+                jmp     short L02
+
+
+XORPixel04:     xor     es:[bx],al      ; routine to XOR pixel value
+
+
+L02:            mov     sp,bp           ; restore caller registers and 
+                                        ;  return
+                pop     bp
+                ret
+
+_SetPixel04     ENDP
+
+_TEXT           ENDS
+
+_DATA           SEGMENT word public 'DATA'
+
+SetPixelOp04    DW      ReplacePixel04  ; contains addr of pixel operation
+
+_DATA           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-12.  Setting a pixel value in native EGA graphics modes
+               using write mode 0.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-12'
+                NAME    SetPixel10
+                PAGE    55,132
+
+;
+; Name:         SetPixel10
+;
+; Function:     Set the value of a pixel in native EGA graphics modes.
+;
+;               *** Write Mode 0, Set/Reset ***
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+RMWbits         EQU     18h             ; read-modify-write bits
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+                PUBLIC  _SetPixel10
+
+_SetPixel10     PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+; set Graphics Controller Bit Mask register
+
+                shl     ah,cl           ; AH := bit mask in proper position
+                mov     dx,3CEh         ; GC address register port
+                mov     al,8            ; AL := Bit Mask register number
+                out     dx,ax
+
+; set Graphics Controller Mode register
+
+                mov     ax,0005h        ; AL :=  Mode register number
+                                        ; AH :=  Write Mode 0 (bits 0,1)
+                                        ;        Read Mode 0 (bit 3)
+                out     dx,ax
+
+; set Data Rotate/Function Select register
+
+                mov     ah,RMWbits      ; AH := Read-Modify-Write bits
+                mov     al,3            ; AL := Data Rotate/Function Select 
+                                        ;  reg
+                out     dx,ax
+
+; set Set/Reset and Enable Set/Reset registers
+
+                mov     ah,ARGn         ; AH := pixel value
+                mov     al,0            ; AL := Set/Reset reg number
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                out     dx,ax
+
+                mov     ax,0F01h        ; AH := value for Enable Set/Reset 
+                                        ;  (all bit planes enabled)
+                                        ; AL := Enable Set/Reset reg number
+                out     dx,ax
+
+; set the pixel value
+
+                or      es:[bx],al      ; load latches during CPU read
+                                        ; update latches and bit planes
+                                        ;  during CPU write
+
+; restore default Graphics Controller registers
+
+                mov     ax,0FF08h       ; default Bit Mask
+                out     dx,ax
+
+                mov     ax,0005         ; default Mode register
+                out     dx,ax
+
+                mov     ax,0003         ; default Function Select
+                out     dx,ax
+
+                mov     ax,0001         ; default Enable Set/Reset
+                out     dx,ax
+
+                mov     sp,bp           ; restore caller registers and 
+                                        ;  return
+                pop     bp
+                ret
+
+_SetPixel10     ENDP
+
+_TEXT           ENDS
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-13.  Setting a pixel value in native EGA graphics modes
+               using the Sequencer Map Mask.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-13'
+                NAME    SetPixel10
+                PAGE    55,132
+;
+; Name:         SetPixel10
+;
+; Function:     Set the value of a pixel in native EGA graphics modes.
+;
+;               *** Write Mode 0, Sequencer Map Mask ***
+
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+;                       int x,y;                /* pixel coordinates */
+;                       int n;                  /* pixel value */
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _SetPixel10
+_SetPixel10     PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+; set Graphics Controller Bit Mask register
+
+                shl     ah,cl           ; AH := bit mask in 
+                                        ;  proper position
+                mov     dx,3CEh         ; Graphics Controller address 
+                                        ;  reg port
+                mov     al,8            ; AL := Bit Mask register number
+                out     dx,ax
+
+; zero the pixel value
+
+                mov     al,es:[bx]      ; latch one byte from each 
+                                        ;  bit plane
+                mov     byte ptr es:[bx],0  ; zero masked bits in 
+                                        ;  all planes
+
+; set Sequencer Map Mask register
+
+                mov     dl,0C4h         ; DX := 3C4h (Sequencer addr 
+                                        ;  reg port)
+                mov     ah,ARGn         ; AH := value for Map Mask 
+                                        ;  register
+                                        ;  (nonzero bits in pixel 
+                                        ;  value select
+                                        ;  enabled bit planes for 
+                                        ;  Sequencer)
+
+                mov     al,2            ; AL := Map Mask register number
+                out     dx,ax
+
+; set the nonzero bits in the pixel value
+                mov     byte ptr es:[bx],0FFh ; set bits in enabled 
+                                              ;  bit planes
+
+; restore default Sequencer registers
+
+                mov     ah,0Fh          ; AH := value for Map Mask reg 
+                                        ;  (all bit
+                                        ;  planes enabled)
+                out     dx,ax
+
+; restore default Graphics Controller registers
+
+                mov     dl,0CEh         ; DX := 3CEh (Graphics 
+                                        ;  Controller port)
+                mov     ax,0FF08h       ; default Bit Mask
+                out     dx,ax
+
+                mov     sp,bp           ; restore caller registers 
+                                        ;  and return
+                pop     bp
+                ret
+
+_SetPixel10     ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-14.  Setting a pixel value in native EGA graphics modes
+               using write mode 2.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-14'
+                NAME    SetPixel10
+                PAGE    55,132
+
+;
+; Name:         SetPixel10
+;
+; Function:     Set the value of a pixel in native EGA graphics modes.
+;
+;               *** Write Mode 2 ***
+
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+;                       int x,y;                /* pixel coordinates */
+;                       int n;                  /* pixel value */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+RMWbits         EQU     18h             ; read-modify-write bits
+
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _SetPixel10
+_SetPixel10     PROC    near
+
+                push    bp              ; preserve stack frame
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+; set Graphics Controller Bit Mask register
+
+                shl     ah,cl           ; AH := bit mask in proper position
+                mov     dx,3CEh         ; GC address register port
+                mov     al,8            ; AL := Bit Mask register number
+                out     dx,ax
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+; set Graphics Controller Mode register
+
+                mov     ax,205h         ; AL :=  Mode register number
+                                        ; AH :=  Write Mode 2 (bits 0,1)
+                                        ;        Read Mode 0 (bit 3)
+                out     dx,ax
+
+; set Data Rotate/Function Select register
+
+                mov     ah,RMWbits      ; AH := Read-Modify-Write bits
+                mov     al,3            ; AL := Data Rotate/Function Select 
+                                        ;  reg
+                out     dx,ax
+
+; set the pixel value
+
+                mov     al,es:[bx]      ; latch one byte from each bit 
+                                        ;  plane
+                mov     al,ARGn         ; AL := pixel value
+                mov     es:[bx],al      ; update all bit planes
+
+; restore default Graphics Controller registers
+
+                mov     ax,0FF08h       ; default Bit Mask
+                out     dx,ax
+
+                mov     ax,0005         ; default Mode register
+                out     dx,ax
+
+                mov     ax,0003         ; default Function Select
+                out     dx,ax
+
+                mov     sp,bp           ; restore stack frame and return
+                pop     bp
+                ret
+
+_SetPixel10     ENDP
+
+_TEXT           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-15.  Setting a pixel value in InColor graphics mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-15'
+                NAME    SetPixelInC
+                PAGE    55,132
+
+;
+; Name:         SetPixelInC
+;
+; Function:     Set the value of a pixel in 720x348 16-color mode
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+
+;                       int x,y;                /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+DefaultRWColor  EQU     0Fh             ; default value for R/W Color
+                                        ;  Register
+
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddrHGC:near
+
+                PUBLIC  _SetPixelInC
+_SetPixelInC    PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddrHGC    ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                shl     ah,cl           ; AH := bit mask in proper position
+
+                mov     dx,3B4h         ; DX := CRTC port
+
+                jmp     word ptr SetPixelOpInC  ; jump to Replace, AND,
+                                                ;  OR or XOR routine
+
+
+ReplacePixelInC:                        ; routine to Replace pixel value
+
+                mov     ch,ah           ; CH := bit mask for pixel
+                mov     ax,1F19h        ; AH bit 6 := 0 (Mask Polarity)
+                                        ; AH bits 5-4 := 1 (Write Mode)
+                                        ; AH bits 3-0 := "don't care" bits
+                                        ; AL := R/W Control Register number
+                out     dx,ax           ; set R/W Control Register
+
+                inc     ax              ; AL := 1Ah (R/W Color Reg number)
+                mov     ah,ARGn         ; AH := foreground value
+                out     dx,ax           ; set R/W color register
+
+                and     es:[bx],ch      ; update bit planes
+                jmp     short L01
+
+ANDPixelInC:                            ; routine to AND pixel value
+
+                mov     ch,ah           ; CH := bit mask for pixel
+                mov     ax,1F19h        ; AH bit 6 := 0 (Mask Polarity)
+                                        ; AH bits 5-4 := 1 (Write Mode)
+                                        ; AH bits 3-0 := "don't care" bits
+                                        ; AL := R/W Control Register number
+                out     dx,ax           ; set R/W Control Register
+
+                dec     ax              ; AL := 18h (Plane Mask Register 
+                                        ;  number)
+                mov     ah,ARGn         ; AH := pixel value
+                mov     cl,4
+                shl     ah,cl           ; AH bits 7-4 := writeable plane 
+                                        ;  mask
+                or      ah,0Fh          ; AH bits 3-0 := visible plane mask
+                out     dx,ax           ; set Plane Mask Register
+
+                mov     ax,001Ah        ; AH := 0 (foreground value)
+                                        ; AL := 1Ah (R/W Color reg)
+                out     dx,ax           ; set R/W Color Register
+
+                and     es:[bx],ch      ; update bit planes
+                jmp     short L01
+
+                                        ; routine to OR pixel value
+ORPixelInC:     
+                mov     ch,ah           ; CH := bit mask for pixel
+                mov     ax,1F19h        ; AH bit 6 := 0 (Mask Polarity)
+                                        ; AH bits 5-4 := 1 (Write Mode)
+                                        ; AH bits 3-0 := "don't care" bits
+                                        ; AL := R/W Control Register number
+                out     dx,ax           ; set R/W Control Register
+
+                dec     ax              ; AL := 18h (Plane Mask Register 
+                                        ;  number)
+                mov     ah,ARGn         ; AH := pixel value
+                not     ah              ; AH := complement of pixel value
+                mov     cl,4
+                shl     ah,cl           ; AH bits 7-4 := writeable plane 
+                                        ;  mask
+                or      ah,0Fh          ; AH bits 3-0 := visible plane mask
+                out     dx,ax           ; set Plane Mask Register
+
+                mov     ax,0F1Ah        ; AH := 0 (foreground value)
+                                        ; AL := 1Ah (R/W Color reg)
+                out     dx,ax           ; set R/W Color Register
+
+                and     es:[bx],ch      ; update bit planes
+                jmp     short L01
+
+XORPixelInC:                            ; routine to XOR pixel value
+                mov     ch,ah           ; CH := bit mask for pixel
+                mov     ax,3F19h        ; AH bit 6 := 0 (Mask Polarity)
+                                        ; AH bits 5-4 := 3 (Write Mode)
+                                        ; AH bits 3-0 := "don't care" bits
+                                        ; AL := R/W Control Register number
+                out     dx,ax           ; set R/W Control Register
+
+                dec     ax              ; AL := 18h (Plane Mask Register 
+                                        ;  number)
+                mov     ah,ARGn         ; AH := pixel value
+                not     ah              ; AH := complement of pixel value
+                mov     cl,4
+                shl     ah,cl           ; AH bits 7-4 := writeable plane 
+                                        ;  mask
+                or      ah,0Fh          ; AH bits 3-0 := visible plane mask
+                out     dx,ax           ; set Plane Mask Register
+
+                xor     es:[bx],ch      ; update bit planes
+                jmp     short L01
+
+L01:            mov     ax,0F18h
+                out     dx,ax           ; restore default Plane Mask value
+
+                mov     ax,4019h        ; restore default R/W Control value
+                out     dx,ax
+
+                inc     ax              ; restore default R/W Color value
+                mov     ah,DefaultRWColor
+                out     dx,ax
+
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+                mov     sp,bp           ; restore caller registers and 
+                                        ;  return
+                pop     bp
+                ret
+
+_SetPixelInC    ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+SetPixelOpInC   DW      ReplacePixelInc ; contains addr of pixel operation
+
+_DATA           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-16.  Setting a pixel value in MCGA or VGA 640-by-480
+               2-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-16'
+                NAME    SetPixel11
+                PAGE    55,132
+
+;
+; Name:         SetPixel11
+;
+; Function:     Set the value of a pixel in 640x480 2-color mode (MCGA or 
+;                VGA)
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr10:near
+
+                PUBLIC  _SetPixel11
+_SetPixel11     PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr10     ; AH := bit mask
+                                        ; ES:BX -> buffer
+                                        ; CL := # bits to shift left
+
+                mov     al,ARGn         ; AL := unshifted pixel value
+                shl     ax,cl           ; AH := bit mask in proper position
+                                        ; AL := pixel value in proper 
+                                        ;  position
+
+                jmp     word ptr SetPixelOp11   ; jump to Replace, AND,
+                                                ;  OR or XOR routine
+
+
+                                        ; routine to Replace pixel value
+
+ReplacePixel11: not     ah              ; AH := inverse bit mask
+                and     es:[bx],ah      ; zero the pixel value
+                or      es:[bx],al      ; set the pixel value
+                jmp     short L02
+
+
+                                        ; routine to AND pixel value
+ANDPixel11:     test    al,al
+                jnz     L02             ; do nothing if pixel value = 1
+
+L01:            not     ah              ; AH := inverse of bit mask
+                and     es:[bx],ah      ; set bit in video buffer to 0
+                jmp     short L02
+
+
+                                        ; routine to OR pixel value
+ORPixel11:      test    al,al
+                jz      L02             ; do nothing if pixel value = 0
+
+                or      es:[bx],al      ; set bit in video buffer
+                jmp     short L02
+
+
+                                        ; routine to XOR pixel value
+XORPixel11:     test    al,al
+                jz      L02             ; do nothing if pixel value = 0
+
+                xor     es:[bx],al      ; XOR bit in video buffer
+
+
+L02:            mov     sp,bp           ; restore caller registers and 
+                                        ;  return
+                pop     bp
+                ret
+
+_SetPixel11     ENDP
+
+_TEXT           ENDS
+
+
+_DATA           SEGMENT word public 'DATA'
+
+SetPixelOp11    DW      ReplacePixel11  ; contains addr of pixel operation
+
+_DATA           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-17.  Setting a pixel value in MCGA or VGA 320-by-200
+               256-color mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+                TITLE   'Listing 5-17'
+                NAME    SetPixel13
+                PAGE    55,132
+
+;
+; Name:         SetPixel13
+;
+; Function:     Set the value of a pixel in 320x200 256-color mode (MCGA or 
+;                VGA)
+;
+; Caller:       Microsoft C:
+;
+;                       void SetPixel(x,y,n);
+;
+;                       int x,y;                /* pixel coordinates */
+;
+;                       int n;                  /* pixel value */
+;
+
+ARGx            EQU     word ptr [bp+4] ; stack frame addressing
+ARGy            EQU     word ptr [bp+6]
+ARGn            EQU     byte ptr [bp+8]
+
+DGROUP          GROUP   _DATA
+
+_TEXT           SEGMENT byte public 'CODE'
+                ASSUME  cs:_TEXT,ds:DGROUP
+
+                EXTRN   PixelAddr13:near
+
+                PUBLIC  _SetPixel13
+_SetPixel13     PROC    near
+
+                push    bp              ; preserve caller registers
+                mov     bp,sp
+
+                mov     ax,ARGy         ; AX := y
+                mov     bx,ARGx         ; BX := x
+                call    PixelAddr13     ; ES:BX -> buffer
+
+                mov     al,ARGn         ; AL := pixel value
+
+                jmp     word ptr SetPixelOp13   ; jump to Replace, AND,
+                                                ;  OR or XOR routine
+
+
+ReplacePixel13: mov     es:[bx],al
+                jmp     short L01
+
+ANDPixel13:     and     es:[bx],al
+                jmp     short L01
+
+ORPixel13:      or      es:[bx],al
+                jmp     short L01
+
+XORPixel13:     xor     es:[bx],al
+
+
+L01:            mov     sp,bp           ; restore caller registers and 
+                                        ;  return
+                pop     bp
+                ret
+
+_SetPixel13     ENDP
+
+_TEXT           ENDS
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+
+
+_DATA           SEGMENT word public 'DATA'
+
+SetPixelOp13    DW      ReplacePixel13
+
+_DATA           ENDS
+
+                END
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-18.  Simple CGA graphics buffer fill.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     di,0B800h
+        mov     es,di
+        xor     di,di           ; ES:DI -> start of video buffer
+        mov     al,11110000b    ; AL := pixel pattern
+        mov     ah,al           ; AX := replicated pixel pattern
+        mov     cx,2000h        ; CX := number of words in video buffer
+        rep     stosw           ; fill buffer with pixel pattern
+
+; this may also be accomplished using the video BIOS
+
+        mov     ah,0Fh          ; AH := 0Fh (INT 10H function number)
+        int     10h             ; get current video state; AH = number of
+                                ;  character columns
+        mov     dl,ah           ; DL := number of character columns
+
+        mov     ax,600h         ; AH := 6 (INT 10H function number)
+                                ; AL := 0 (number of rows to scroll)
+        mov     bh,11110000b    ; BH := pixel pattern
+        mov     cx,0            ; CH := 0 (upper left character column)
+                                ; CL := 0 (upper left character row)
+        mov     dh,18h          ; DH := 18h (lower right character row)
+        dec     dl              ; DL := lower right character column
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-19.  CGA graphics buffer fill using two-way interleave.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     di,0B800h
+        mov     es,di
+        xor     di,di           ; ES:DI -> start of video buffer
+
+        mov     al,11001100b    ; AL pixel pattern
+        mov     ah,al           ; AX := replicated pixel pattern
+
+        mov     bx,100          ; BX := number of pairs of rows
+
+L01:    mov     cx,40           ; CX := number of words in each row
+        rep     stosw           ; fill even row
+
+        add     di,2000h-80     ; ES:DI -> odd row
+        mov     cx,40
+        rep     stosw           ; fill odd row
+
+        sub     di,2000h        ; ES:DI -> next even row
+        dec     bx
+        jnz     L01
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-20.  CGA graphics buffer fill with different pixel pattern
+               in odd and even rows.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     di,0B800h
+        mov     es,di
+        xor     di,di           ; ES:DI -> start of pixel row 0
+
+        mov     al,10101010b    ; AL := pixel pattern for even rows
+        mov     ah,al           ; AX := replicated pixel pattern
+        mov     cx,1000h        ; CX := number of words in video buffer
+        rep     stosw           ; fill even pixel rows
+
+        mov     di,2000h        ; ES:DI -> start of pixel row 1
+        mov     al,01010101b    ; AL := pixel pattern for odd rows
+        mov     ah,al
+        mov     cx,1000h
+        rep     stosw           ; fill odd pixel rows
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-21.  HGC graphics buffer fill using four-way interleave.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     es,BufferSeg    ; ES := 0B000h for first video page
+                                ;    or 0B800h for second video page
+        xor     di,di           ; ES:DI -> first byte to fill
+
+        mov     al,10101010b    ; AL pixel pattern
+        mov     ah,al           ; AX := replicated pixel pattern
+
+L01:    mov     cx,1000h        ; CX := number of words in
+                                ;  each 8 KB buffer interleave
+        rep     stosw           ; fill interleave; increment DI by 2000h
+
+        ror     ax,1            ; shift pixel pattern between rows
+        or      di,di
+        jns     L01             ; jump if DI < 8000h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-22.  MCGA and VGA 640-by-480 2-color graphics buffer fill.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     di,0A000h
+        mov     es,di
+        xor     di,di           ; ES:DI -> start of video buffer
+        mov     al,01010101b    ; AL := pixel pattern
+        mov     ah,al           ; AX := replicated pixel pattern
+        mov     cx,480*40       ; CX := (pixel rows) * (words per row)
+        rep     stosw           ; fill buffer with pixel pattern
+
+
+; this may also be accomplished using the video BIOS
+
+        mov     ax,1130h        ; AH := 11h (INT 10H function number)
+                                ; AL := 30h (character generator info)
+        int     10h             ; get info; DL = number of
+                                ;  character rows - 1
+
+        mov     ax,600h         ; AH := 6 (INT 10H function number)
+                                ; AL := 0 (number of rows to scroll)
+        mov     bh,01010101b    ; BH := pixel pattern
+        mov     cx,0            ; CH := 0 (upper left character column)
+                                ; CL := 0 (upper left character row)
+        mov     dh,dl           ; DH := lower right character row
+        mov     dl,4Fh          ; DL := 4Fh (lower right character column)
+        int     10h
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-23.  MCGA and VGA 320-by-200 256-color graphics buffer fill.
+               This routine fills alternate pixel rows separately
+               to allow dithered pixel patterns.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     di,0A000h
+        mov     es,di
+        xor     di,di           ; ES:DI -> start of video buffer
+        mov     ah,PixelValue1  ; AX := 2-pixel pattern
+        mov     al,PixelValue2
+        mov     bx,100          ; BX := number of pairs of rows
+
+L01:    mov     cx,160          ; CX := number of words per row
+        rep     stosw           ; fill even-numbered row
+        xchg    ah,al           ; exchange pixels in pattern
+
+        mov     cx,160
+        rep     stosw           ; fill odd-numbered row
+        xchg    ah,al           ; exchange pixels in pattern
+
+        dec     bx
+        jnz     L01
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-24.  Solid buffer fill for EGA and VGA native graphics
+               modes. The code assumes that the Graphics Controller
+               is already in write mode 0 (the BIOS default).
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     di,0A000h
+        mov     es,di
+        xor     di,di           ; ES:DI -> start of video buffer
+
+        mov     dx,3CEh         ; DX := Graphics Controller I/O port
+
+        mov     ah,PixelValue   ; AH := pixel value for fill
+        mov     al,0            ; AL := 0 (Set/Reset register number)
+        out     dx,ax           ; load Set/Reset register
+
+        mov     ax,0F01         ; AH := 1111b (mask for Enable Set/Reset)
+                                ; AL := 1 (Enable Set/Reset reg number)
+        out     dx,ax           ; load Enable Set/Reset register
+
+        mov     cx,PixelRows*40 ; CX := (pixel rows) * (words per row)
+        rep     stosw           ; fill the buffer
+
+        mov     ax,0001         ; AH := 0 (default Enable Set/Reset value)
+                                ; AL := 1 (Enable Set/Reset reg number)
+        out     dx,ax           ; restore default Enable Set/Reset
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-25.  Patterned buffer fill for EGA and VGA native graphics
+               modes. The code assumes that the desired pixel
+
+Programmer's Guide to PC and PS/2 Video Systems
+Copyright (c) 1987 by Richard Wilton. 
+All Rights Reserved.
+               pattern is already stored in the first eight pixels
+               of the first two rows of the video buffer (that is, at
+               A000:0000 and A000:0050).
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     di,0A000h
+        mov     es,di
+        xor     di,di           ; ES:DI -> start of video buffer
+
+        mov     dx,3CEh         ; DX := Graphics Controller I/O port
+
+        mov     ax,105h         ; AH bits 0-1 := 01b (write mode 1)
+                                ; AL := 5 (Graphics Mode register)
+        out     dx,ax           ; establish write mode 1
+
+        mov     ax,PixelRows/2  ; AX := number of pairs of rows to fill
+
+L01:    mov     cl,es:[0]       ; latch pixel pattern for even rows
+        mov     cx,40           ; CX := words per row of pixels
+        rep     stosw           ; copy latches across even-numbered row
+
+        mov     cl,es:[50h]     ; latch pixel pattern for odd rows
+        mov     cx,40
+        rep     stosw           ; fill odd-numbered row
+
+        dec     ax
+        jnz     L01             ; loop down the buffer
+
+        mov     ax,0005
+        out     dx,ax           ; restore write mode 0 (default)
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-26.  Solid buffer fill for Hercules InColor graphics mode.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     es,BufferSeg    ; ES := 0B000h for first video page
+                                ;    or 0B800h for second video page
+        xor     di,di           ; ES:DI -> first byte to fill
+
+        mov     dx,3B4h         ; DX := control register I/O port
+
+        mov     ah,PixelValue   ; AH := pixel value for fill
+        mov     al,1Ah          ; AL := 1AH (Read/Write Color register 
+                                ;  number)
+        out     dx,ax           ; load Read/Write Color register
+
+        mov     ax,4019h        ; AH bits 5-6 := 00b (write mode 0)
+                                ; AL := 19H (Read/Write Control register)
+        out     dx,ax           ; load Read/Write Control reg
+
+        mov     ax,0FFFFh       ; AX := pixel bit mask
+        mov     cx,4000h        ; CX := number of words in buffer (32K / 2)
+        rep     stosw           ; fill the buffer
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 5-27.  Patterned buffer fill for InColor Card. The code assumes
+               that the desired pixel pattern is already stored in the
+               first eight pixels of the first two rows of the video
+               buffer (that is, at offsets 0 and 2000H in BufferSeg).
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        mov     es,BufferSeg    ; ES := 0B000h for first video page
+                                ;    or 0B800h for second video page
+        xor     di,di           ; ES:DI -> first byte to fill
+
+        mov     dx,3B4h         ; DX := control register I/O port
+
+        mov     ax,6019h        ; AH bits 5-6 := 10b (write mode 2)
+                                ; AL := 19H (Read/Write Control register)
+        out     dx,ax           ; load Read/Write Control reg
+
+        mov     ax,0FFFFh       ; AX := pixel bit mask
+
+L01:    mov     cl,es:[0]       ; latch pixel pattern for even rows
+        mov     cx,1000h        ; CX := number of words in
+                                ;  each 8 KB buffer interleave
+        rep     stosw           ; fill even-numbered interleave;
+                                ;  increment DI by 2000h
+
+        mov     cl,es:[2000h]   ; latch pixel pattern for odd rows
+        mov     cx,1000h
+        rep     stosw           ; fill odd-numbered interleave
+
+        or      di,di
+        jns     L01             ; loop while DI < 8000H
+
+        mov     ax,4019h        ; restore default value of
+        out     dx,ax           ;  Read/Write Control register
+
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Listing 6-1.  Drawing a line using the equation of the line.
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+/* Listing 6-1 */
+
+Line( x1, y1, x2, y2, n )
+int     x1,y1;                  /* endpoint */
+int     x2,y2;                  /* endpoint */
+int     n;                      /* pixel value */
+{
+        int     x,y;
+        float   m;              /* slope */
+        float   b;              /* y-intercept */
+
+
+        if (x2 == x1)                           /* vertical line */
+        {
+          if (y1 > y2)
+           Swap( &y1, &y2 );                    /* force y1 < y2 */
+
+          for (y=y1; y<=y2; y++)                /* draw from y1 to y2 */
+           SetPixel( x1, y, n );
+
+          return;
+        }
+
+        if (x1 > x2)                            /* force x1 < x2 */
+        {
+          Swap( &x1, &x2 );
+          Swap( &y1, &y2 );
+        }
+
+        m = (float)(y2-y1) / (float)(x2-x1);    /* compute m and b */
+        b = y1 - (m*x1);
+
+        for (x=x1; x<=x2; x++)                  /* draw from x1 to x2 */
+        {
+          y = m*x + b;
+          SetPixel( x, y, n );
+        }
+}
+
+Swap( a, b )                                    /* exchange values of a */
+                                                 /* and b */
+int     *a,*b;
+{
+        int     t;
+
+        t = *a;
+        *a = *b;
+        *b = t;
+}
+
+

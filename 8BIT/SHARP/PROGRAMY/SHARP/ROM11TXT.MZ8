@@ -1,0 +1,1255 @@
+˛ROM/1WOM/1({≠G******************************************************************************
+
+		K O M E N T O V A N ˘    V ˘ P I S     R O M
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	Producent by JoeSoft
+						Josef Mikel
+					756 27	Mal¡ Byst“ice 51
+
+
+******************************************************************************
+
+Pro lep”… orientaci jsou v”echna √…sla ps¡na  v  hexadecim¡ln…m  tvaru a jsou
+upravena na stejnŸ po√et psanŸch m…st, t.j.  4  nebo  2    (N¡vest… nejsou ve
+vŸpisu pou⁄iv¡na a tud…⁄ √…slo  0F800H je ps¡no jako F800)
+
+Pou⁄it◊ skratky:
+Acc	- registr A = akumul¡tor
+PPRG	- podprogram
+
+
+0000	JP   E800	;start syst◊mu
+0003	JP   07E6	;na√te z kl¡vesnice do pam≈ti od DE “¡dek o d◊lce max.
+			;80 znak  v√etn≈ CR
+0006	JP   090E	;p“esune kursor na dal”… “¡dek
+0009	JP   0918	;p“esune kursor na dal”… “¡dek, pokud nebylo p“edt…m
+000C	JP   0920	;vytiskne mezeru do pozice kursoru
+000F	JP   0924	;tabelace mezerami po 10 znac…ch
+0012	JP   0935	;tisk ASCII znaku v akumul¡toru
+0015	JP   0893	;tisk “et≈zce adresov¡n◊ko DE a ukon√en◊ko 0D (CR)
+0018	JP   08A1	;tisk “et≈zce adresovan◊ho DE a ukon√en◊ho 0D bez “…d…-
+			;c…ch znak  (inst,del,pohyb kursoru a pod.)
+001B	JP   08DB	;p“e√te znak z kl¡vesnice v ASCII do akumul¡toru
+001E	JP   0A32	;test “…d…c…ch kl¡ves (SHIFT,CTRL,BREAK)
+0021	JP   0436	;nahraje hlavi√ku na p¡sek (10F0-)
+0024	JP   0475	;nahraje pam≈t dle hlavi√ky na p¡sek
+0027	JP   04D8	;nahraje hlavi√ku z p¡sky
+002A	JP   04F8	;nahraje pam≈‘ z p¡sky dle hlavi√ky
+002D	JP   0588	;verufikuje nahran¡ data
+0030	JP   01C7	;hran… hudby od DE ukon√en◊ 0D   (CR)
+0033	JP   0308	;nadstav… √as dle akumul¡toru a DE
+0036	NOP
+0037	NOP
+0038	JP   1038	;p“eru”ovac… program, zm≈na AM / PM
+003B	JP   0358	;p“e√te √as do akumul¡toru a DE
+003E	JP   0577	;p…pnut… 880 Hz  (BEEP)
+0041	JP   02E5	;nadstav… tempo hudby dle akumul¡toru
+0044	JP   02AB	;zvuk o frekvenci 1.108405 Mhz / (11A1-2)
+0047	JP   02BE	;ukon√… kran… hudby z PPRG 0044
+
+	inicializace syst◊mu a skok na 00AD pokud je odpojena spodn…
+	ROM. Pokud je p“ipojena pak skok E800 (=RESET)
+
+004A	LD   SP,10F0	;inicializace z¡sobn…ku
+004D	IM1
+004F	CALL 073E	;inicializace obvodu 8255
+0052	CALL 0A32	;test “…d…c…ch kl¡ves
+0055	JR   NC,0070	;nen… CTRL ani SHIFT
+0057	CP   20H
+0059	JR   NZ,0070	;nen… CTRL
+
+	opojen… cel◊ ROM a skok na adresu 0000 v RAM. Program si vytvo“…
+	5-ti bajtŸ podprogram od odresy FFF0
+
+005B	OUT  (E1),A	;odpoven… VRAM a spodn… ROM
+005D	LD   DE,FFF0
+0060	LD   HL,006B
+0063	LD   BC,0005
+0066	LDIR		;vytvo“en… programu od adresy FFF0
+0068	JP   FFF0	;skok na tento podprogram
+
+	data pro vytvo“en… podprogramu
+
+006B	OUT  (E0),A	;odpojen… horn… ROM
+006D	JP   0000	;skok na 0000 v RAM
+
+	pokra√ov¡n… inicializace syst◊mu
+
+0070	LD   B,FF
+0072	LD   HL,10F1
+0075	CALL 0FD8	;nulov¡n… 256 B od adresy 10F1 (hlavi√ka nahr¡v¡n…)
+0078	LD   A,16
+007A	CALL 0012	;tisk CLEAR
+007D	LD   A,71
+007F	LD   HL,D800
+0082	CALL 09D5	;zapln≈n… 800 B od adresy D800 hodnotou 71 (barvy VRAM)
+0085	LD   HL,03D8
+0088	LD   A,C3
+008A	LD   (1038),A	;inicializace skoku p“i p“eru”en… do ROM
+008D	LD   (1039),HL
+0090	LD   A,4
+0092	LD   (119E),A	;tempo 4
+0095	CALL 02BE	;zastaven… hran… hudby
+0098	CALL 0009	;kursor na n¡sleduj…c… “¡dek
+009B	LD   DE,06E7
+009E	RST  18		;tisk '** MONITOR 1Z013B **'
+009F	CALL 0577	;BEEP
+00A2	LD   A,1
+00A4	LD   (119D),A	;zablokov¡n… p…pan… p11ri stisku kl¡vesy
+00A7	LD   HL,E800
+00AA	LD   (HL),A
+00AB	JR   0102	;pokud na E800 RAM pak skok na 00AD, pokud ROM pak E800
+
+	prvn… syst◊movŸ program umo⁄Œuj…c… skok na ur√enou adresu (JUMP),
+	listing a zad¡v¡n… do pam≈ti (DUMP,MEMORY), pr¡ci s kazetovŸm
+	magnetofonem (LOAD,SAVE,VERIFY), pr¡ci s tisk¡rnou (PRINT),p…p¡n…
+	p“i stisku kl¡ves (BEEP) a spu”t≈n… programu od adresy 0000 v RAM
+
+00AD	CALL 0009	;p“esune kursor na dal”… “¡dek
+00B0	LD   A,'*'
+00B2	CALL 0012	;tisk *
+00B5	LD   DE,11A3
+00B8	CALL 0003	;zad¡n… textu
+00BB	LD   A,(DE)	;na√ten… zadan◊ho znaku
+00BC	INC  DE
+00BD	CP   0D
+00BF	JR   Z,00AD	;posledn… znak => zad¡n… dal”…ho p“…kazu
+00C1	CP   'J'
+00C3	JR   Z,00F3	;JUMP
+00C5	CP   'L'
+00C7	JR   Z,0111	;LOAD
+00C9	CP   'F'
+00CB	JR   Z,00FF	;pokud p“ipojena spodn… ROM, pak skok na E800
+00CD	CP   'B'
+00CF	JR   Z,00F7	;BEEP ON/OFF
+00D1	CP   '#'
+00D3	JR   Z,005B	;spu”t≈n… programu od adresy 0000 RAM
+00D5	CP   'P'
+00D7	JR   Z,0155	;pr¡ce s tisk¡rnou; tiskne text za P na tisk¡rn≈ s
+			;mo⁄nost… vyu⁄it… textov◊ho i grafick◊ho mœdu
+00D9	CP   'M'
+00DB	JP   Z,07A8	;MEMORY
+00DE	CP   'S'
+00E0	JP   Z,0F5E	;SAVE;za parametrem S mus… okam⁄it≈ m¡sledovat
+			;po√¡te√n…, koncov¡ a startovac… adresa programu
+00E3	CP   'V'
+00E5	JP   Z,0FC8	;VERIFY
+00E8	CP   'D'
+00EA	JP   Z,0D29	;DUMP
+00ED	NOP
+
+00EE	NOP
+00EF	NOP
+00F0	NOP
+00F1	JR   00BB	;hled¡n… nov◊ho, zn¡m◊ho znaku
+
+	skok dle 4 ASCII adresovanŸch DE, nelze p“ev◊st na √…slo => skok 00AD
+
+00F3	CALL 013D	;p“evod 4 ASCII od DE na √…slo, chyba => skok 00AD
+00F6	JP   (HL)	;skok
+
+	BEEP ON/OFF  - vynegov¡n… bitu b0 (119D)
+	pokud p“ipojena spodn… ROM => skok na E800
+
+00F7	LD   A,(119D)	;na√ten… syst◊mov◊ prom≈nn◊
+00FA	RRA
+00FB	CCF		;negace bitu b0
+00FC	RLA
+00FD	JR   00A4	;ulo⁄en… vŸsledku s kontrolou p“ipojen… spodn… ROM
+
+	pokud na adrese F000 je um…st≈na 00 pak skok na tutu adresu,jinak 00AD
+
+00FF	LD   HL,F000
+
+	pokud na adrese HL um…st≈na 0 pak skok na tutu adresu, jinak skok 00AD
+
+0102	LD   A,(HL)
+0103	OR   A
+0104	JR   NZ,00AD	;nevy”la 0 => skok na 00AD
+0106	JP   (HL)	;skok na ur√enou adresu
+
+	skok na 00AD s tiskem 'CHECK SUM ER.', pokud Acc <> 2
+
+0107	CP   2
+
+	skok na 00AD s tiskem 'CHECK SUM ER.', pokud nadstavem ZF
+
+0109	JR   Z,00AD	;skok na 00AD
+
+	skok na 00AD s tiskem 'CHECK SUM ER.'
+
+010B	LD   DE,0147
+010E	RST  18		;tisk “et≈zce od DE
+010F	JR   00AD	;skok na 00AD
+
+	rutina LOAD
+
+0111	CALL 04D8	;nahr¡n… hlavi√ky
+0114	JR   C,0107	;chyba nebo BREAK => n¡vrat
+0116	CALL 0009	;p“esun kursoru na dal”… “¡dek
+0119	LD   DE,09A0
+011C	RST  18		;tisk 'LOADING '
+011D	LD   DE,10F1
+0120	RST  18		;tisk n¡zvu programu
+0121	CALL 04F8	;nahr¡n… t≈la programu
+0124	JR   C,0107	;chyba nebo BREAK => n¡vrat
+0126	LD   HL,(1106)	;startovac… adresa
+0129	LD   A,H
+012A	CP   12
+012C	JR   C,010F	;pokud startovac… adresa men”… 1200 => skok na 00AD
+011E	JP   (HL)	;spu”‘≈n… programu
+
+	na√te z kl¡vesnice do pam≈ti “¡dek od adresy 11A3; BREAK => skok 00AD
+
+012F	EX   (SP),HL	;HL=n¡vratov¡ adresa
+0130	POP  BC
+0131	LD   DE,11A3
+0134	CALL 3		;na√ten… “¡dku z kl¡vesnice od DE
+0137	LD   A,(DE)	;na√ten… 1. znaku
+0138	CP   18	
+013A	JR   Z,010F	;BREAK => skok na 00AD
+013C	JP   (HL)	;n¡vrat
+
+	p“evod 4 ASCII od DE do HL, pokud nelze => skok na 00AD
+
+013D	EX   (SP),IY	;IY=n¡vratov¡ adresa
+013F	POP  AF
+0140	CALL 0410	;p“evod 4 ASCII od DE do HL; nelze => SCF
+0143	JR   C,010F	;nelze => skok na 00AD
+0145	JP   (IY)	;n¡vrat
+
+	data tisku
+	
+0147	DEFM 'CHECK SUM ER.'
+
+	podprogramy pro pr¡ci s tisk¡rnou
+
+0155	LD   A,(DE)
+0156	CP   '&'
+0158	JR   NZ,0170	;druhŸ znak za P nen… & => tisk textu za P na tisk¡rn≈
+015A	INC  DE
+015B	LD   A,(DE)	;na√ten… dal”…ho znaku
+015C	CP   'L'
+015E	JR   Z,0176	;textovŸ mœd 40 znak  na “¡dek
+0160	CP   'S'
+0162	JR   Z,017B	;textovŸ mœd 80 znak  na “¡dek
+0164	CP   'C'
+0166	JR   Z,018B	;PCOLOR +1
+0168	CP   'G'
+016A	JR   Z,0184	;GRAPH
+016C	CP   'T'
+016E	JR   Z,0180	;PTEST
+0170	CALL 01A5	;tisk “et≈zce od DE na tisk¡rn≈
+0173	JP   00AD	;n¡vrat
+
+	40 znak  na “¡dek
+
+0176	LD   DE,0470	;data tisku
+0179	JR   0170
+
+	80 znak  na “¡dek
+
+017B	LD   DE,03D5	;data tisku
+017E	JR   0170
+
+	PTEST
+
+0180	LD   A,04	;kœd pro PTEST
+0182	JR   0186	;tisk
+
+	GRAPH
+
+0184	LD   A,02	;kœd pro grafiku
+0186	CALL 018F	;tisk Acc na tisk¡rn≈
+0189	JR   015A	;na√ten… novŸch znak 
+
+	PCOLOR - n¡slwduj…c… barva
+
+018B	LD   A,1D
+018D	JR   0186
+
+	tisk akumul¡toru na tisk¡rn≈; pokud BREAK => skok na 00AD
+		A=0, F=NC Z PE P , B=p vodn… Acc, C=1
+
+018F	LD   C,00
+0191	LD   B,A	;ulo⁄en… Acc
+0192	CALL 01B6	;√ek¡, a⁄ bude tisk¡rna p“ipravena
+0195	LD   A,B	;vyzvednut… Acc
+0196	OUT  (FF),A	;vysl¡n… Acc na tisk¡rnu
+0198	LD   A,80
+019A	OUT  (FE),A	;o⁄iven… sign¡lu pro p“…jem dat
+019C	LD   C,01
+019E	CALL 01B6	;√ek¡, a⁄ tisk¡rna p“evezme data
+01A1	XOR  A
+01A2	OUT  (FE),A	;vynulov¡n… sign¡lu pro p“…jem dat
+01A4	RET
+
+	tisk “e‘ezce od DE ukon√en◊ho 0D na tisk¡rn≈
+		-
+
+01A5	PUSH DE
+01A6	PUSH BC
+01A7	PUSH AF
+01A8	LD   A,(DE)	;na√ten… znaku
+01A9	CALL 018F	;tisk Acc na tisk¡rn≈
+01AC	LD   A,(DE)	;odnoven… znaku
+01AD	INC  DE
+01AE	CP   0D		;konec (CR)
+01B0	JR   NZ,01A8	;dokud nen… konec => opakuj tisk
+01B2	POP  AF
+01B3	POP  BC
+01B4	POP  DE
+01B5	RET
+
+	√ek¡, a⁄ na vstupu STA z PIO bude stejnŸ sign¡l, jako je hodnota v C
+	pokud BREAK => skok na 00AD
+		A=C, F=NC Z PO P
+
+01B6	IN   A,(FE)
+01B8	AND  0D		;Acc=STA (BUSY)
+01BA	CP   C
+01BB	RET  Z		;stejn◊ v C => n¡vrat
+01BC	CALL 001E	;test “…d…c…ch kl¡ves (BREAK)
+01BF	JR   NZ,01B6	;nen… BREAK => √ekej d¡l
+01C1	LD   SP,10F0	;inicializace z¡sobn…ku
+01C4	JP   00AD
+
+	hran… hudby adresovan◊ DE a ukon√en◊ 0D (CR) nebo C8
+		A=0D nebo C8 dle konce, F=NC Z PO P  pokud nen… BREAK!
+		SCF => BREAK!
+
+01C7	PUSH BC
+01C8	PUSH DE
+01C9	PUSH HL
+01CA	LD   A,02
+01CC	LD   (11A0),A	;oktava 2
+01CF	LD   B,01	;prvn… wait velmi kr¡tkŸ
+01D1	LD   A,(DE)	;na√ten… znaku
+01D2	CP   0D
+01D4	JR   Z,0211	;konec
+01D6	CP   C8
+01D8	JR   Z,0211	;konec
+01DA	CP   CF		;grafickŸ znak spodn… pomlky (pod 2)
+01DC	JR   Z,0205	;ni⁄”… okt¡va
+01DE	CP   '-'
+01E0	JR   Z,0205	;ni⁄”… okt¡va
+01E2	CP   '+'
+01E4	JR   Z,020D	;vy””… okt¡va
+01E6	CP   D7		;grafickŸ znak horn… pomlky (pod 2)
+01E8	JR   Z,020D	;vy””… okt¡va
+01EA	CP   '#'
+01EC	LD   HL,026C	;tabulka frekvenc… jednotlivŸch tœn 
+01EF	JR   NZ,01F5
+01F1	LD   HL,0284	;noty s # => zm≈na tabulky frekvenc…
+01F4	INC  DE
+01F5	CALL 021C	;na√ten… frekvence na (11A1-2) a d◊lky trv¡n… do C
+01F8	JR   C,01D1	;znak, kterŸ nelze zahr¡t => dal”…
+01FA	CALL 02C8	;wait B*1/35 s. =>dohraje p“edchoz… tœn
+01FD	JR   C,0214	;BREAK => n¡vrat
+01FF	CALL 02AB	;vygenerov¡n… hudby o f=1.1 Mhz/(11A1-2) p“es 8253
+0202	LD   B,C	;na√ten… d◊lky
+0203	JR   01D1	;na√ten… dal”…ch dat
+
+0205	LD   A,3
+0207	LD   (11A0),A	;zmen”en… okt¡vy (z 2 na 3)
+020A	INC  DE		;zv≈√en… adresy dat
+020B	JR   01D1	;√ten… dal”…ch dat
+
+020D	LD   A,1
+020F	JR   0207	;zv≈t”en… okt¡vy (z 2 na 1)
+
+0211	CALL 02C8	;wait b*1/35 s.
+0214	PUSH AF		;uchov¡n… carry
+0215	CALL 02BE	;zasteven… hran… hudby
+0218	POP  AF		;vyzvednut… carry
+0219	JP   069B	;n¡vrat
+
+	na√ten… frekvence a d◊lky tœnu
+		A=0, F=NC Z PE P, C=dan¡ d◊lka, DE=n¡sleduj…c… znak, HL=?
+		pokud neexistuj…c… znak = SCF
+
+021C	PUSH BC
+021D	LD   B,8	;existuje 8 r znŸch tœn 
+021F	LD   A,(DE)	;na√ten… tœnu
+0220	CP   (HL)	;porovn¡n… s daty
+0221	JR   Z,22C	;tœn byl najden
+0223	INC  HL
+0224	INC  HL		;p“esko√en… dat frekvence na n¡sleduj…c… tœn
+0225	INC  HL
+0226	DJNZ 0220	;opakuj 8*
+0228	SCF		;tœn nenajden
+0229	INC  DE
+022A	POP  BC
+022B	RET		;n¡vrat
+022C	INC  HL		;HL=po√¡tek dat frekvence
+022D	PUSH DE
+022E	LD   E,(HL)
+022F	INC  HL
+0230	LD   D,(HL)	;do DE na√tena frekvence
+0231	EX   DE,HL	;na√ten¡ frekvence do HL
+0232	LD   A,H
+0233	OR   A
+0234	JR   Z,023F	;hran… mezery nez¡vis… na okt¡v≈
+0236	LD   A,(11A0)	;okt¡va
+0239	DEC  A		;zmen”i  o 1
+023A	JR   Z,023F
+023C	ADD  HL,HL	;dokud nen… okt¡va nulov¡ => zdvojn¡sobuj frekvenci
+023D	JR   0239
+023F	LD   (11A1),HL	;ulo⁄en… vypo√ten◊ frekvence na (11A1-2)
+0242	LD   HL,11A0
+0245	LD   (HL),02	;inicializace okt¡vy na 2
+0247	DEC  HL
+0248	POP  DE
+0249	INC  DE
+024A	LD   A,(DE)	;na√ten… n¡sleduj…c…ho znaku
+024B	LD   B,A	;ulo⁄en… do B
+024C	AND  F0
+024E	CP   30
+0250	JR   Z,0255	;n¡sleduj…c… znak je √…slo => p“epo√ti d◊lku
+0252	LD   A,(HL)	;n¡sleduj…c… znak nen… √…slo => nech p vodn…
+0253	JR   025A
+0255	INC  DE
+0256	LD   A,B	;navr¡cen… ulo⁄en◊ho Acc
+0257	AND  0F		;vynulov¡n… prvn… poloviny
+0259	LD   (HL),A	;a ulo⁄en… do syst◊mov◊ prom≈n◊
+025A	LD   HL,029C	;HL=data d◊lek
+025D	ADD  A,L	;p“i√ten… √…sla d◊lky
+025E	LD   L,A
+025F	LD   C,(HL)	;C=ur√en¡ d◊lka
+0260	LD   A,(119E)
+0263	LD   B,A	;B=tempo hudby
+0264	XOR  A		;A=0
+0265	ADD  A,C	;dle tempa n¡sobit d◊lku
+0266	DJNZ 0265
+0268	POP  BC
+0269	LD   C,A	;d◊lka ulo⁄ena do C
+026A	XOR  A
+026B	RET
+
+	n¡sleduj… data frekvenc… k jednotlivŸm tœn m a d◊lky
+
+026C	DEFM'C' 	DEFW 0845
+026F	DEFM'D'		DEFW 075F
+0272	DEFM'E'		DEFW 0691
+0275	DEFM'F'		DEFW 0633
+0278	DEFM'G'		DEFW 0586
+027B	DEFM'A'		DEFW 04EC
+027E	DEFM'B'		DEFW 0464
+0281	DEFM'R'		DEFW 0000
+
+0284	DEFM'C'		DEFW 07CF
+0287	DEFM'D'		DEFW 06F5
+028A	DEFM'E'		DEFW 0633\
+028D	DEFM'F'		DEFW 05DA
+0290	DEFM'G'		DEFW 0537
+0293	DEFM'A'		DEFW 04A5
+0296	DEFM'B'		DEFW 0423
+0299	DEFM'R'		DEFW 0000
+
+029C	DEFB 01,02,03,04,06,08,0C,10,18,20
+
+	zv≈t”en… DE o 4
+		DE=DE+4
+
+02A6	INC  DE
+02A7	INC  DE
+02A8	INC  DE
+02A9	INC  DE
+02AA	RET
+
+	hran… hudby a frekvenci f=1.1Mhz / (11A1-2) p“es 8255, pokud (11A1)=0,
+	pak zastaven… hran…
+		A=0 pokud nehraje, A=1 pokud hraje, F=? ,HL=?
+
+02AB	LD   HL,(11A1)	;HL= frekvence
+02AE	LD   A,H
+02AF	OR   A
+02B0	JR   Z,02BE	;(11A2)=0 => zastaven… hran…
+02B2	PUSH DE
+02B3	EX   DE,HL	;frekvence do DE
+02B4	LD   HL,E004
+02B7	LD   (HL),E	;ulo⁄en… frekvence do √…ta√e
+02B8	LD   (HL),D
+02B9	LD   A,01
+02BB	POP  DE
+02BC	JR   02C4	;aktivace GATE do 1
+
+	zastaven… hran… hudby
+		A=0, F=NC Z PE P
+
+02BE	LD   A,36
+02C0	LD   (E007),A	;nadstaven… √…ta√e pro z¡pis obou slabik, mœd 3,bin¡rn≈
+02C3	XOR  A
+02C4	LD   (E008),A	;nulov¡n… sign¡lu GATE
+02C7	RET
+
+	wait B*1/35 s.; pokud BREAK => SCF
+		HL=E000, AF=?, B=?
+
+02C8	LD   HL,E000
+02CB	LD   (HL),F8	;aktivace 8 “¡dku kl¡vesnice
+02CD	INC  HL
+02CE	LD   A,(HL)	;na√ten… zm¡√klŸch kl¡ves
+02CF	AND  81		;vŸb≈r SHIFT + ESC
+02D1	JR   NZ,02D5	;nen… BREAK => wait b* 1/35 s
+02D3	SCF
+02D4	RET		;BREAK => n¡vrat
+
+	wait B*1/35 s.
+		A=0, F=NC Z PE P , B=0
+
+02D5	LD   A,(E008)
+02D8	RRCA		;vŸb≈r kmito√tu pro tempo hudby 35 Hz
+02D9	JR   C,02D5	;kmito√et  je st¡le v 1
+02DB	LD   A,(E008)
+02DE	RRCA
+02DF	JR   NC,02DB	;kmito√et je v 0
+02E1	DJNZ 02D5	;opakuj B:
+02E3	XOR  A
+02E4	RET
+
+	nadstav◊n… tempa do syst◊mov◊ prom≈nn◊
+		-
+
+02E5	PUSH AF
+02E6	PUSH BC
+02E7	AND  0F		;vynulov¡n… horn… poloviny √…sla
+02E9	LD   B,A
+02EA	LD   A,08
+02EC	SUB  B		;ode√ten… jej od 8 (z0=>8, z1=>7, z2=>6...)
+02ED	LD   (119E),A	;ulo⁄en… do syst◊mov◊ prom≈nn◊
+02F0	POP  BC
+02F1	POP  AF
+02F2	RET
+
+	nadstav◊n… do carry a Acc po√¡tku “¡dk» ze syst◊movŸch prom≈nnŸch,
+	vyu⁄…vanŸch p“i spojitosti n≈kterŸch “¡dk 
+		HL=sou“adnice kursoru, AF=?, DE=?
+
+02F3	LD   HL,1173	;po√¡tek dat
+02F6	LD   A,(1172)	;A=Y-ov¡ sou“adnice kursoru
+02F9	ADD  A,L	;p“i√ten… k dat m
+02FA	LD   L,A
+02FB	LD   A,(HL)	;na√ten… kœdu
+02FC	INC  HL		;zv≈√en… adresy dat
+02FD	RL   (HL)
+02FF	OR   (HL)
+0300	RR   (HL)
+0302	RRCA		;do carry => bit z tohoto “¡dku,do Acc z n¡sleduj…c…ho
+0303	EX   DE,HL	;do DE hodnota adresy, ze kter◊ √teny data
+0304	LD   HL,(1171)	;HL= sou“adnice kursoru
+0307	RET
+
+	nadstaven… √asu dle Acc (AM/PM) a DE (√as v sekund¡ch) do √…ta√ 
+		A=C0-E, F=NC Z PO P
+
+0308	DI
+0309	PUSH BC
+030A	PUSH DE
+030B	PUSH HL
+030C	LD   (119B),A	;ulo⁄en… AM/PM do syst◊mov prom≈nn◊
+030F	LD   A,F0
+0311	LD   (119C),A	;ulo⁄en… do syst◊mov◊ prom≈nn◊ chod hodim
+0314	LD   HL,A8C0	;=12 hodim v sekund¡ch
+0317	XOR  A
+0318	SBC  HL,DE	;HL=zbytek √asu do 12 hodin (za jak dlouho 12 hod.)
+031A	PUSH HL
+031B	NOP
+031C	EX   DE,HL	;DE=za jak dlouho zm≈na AM/PM
+031D	LD   HL,E007	;inicializace √…ta√ 
+0320	LD   (HL),74	;√…ta√ 1:bin¡rn…, ob≈ slabiky v mœdu 2
+0322	LD   (HL),B0	;√…ta√ 2:bin¡rn…, ob≈ slabiky v mœdu 0
+0324	DEC  HL
+0325	LD   (HL),E	;ulo⁄en… do √…ta√e 2 zbytku √asu do 12 hod.
+0326	LD   (HL),D
+0327	DEC  HL
+0328	LD   (HL),0A	;ulo⁄em… do √…ta√e 1 hodnoty 10
+032A	LD   (HL),00
+032C	INC  HL
+032D	INC  HL
+032E	LD   (HL),80	;vzorkov¡n… √…ta√e 2 pro √ten…
+0330	DEC  HL
+0331	LD   C,(HL)	;p“e√ten… √asu
+0332	LD   A,(HL)
+0333	CP   D
+0334	JR   NZ,0331	;na √…t√i st¡le jinŸ √as ne⁄ zadanŸ
+0336	LD   A,C
+0337	CP   E
+0338	JR   NZ,0331	;na √…t√i st¡le jinŸ √as ne⁄ zadanŸ
+033A	DEC  HL
+033B	NOP
+033C	NOP
+033D	NOP
+
+033E	LD   (HL),FB	;ulo⁄en… do √…ta√e vstupn… kmito√et(3CFBH=15611)
+0340	LD   (HL),3C
+0342	INC  HL
+0343	POP  DE
+0344	LD   C,(HL)	;na√ten… √asu
+0345	LD   A,(HL)
+0346	CP   D
+0347	JR   NZ,0344	;na √…t√i jinŸ √as ne⁄ zadanŸ
+0349	LD   A,C
+034A	CP   E
+034B	JR   NZ,0344	;na √…t√i jinŸ √as ne⁄ zadanŸ
+034D	POP  HL
+034E	POP  DE
+034F	POP  BC
+0350	EI
+0351	RET
+
+	data pro BEEP
+
+0352	DEFW '+A0'
+
+	na√ten… √asu z √…ta√  do DE a Acc
+		A=PM/AM, DE=√as v sekund¡ch, F=?
+
+0356	NOP
+0357	NOP
+0358	PUSH HL
+0359	LD   HL,E007
+035C	LD   (HL),80	;vzorkuj √…ta√ 2 pro √ten…
+035E	DEC  HL
+035F	DI	
+0360	LD   E,(HL)	;na√ten… √asu
+0361	LD   D,(HL)
+0362	EI
+0363	LD   A,E
+0364	OR   D
+0365	JR   Z,0375	;√as je nulovŸ => dej do na√ten◊ho -1s
+0367	XOR  A
+0368	LD   HL,A8C0	;=12 hodin v sekund¡ch
+036B	SBC  HL,DE	;ode√ten… 12 hodin od p“e√ten◊ho √asu
+036D	JR   C,037F	;p“e√tenŸ √as v≈t”… 12 hodin
+036F	EX   DE,HL	;vŸsledek do DE
+0370	LD   A,(119B)	;syst◊mov¡ prom≈nn¡ pro AM/PM
+0373	POP  HL
+0374	RET0
+
+0375	LD   DE,A8C0	;12 hodin v sekund¡ch
+0378	LD   A,(119B)	;A=AM/PM
+037B	XOR  1		;negace vŸsledku
+037D	POP  HL
+037E	RET
+
+037F	DI
+0380	LD   HL,E006
+0383	LD   A,(HL)
+0384	CPL
+0385	LD   E,A	;de DE p“ejde negovanŸ √as
+0386	LD   A,(HL)
+0387	CPL
+0388	LD   D,A
+0389	EI
+038A	INC  DE
+038B	JR   0378	; a do Acc negovan◊ AM/PM
+
+	p“eru”ovac… program, zm≈na AM/PM
+		-
+
+038D	PUSH AF
+038E	PUSH BC
+038F	PUSH DE
+0390	PUSH HL
+0391	LD   HL,119B
+0394	LD   A,(HL)	;na√ten… AM/PM
+0395	XOR  1		;negace vŸsledku
+0397	LD   (HL),A	; a jeho op≈tovn◊ ulo⁄en…
+0398	LD   HL,E007
+039B	LD   (HL),80	;vzorkov¡n… √…ta√e 2 pro √ten…
+039D	DEC  HL
+039E	PUSH HL
+039F	LD   E,(HL)	;na√ten… √asu do DE (m ⁄e bŸt men”… 0)
+03A0	LD   D,(HL)
+03A1	LD   HL,A8C0
+03A4	ADD  HL,DE	;p“i√ten… k 12 hodin¡m
+03A5	DEC  HL		;zmen”en… o 2  = vykompenzov◊n… rozd…lu p“i m≈r≈n…
+03A6	DEC  HL
+03A7	EX   DE,HL	;vŸslednŸ √as do DE
+03A8	POP  HL
+03A9	LD   (HL),E	;ulo⁄en… tohoto √asu do √…ta√ 
+03AA	LD   (HL),D
+03AB	POP  HL
+03AC	POP  DE
+03AD	POP  BC
+03AE	POP  AF
+03AF	EI
+03B0	RET
+
+	tisk mezery a obsahu pam≈‘ov◊ buŒky (HL)
+		A=(HL), F=?
+
+03B1	CALL 0920	;tisk mezery
+
+	tisk obsahu pame‘ov◊ buŒky (HL)
+		A=(HL), F=?
+
+03B4	LD   A,(HL)	;na√ten… √…sla
+03B5	CALL 03C3	;tisk odsahu Acc
+03B8	LD   A,(HL)	;obnoven… √…sla
+03B9	RET
+
+	tisk obsahu reg. p¡ru HL
+		AF=?
+
+03BA	LD   A,H
+03BB	CALL 03C3	;tisk obsahu Acc
+03BE	LD   A,L1
+03BF	JR   03C3	;tisk obsahu Acc
+
+	tisk obcahu Acc
+		AF=?
+
+03C1	NOP
+03C2	NOP
+03C3	PUSH AF
+03C4	RLCA		;vŸm≈na horn…ch a spodn…ch 4 bit  Acc
+03C5	RLCA
+03C6	RLCA
+03C7	RLCA
+03C8	CALL 03DA	;p“evod spodn… poloviny Acc na ASCII
+03CB	CALL 0012	;tisk Acc
+03CE	POP  AF
+
+	tisk obsahu spodn… poloviny Acc 
+		AF=?
+
+03CF	CALL 03DA	;p“evod spodn… poloviny Acc na ASCII
+03D2	JP   0012	;tisk Acc
+
+	data protisk¡rnu (80 znak  na “¡dek)
+
+03D5	DEFB 01,09,09,09,0D
+
+	p“evod spodn…ch 4 bit  Acc na ASCII  (0A => 41='A')
+		A=vŸsledek, F=NC NZ P
+
+03DA	AND  0F		;vynulov¡n… horn… poloviny
+03DC	CP   0A
+03DE	JR   C,03E2	;pokud men”… 10 => p“i√ti jen 30
+03E0	ADD  A,7	;rozd…l mezi 9 a A v ASCII je 7
+03E2	ADD  A,30
+03E4	RET
+
+	p“evod ASCII znaku v Acc na √…slo, pokud nejde => SCF
+		AF=?
+
+03E5	SUB  30
+03E7	RET  C		;√…slo men”… ne⁄ '0'
+03E8	CP   0A
+03EA	CCF
+03EB	RET  NC		;√…slo od '0' do '9'(ASCII od 30 do 39)
+03EC	SUB  7
+03EE	CP   10
+03F0	CCF
+03F1	RET  C		;√…slo > 'F'
+03F2	CP   0A
+03F4	RET		;√…slo od 'A' do 'F'(ASCII od 41 do 46)
+
+	viz 03E5
+
+03F5	NOP
+03F6	NOP
+03F7	NOP
+03F8	NOP
+03F9	JR   03E5
+
+	data tisku
+
+03FB	DEFW '| PLAY'
+0402	DEFW '| RECORD.'
+
+	p“evod 4 ASCII od DE na √…slo do HL, pokud nejde => SCF
+		AF=?,HL=vŸsledek
+
+040C	NOP
+040D	NOP
+040E	NOP2
+040F	NOP
+0410	PUSH DE
+0411	CALL 041F	;p“evod 2 ASCII od DE na √…slo do Acc
+0414	JR   C,041D	;nelze p“ev◊st
+0416	LD   H,A	;vŸsledek ulo⁄en do H
+0417	CALL 041F	;p“evod 2 ASCII od DE na √…slo do HL
+041A	JR   C,041D	;nelze p“ev◊st
+041C	LD   L,A	;druhŸ vŸsledek do L
+041D	POP  DE
+041E	RET
+
+	p“evod 2 ASCII od DE na √…slo do Acc, pokud nejde => SCF
+		A=vŸsledek, F=?, DE=DE+2
+
+041F	PUSH BC
+0420	LD   A,(DE)	;na√ten… znaku
+0421	INC  DE
+0422	CALL 039F	;p“evod ASCII znaku v Acc na √…slo
+0425	JR   C,0434	;nelze p“ev◊st
+0427	RRCA		;zarotov¡n… vŸsledku na prvn… pozice
+0428	RRCA
+0429	RRCA
+042A	RRCA
+042B	LD   C,A	;ulo⁄en… vŸsledku do C
+042C	LD   A,(DE)	;na√ten… dal”…ho znaku
+042D	INC  DE
+042E	CALL 03F9	;p“evod ASCII znaku v Acc na √…slo
+0431	JR   C,0434	;nelze p“ev◊st
+0433	OR   C		;p“i√ten… vŸsledku k p“edchoz…mu vŸsledku
+0434	POP  BC
+0435	RET
+
+	nahraje hlavi√ku programu um…st≈nou od adresy 10F0 na mag. p¡sek
+		AF=?; BREAK => SCF
+
+0436	DI
+0437	PUSH DE
+0438	PUSH BC
+0439	PUSH HL
+043A	LD   D,D7	;kœd nahr¡v¡n… na kazatu (pro tisk)
+043C	LD   E,CC	;kœd hlavi√ky
+043E	LD   HL,10F0	;adresa od kter◊ um…st≈n program
+0441	LD   BC,0080	;d◊lka programu
+0444	CALL 071A	;vŸpo√et kontroln…ho sou√tu hlavi√ky
+0447	CALL 069F	;rozb≈h motoru
+044A	JR   C,0464	;BREAK=> n¡vrat
+044C	LD   A,E
+044D	CP   CC
+044F	JR   NZ,04E5	;nezapisuje se hlavi√ka, ale t≈lo => u⁄ nic netiskni
+0451	CALL 9		;kursor na dal”… “¡dek
+0454	PUSH DE
+0455	LD   DE,0467
+0458	RST  18		;tisk 'WRITING'
+0459	LD   DE,10F1
+045C	RST  18		;tisk n¡zvu programu
+045D	POP  DE
+045E	CALL 077A	;z¡pis pilotn…ho tœnu a zna√ky
+0461	CALL 048A	;z¡pis dat (2*)
+0464	JP   0554	;n¡vrat se zastaven…m motoru
+
+	data tisku
+
+0467	DEFW 'WRITING '
+
+	data pro tisk¡rnu   (40 znak  na “¡dek)
+
+0470	DEFB 01,09,09,0B,0D3
+
+	nahraje t≈lo souboru dle hlavi√ky (od 10F0-) na p¡sek
+		AF=? ;BREAK => SCF
+
+0475	DI
+0476	PUSH DE
+0477	PUSH BC
+0478	PUSH HL
+0479	LD   D,D7	;kœd pro nahr¡v¡n… na kazetu  (pro tisk)
+047B	LD   E,53	;kœd dat
+047D	LD   BC,(1102)	;d◊lka
+0481	LD   HL,(1104)	;adresa,od kter◊ ulo⁄en program
+0484	LD   A,B
+0485	OR   C
+0486	JR   Z,04D2	;d◊lka nulov¡ => n¡vrat
+0488	JR   0444	;nahr¡n… dat (2*)
+
+	program n¡sleduj…c… po nahr¡n… pilotn…ho tœnu a zna√ky => nahr¡n… dat
+	sod adresy HL a d◊lkou BC   (2*)
+		AF=?; pokud v”e v po“¡dku => carry=0:pokud BREAK => A=2,SCF
+		pokud chyba p“i √ten… => A=1,SCF
+
+048A	PUSH DE
+048B	PUSH BC
+048C	PUSH HL
+048D	LD   D,2	;prob≈hne 2*
+048F	LD   A,F8
+0491	LD   (E000),A	;aktivace 8 “¡dku kl¡vesnice
+0494	LD   A,(HL)
+0495	CALL 0776	;SAVE Acc
+0498	LD   A,(E001)	;na√ten… zm¡√klŸch kl¡ves
+049B	AND  81		;vŸb≈r SHIFT a ESC
+049D	JP   NZ,04A5	;nen… BREAK
+04A0	LD   A,2
+04A2	SCF		;BREAK => n¡vrat s Acc=2 a SCF
+04A3	JR   04D2
+04A5	INC  HL		;zv≈√en… adresy
+04A6	DEC  BC		;zmen”en… d◊lky
+04A7	LD   A,B
+04A8	OR   C
+04A9	JP   NZ,0494	;opakuj, dokud d◊lka nebyde nulov¡
+04AC	LD   HL,(1197)	;na√ten… kontroln…ho sou√tu
+04AF	LD   A,H
+04B0	CALL 0767	;z¡pis prvn…ho byte
+
+04B3	LD   A,L
+04B4	CALL 0767	;z¡pid druh◊ho byte
+04B7	CALL 0A1A	;z¡pis jedni√kov◊ho bitu na konec
+04BA	DEC  D		
+04BB	JP   NZ,04C2	;z¡pis dat podruh◊
+04BE	OR   A		;vynulov¡n… carry
+04BF	JP   04D2	;n¡vrat
+
+04C2	LD   B,0
+04C4	CALL 0A01	;z¡pis 356* nulovŸ bit (kr¡tkŸ pilotn… tœn)
+04C7	DEC  B
+04C8	JP   NZ,04C4
+04CB	POP  HL		;obnoven… po√¡te√n… adresy a b◊lky dat
+04CC	POP  BC
+04CD	PUSH BC
+04CE	PUSH HL
+04CF	JP   0494	;opakuj nahr¡v¡n…
+
+04D2	POP  HL
+04D3	POP  BC
+04D4	POP  DE
+04D5	RET4
+
+	nahr¡n… hlavi√ky z magnetofonu do pam≈ti od 10F0-
+		C=nule pokud start 04D6, jinak nezm≈n≈no
+		AF=?; pokud v”e v po“¡dku => carry=0:pokud BREAK => A=2,SCF
+		pokud chyba p“i √ten… => A=1,SCF
+
+04D6	LD   C,0	;nepovinn¡ instrukce, po n¡vratu C=0
+04D8	DI
+04D9	PUSH DE
+04DA	PUSH BC
+04DB	PUSH HL
+04DC	LD   D,D2	;kœd √ten… z magnetofonu (p“i tisku)
+04DE	LD   E,CC	;kœd hlavi√ky
+04E0	LD   BC,0080	;d◊lka
+04E3	LD   HL,10F0	;adresa, od kter◊ ullo⁄en
+04E6	CALL 069F	;rozb≈h motoru
+04E9	JP   C,0572	;BREAK
+04EC	CALL 065B	;hled¡ pilotn… tœn se zna√kou
+04EF	JP   C,0572	;BREAK
+04F2	CALL 050E	;nahr¡n… dat (2* pokud nutn◊)
+04F5	JP   0554	;n¡vrat
+
+	nahr¡ni t≈la z magnetofonu dle hlavi√ky (10F0-)
+		AF=?; pokud v”e v po“¡dku => carry=0:pokud BREAK => A=2,SCF
+		pokud chyba p“i √ten… => A=1,SCF
+
+04F8	DI
+04F9	PUSH DE
+04FA	PUSH BC
+04FB	PUSH HL
+04FC	LD   D,D2	;kœd √ten… z magnetofonu
+04FE	LD   E,53	;kœd t≈la
+0500	LD   BC,(1102)	;d◊lka
+0504	LD   HL,(1104)	;adresa, od kter◊ ulo⁄en
+0507	LD   A,B
+0508	OR   C
+0509	JP   Z,0554	;d◊lka nulov¡ => n¡vrat
+050C	JR   04E6	;nahr¡n… t≈la
+
+	nahr¡n… dat z magnetofonu, pokud nutn◊, pak 2 pokusy
+		AF=?; pokud v”e v po“¡dku => carry=0:pokud BREAK => A=2,SCF
+		pokud chyba p“i √ten… => A=1,SCF
+
+050E	PUSH DE
+050F	PUSH BC
+0510	PUSH HL
+0511	LD   H,2
+0513	LD   BC,E001	;pro √ten… kl¡vesnice
+0516	LD   DE,E002	;pro √ten… sign¡lu z magnetofonu
+0519	CALL 0601	;√ek¡ na n¡b≈h jedni√kov◊ho sign¡lu
+
+051C	JR   C,0572	;BREAK => n¡vrat s Acc=2 a SCF
+051E	CALL 0A4A	;wait 0,23 ms
+0521	LD   A,(DE)
+0522	AND  20
+0524	JP   Z,0519	;sign¡l je nulovŸ (nulovŸ bit)=>znovu, √ek¡ na 1
+0526	LD   D,H	;do D  po√et pokus 
+0528	LD   HL,0000
+052B	LD   (1197),HL	;nulov¡n… sou√tu
+052E	POP  HL		;obnoven… po√¡te√n… adresy a d◊lky
+052F	POP  BC
+0530	PUSH BC
+0531	PUSH HL
+0532	CALL 0624	;na√ten… byte
+0535	JR   C,0572	;BREAK => n¡vrat s Acc=2 a SCF
+0537	LD   (HL),A	;ulo⁄en… byte na adresu
+0538	INC  HL		;zv≈t”en… ukl¡dac… adresy
+0539	DEC  BC		;zmen”en… d◊lky
+053A	LD   A,B
+053B	OR   C5
+053C	JR   NZ,0532	;dokud nen… d◊lka nulov¡ => opakuj nahr¡v¡n… byte
+053E	LD   HL,(1197)	;p“e√ten… kontroln…ho sou√tu
+0541	CALL 0624	;na√etn… bytu kontroln…ho sou√tu
+0544	JR   C,0572	;BREAK => n¡vrat s Acc=2 a SCF
+0546	LD   E,A	;ulo⁄en… do E
+0547	CALL 0624	;na√ten… bytu kontroln…ho sou√tu
+054A	JR   C,0572	;BREAK => n¡vrat s Acc=2 a SCF
+054C	CP   L		;porovn¡n… s vypo√tenŸm sou√tem 
+054D	JR   NZ,0565	;chyba => druhŸ pokus nebo n¡vrat s Acc=1 a SCF
+054F	LD   A,E	;porovn¡n… druh◊ho byte
+0550	CP   H
+0551	JR   NZ,0565	;chyba => druhŸ pokus nebo n¡vrat s Acc=1 a SCF
+0553	XOR  A		;nulov¡n… carry
+0554	POP  HL
+0555	POP  BC
+0556	POP  DE
+0557	CALL 700	;zastaven… motoru
+055A	PUSH AF
+055B	LD   A,(119C)	;syst◊mov¡ prom≈nn¡ chodu hodin
+055E	CP   F0
+0560	JR   NZ,0563	;hodiny nejdou => p“eru”en… nepovoluj
+0562	EI
+0563	POP  AF
+0564	RET
+
+0565	DEC  D
+0566	JR   Z,056E	;u⁄ byl druhŸ pokus => n¡vrat s A=1 a SCF
+0568	LD   H,D
+0569	CALL 0FE2	;hled¡ pilotn… tœn
+056C	JR   0513	;opakuj √ten…
+056E	LD   A,1
+0570	JR   0574	;n¡vrat s Acc=1 a SCF
+
+0572	LD   A,2	;n¡vrat s Acc=2 a SCF
+0574	SCF
+0575	JR   0554
+
+	BEEP (asi 880 Hz)
+		A=0D, F=NC Z PO P
+
+0577	PUSH DE
+0578	LD   DE,0352	;data tœnu
+057B	RST  30		;hran… hudby od DE
+057C	POP  DE
+057D	RET
+
+	blik¡n… kursoru s kontrolou kl¡vesnice
+		A=stla√en¡ kl¡vesa ve videokœdu,F=NC Z PE P pokud nic nestla-
+		√eno, pokud Œeco stla√eno, pok F=NZ
+
+057E	CALL 09FF	;blik¡n… kursoru
+0581	CALL 08CA	;vstup z kl¡vesnice ve videokœdu
+0584	CP   F0		;pokud nic=> nadstav… Z
+0586	RET
+
+	verifink t≈la programu
+		AF=?; pokud v”e v po“¡dku => carry=0:pokud BREAK => A=2,SCF
+		pokud chyba p“i √ten… => A=1,SCF
+
+0587	NOP
+0588	DI
+0589	PUDH DE
+058A	PUSH BC
+058B	PUSH HL
+058C	LD   BC,(1102)	;d◊lka programu
+0590	LD   HL,(1104)	;adresa,od kter◊ ulo⁄en
+0593	LD   D,D2	;kœd nahr¡v¡n… z kazety
+0595	LD   E,53	;kœd t≈la
+0597	LD   A,B
+0598	OR   C
+0599	JR   Z,0554	;nulov¡ d◊lka => n¡vrat
+059B	CALL 071A	;vŸpo√et kontroln…ho sou√tu
+059E	CALL 069F	;rozb≈h motoru
+05A1	JR   C,0572	;BREAK => n¡vrat s dvojkou v Acc a SCF
+05A3	CALL 065B	;hled¡ pilotn… tœn se zna√kou
+05A6	JR   C,0572	;BREAK => n¡vrat s dvojkou v Acc a SCF
+05A8	CALL 05AD	;verifink dat
+05AB	JR   0554	;n¡vrat
+
+	verifink dat, n¡sleduje po najden… pilotn…ho tœnu a zna√ku programu
+		AF=?; pokud v”e v po“¡dku => carry=0:pokud BREAK => A=2,SCF
+		pokud chyba p“i √ten… => A=1,SCF		
+
+05AD	PUSH DE
+05AE	PUSH BC
+05AF	PUSH HL
+05B0	LD   H,2	;data nahr¡ny dvakr¡t za sebou
+05B2	LD   BC,E001	;adresa pro √ten… kl¡vesnice
+05B5	LD   HL,E002	;adresa pro √ten… dat z magnetofonu
+05B8	CALL 0601	;√ek¡ na n¡b≈k jedni√ky
+05BB	JP   C,0572	;BREAK => n¡vrat s dvojkou v Acc a SCF
+05BE	CALL 0A4A	;wait 0.23 ms
+05C1	LD   A,(DE)	;na√ten… sign¡lu z magnetofonu
+05C2	AND  20
+05C4	JP   Z,05B8	;je nula (nulovŸ bit), opakuj dokud nen… jedni√ka
+05C7	LD   D,H	;D=po√…tadlo program  (2*)
+05C8	POP  HL		;obnoven… d◊lky a po√¡te√n… adresu
+05C9	POP  BC
+05CA	PUSH BC
+05CB	PUSH HL
+05CC	CALL 0624	;na√ten… byre
+05CF	JR   C,0572	;BREAK => n¡vrat s dvojkou v Acc a SCF
+05D1	CP   (HL)	;porovn¡n… s obsahem pam. buŒky
+05D2	JR   NZ,056E	;nesouhlas => n¡vrat s jedni√kou v Acc a SCF
+05D4	INC  HL		;zv≈t”en… adresy
+05D5	DEC  BC		;zmen”en… d◊lky
+05D6	LD   A,B
+05D7	OR   C
+05D8	JR   NZ,05CC	;dokud nen… d◊lka nulov¡ => opakuj
+05DA	LD   HL,(1199)	;na√ten… kontroln…ho sou√tu
+05DD	CALL 0624	;na√ten… byte z magnetofonu
+05E0	CP   H		;porovn¡n… prvn… slabiky
+05E1	JR   NZ,056E	;nesouhlas => n¡vrat s jedni√kou v Acc a SCF
+05E3	CALL 0624	;na√ten… bytu z magnetofonu
+05E6	CP   L
+05E7	JR   NZ,056E	;nesouhlas => n¡vrat s jedni√kou v Acc a SCF
+05E9	DEC  D
+05EA	JP   Z,0553	;konec, prob≈hlo dvakr¡t
+05ED	LD   H,D
+05EE	JR   05B2	;opakuj podruh◊
+
+	navr¡t… znak pod kursorem do VRAM
+		HL=pozice kursoru
+
+05F0	PUSH AF
+05F1	LD   A,(118E)	;A=znak pod kursorem
+05F4	CALL 0FB1	;do HL na√te pozici kursoru
+05F7	LD   (HL),A	;ulo⁄en… znaku do Vram
+05F8	POP  AF
+05F9	RET
+
+	p“esun kursoru na n¡sleduj…c… “adek a vytisknut… obsahu HL
+		AF=?
+
+05FA	CALL 0009	;p“esun kursoru na n¡sleduj…c… “¡dek
+05FD	CALL 03BA	;tisk obsahu reg. p¡ru HL
+0600	RET
+
+0601	LD   A,F8
+0603	LD   (E000),A
+0606	NOP
+0607	LD   A,(BC)
+0608	AND  81
+060A	JR   NZ,060E
+060C	SCF
+060D	RET
+060E	LD   A,(DE)
+060F	AND  20
+0611	JR   NZ,0607
+0613	LD   A,(BC)
+0614	AND  81
+0616	JR   NZ,061A
+0618	SCF
+0619	RET
+061A	LD   A,(DE)
+061B	AND  20
+061D	JR   Z,0613
+061F	RET
+0620	NOP
+0621	NOP
+0622	NOP
+0623	NOP
+0624	PUSH BC
+0625	PUSH DE
+0626	PUSH HL
+0627	LD   HL,0800
+062A	LD   BC,E001
+062D	LD   DE,E002
+0630	CALL 0601
+0633	JP   C,0654
+0636	CALL 0A4A
+0639	LD   A,(DE)
+063A	AND  20
+063C	JP   Z,0649
+063F	PUSH HL
+0640	LD   HL,(1197)
+0643	INC  HL
+0644	LD   (1197),HL
+0647	POP  HL
+0648	SCF
+0649	LD   A,L
+064A	RLA
+064B	LD   L,A
+064C	DEC  H
+064D	JP   NZ,0630
+0650	CALL 0601
+0653	LD   A,L
+0654	POP  HL
+0655	POP  DE
+0656	POP  BC
+0657	RET
+0658	NOP
+0659	NOP
+065A	NOP
+065B	CALL 0FE2
+065E	PUSH BC
+065F	PUSH DE
+0660	PUSH HL
+0661	LD   HL,2828
+0664	LD   A,E
+0665	CP   CC
+0667	JR   Z,066C
+0669	LD   HL,1414
+066C	LD   (1195),HL
+066F	LD   BC,E001
+0672	LD   DE,E002
+0675	LD   HL,(1195)
+0678	CALL 0601
+067B	JR   C,069B
+067D	CALL 0A4A
+0680	LD   A,(DE)
+0681	AND  20
+0683	JR   Z,0675
+0685	DEC  H
+0686	JR   NZ,0678
+0688	CALL 0601
+068B	JR   C,069B
+068D	CALL 0A4A
+0690	LD   A,(DE)
+0691	AND  20
+0693	JR   NZ,0675
+0695	DEC  L
+0696	JR   NZ,0688
+0698	CALL 0601
+069B	POP  HL
+069C	POP  DE
+069D	POP  BC
+069E	RET
+069F	PUSH BC
+06A0	PUSH DE
+06A1	PUSH HL
+06A2	LD   B,0A
+06A4	LD   A,(E002)
+06A7	AND  10
+06A9	JR   Z,06B9
+06AB	LD   B,FF
+06AD	CALL 0996
+06B0	JR   06B4
+06B2	
+06B4	
+06B6	
+06B7	
+06B9	
+06BB	
+06BE	
+06BF	
+06C0	
+06C1	
+06C3	
+06C6	
+06C7	
+06C9	
+06CB	
+06CE	
+06D0	
+06D3	
+06D4	
+06D7	
+06D8	
+06DB	
+06DD	
+06DF	
+06E2	
+06E4	
+06E5	
+06E7	
+06EA	
+06EC	
+06ED	
+06EE	
+06EF	
+06F0	
+06F1	
+06F2	
+06F4	
+06F5	
+06F6	
+06F8	
+06F9	
+06FA	
+06FC	
+06FF	

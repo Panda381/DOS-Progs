@@ -1,0 +1,699 @@
+þ
+--------d-214402-----------------------------
+INT 21 - CD-ROM device driver - IOCTL INPUT
+        AX = 4402h
+        BX = file handle referencing character device for CD-ROM driver
+        CX = number of bytes to read
+        DS:DX -> control block (see #0629)
+Return: CF clear if successful
+            AX = number of bytes actually read
+        CF set on error
+            AX = error code (01h,05h,06h,0Dh) (see #0838 at AH=59h)
+Note:   the data returned depends on the first byte of the control block; the
+          remainder of the control block is filled by the driver
+SeeAlso: AX=4403h"CD-ROM",INT 2F/AX=0802h
+
+(Table 0628)
+Values for CD-ROM data being requested:
+ 00h    device driver header address
+ 01h    drive head location
+ 02h    reserved
+ 03h    error statistics
+ 04h    audio channel info
+ 05h    raw drive bytes (uninterpreted and device-specific)
+ 06h    device status
+ 07h    sector size
+ 08h    volume size
+ 09h    media change status
+ 0Ah    audio disk info
+ 0Bh    audio track info
+ 0Ch    audio Q-Channel info
+ 0Dh    audio sub-channel info
+ 0Eh    UPC code
+ 0Fh    audio status info
+
+Format of CD-ROM control block:
+Offset  Size    Description     (Table 0629)
+ 00h    BYTE    data being requested (see #0628)
+---function 00h---
+ 01h    DWORD   device driver header address (see also AH=52h)
+---function 01h---
+ 01h    BYTE    addressing mode
+                00h HSG
+                01h Red Book
+ 02h    DWORD   current location of drive's head
+                logical sector number in HSG mode
+                frame/second/minute/unused in Red Book mode
+                (HSG sector = minute * 4500 + second * 75 + frame - 150)
+---function 03h---
+ 01h  N BYTEs   undefined as of 5 Aug 88 specification
+---function 04h---
+ 01h    BYTE    input channel (0-3) for output channel 0
+ 02h    BYTE    volume for output channel 0
+ 03h    BYTE    input channel (0-3) for output channel 1
+ 04h    BYTE    volume for output channel 1
+ 05h    BYTE    input channel (0-3) for output channel 2
+ 06h    BYTE    volume for output channel 2
+ 07h    BYTE    input channel (0-3) for output channel 3
+ 08h    BYTE    volume for output channel 3
+Notes:  output channels 0 and 1 are left and right, 2 and 3 are left prime and
+          right prime; a volume of 00h is off
+        the default setting is for each input channel to be assigned to the
+          same-numbered output channel at full (FFh) volume
+---function 05h---
+ 01h    BYTE    number of bytes read
+ 02h 128 BYTEs  buffer for drive bytes
+---function 06h---
+ 01h    DWORD   device parameters (see #0630)
+---function 07h---
+ 01h    BYTE    read mode
+                00h cooked
+                01h raw
+ 02h    WORD    sector size in bytes
+---function 08h---
+ 01h    DWORD   volume size in sectors
+---function 09h---
+ 01h    BYTE    media change status
+                00h don't know
+                01h media unchanged
+                FFh media has been changed
+---function 0Ah---
+ 01h    BYTE    lowest audio track number
+ 02h    BYTE    highest audio track number
+ 03h    DWORD   start address of lead-out track (Red Book format)
+--function 0Bh---
+ 01h    BYTE    track number (set by caller)
+ 02h    DWORD   starting point of track (Red Book format)
+ 06h    BYTE    track control info
+                bits 15,14,12: track type (notice: bits not contiguous!)
+                        000 two audio channels, no pre-emphasis
+                        001 two audio channels with pre-emphasis
+                        010 data track
+                        100 four audio channels, no pre-emphasis
+                        101 four audio channels with pre-emphasis
+                        other reserved
+                bit 13: digital copy permitted
+---function 0Ch---
+ 01h    BYTE    CONTROL and ADR byte (as received from drive)
+ 02h    BYTE    track number
+ 03h    BYTE    point or index
+ 04h    BYTE    minute  \
+ 05h    BYTE    second   > running time within track
+ 06h    BYTE    frame   /
+ 07h    BYTE    zero
+ 08h    BYTE    "AMIN" or "PMIN"     \
+ 09h    BYTE    "ASEC" or "PSEC"      > running time on disk
+ 0Ah    BYTE    "AFRAME" or "PFRAME" /
+---function 0Dh---
+ 01h    DWORD   starting frame address (Red Book format)
+ 05h    DWORD   transfer address
+ 09h    DWORD   number of sectors to read
+Note:   copies 96 bytes of sub-channel info per sector into buffer
+---function 0Eh---
+ 01h    BYTE    CONTROL and ADR byte
+ 02h  7 BYTEs   UPC/EAN code (13 BCD digits,low-order nybble of last byte is 0)
+ 09h    BYTE    zero
+ 0Ah    BYTE    "AFRAME"
+---function 0Fh---
+ ??? documentation not yet available
+ 01h    WORD    pause status (0000h not paused, 0001h paused)
+ 03h    DWORD   audio play start address
+ 07h    DWORD   ??? audio play length or end address
+
+Bitfields for CD-ROM device parameters:
+Bit(s)  Description     (Table 0630)
+ 0      door open
+ 1      door unlocked
+ 2      supports raw reading in addition to cooked
+ 3      writable
+ 4      can play audio/video tracks
+ 5      supports interleaving
+ 6      reserved
+ 7      supports prefetch requests
+ 8      supports audio channel control
+ 9      supports Red Book addressing in addition to HSG
+ 10     audio is playing
+ 11     no disk in drive
+ 12     supports R-W subchannels
+--------d-214403-----------------------------
+INT 21 - CD-ROM device driver - IOCTL OUTPUT
+        AX = 4403h
+        BX = file handle referencing character device for CD-ROM driver
+        CX = number of bytes to write
+        DS:DX -> control block (see #0698)
+Return: CF clear if successful
+            AX = number of bytes actually written
+        CF set on error
+            AX = error code (01h,05h,06h,0Dh) (see #0838 at AH=59h)
+SeeAlso: AX=4402h"CD-ROM",INT 2F/AX=0802h
+
+Format of CR-ROM control block:
+Offset  Size    Description     (Table 0698)
+ 00h    BYTE    function code
+                00h eject disk
+                01h lock/unlock door
+                02h reset drive
+                03h control audio channel
+                04h write device control string
+                05h close tray
+---functions 00h,02h,05h---
+ no further fields
+---function 01h---
+ 01h    BYTE    lock function
+                00h unlock door
+                01h lock door
+---function 03h---
+ 01h    BYTE    input channel (0-3) for output channel 0
+ 02h    BYTE    volume for output channel 0
+ 03h    BYTE    input channel (0-3) for output channel 1
+ 04h    BYTE    volume for output channel 1
+ 05h    BYTE    input channel (0-3) for output channel 2
+ 06h    BYTE    volume for output channel 2
+ 07h    BYTE    input channel (0-3) for output channel 3
+ 08h    BYTE    volume for output channel 3
+Note:   output channels 0 and 1 are left and right, 2 and 3 are left prime and
+          right prime; a volume of 00h is off
+---function 04h---
+ 01h  N BYTEs   bytes to send directly to the CD-ROM drive without
+                  interpretation
+--------D-2F0802-----------------------------
+þ
+INT 2F U - DRIVER.SYS support - EXECUTE DEVICE DRIVER REQUEST
+        AX = 0802h
+        ES:BX -> device driver request header (see #1317)
+Return: request header updated as per requested operation
+Notes:  supported by DR-DOS 5.0
+        DOS 3.2 executes this function on any AL value from 02h through F7h;
+          DOS 4+ executes this function on AL=02h and AL=04h-F7h
+        the command codes (see #1315) and structures described below apply
+          to all drivers which support the appropriate commands; this call is
+          just one of a number of ways in which a device driver request may
+          be invoked
+        this call reportedly leaves one word on the stack under MS-DOS 6.2,
+          so the stack pointer should be saved and restored around the call
+          to this function
+SeeAlso: AX=0800h,AX=0801h,AX=0803h,INT 21/AH=52h,INT 21/AH=99h,INT 21/AH=9Ah
+
+(Table 1315)
+Values for device driver command code:
+ 00h    INIT
+ 01h    MEDIA CHECK (block devices)
+ 02h    BUILD BPB (block devices)
+ 03h    IOCTL INPUT
+ 04h    INPUT
+ 05h    NONDESTRUCTIVE INPUT, NO WAIT (character devices)
+ 06h    INPUT STATUS (character devices)
+ 07h    INPUT FLUSH (character devices)
+ 08h    OUTPUT
+ 09h    OUTPUT WITH VERIFY
+ 0Ah    OUTPUT STATUS (character devices)
+ 0Bh    OUTPUT FLUSH (character devices)
+ 0Ch    IOCTL OUTPUT
+ 0Dh    (DOS 3+) DEVICE OPEN
+ 0Eh    (DOS 3+) DEVICE CLOSE
+ 0Fh    (DOS 3+) REMOVABLE MEDIA (block devices)
+ 10h    (DOS 3+) OUTPUT UNTIL BUSY (character devices)
+ 11h    (European MS-DOS 4.0) STOP OUTPUT (console screen drivers only)
+ 12h    (European MS-DOS 4.0) RESTART OUTPUT (console screen drivers only)
+ 13h    (DOS 3.2+) GENERIC IOCTL
+ 14h    unused
+ 15h    (European MS-DOS 4.0) RESET UNCERTAIN MEDIA FLAG
+ 16h    unused
+ 17h    (DOS 3.2+) GET LOGICAL DEVICE
+ 18h    (DOS 3.2+) SET LOGICAL DEVICE
+ 19h    (DOS 5+) CHECK GENERIC IOCTL SUPPORT
+ 80h    (CD-ROM) READ LONG
+ 81h    (CD-ROM) reserved
+ 82h    (CD-ROM) READ LONG PREFETCH
+ 83h    (CD-ROM) SEEK
+ 84h    (CD-ROM) PLAY AUDIO
+ 85h    (CD-ROM) STOP AUDIO
+ 86h    (CD-ROM) WRITE LONG
+ 87h    (CD-ROM) WRITE LONG VERIFY
+ 88h    (CD-ROM) RESUME AUDIO
+
+Bitfields for device request status:
+Bit(s)  Description     (Table 1316)
+ 15     error
+ 14-11  reserved
+ 10     ??? set by DOS kernel on entry to some driver calls
+ 9      busy
+ 8      done (may be clear on return under European MS-DOS 4.0)
+ 7-0    error code if bit 15 set (see #1318)
+
+Format of device driver request header:
+Offset  Size    Description     (Table 1317)
+ 00h    BYTE    length of request header
+ 01h    BYTE    subunit within device driver
+ 02h    BYTE    command code (see #1315)
+ 03h    WORD    status (filled in by device driver) (see #1316)
+---DOS---
+ 05h  4 BYTEs   reserved (unused in DOS 2.x and 3.x)
+ 09h    DWORD   (European MS-DOS 4.0 only) pointer to next request header in
+                          device's request queue
+                (other versions) reserved (unused in DOS 2.x and 3.x)
+---STARLITE architecture---
+ 05h    DWORD   pointer to next request header
+ 09h  4 BYTEs   reserved
+---command code 00h---
+ 0Dh    BYTE    (return) number of units
+ 0Eh    DWORD   (call) pointer to DOS device helper function (see #1319)
+                          (European MS-DOS 4.0 only)
+                (call) pointer past end of memory available to driver (DOS 5+)
+                (return) address of first free byte following driver
+ 12h    DWORD   (call) pointer to commandline arguments
+                (return) pointer to BPB array (block drivers) or
+                          0000h:0000h (character drivers)
+ 16h    BYTE    (DOS 3+) drive number for first unit of block driver (0=A)
+   ---European MS-DOS 4.0---
+ 17h    DWORD   pointer to function to save registers on stack
+   ---DOS 5+ ---
+ 17h    WORD    (return) error-message flag
+                0001h MS-DOS should display error msg on init failure
+---command code 01h---
+ 0Dh    BYTE    media descriptor
+ 0Eh    BYTE    (return) media status
+                00h don't know
+                01h media has not changed
+                FFh media has been changed
+ 0Fh    DWORD   (return, DOS 3+) pointer to previous volume ID if OPEN/CLOSE/RM
+                  bit in device header is set and disk changed
+---command code 02h---
+ 0Dh    BYTE    media descriptor
+ 0Eh    DWORD   transfer address
+                -> scratch sector if NON-IBM FORMAT bit in device header set
+                -> first FAT sector otherwise
+ 12h    DWORD   pointer to BPB (set by driver) (see INT 21/AH=53h)
+---command codes 03h,0Ch--- (see also INT 21/AX=4402h,INT 21/AX=4403h)
+ 0Dh    BYTE    media descriptor (block devices only)
+ 0Eh    DWORD   transfer address
+ 12h    WORD    (call) number of bytes to read/write
+                (return) actual number of bytes read or written
+---command codes 04h,08h,09h---
+ 0Dh    BYTE    media descriptor (block devices only)
+ 0Eh    DWORD   transfer address
+ 12h    WORD    byte count (character devices) or sector count (block devices)
+ 14h    WORD    starting sector number (block devices only)
+ 16h    DWORD   (DOS 3+) pointer to volume ID if error 0Fh returned
+ 1Ah    DWORD   (DOS 4+) 32-bit starting sector number (block devices with
+                  device attribute word bit 1 set only) if starting sector
+                  number above is FFFFh (see INT 21/AH=52h)
+---command code 05h---
+ 0Dh    BYTE    byte read from device if BUSY bit clear on return
+---command codes 06h,07h,0Ah,0Bh,0Dh,0Eh,0Fh---
+ no further fields
+---command code 10h---
+ 0Dh    BYTE    unused
+ 0Eh    DWORD   transfer address
+ 12h    WORD    (call) number of bytes to write
+                (return) actual number of bytes written
+---command codes 11h,12h---
+ 0Dh    BYTE    reserved
+---command code 15h---
+ no further fields
+---command codes 13h,19h---
+ 0Dh    BYTE    category code
+                00h unknown
+                01h COMn:
+                03h CON
+                05h LPTn:
+                07h mouse (European MS-DOS 4.0)
+                08h disk
+                9Eh (STARLITE) Media Access Control driver
+ 0Eh    BYTE    function code
+                00h (STARLITE) MAC Bind request
+ 0Fh    WORD    copy of DS at time of IOCTL call (apparently unused in DOS 3.3)
+                SI contents (European MS-DOS 4.0)
+ 11h    WORD    offset of device driver header
+                DI contents (European MS-DOS 4.0)
+ 13h    DWORD   pointer to parameter block from INT 21/AX=440Ch or AX=440Dh
+---command codes 80h,82h---
+ 0Dh    BYTE    addressing mode
+                00h HSG (default)
+                01h Phillips/Sony Red Book
+ 0Eh    DWORD   transfer address (ignored for command 82h)
+ 12h    WORD    number of sectors to read
+                (if 0 for command 82h, request is an advisory seek)
+ 14h    DWORD   starting sector number
+                logical sector number in HSG mode
+                frame/second/minute/unused in Red Book mode
+                (HSG sector = minute * 4500 + second * 75 + frame - 150)
+ 18h    BYTE    data read mode
+                00h cooked (2048 bytes per frame)
+                01h raw (2352 bytes per frame, including EDC/ECC)
+ 19h    BYTE    interleave size (number of sectors stored consecutively)
+ 1Ah    BYTE    interleave skip factor
+                (number of sectors between consecutive portions)
+---command code 83h---
+ 0Dh    BYTE    addressing mode (see above)
+ 0Eh    DWORD   transfer address (ignored)
+ 12h    WORD    number of sectors to read (ignored)
+ 14h    DWORD   starting sector number (see also above)
+---command code 84h---
+ 0Dh    BYTE    addressing mode (see above)
+ 0Eh    DWORD   starting sector number (see also above)
+ 12h    DWORD   number of sectors to play
+---command codes 85h,88h---
+ no further fields
+---command codes 86h,87h---
+ 0Dh    BYTE    addressing mode (see above)
+ 0Eh    DWORD   transfer address (ignored in write mode 0)
+ 12h    WORD    number of sectors to write
+ 14h    DWORD   starting sector number (see also above)
+ 18h    BYTE    write mode
+                00h mode 0 (write all zeros)
+                01h mode 1 (default) (2048 bytes per sector)
+                02h mode 2 form 1 (2048 bytes per sector)
+                03h mode 2 form 2 (2336 bytes per sector)
+ 19h    BYTE    interleave size (number of sectors stored consecutively)
+ 1Ah    BYTE    interleave skip factor
+                (number of sectors between consecutive portions)
+
+(Table 1318)
+Values for device driver error code:
+ 00h    write-protect violation
+ 01h    unknown unit
+ 02h    drive not ready
+ 03h    unknown command
+ 04h    CRC error
+ 05h    bad drive request structure length
+ 06h    seek error
+ 07h    unknown media
+ 08h    sector not found
+ 09h    printer out of paper
+ 0Ah    write fault
+ 0Bh    read fault
+ 0Ch    general failure
+ 0Dh    reserved
+ 0Eh    (CD-ROM) media unavailable
+ 0Fh    invalid disk change
+
+(Table 1319)
+Call European MS-DOS 4.0 device helper function with:
+        DL = function
+            00h "SchedClock" called on each timer tick
+                AL = tick interval in milliseconds
+            01h "DevDone" device I/O complete
+                ES:BX -> request header
+                Note:   must update status word first; may be called from
+                          an interrupt handler
+            02h "PullRequest" pull next request from queue
+                DS:SI -> DWORD pointer to start of device's request queue
+                Return: ZF clear if pending request
+                            ES:BX -> request header
+                        ZF set if no more requests
+            03h "PullParticular" remove specific request from queue
+                DS:SI -> DWORD pointer to start of device's request queue
+                ES:BX -> request header
+                Return: ZF set if request header not found
+            04h "PushRequest" push the request onto the queue
+                DS:SI -> DWORD pointer to start of device's request queue
+                ES:BX -> request header
+                interrupts disabled
+            05h "ConsInputFilter" keyboard input check
+                AX = character (high byte 00h if PC ASCII character)
+                Return: ZF set if character should be discarded
+                        ZF clear if character should be handled normally
+                Note:   called by keyboard interrupt handler so DOS can scan
+                          for special input characters
+            06h "SortRequest" push request in sorted order by starting sector
+                DS:SI -> DWORD pointer to start of device's request queue
+                ES:BX -> request header
+                interrupts disabled
+            07h "SigEvent" send signal on keyboard event
+                AH = event identifier
+                Return: AL,FLAGS destroyed
+            09h "ProcBlock" block on event
+                AX:BX = event identifier (typically a pointer)
+                CX = timeout in ms or 0000h for never
+                DH = interruptable flag (nonzero if pause may be interrupted)
+                interrupts disabled
+                Return: after corresponding ProcRun call
+                        CF clear if event wakeup, set if unusual wakeup
+                        ZF set if timeout wakeup, clear if interrupted
+                        AL = wakeup code, nonzero if unusual wakeup
+                        interrupts enabled
+                        BX,CX,DX destroyed
+                Note:   block process and schedules another to run
+            0Ah "ProcRun" unblock process
+                AX:BX = event identifier (typically a pointer)
+                Return: AX = number of processes awakened
+                        ZF set if no processes awakened
+                        BX,CX,DX destroyed
+            0Bh "QueueInit" initialize/clear character queue
+                DS:BX -> character queue structure (see #1320)
+                Note:   the queue size field must be set before calling
+            0Dh "QueueWrite" put a character in the queue
+                DS:BX -> character queue (see #1320)
+                AL = character to append to end of queue
+                Return: ZF set if queue is full
+                        ZF clear if character stored
+            0Eh "QueueRead" get a character from the queue
+                DS:BX -> character queue (see #1320)
+                Return: ZF set if queue is empty
+                        ZF clear if characters in queue
+                            AL = first character in queue
+            10h "GetDOSVar" return pointer to DOS variable
+                AL = index of variable
+                    03h current process ID
+                BX = index into variable if AL specifies an array
+                CX = expected length of variable
+                Return: CF clear if successful
+                            DX:AX -> variable
+                        CF set on error
+                            AX,DX destroyed
+                        BX,CX destroyed
+                Note:   the variables may not be modified
+            14h "Yield" yield CPU if higher-priority task ready to run
+                Return: FLAGS destroyed
+            1Bh "CritEnter" begin system critical section
+                DS:BX -> semaphore (6 BYTEs, initialized to zero)
+                Return: AX,BX,CX,DX destroyed
+            1Ch "CritLeave" end system critical section
+                DS:BX -> semaphore (6 BYTEs, initialized to zero)
+                Return: AX,BX,CX,DX destroyed
+                Note:   must be called in the context of the process which
+                          called CritEnter on the semaphore
+Note:   the DWORD pointing at the request queue must be allocated by the driver
+          and initialized to 0000h:0000h.  It always points at the next request
+          to be executed
+
+Format of European MS-DOS 4.0 character queue:
+Offset  Size    Description     (Table 1320)
+ 00h    WORD    size of queue in bytes
+ 02h    WORD    index of next character out
+ 04h    WORD    count of characters in the queue
+ 06h  N BYTEs   queue buffer
+--------d-2F1100SFDADA-----------------------
+INT 2F - MSCDEX (MS CD-ROM Extensions) - INSTALLATION CHECK
+        AX = 1100h subfn DADAh
+        STACK: WORD DADAh
+Return: AL = status
+            00h not installed, OK to install
+                STACK unchanged
+            01h not installed, not OK to install
+                STACK unchanged
+            FFh installed
+                STACK: WORD     ADADh if MSCDEX installed
+                                DADBh if Lotus CD/Networker installed
+Note:   although MSCDEX sets the stack word to ADADh on return, any value other
+          than DADAh is considered to mean that MSCDEX is already installed;
+          Lotus CD/Networker v4+ uses this feature to fool MSCDEX into
+          thinking it is already installed when it is in fact CD/Networker
+          that is installed
+Index:  installation check;Lotus CD/Networker
+Index:  Lotus CD/Networker;installation check
+--------d-2F1500BX0000-----------------------
+þ
+INT 2F - CD-ROM - INSTALLATION CHECK
+        AX = 1500h
+        BX = 0000h
+Return: BX = number of CD-ROM drive letters used
+        CX = starting drive letter (0=A:)
+Notes:  this installation check DOES NOT follow the format used by other
+          software
+        this installation check conflicts with the DOS 4.00 GRAPHICS.COM
+          installation check
+SeeAlso: INT 2F/AX=D000h/BX=4D44h"Lotus"
+--------d-2F1501-----------------------------
+INT 2F - CD-ROM - GET DRIVE DEVICE LIST
+        AX = 1501h
+        ES:BX -> buffer to hold drive letter list (5 bytes per drive letter)
+Return: buffer filled, for each drive letter
+          BYTE  subunit number in driver
+          DWORD address of device driver header
+--------d-2F1502-----------------------------
+INT 2F - CD-ROM - GET COPYRIGHT FILE NAME
+        AX = 1502h
+        ES:BX -> 38-byte buffer for name of copyright file
+        CX = drive number (0=A:)
+Return: CF set if drive is not a CD-ROM drive
+            AX = 000Fh (invalid drive)
+        CF clear if successful
+SeeAlso: AX=1503h
+--------d-2F1503-----------------------------
+INT 2F - CD-ROM - GET ABSTRACT FILE NAME
+        AX = 1503h
+        ES:BX -> 38-byte buffer for name of abstract file
+        CX = drive number (0=A:)
+Return: CF set if drive is not a CD-ROM drive
+            AX = 000Fh (invalid drive)
+        CF clear if successful
+SeeAlso: AX=1502h,AX=1504h
+--------d-2F1504-----------------------------
+INT 2F - CD-ROM - GET BIBLIOGRAPHIC DOC FILE NAME
+        AX = 1504h
+        ES:BX -> 38-byte buffer for name of bibliographic documentation file
+        CX = drive number (0=A:)
+Return: CF set if drive is not a CD-ROM drive
+            AX = 000Fh (invalid drive)
+        CF clear if successful
+SeeAlso: AX=1502h,AX=1503h
+--------d-2F1505-----------------------------
+INT 2F - CD-ROM - READ VTOC
+        AX = 1505h
+        ES:BX -> 2048-byte buffer
+        CX = drive number (0=A:)
+        DX = sector index (0=first volume descriptor,1=second,...)
+Return: CF set on error
+            AX = error code (15=invalid drive,21=not ready)
+        CF clear if successful
+            AX = volume descriptor type (1=standard,FFh=terminator,0=other)
+--------d-2F1506-----------------------------
+INT 2F - CD-ROM - TURN DEBUGGING ON
+        AX = 1506h
+        BX = debugging function to enable
+Note:   reserved for development
+SeeAlso: AX=1507h
+--------d-2F1507-----------------------------
+INT 2F - CD-ROM - TURN DEBUGGING OFF
+        AX = 1507h
+        BX = debugging function to disable
+Note:   reserved for development
+SeeAlso: AX=1506h
+--------d-2F1508-----------------------------
+INT 2F - CD-ROM - ABSOLUTE DISK READ
+        AX = 1508h
+        ES:BX -> buffer
+        CX = drive number (0=A:)
+        SI:DI = starting sector number
+        DX = number of sectors to read
+Return: CF set on error
+            AL = error code (15=invalid drive,21=not ready)
+        CF clear if successful
+SeeAlso: AX=1509h
+--------d-2F1509-----------------------------
+INT 2F - CD-ROM - ABSOLUTE DISK WRITE
+        AX = 1509h
+        ES:BX -> buffer
+        CX = drive number (0=A:)
+        SI:DI = starting sector number
+        DX = number of sectors to write
+Note:   corresponds to INT 26h and is currently reserved and nonfunctional
+SeeAlso: AX=1508h
+--------d-2F150A-----------------------------
+INT 2F - CD-ROM - RESERVED
+        AX = 150Ah
+--------d-2F150B-----------------------------
+INT 2F - CD-ROM v2.00+ - DRIVE CHECK
+        AX = 150Bh
+        CX = drive number (0=A:)
+Return: BX = ADADh if MSCDEX.EXE installed
+            AX = support status
+                0000h if drive not supported
+                nonzero if supported
+SeeAlso: AX=150Dh
+--------d-2F150C-----------------------------
+INT 2F - CD-ROM v2.00+ - GET MSCDEX.EXE VERSION
+        AX = 150Ch
+Return: BH = major version
+        BL = minor version
+Note:   MSCDEX.EXE versions prior to 2.00 return BX=0
+--------d-2F150D-----------------------------
+INT 2F - CD-ROM v2.00+ - GET CD-ROM DRIVE LETTERS
+        AX = 150Dh
+        ES:BX -> buffer for drive letter list (1 byte per drive)
+Return: buffer filled with drive numbers (0=A:).  Each byte corresponds
+        to the drive in the same position for function 1501h
+SeeAlso: AX=150Bh
+--------d-2F150E-----------------------------
+INT 2F - CD-ROM v2.00+ - GET/SET VOLUME DESCRIPTOR PREFERENCE
+        AX = 150Eh
+        BX = subfunction
+            00h get preference
+                DX = 0000h
+                Return: DX = preference settings
+            01h set preference
+                DH = volume descriptor preference
+                    01h = primary volume descriptor
+                    02h = supplementary volume descriptor
+                DL = supplementary volume descriptor preference
+                    01h = shift-Kanji
+        CX = drive number (0=A:)
+Return: CF set on error
+            AX = error code (15=invalid drive,1=invalid function)
+        CF clear if successful
+--------d-2F150F-----------------------------
+INT 2F - CD-ROM v2.00+ - GET DIRECTORY ENTRY
+        AX = 150Fh
+        CL = drive number (0=A:)
+        CH bit 0 = copy flag
+                clear if direct copy
+                set if copy to structure which removes ISO/High Sierra diffs
+        ES:BX -> ASCIZ path name
+        SI:DI -> buffer for directory entry (see #1342,#1343)
+                 minimum 255 bytes for direct copy
+Return: CF set on error
+            AX = error code
+        CF clear if successful
+            AX = disk format (0=High Sierra,1=ISO 9660)
+
+Format of CD-ROM directory entry (direct copy):
+Offset  Size    Description     (Table 1342)
+ 00h    BYTE  length of directory entry
+ 01h    BYTE  length of XAR in Logical Block Numbers
+ 02h    DWORD LBN of data, Intel (little-endian) format
+ 06h    DWORD LBN of data, Motorola (big-endian) format
+ 0Ah    DWORD length of file, Intel format
+ 0Eh    DWORD length of file, Motorola format
+---High Sierra---
+ 12h  6 BYTEs date and time
+ 18h    BYTE  bit flags
+ 19h    BYTE  reserved
+---ISO 9660---
+ 12h  7 BYTEs date and time
+ 19h    BYTE  bit flags
+---both formats---
+ 1Ah    BYTE  interleave size
+ 1Bh    BYTE  interleave skip factor
+ 1Ch    WORD  volume set sequence number, Intel format
+ 1Eh    WORD  volume set sequence number, Motorola format
+ 20h    BYTE  length of file name
+ 21h  N BYTEs file name
+        BYTE (optional) padding if filename is odd length
+      N BYTEs system data
+SeeAlso: #1343
+
+Format of CD-ROM directory entry (canonicalized):
+Offset  Size    Description     (Table 1343)
+ 00h    BYTE    length of XAR in Logical Block Numbers
+ 01h    DWORD   Logical Block Number of file start
+ 05h    WORD    size of disk in logical blocks
+ 07h    DWORD   file length in bytes
+ 0Bh  7 BYTEs   date and time
+ 12h    BYTE    bit flags
+ 13h    BYTE    interleave size
+ 14h    BYTE    interleave skip factor
+ 15h    WORD    volume set sequence number
+ 17h    BYTE    length of file name
+ 18h 38 BYTEs   ASCIZ filename
+ 3Eh    WORD    file version number
+ 40h    BYTE    number of bytes of system use data
+ 41h 220 BYTEs  system use data
+SeeAlso: #1342
+--------d-2F1510-----------------------------
+INT 2F - CD-ROM v2.10+ - SEND DEVICE DRIVER REQUEST
+        AX = 1510h
+        CX = CD-ROM drive letter (0 = A, 1 = B, etc)
+        ES:BX -> CD-ROM device driver request header (see #1317 at AX=0802h)
+

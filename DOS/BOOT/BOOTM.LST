@@ -1,0 +1,100 @@
+CONTEXT   0 241   0   3  72
+
+
+
+
+
+                Hlavn¡ zav dˆc¡ sektor pevn‚ho disku
+
+SEGMENT 0
+
+7C00  FA             CLI                         ; zablokov n¡ p©eru¨en¡
+7C01  2BC0           SUB    AX,AX                ; AX <- 0
+7C03  8ED0           MOV    SS,AX                ; SS <- 0
+7C05  8EC0           MOV    ES,AX                ; ES <- 0
+7C07  8ED8           MOV    DS,AX                ; DS <- 0
+7C09  B8007C         MOV    AX,7C00              ; po‡ tek ulo‘en¡ v pamˆti
+7C0C  8BE0           MOV    SP,AX                ; ukazatel z sobn¡ku
+7C0E  FB             STI                         ; povolen¡ p©eru¨en¡
+7C0F  8BF0           MOV    SI,AX                ; SI<-za‡ tek MBOOT sektoru
+7C11  BF007E         MOV    DI,7E00              ; c¡lov  adresa p©esunu
+7C14  FC             CLD                         ; inkrementace ukazatele
+7C15  B90001         MOV    CX,0100              ; d‚lka sektoru ve slovech
+7C18  F3A5           REP    MOVSW                ; p©esunut¡ na adr. 0:7E00h
+7C1A  E90002         JMP    7E1D                 ; pokra‡ov n¡ v kopii
+
+                                               ;* kopie zavadˆ‡e
+
+7E1D  B91000         MOV    CX,0010              ; po‡et oblast¡ na disku
+7E20  8B36857E       MOV    SI,[7E85]            ; ukazatel na konec tabulky
+7E24  F60480         TEST   [SI],80              ; je aktivn¡ odd¡l ?
+7E27  7508           JNZ    7E31                 ; je aktivn¡ odd¡l
+7E29  83EE10         SUB    SI,0010              ; ukazatel dal¨¡ho odd¡lu
+7E2C  E2F6           LOOP   7E24                 ; test dal¨¡ho odd¡lu disku
+7E2E  EB37           JMP    7E67                 ; chybn  tabulka odd¡l– disku
+7E30  90             NOP
+                                               ;* £schova tabulky disku
+7E31  BFBE07         MOV    DI,07BE              ; adresa k p©em¡stˆn¡ bloku
+7E34  57             PUSH   DI                   ; £schova adresy tabulky
+7E35  B90800         MOV    CX,0008              ; d‚lka tabulky (ve slovech)
+7E38  F3A5           REP    MOVSW                ; p©em¡stˆn¡ bloku
+7E3A  5E             POP    SI                   ; po‡ te‡n¡ adresa bloku
+                                               ;* zaveden¡ sektoru do pamˆti
+7E3B  BB007C         MOV    BX,7C00              ; adresa k na‡ten¡ zavadˆ‡e
+7E3E  8B14           MOV    DX,[SI]              ; DL=disk, DH=hlava
+7E40  8B4C02         MOV    CX,[SI+02]           ; CL=sektor, CH=v lec
+7E43  BD0500         MOV    BP,0005              ; ‡¡ta‡ opakov n¡
+7E46  B80102         MOV    AX,0201              ; ‡ten¡ 1 sektoru
+7E49  CD13           INT    13                   ; na‡ten¡ 1 sektoru
+7E4B  7309           JNC    7E56                 ; ‡ten¡ OK
+7E4D  2BC0           SUB    AX,AX                ; AX <- 0
+7E4F  CD13           INT    13                   ; resetov n¡ disku
+7E51  4D             DEC    BP                   ; ‡¡ta‡ pokus–
+7E52  7419           JZ     7E6D                 ; chyba zaveden¡ syst‚mu
+7E54  EBF0           JMP    7E46                 ; dal¨¡ pokus o za‡ten¡ sektoru
+                                               ;* kontrola na‡ten‚ho sektoru
+7E56  BEFE7D         MOV    SI,7DFE              ; adresa zna‡ky zavadˆ‡e
+7E59  AD             LODSW                       ; na‡ten¡ identifik toru
+7E5A  3D55AA         CMP    AX,AA55              ; je platn˜ zavadˆ‡ ?
+7E5D  7514           JNZ    7E73                 ; nen¡ platn˜ zavadˆ‡ - chyba
+                                               ;* skok na nov˜ zavadˆ‡
+7E5F  BEBE07         MOV    SI,07BE              ; adresa ukazatele bloku
+7E62  EA007C0000     JMP    0000:7C00            ; skok na nov˜ zavadˆ‡
+
+                                               ;* chyba - neplatn  tabulka
+7E67  8B36877E       MOV    SI,[7E87]            ; chybov˜ text
+7E6B  EB0A           JMP    7E77                 ; zobrazen¡ chybov‚ho hl ¨en¡
+
+                                               ;* chyba zaveden¡ syst‚mu
+7E6D  8B36897E       MOV    SI,[7E89]            ; chybov˜ text
+7E71  EB04           JMP    7E77                 ; zobrazen¡ chybov‚ho hl ¨en¡
+
+                                               ;* chyba zaveden¡ syst‚mu
+7E73  8B368B7E       MOV    SI,[7E8B]            ; chybov˜ text
+                                               ;* zobrazen¡ chybov‚ho textu
+7E77  AC             LODSB                       ; znak k zobrazen¡
+7E78  0AC0           OR     AL,AL                ; je konec ©etˆzce ?
+7E7A  74FE           JZ     7E7A                 ; konec-zablokov n¡ programu
+7E7C  BB0700         MOV    BX,0007              ; barva znaku na displeji
+7E7F  B40E           MOV    AH,0E                ; funkce v˜pisu znaku
+7E81  CD10           INT    10                   ; zobrazen¡ znaku
+7E83  EBF2           JMP    7E77                 ; dal¨¡ znak k zobrazen¡
+
+                                               ;* TABULKY DAT
+7E85                 DW     7FEE                 ; ukazatel konce tabulky
+7E87                 DW     7E8D                 ; text "Neplatn  tabulka.."
+7E89                 DW     7EA7                 ; text "Chyba zaveden¡..."
+7E8B                 DW     7EC8                 ; text "Chyb¡ oper. syst..."
+
+7E8D                 DB     13,10,'Invalid Partition Table',0
+7EA7                 DB     13,10,'Error Loading Operating System',0
+7EC8                 DB     13,10,'Missing Operating System',0
+
+7EE3                 DB     0,0,..........
+7EFC                 DW     55AA
+
+7EFE                 16 tabulek po 16 bajtech
+
+
+7FFE                 DW     AA55                 ; identifik tor
+

@@ -1,0 +1,186 @@
+
+; *****************************************************************************
+;
+;                       Rozli¨en¡ videokarty
+;
+; *****************************************************************************
+
+
+180E B40F           MOV    AH,0F
+1810 CD10           INT    10               ; dotaz na videom¢d
+1812 3C07           CMP    AL,07
+1814 7431           JZ     1847             ; je videom¢d 7
+                                          ;* rozpozn n¡ karty IBM8514
+1816 E8EA00         CALL   1903             ; test IBM8514
+1819 7306           JNB    1821             ; nen¡ IBM8514
+181B C606660406     MOV    Byte Ptr [0466],06 ; je IBM8514
+1820 C3             RET
+                                          ;* rozpozn n¡ karet EGA,VGA
+1821 E85100         CALL   1875             ; test karty EGA/VGA
+1824 7304           JNB    182A             ; nen¡ karta EGA/VGA
+1826 E86A00       * CALL   1893             ; rozli¨en¡ karet EGA/VGA
+1829 C3             RET
+                                          ;* rozpozn n¡ karty PC3270
+182A E80B01         CALL   1938             ; test karty PC3270
+182D 23C0           AND    AX,AX
+182F 7406           JZ     1837             ; nen¡ karta PC3270
+1831 C60666040A     MOV    Byte Ptr [0466],0A    ; PC3270
+1836 C3             RET
+                                          ;* rozpozn n¡ karet CGA/MCGA
+1837 C606660401   * MOV    Byte Ptr [0466],01    ; CGA
+183C E8A300         CALL   18E2             ;
+183F 7305           JNB    1846
+1841 C606660402     MOV    Byte Ptr [0466],02    ; MCGA
+1846 C3           * RET
+
+
+1847 E82B00       * CALL   1875             ; test karty EGA/VGA
+184A 72DA           JB     1826             ; je EGA/VGA - rozli¨en¡ EGA/VGA
+184C E8B700         CALL   1906             ; test karty HERCULES
+184F 22C0           AND    AL,AL
+1851 7406           JZ     1859             ; nen¡ karta HERCULES
+1853 C606660407     MOV    Byte Ptr [0466],07    ; HERCULES
+1858 C3             RET
+
+                                          ;* test karty CGA (test videopamˆti)
+1859 BE00B8         MOV    SI,B800          ; segment videopamˆti CGA
+185C 8EC6           MOV    ES,SI            ; segment videopamˆti CGA
+185E 33F6           XOR    SI,SI            ; po‡ te‡n¡ adresa videopamˆti CGA
+1860 268B04         MOV    AX,ES:[SI]       ; p–vodn¡ slovo z videopamˆti
+1863 F7D0           NOT    AX               ; negace
+1865 26F714         NOT    Word Ptr ES:[SI] ; negace i p–vodn¡ho slova
+1868 90             NOP
+1869 90             NOP                     ; mal  prodleva
+186A 263B04         CMP    AX,ES:[SI]       ; je tam pamˆŸ RAM ?
+186D 7505           JNZ    1874             ; nen¡ tam pamˆŸ RAM
+186F C606660401     MOV    Byte Ptr [0466],01    ; CGA
+1874 C3           * RET
+
+
+                                          ;* test karty EGA/VGA
+1875 B80012         MOV    AX,1200
+1878 B310           MOV    BL,10            ; podslu‘ba poskytnut¡ parametr–
+187A B7FF           MOV    BH,FF            ; p©ednastaven¡
+187C B10F           MOV    CL,0F            ; p©ednastaven¡
+187E CD10           INT    10               ;
+1880 80F90C         CMP    CL,0C
+1883 7D0C           JGE    1891             ; nen¡ karta EGA
+1885 80FF01         CMP    BH,01
+1888 7F07           JG     1891             ; nen¡ karta EGA
+188A 80FB03         CMP    BL,03
+188D 7F02           JG     1891             ; nen¡ karta EGA
+188F F9             STC                     ; p©¡znak - je karta EGA
+1890 C3             RET
+1891 F8           * CLC                     ; p©¡znak - nen¡ karta EGA
+1892 C3             RET
+
+                                          ;* rozli¨en¡ karet EGA/VGA
+1893 C606660404     MOV    Byte Ptr [0466],04    ; EGA64
+1898 80FF01         CMP    BH,01            ; je monochromatick˜ m¢d ?
+189B 7430           JZ     18CD             ; je monochromatick˜ m¢d
+189D E83300         CALL   18D3             ; test karty EGA 64
+18A0 722A           JB     18CC             ; je EGA 64
+18A2 22DB           AND    BL,BL            ; je EGA 64 ?
+18A4 7426           JZ     18CC             ; je EGA 64
+18A6 C606660403     MOV    Byte Ptr [0466],03    ; EGA
+18AB E83400         CALL   18E2             ; test karty VGA
+18AE 7217           JB     18C7             ; je karta VGA
+18B0 BB00C0         MOV    BX,C000
+18B3 8EC3           MOV    ES,BX            ; ES <- segment EGA/VGA
+18B5 BB3900         MOV    BX,0039          ; adresa textu "Z449"
+18B8 26813F5A34     CMP    Word Ptr ES:[BX],345A ; je text "Z4" ?
+18BD 750D           JNZ    18CC
+18BF 26817F023439   CMP    Word Ptr ES:[BX+02],3934 ; je text "49" ?
+18C5 7505           JNZ    18CC
+18C7 C606660409   * MOV    Byte Ptr [0466],09    ; VGA
+18CC C3           * RET
+18CD C606660405   * MOV    Byte Ptr [0466],05    ; EGAMONO
+18D2 C3             RET
+                                          ;* test karty EGA 64
+18D3 80F902         CMP    CL,02            ;
+18D6 7209           JB     18E1
+18D8 80F906         CMP    CL,06
+18DB F5             CMC
+18DC 7303           JNB    18E1
+18DE 80F908         CMP    CL,08
+18E1 C3           * RET
+                                          ;* test karty VGA
+18E2 B8001A         MOV    AX,1A00
+18E5 CD10           INT    10
+18E7 3C1A           CMP    AL,1A
+18E9 7516           JNZ    1901
+18EB 80FB07         CMP    BL,07
+18EE 740F           JZ     18FF
+18F0 80FB08         CMP    BL,08
+18F3 740A           JZ     18FF
+18F5 80FB0B         CMP    BL,0B
+18F8 7207           JB     1901
+18FA 80FB0C         CMP    BL,0C
+18FD 7702           JA     1901
+18FF F9             STC
+1900 C3             RET
+1901 F8             CLC
+1902 C3             RET
+
+                                          ;* test IBM8514 (nedˆl  se)
+1903 32C0           XOR    AL,AL
+1905 C3             RET
+
+                                          ;* test karty HERCULES
+1906 BABA03         MOV    DX,03BA          ; stavov˜ port karty MDA
+1909 32DB           XOR    BL,BL
+190B EC             IN     AL,DX            ; po‡ te‡n¡ stav
+190C 2480           AND    AL,80            ; ponech  bit 7
+190E 8AE0           MOV    AH,AL            ; £schova stavu
+1910 B90080         MOV    CX,8000          ; maxim ln¡ doba testu
+                                          ;* ‡ek n¡ na zmˆnu stavu bitu 7
+1913 EC           * IN     AL,DX            ; ‡ten¡ stavov‚ho registru
+1914 2480           AND    AL,80
+1916 3AC4           CMP    AL,AH
+1918 7407           JZ     1921             ; nebyla zmˆna hrany
+191A FEC3           INC    BL               ; ‡¡ta‡ d‚lky impulsu
+191C 80FB0A         CMP    BL,0A
+191F 7305           JNB    1926             ; impuls je dostate‡nˆ dlouh˜
+1921 E2F0         * LOOP   1913             ; dal¨¡ test
+1923 32C0           XOR    AL,AL            ; p©¡znak - nen¡ karta Hercules
+1925 C3             RET
+                                          ;* ‡ek n¡ na bity 5,4 -> 01
+1926 B90080       * MOV    CX,8000
+1929 EC           * IN     AL,DX
+192A 2430           AND    AL,30                         ;'0'
+192C 3C10           CMP    AL,10
+192E 7505           JNZ    1935             ; je karta MDA
+1930 E2F7           LOOP   1929
+1932 B002           MOV    AL,02            ; je karta HERCULES
+1934 C3             RET
+1935 B001         * MOV    AL,01
+1937 C3             RET
+
+
+                                          ;* test karty PC3270
+1938 B006           MOV    AL,06
+193A 33C9           XOR    CX,CX
+193C 33D2           XOR    DX,DX
+193E B430           MOV    AH,30                         ;'0'
+1940 CD10           INT    10
+1942 8BC1           MOV    AX,CX
+1944 0BC2           OR     AX,DX
+1946 741D           JZ     1965
+1948 1E             PUSH   DS
+1949 8ED9           MOV    DS,CX
+194B 8BDA           MOV    BX,DX
+194D 8A4702         MOV    AL,[BX+02]
+1950 1F             POP    DS
+1951 0AC0           OR     AL,AL
+1953 7404           JZ     1959
+1955 3C02           CMP    AL,02
+1957 750C           JNZ    1965
+1959 BA8801       * MOV    DX,0188
+195C EC             IN     AL,DX
+195D A804           TEST   AL,04
+195F 7404           JZ     1965
+1961 B80100         MOV    AX,0001          ; je karta PC3270
+1964 C3             RET
+1965 33C0         * XOR    AX,AX            ; nen¡ karta PC3270
+1967 C3             RET
+

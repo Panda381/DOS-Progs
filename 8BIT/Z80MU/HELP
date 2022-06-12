@@ -1,0 +1,581 @@
+
+Z80 & CP/M 2.2 Emulator v2.1 10/30/85
+
+Written by Joan Riff for:
+
+Computerwise Consulting Services
+P.O. Box 813
+McLean, VA 22101
+
+Placed in the public domain, cause it's just too good to keep to ourselves.
+
+
+Enter 'HELP' or '?' for command help screen.
+
+Z80 C>SUBMIT AUTOEXEC.Z80
+
+*** Can't find file 'AUTOEXEC.Z80' for SUBMIT
+Z80 C>
+
+Complete HELP follows, stops with keypress
+
+
+**************************
+
+'n' is entered as follows (with optional leading +/-):
+
+  FFFF               Hex
+  .99999             Decimal
+  %1111111111111111  Binary
+  'c                 ASCII char c
+  '\c                Escape char c (\r, \n, etc)
+  '\xFF              Hex byte FF
+  xxxxxx             Label name xxxxxx (as defined by LABEL command)
+  n[+/-n]            Expression with 2 or more n's joined by + or -
+
+
+
+**************************
+
+
+!xxxxxx
+	Pass command xxxxxx to PC-DOS for processing.
+
+	Example:  !chkdsk B:
+	Example:  !cd z80source
+
+
+*
+*
+* CP/M Builtin commands that are emulated
+*
+*
+
+
+**************************
+
+
+d:
+	Change default drive to d.
+
+	Example:  B:
+
+**************************
+
+
+DELETE <filename_pattern>
+DEL <filename_pattern>
+	Removes file(s) matching the given pattern from the disk.
+	Invokes PC-DOS 'DEL' command (q.v.).
+
+	Example: DELETE b:\bin\z80mu.exe
+	Example: DELETE *.*
+
+**************************
+
+
+ERASE <filename_pattern>
+ERA <filename_pattern>
+	Removes file(s) matching the given pattern from the disk.
+	Invokes PC-DOS 'DEL' command (q.v.).
+
+	Example: ERASE b:z80mu.*
+	Example: ERASE c:\z80\test\*.*
+
+**************************
+
+
+DIR <filename_pattern>
+STAT <filename_pattern>
+	Displays disk filenames matching the given pattern.
+	Use instead of CP/M STAT.COM, which cannot be emulated.
+	Invokes PC-DOS 'DIR' command (q.v.).
+
+	Example: DIR b:
+	Example: STAT ..\*.?q?
+
+**************************
+
+
+TYPE <filename.typ>
+TY <filename.typ>
+	Type the contents of the specified file on the screen.
+	Invokes PC-DOS 'TYPE' command (q.v.).
+
+	Example: TYPE z80mu.ini
+
+
+*
+*
+* Emulator Builtin commands that are similar to CP/M builtins
+*
+*
+
+
+**************************
+
+
+RENAME <oldpattern> <newpattern>
+REN <oldpattern> <newpattern>
+	Renames files whose names match <oldpattern> to <newpattern>.
+	Invokes PC-DOS 'RENAME' command (q.v.).
+
+	Example: RENAME FOO.ASM FOO.MAC
+
+**************************
+
+
+SAVE n <filename.typ>
+SA n <filename.typ>
+	Saves n 256-byte pages of Z80 memory (starting at 0100h) to the
+	specified file. Save WILL NOT write a proper .HEX file. It simply
+	writes a memory image (per .COM files).
+
+	NOTE:  Default radix for n is HEX!
+
+	Example: SAVE 5 driver.com
+	Example: SA .30 newddt.com
+
+**************************
+
+
+COPY <filename_pattern> <destination>
+CO <filename_pattern> <destination>
+	Copies file(s) matching the given pattern to the destination.
+	Invokes PC-DOS 'COPY' command (q.v.).
+
+	Example: COPY b:z80mu.* a:\z80
+	Example: COPY *.* NUL
+
+
+*
+*
+* General Emulator commands
+*
+*
+
+
+**************************
+
+
+HELP [<keyword>]
+? [<keyword>]
+	Obtain HELP for all commands (keyword absent) or for specific keyword
+	(keyword present).
+
+	Example: HELP XREG
+	Example: HELP B:
+
+**************************
+
+
+ILLOP  [ FAULT | NOP ]
+I  [ FAULT | NOP ]
+	Tells Emulator whether Illegal Opcodes should cause a fault,
+	or should be handled as if they were NOP's.
+
+	Example: ILLOP FAULT
+	Example: I NOP
+
+**************************
+
+
+EXIT  
+E  
+	Exits Emulator, back to PC-DOS.
+
+	Example: E
+
+**************************
+
+
+HOWFAST?  
+SPEED?  
+	Computes the effective speed of the imaginary Z80, and
+	reports it. THIS COMMAND COLDBOOTS THE CP/M SEGMENT,
+	wiping out anything that you may have in it.
+
+	Example: SPEED?
+
+
+*
+*
+* Emulator DEBUG commands
+*
+*
+
+
+**************************
+
+
+BTRACE [ SOME | ALL ]
+BT [ SOME | ALL ]
+	Displays trace of current BDOS TRACE circular buffer. Buffer is
+	cleared with each .COM file load, and at other times when needed.
+	'SOME' excludes console character functions. 'ALL' includes them.
+
+	Example: BTRACE
+	Example: BT ALL
+
+**************************
+
+
+BREAK  
+B  
+	Displays current breakpoint addresses.
+
+BREAK CLEAR
+B CLEAR
+	Clears all current breakpoint addresses.
+
+BREAK CLEAR n [n...]
+B CLEAR n [n...]
+	Clears specific breakpoint addresses.
+
+BREAK SET n [n...]
+B SET n [n...]
+	Sets specific breakpoint addresses.
+
+	Example: BREAK CLEAR 0100
+	Example: B SET driver_start 0d00 0d03 driver_ret-1
+
+**************************
+
+
+DUMP [n1 [n2]]
+D [n1 [n2]]
+	Dumps Z80 memory to the screen in hex and ASCII, beginning at address
+	n1 and ending at address n2 (if given).
+
+	Example: DUMP .256
+	Example: D driver_start driver_end-1
+
+**************************
+
+
+FIND n "text"
+F n "text"
+	Searches CP/M Segment (starting at address n) for "text",
+	and displays addresses of matches. The "text" string may
+	contain imbedded escape sequences.
+
+	Example: FIND 100 "Copyright"
+	Example: F output_handler "\xcd\x05\x00"
+
+**************************
+
+
+GO [n]
+G [n]
+	Begins execution of the Z80 at address n (default if n not
+	given is the current Z80 PC). This is the usual way to run a
+	program that was read manually from disk. Note that .COM
+	programs that are invoked by name (per standard CP/M) do
+	not need this command. They are automatically executed.
+
+	Example: GO 113
+	Example: G
+	Example: G driver_start
+
+**************************
+
+
+PATCH [n [string]]
+P [n [string]]
+	Begins interactive patching at location n. Enter '?' at patch prompt
+	for specific help. If string arg is present, then string is applied
+	to memory and interactive mode is not entered.
+
+	Example: PATCH table_start+3f
+	Example: P 5C+filename_offset
+	Example: PATCH 5C "\0FOO	 ASM"
+
+**************************
+
+
+XREG [rr n]
+X [rr n]
+	If no args are present, then current Z80 regs/flags are displayed.
+	If args are present, then Z80 reg/flag rr is set to the value n.
+
+	rr = reg/flag to be set, one of following:
+
+		regs:  A    F    B    C    D    E    H    L
+		       A'   F'   B'   C'   D'   E'   H'   L'
+		       AF   BC   DE   HL   AF'  BC'  DE'  HL'
+		       IX   IY   SP   PC   IFF1 IFF2 IMF  I R
+
+		flags: SF   ZF   HF   P/V  NF   CF
+		       SF'  ZF'  HF'  P/V' NF'  CF'
+
+	Example: XREG BC .63000	(sets 16-bit BC)
+	Example: XREG B 'X	(sets 8-bit B)
+	Example: X ZF 1		(sets ZERO flag true)
+	Example: X CF 0		(sets CARRY flag false)
+
+**************************
+
+
+TRACE [n]
+T [n]
+	Executes n (default = 1) Z80 instructions, beginning at the
+	current Z80 PC. The Z80 regs/flags are displayed after each
+	execution.
+
+	Example: TRACE
+	Example: T .10
+
+**************************
+
+
+NOTRACE [n]
+N [n]
+	Executes n (default = 1) Z80 instructions, beginning at the
+	current Z80 PC. The Z80 regs/flags ARE NOT displayed during
+	execution, but ARE DISPLAYED after the final instruction.
+
+	Example: NOTRACE
+	Example: N .200
+
+**************************
+
+
+PCTRACE? [FIRST | LAST   n  [FULL | BRIEF]]
+PC? [FIRST | LAST   n  [FULL | BRIEF]]
+	Displays Z80 PC's as captured during last TRACE or NOTRACE.
+	Display proceeds from oldest PC toward newest (FIRST n) or in
+	opposite direction (LAST n). Shows just PC's (BRIEF) or dis-
+	assembled source lines (FULL). Default is LAST 512 FULL.
+
+	Example: PCTRACE?
+	Example: PC? FIRST .100 BRIEF
+	Example: PCTRACE? LAST .256 FULL
+
+**************************
+
+
+MOVE nlo nhi ndest
+M nlo nhi ndest
+	Moves chunk of memory (nlo to nhi inclusive) to address ndest.
+	Uses either left-to-right or right-to-left copy, as needed.
+
+	Example: MOVE driver_start driver_end-1 f000
+
+**************************
+
+
+MATH <expression>
+MA <expression>
+	Displays 16-bit results of given expression, in HEX and
+	decimal. <expression> is composed of 1 or more numeric
+	args connected with '+' or '-' operators.
+
+	Example: MATH table_end-table_start
+	Example: MA 'A-40+'a
+	Example: MATH 0-.4096
+
+
+*
+*
+* CP/M Environment and file control commands
+*
+*
+
+
+**************************
+
+
+ARGS <command_tail>
+AR <command_tail>
+	Formats FCB's at 05Ch and 06Ch as well as default DMA at 080h
+	per command tail, exactly as CP/M's CCP would.
+
+	Example: ARGS foo.asm foo.hex
+	Example: AR foo.c -b -n -v
+
+**************************
+
+
+COLDBOOT!  
+COLD!  
+	COLD BOOTs CP/M segment by reformatting all 64K, rebuilding BIOS
+	and BDOS hooks, etc.
+
+	Example: COLDBOOT!
+
+**************************
+
+
+TERMINAL [ ON | OFF ]
+TERM [ ON | OFF ]
+	If ON, then BIOS console goes through builtin terminal
+	emulator. If OFF, then BIOS console calls are routed to
+	PCDOS. If no arg, then current state is reported.
+
+	Example: TERMINAL on
+	Example: TERM
+
+**************************
+
+
+READ [n] <filename.typ>
+R [n] <filename.typ>
+	Reads filename.typ into location n (default = 0100h). Note that
+	.HEX files are handled properly, overriding n with actual
+	addresses from .HEX records. This is the usual way to load
+	a file for debugging purposes.
+
+	Example: READ driver.hex
+	Example: R d000 newddt.com
+
+**************************
+
+
+WRITE nlo nhi <filename.typ>
+W nlo nhi <filename.typ>
+	Writes Z80 memory from nlo thru nhi (inclusive) to the given
+	file. This is a raw binary write, unless you specify a .HEX
+	filetype (in which case INTEL HEX records will be written).
+
+	Example: WRITE driver_start driver_end-1 driver.hex
+	Example: W 0 ffff model100.mem
+
+**************************
+
+
+SUBMIT <filename.typ>
+SUB <filename.typ>
+	Switches input (for emulator commands only) to the given
+	file. Application input does not get switched. Input reverts
+	to the keyboard at EOF on the given file. SUBMITs do not nest.
+
+	Example: SUBMIT ddt.fix
+	Example: SUB patcher.sub
+
+
+*
+*
+* Re-Source commands
+*
+*
+
+
+**************************
+
+
+LIST [n1 [n2]] [>outfile | >>outfile]
+L [n1 [n2]] [>outfile | >>outfile]
+	Disassembles Z80 instructions beginning at address n1, and ending
+	at address n2 (if given). If '>' or '>>' is present, then the output
+	is redirected to the indicated file instead of the screen.
+
+LIST PROLOGUE n1 n2 [>outfile | >>outfile]
+L PROLOGUE n1 n2 [>outfile | >>outfile]
+	Generates assembler prologue for code residing between n1 and n2.
+	Labels outside of this range are EQUated. Normally used prior to
+	a regular disassembly to a file.
+
+LIST INCLUDE   [A][O][F]
+L INCLUDE   [A][O][F]
+	Specifies level of detail to be included in disassembled instructions:
+	   A[ddresses]: include Z80 addresses on left
+	     O[pcodes]: include raw Z80 opcode bytes on left
+	       F[lags]: include description ofinstruction's affect on flags
+	                (as comment)
+
+	Example: LIST 0100
+	Example: L INCLUDE FLAGS
+	Example: LIST INCLUDE A O
+	Example: L PROLOGUE 0100 cpu_end >cpu.asm
+	Example: L 0100 cpu_end >>cpu.asm
+
+**************************
+
+
+CONTROL LIST [n]
+C LIST [n]
+	Lists all current disassembly control breaks (including labels,
+	comments, and true control breaks), starting with controls
+	for Z80 address n (default = 0).
+
+CONTROL CLEAR
+C CLEAR
+	Clears (wipes out) all current disassembly control breaks (including
+	labels, comments, and true control breaks).
+
+CONTROL READ <filepath>
+C READ <filepath>
+	Clears (wipes out) current control breaks and replaces them
+	with controls (including labels and comments) from <filepath>.
+
+CONTROL WRITE <filepath>
+C WRITE <filepath>
+	Writes current control breaks to the specified file, for later use
+	via the READ control command above.
+
+CONTROL n   | I | B | W | T | S | C |
+C n   | I | B | W | T | S | C |
+	Assigns control break type to Z80 address n, so that later dis-
+	assembly will switch to the indicated mode when address n is
+	encountered. Control break types are as follows:
+
+	  I[nstructions] : switch to Z80 instructions
+	         B[ytes] : switch to DB pseudo-ops
+	         W[ords] : switch to multi DW pseudo-ops per line
+	         T[able] : switch to single DW pseudo-op per line
+	       S[torage] : switch to DS (to next control break)
+	         C[lear] : clear current control break for address n
+
+	Example: CONTROL LIST
+	Example: C LIST d00
+	Example: C CLEAR
+	Example: C READ ddt.ctl
+	Example: CONTROL write b:\z80\pip.ctl
+	Example: CONTROL 0100 Instructions
+	Example: CONTROL driver_table Bytes
+	Example: C driver_table+1f I
+	Example: C jump_table Table
+	Example: C 0f31 Clear
+
+**************************
+
+
+LABEL n labelname
+= n labelname
+	Associates text 'labelname' with Z80 address n.
+	If 'labelname' is absent, then existing labelname is
+	simply deleted. Labels must be alphanumeric or '_'.
+
+LABEL AUTOGEN n1 n2
+= AUTOGEN n1 n2
+	Automatically generates labels (of form 'AUTOxxxx') for all addresses
+	that are referenced by code that resides from n1 to n2. Existing
+	labels are not overwritten.
+
+	Example: LABEL 5 bdos
+	Example: = 05c fcb1
+	Example: LABEL AUTOGEN 100 de3
+
+**************************
+
+
+COMMENT n "text"
+; n "text"
+	Associates comment string with Z80 address n, so that future
+	disassemblies will display "text" when the associated address is
+	disassembled. If "text" is absent, then existing comment is
+	simply deleted. If text contains whitespace characters (blanks
+	etc), then it must be enclosed in quotes. You may imbed standard
+	UNIX escape sequences (\n, \t, etc) for formatting. A ';' char
+	is automatically inserted before the comment and after every '\n'.
+
+	An INSTRUCTION comment is displayed on the line before the
+	instruction if it starts with '\n', else on the same line.
+
+	Example: COMMENT 07f2 "Try to open file"
+	Example: ; driver_start "\n--- Main Entry ---\n"
+
+*** END OF COMPLETE HELP ***
+
+
+Z80 C>

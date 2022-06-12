@@ -1,0 +1,220 @@
+[IDENT=DOSMAN_MENU][KOD=LATIN2][PAGE=9999][RIGHT=9999][TAB=8][CURS=1,11][TOP=1,1]
+
+; ========== Definice zobrazen¡ menu ============
+#.MENU 73,,,                   ; definice okna menu: ç¡ýka,vìçka,pozice,ý dek
+#.INTENS Y                     ; intenzivn¡ pozad¡ Y|N (N=blik n¡)
+#.COLRAM 70,7F                 ; barva r mu
+#.COLTIT 70                    ; barva titulku
+#.COLHEA 0F,0E                 ; barva textu z hlav¡: bØ§n , intenzivn¡
+#.COLTXT 70,74                 ; barva bØ§n‚ho textu: bØ§n , intenzivn¡
+#.COLCUR 30,34                 ; barva kurzoru v textu: bØ§n , intenzivn¡
+#.COLHLP 30,34                 ; barva ý dku n povØdy: bØ§n , intenzivn¡
+
+#.SET TRANSCOM=#%6MENU\TRANS\TRANSCOM.SWC
+#.IF !("%TRANSCOM%"=1,2,3,4,5,6,7,8)
+#.SET TRANSCOM = "2"
+#.ENDIF
+
+#.SET TRANSSPD=#%6MENU\TRANS\TRANSSPD.SWC
+#.IF !("%TRANSSPD%"=110,150,300,600,1200,2400,4800,9600,14400,19200,28800,38400,57600,115200)
+#.SET TRANSSPD = "38400"
+#.ENDIF
+
+#.SET TRANSSPK=#%6MENU\TRANS\TRANSSPK.SWC
+#.IF !("%TRANSSPK%"=1047,768,384,192,96,48,24,12,8,6,4,3,2,1)
+#.SET TRANSSPK = "3"
+#.ENDIF
+
+#.SET TRANSPRO=#%6MENU\TRANS\TRANSPRO.SWC
+#.IF !("%TRANSPRO%"=X,XCRC,XCHK,X1K,Y,Y1K,YG,Z,ZAP)
+#.SET TRANSPRO = "Z"
+#.ENDIF
+
+#.SET TRANSPRT=#%6MENU\TRANS\TRANSPRT.SWC
+#.IF !("%TRANSPRT%"="Xmodem","Xmodem-CRC","Xmodem-Chk","Xmodem-1K","Ymodem","Ymodem-1K","Ymodem-G","Zmodem","ZedZap-8K")
+#.SET TRANSPRT = "Zmodem"
+#.ENDIF
+
+; ============ Titulek a z hlav¡ menu ===========
+        U§ivatelsk‚ %{*90} M %{*E0} E %{*C0} N %{*A0} U %{*N}
+        ú
+        Komunikace, pýenosy dat mezi poŸ¡taŸi
+        Nyn¡ zvolen port %{*}COM%TRANSCOM%%{*}, rychlost %{*}%TRANSSPD%%{*} Baud, protokol %{*}%TRANSPRT%%{*}
+        %{*0C}(Pýi probl‚mech s pýenosem startujte bez WINDOWS !)%{*N}
+        ú
+
+?       N povØda k pou§it¡ modem… a k pýenos…m dat
+#.NOT   %6MENU\TRANS\TRANS.NOT
+
+COM   þ Volba komunikaŸn¡ho portu (zvolen port %{*}COM%TRANSCOM%%{*})
+#       %6MENU\TRANS\TRANSCOM.MNU
+
+Baud  þ Volba pýenosov‚ rychlosti (zvolena rychlost %{*}%TRANSSPD%%{*} Baud)
+#       %6MENU\TRANS\TRANSSPD.MNU
+
+Komun þ Volba komunikaŸn¡ho protokolu (zvolen %{*}%TRANSPRT%%{*})
+#       %6MENU\TRANS\TRANSPRO.MNU
+
+#*---------------------------------------------------------------------
+Dial  þ VytoŸen¡ Ÿ¡sla pomoc¡ modemu, spojen¡ s protØjç¡m modemem
+#       %6MENU\TRANS\TRANSDIA.MNU
+
+Spojit  Vysl n¡ po§adavku na spojen¡ k protØjç¡mu modemu (je hovor)
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        echo ATS0=0&C1 > COM%TRANSCOM%
+        %3UTILITY\delay 20 > NUL
+        echo ATD > COM%TRANSCOM%
+
+Zvedni  Zvednut¡ telefonu modemem, potvrzen¡ po§adavku na spojen¡
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        echo ATS0=0&C1 > COM%TRANSCOM%
+        %3UTILITY\delay 20 > NUL
+        echo ATA > COM%TRANSCOM%
+
+Vyslat  Vysl n¡ oznaŸenìch soubor… na %{*}COM%TRANSCOM%%{*} (spojen¡ je nav z no)
+@D      @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        %3CEXYZ\CEXYZ /L%TRANSSPD% /B%TRANSSPD% /T4 /P%TRANSCOM% /Ufas /S%TRANSPRO% @%6$DOSMAN$.LST
+        if exist %6$DOSMAN$.LST del %6$DOSMAN$.LST
+
+Pý¡jem  Pý¡jem soubor… do aktu ln¡ho adres ýe z %{*}COM%TRANSCOM%%{*}
+#.IF %TRANSPRO%=X,XCRC,XCHK,X1K
+#.GET JMENO="Zadejte jm‚no pýij¡man‚ho souboru:"
+#.ENDIF
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+#.IF %TRANSPRO%=X,XCRC,XCHK,X1K
+        %3CEXYZ\CEXYZ /L%TRANSSPD% /B%TRANSSPD% /T4 /P%TRANSCOM% /Ufas /R%TRANSPRO% %JMENO%
+#.ELSE
+        %3CEXYZ\CEXYZ /L%TRANSSPD% /B%TRANSSPD% /T4 /P%TRANSCOM% /Ufas /R%TRANSPRO%
+#.ENDIF
+
+OpakPý  Opakovanì automatickì pý¡jem soubor… do aktu ln¡ho adres ýe
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        echo ATS0=1&C1 > COM%TRANSCOM%
+        %3UTILITY\delay 20 > NUL
+        :Start
+        cls
+        %3UTILITY\testdcd %TRANSCOM% > NUL
+        if errorlevel 1 goto NOCARR
+        %3CEXYZ\CEXYZ /L%TRANSSPD% /B%TRANSSPD% /T4 /P%TRANSCOM% /Ufas /R%TRANSPRO%
+        :NOCARR
+        echo --------------------------------------------------------------------
+        echo Pý¡jem bude opakov n - stiskem libovoln‚ kl vesy operaci pýeruç¡te !
+        echo --------------------------------------------------------------------
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if errorlevel 1 goto Konec
+        %3UTILITY\delay 18 > NUL
+        %3UTILITY\inkey ?
+        if not errorlevel 1 goto Start
+        :Konec
+        %3UTILITY\inkey !
+        cls
+
+Termin  Termin l pro psanì rozhovor a pro pý¡kazy k modemu
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        %3UTILITY\terminal %TRANSCOM%
+
+Rozpoj  Pýeruçen¡ spojen¡ mezi modemy, pý¡p. pýechod na hovor
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        echo.
+        echo Pýeruçuji spojen¡ pýes COM%TRANSCOM%:, Ÿekejte....
+        %3UTILITY\delay 8 > NUL
+        copy %6MENU\TRANS\TRANSESC.DAT COM%TRANSCOM% > NUL
+        %3UTILITY\delay 20 > NUL
+        echo ATH0Z > COM%TRANSCOM%
+        echo ATS0=0&C1 > COM%TRANSCOM%
+        echo.
+#*---------------------------------------------------------------------
+1       Vysl n¡ aktu ln¡ho adres ýe s podadres ýi  pomoc¡ %{*}TRANSCOM%{*}
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        %3TRANS\transcom %TRANSCOM% !
+        echo 
+
+2       Pý¡jem soubor… a adres ý… do akt. adres ýe pomoc¡ %{*}TRANSCOM%{*}
+        @echo off
+#.IF %TRANSSPD%>9600
+        mode COM%TRANSCOM% 9600,N,8,1 > NUL
+#.ELSE
+        mode COM%TRANSCOM% %TRANSSPD%,N,8,1 > NUL
+#.ENDIF
+        %3UTILITY\setcom %TRANSCOM% %TRANSSPK% > NUL
+        %3TRANS\transcom %TRANSCOM%
+        echo 
+
+3       Vysl n¡ aktu ln¡ho adres ýe s podadres ýi  pomoc¡ %{*}TRANSLPT%{*}
+        @echo off
+        %3TRANS\translpt !
+        echo 
+
+4       Pý¡jem soubor… a adres ý… do akt. adres ýe pomoc¡ %{*}TRANSLPT%{*}
+        @echo off
+        %3TRANS\translpt
+        echo 

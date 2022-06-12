@@ -1,0 +1,463 @@
+                                
+                                ; ************************************************
+                                ;
+                                ;		vstup dat ze sondy
+                                ;                  (podprogram)
+                                ;
+                                ; ************************************************
+                                
+                                  
+                                
+                                ; ------------------------------------------------
+                                ; vstup dat ze sondy (tez pri vystupu dat)
+                                ; pomoci preruseni citani je odmerena delka 
+                                ; impulsu a ulozena do bufferu absolutnich
+                                ; impulsu (delka impulsu 2 B)
+                                ; ukonceni nacitani impulsu je mozne bud prete-
+                                ; cenim delky impulsu nebo prekrocenim max. poctu
+                                ; impulsu (255)
+                                ; podprogram byl vyvolan prerusenim impulsem 1 =
+                                ; = prilozeni sondy k tmavemu podkladu
+                                ; ------------------------------------------------
+                                
+                                				
+  0166'                         zazn0:	
+  0166'   DB 7C                 	in	a,(PIOAD)	; vstup dat
+  0168'   CB 47                 	bit	0,a		; datovy bit
+  016A'   01 00A7               	ld	bc,0a7h		; citac,byte prer.
+  016D'   20 05                 	jr	nz,vstup5	; mezera-navrat	
+  016F'   79                    	ld	a,cŠ  0170'   D3 7E                 	out	(PIOAC),a	; prerus.HIGH
+  0172'   ED 4D                 insret:	reti			; povoleni prerus.
+                                
+  0174'   11 000B               vstup5:	ld	de,11		; korekce
+  0177'   21 1A00               	ld	hl,buff		; buffer impulsu
+  017A'   3E FC'                	ld	a,low interv	; vstup impulsu
+  017C'   D3 7E                 	out	(PIOAC),a	; preruseni daty
+  017E'   18 08                 	jr	vstup1
+  0180'   73                    vstup:	ld	(hl),e		; ulozeni impulsu
+  0181'   23                    	inc	hl
+  0182'   72                    	ld	(hl),d
+  0183'   23                    	inc	hl
+  0184'   D1                    	pop	de		; zruseni navratu
+  0185'   11 0007               	ld	de,7		; korekce
+  0188'   CD 0172'              vstup1:	call	insret		; instrukce RETI
+  018B'   79                    	ld	a,c		; preruseni 
+  018C'   EE 20                 	xor	20h		; zmena polarity
+  018E'   4F                    	ld	c,a
+  018F'   D3 7E                 	out	(PIOAC),a	; nastaveni polar.
+  0191'   05                    	dec	b
+  0192'   28 08                 	jr	z,vstup2	; posledni impuls
+  0194'   3E 14                 	ld	a,prodmx	; max.prodleva
+  0196'   FB                    	ei
+  0197'   13                    cyklin:	inc	de		; mereni impulsu
+  0198'   BA                    	cp	d		; preteceni ?
+  0199'   20 FC                 	jr	nz,cyklin	; dosud neni pret. 
+  019B'   F3                    	di
+                                
+  019C'   3E FA'                vstup2:	ld	a,low interz	; dalsi zaznam dat
+  019E'   D3 7E                 	out	(PIOAC),a	; vektor prer.A
+  01A0'   AF                    	xor	a		; konec vstupu
+  01A1'   90                    	sub	b
+  01A2'   3D                    	dec 	a
+  01A3'   FE 03                 	cp	3		; min.poc.impulsu
+  01A5'   D8                    	ret	c		; maly pocet
+  01A6'   47                    	ld	b,a		; pocet impulsu
+                                	
+                                ; ------------------------------------------------
+                                ; prekodovani dat z absol. do relativniho tvaru
+                                ; Absolutni impulsy jsou prepocitavany z absolut-
+                                ; niho do relativniho tvaru - jako referencni je
+                                ; uvazovan predesly impuls. Po vypoctu relativni
+                                ; delky impulsu je z nej vypocitana nova referen-
+                                ; cni konstanta. Referencni konstanty jsou pocita-
+                                ; ny zvlast pro kladny a zaporny impuls.
+                                ; Buffery abs. a rel. impulsu se prolinaji. 
+                                ; ------------------------------------------------
+                                
+                                
+  01A7'                         trans:				; prekodovani
+                                				; abs.impulsu
+                                				; na relativni
+  01A7'   C5                    	push	bc
+  01A8'   FD 7E 40              	ld	a,(iy+64)	; prvni cara rel.
+  01AB'   4F                    	ld	c,a
+  01AC'   06 FF                 	ld	b,0ffh
+  01AE'   2A 1A00               	ld	hl,(buff)	; prvni cara abs.
+  01B1'   11 0000               	ld	de,0		; citac podilu
+  01B4'   B7                    	or	a
+  01B5'   28 0A                 	jr	z,trank4
+  01B7'   3D                    	dec	aŠ  01B8'   28 07                 	jr	z,trank4
+  01BA'   13                    trank1:	inc	de		; citac podilu
+  01BB'   ED 42                 	sbc	hl,bc		; citani 
+  01BD'   30 FB                 	jr	nc,trank1
+  01BF'   1B                    	dec	de
+  01C0'   EB                    	ex	de,hl
+  01C1'   22 19FC               trank4:	ld	(timer1),hl	; ref.konst.cary
+  01C4'   22 19FE               	ld	(timer2),hl	; ref.konst.mezery
+  01C7'   FD 7E 41              	ld	a,(iy+65)	; prvni mezera rel.
+  01CA'   4F                    	ld	c,a
+  01CB'   2A 1A02               	ld	hl,(buff+2)	; ref.konst.mezery
+  01CE'   11 0000               	ld	de,0		; citac podilu
+  01D1'   B7                    	or	a
+  01D2'   28 0D                 	jr	z,trank3	; neporovnava se
+  01D4'   3D                    	dec	a
+  01D5'   28 07                 	jr	z,trank5
+  01D7'   13                    trank2:	inc	de		; citac podilu
+  01D8'   ED 42                 	sbc	hl,bc		; citani
+  01DA'   30 FB                 	jr	nc,trank2
+  01DC'   1B                    	dec	de
+  01DD'   EB                    	ex	de,hl
+  01DE'   22 19FE               trank5:	ld	(timer2),hl	; ref.konst.mezery
+  01E1'   C1                    trank3:	pop	bc
+                                
+                                
+  01E2'   11 1A00               	ld	de,buff		; abs.impulsy
+  01E5'   62                    	ld	h,d
+  01E6'   6B                    	ld	l,e		; rel.impulsy		
+  01E7'   0E 00                 	ld	c,0		; citac impulsu
+                                
+  01E9'   E5                    trans1:	push	hl		; adresa rel.imp.
+  01EA'   1A                    	ld	a,(de)		; prect.abs.imp.
+  01EB'   6F                    	ld	l,a
+  01EC'   13                    	inc	de
+  01ED'   1A                    	ld	a,(de)
+  01EE'   67                    	ld	h,a		; abs.impuls
+  01EF'   13                    	inc	de
+  01F0'   D5                    	push	de		; adresa abs.imp.
+  01F1'   E5                    	push	hl		; absolutni impuls
+  01F2'   ED 5B 19FC            	ld	de,(timer1)	; ref.konstanta c.
+  01F6'   CB 41                 	bit	0,c		; citac impulsu
+  01F8'   28 04                 	jr	z,tranl1	; impuls cary
+  01FA'   ED 5B 19FE            	ld	de,(timer2)	; ref.konstanta m.
+  01FE'   CB 3A                 tranl1:	srl	d		; vydeleni konst.2
+  0200'   CB 1B                 	rr	e
+  0202'   AF                    	xor	a
+  0203'   ED 52                 trans2:	sbc	hl,de		; abs.imp.- konst.
+  0205'   3C                    	inc	a
+  0206'   28 06                 	jr	z,trans3	; preteceni
+  0208'   30 F9                 	jr	nc,trans2	; prepocet na rel.
+  020A'   FE 21                 	cp	33
+  020C'   38 02                 	jr	c,tranp1	; omezeni impulsu
+  020E'   3E 20                 trans3:	ld	a,32
+  0210'   3D                    tranp1:	dec	a
+  0211'   CB 41                 	bit	0,c
+  0213'   28 02                 	jr	z,tranp6	; impuls cary
+  0215'   C6 20                 	add	a,32		; korekce pro mez.
+  0217'   D9                    tranp6:	exx
+  0218'   FD E5                 	push	iy		; tabulka kodu
+  021A'   E1                    	pop	hl
+  021B'   16 00                 	ld	d,0Š  021D'   5F                    	ld	e,a		; rel.impuls
+  021E'   19                    	add	hl,de		; adresa prvku
+  021F'   7E                    	ld	a,(hl)		; prvek
+  0220'   D9                    	exx
+  0221'   E1                    	pop	hl		; absolutni impuls
+  0222'   FE 01                 	cp	1
+  0224'   28 3A                 	jr	z,tranp7
+  0226'   FE 02                 	cp	2
+  0228'   28 20                 	jr	z,tranp8
+  022A'   FE 04                 	cp	4
+  022C'   28 18                 	jr	z,tranp9
+  022E'   FE 08                 	cp	8
+  0230'   28 10                 	jr	z,tranpa
+  0232'   FE 10                 	cp	16
+  0234'   28 08                 	jr	z,tranpb
+  0236'   FE 20                 	cp	32
+  0238'   20 16                 	jr	nz,tranpc
+  023A'   CB 3C                 	srl	h		; impuls/32
+  023C'   CB 1D                 	rr	l
+  023E'   CB 3C                 tranpb:	srl	h		; impuls/16
+  0240'   CB 1D                 	rr	l
+  0242'   CB 3C                 tranpa:	srl	h		; impuls/8
+  0244'   CB 1D                 	rr	l
+  0246'   CB 3C                 tranp9:	srl	h		; impuls/4 
+  0248'   CB 1D                 	rr	l
+  024A'   CB 3C                 tranp8:	srl	h		; impuls/2
+  024C'   CB 1D                 	rr	l
+  024E'   18 10                 	jr	tranp7
+                                
+  0250'   C5                    tranpc:	push	bc		; citac impulsu
+  0251'   06 00                 	ld	b,0
+  0253'   4F                    	ld	c,a		; rel.impuls
+  0254'   11 0000               	ld	de,0		; podil
+  0257'   B7                    	or	a
+  0258'   13                    tranp3:	inc	de		; citac podilu
+  0259'   ED 42                 	sbc	hl,bc
+  025B'   30 FB                 	jr	nc,tranp3	; neni preteceni
+  025D'   1B                    	dec	de
+  025E'   C1                    	pop	bc		; citac impulsu
+  025F'   EB                    	ex	de,hl		; HL=novy impuls
+  0260'   CB 41                 tranp7:	bit	0,c
+  0262'   20 05                 	jr	nz,tranp4	; sudy impuls-mez.
+  0264'   22 19FC               	ld	(timer1),hl	; ref.konst.cary
+  0267'   18 03                 	jr	tranp5
+  0269'   22 19FE               tranp4:	ld	(timer2),hl	; ref.konst.mezery
+  026C'   D1                    tranp5:	pop	de		; adresa abs.imp.
+  026D'   E1                    	pop	hl		; adresa rel.imp.
+  026E'   77                    	ld	(hl),a		; ulozeni rel.imp.
+  026F'   23                    	inc	hl		; adr.rel.impulsu
+  0270'   0C                    	inc	c		; citac impulsu
+  0271'   05                    	dec	b
+  0272'   C2 01E9'              	jp	nz,trans1	; dalsi impuls
+                                
+                                	
+                                ; ------------------------------------------------
+                                ; Dekodovani zaznamu.
+                                ; Jsou vyvolavany podle nastaveneho kodu podpro-
+                                ; gramy, ktere od nastavene pozice v rel.bufferu
+                                ; prekodovavaji impulsy do vysledneho textu, ktery
+                                ; ukladaji do textoveho bufferu.
+                                ; ------------------------------------------------Š                                 
+                                
+  0275'                         DEKOD:				; smer dekodovani 
+  0275'   DD CB 04 86           	res	0,(ix+par-RAM)	; smer primy
+  0279'   21 1A00               	ld	hl,buff		; buffer rel.imp.
+  027C'   CD 0289'              	call	dekodx		; dekodovani kodu
+  027F'   D0                    	ret	nc		; uspech
+  0280'   DD CB 04 C6           	set	0,(ix+par-RAM)	; smer	zpetny
+  0284'   2B                    	dec	hl
+  0285'   CD 0289'              	call	dekodx		; dekodovani kodu
+  0288'   C9                    	ret	
+                                
+                                
+                                
+                                ; ------------------------------------------------
+                                ;	dekodovani zpravy v jednom smeru
+                                ; ------------------------------------------------
+                                
+                                
+  0289'                         dekodx:	
+  0289'   41                    	ld	b,c		; pocet rel. imp.
+  028A'   E5                    dekx1:	push	hl		; ukaz.rel.imp.
+  028B'   C5                    	push	bc		; citac imp.
+  028C'   79                    	ld	a,c		; pocet impulsu
+  028D'   90                    	sub	b		; poradi impulsu
+  028E'   4F                    	ld	c,a
+  028F'   D9                    	exx
+  0290'   2A 1800               	ld	hl,(uklad)	; zapis.adresa
+  0293'   E5                    	push	hl
+  0294'   21 02A1'              	ld	hl,dekx4	; navratova adresa
+  0297'   E5                    	push	hl
+  0298'   FD 6E 42              	ld	l,(iy+66)	; adresa podprogr.
+  029B'   FD 66 43              	ld	h,(iy+67)	; pro dekodovani
+  029E'   E5                    	push	hl		; adresa programu
+  029F'   D9                    	exx
+  02A0'   C9                    	ret			; skok do progr.
+                                
+  02A1'   D1                    dekx4:	pop	de		; zapis.adresa
+  02A2'   C1                    	pop	bc		; citac imp.
+  02A3'   E1                    	pop	hl		; ukaz.rel.imp.
+  02A4'   30 10                 	jr	nc,dekx3	; uspesne
+  02A6'   ED 53 1800            	ld	(uklad),de	; navrat ukl.adr.
+  02AA'   DD CB 04 46           	bit	0,(ix+par-RAM)	; posuv ukaz.imp.	
+  02AE'   23                    	inc	hl
+  02AF'   28 02                 	jr	z,dekx2		; smer primy
+  02B1'   2B                    	dec	hl		; smer zpetny
+  02B2'   2B                    	dec	hl
+  02B3'   10 D5                 dekx2:	djnz	dekx1		; dalsi pozice
+  02B5'   C9                    	ret			; navrat pri chybe
+                                
+                                	
+                                				; zablikani sondy
+                                				; pri spravnem 
+                                				; precteni
+  02B6'   3E 03                 dekx3:	ld	a,3
+  02B8'   D3 7E                 	out	(PIOAC),a	; zakaz preruseni
+  02BA'   06 03                 	ld	b,3		; pocet bliknuti
+  02BC'   3E 04                 blik1: 	ld	a,4		; vypnuti sondy
+  02BE'   D3 7C                 	out	(PIOAD),a
+  02C0'   21 1E4C               	ld	hl,indik/2+128	; citac indikace
+  02C3'   2D                    blik2:	dec	lŠ  02C4'   20 FD                 	jr	nz,blik2
+  02C6'   25                    	dec	h
+  02C7'   20 FA                 	jr	nz,blik2
+  02C9'   3E 24                 	ld	a,24h
+  02CB'   D3 7C                 	out	(PIOAD),a
+  02CD'   21 04A9               	ld	hl,indik/16+240
+  02D0'   2D                    blik3:	dec	l
+  02D1'   20 FD                 	jr	nz,blik3
+  02D3'   25                    	dec	h
+  02D4'   20 FA                 	jr	nz,blik3
+  02D6'   10 E4                 	djnz	blik1
+  02D8'   3E 83                 	ld	a,83h
+  02DA'   D3 7E                 	out	(PIOAC),a	; preruseni
+  02DC'   C9                    	ret			; navrat ze cteni
+                                
+                                
+                                ; ------------------------------------------------
+                                ; dekodovani jednoho znaku:
+                                ; V registru DE je adresa tabulky pouziteho kodu,
+                                ; vraci v reg.A poradi kodu v tabulce. Pri nasta-
+                                ; veni priznaku CY = 1 nebyl kod v tabulce nalezen
+                                ; pri CY = 0 (tj.NC) - kod nalezen uspesne
+                                ; ------------------------------------------------
+                                
+  02DD'   1A                    znak:	ld	a,(de)		; pocet kodu
+  02DE'   D5                    	push	de		; adresa tab. kodu
+  02DF'   F5                    	push	af		; citac kodu
+  02E0'   13                    	inc	de		; zacatek 1.znaku
+  02E1'   C5                    znak1:	push	bc		; citac impulsu
+  02E2'   4F                    	ld	c,a		; citac poctu kodu
+  02E3'   E5                    	push	hl		; adresa impulsu
+  02E4'   78                    znak2:	ld	a,b		; citac impulsu
+  02E5'   B7                    	or	a
+  02E6'   28 20                 	jr	z,znak3		; konec impulsu 
+  02E8'   05                    	dec	b		; dalsi impuls
+  02E9'   1A                    	ld	a,(de)		; prvek znaku 
+  02EA'   E6 7F                 	and	7fh
+  02EC'   28 03                 	jr	z,znak7		; prvek = 0, tj.
+                                				; neni kontrolovan
+  02EE'   BE                    	cp	(hl)		; porov.s prvkem
+  02EF'   20 17                 	jr	nz,znak3	; nesouhlasi
+  02F1'   DD CB 04 46           znak7:	bit	0,(ix+par-RAM)	; 0 = primy smer
+  02F5'   23                    	inc	hl		; zvyseni ukazat.
+  02F6'   28 02                 	jr	z,znak6		; smer primy
+  02F8'   2B                     	dec	hl		; snizeni ukazat.
+  02F9'   2B                    	dec	hl
+  02FA'   1A                    znak6:	ld	a,(de)		; prvek znaku 
+  02FB'   13                    	inc	de
+  02FC'   E6 80                 	and	80h
+  02FE'   28 E4                 	jr	z,znak2		; nebyl posl.znak
+  0300'   D1                    	pop	de		; adr.imp.-zruseni
+  0301'   D1                    	pop	de		; cit.imp.-zruseni
+  0302'   F1                    	pop	af		; cit.poc.znaku 
+  0303'   91                    	sub	c		; poradi znaku 
+  0304'   4B                    	ld	c,e		; navrat reg.C
+  0305'   D1                    	pop	de		; adr.tab.kodu
+  0306'   B7                    	or	a		; spravne dekod.
+  0307'   C9                    	ret
+                                
+  0308'   13                    znak3:	inc	de		; konec znaku
+  0309'   1A                    	ld	a,(de)Š  030A'   E6 80                 	and	80h
+  030C'   28 FA                 	jr	z,znak3		; nalezeni konce 
+  030E'   13                    	inc	de		; nasled.znak
+  030F'   E1                    	pop	hl 		; navrat adr.imp.
+  0310'   79                    	ld	a,c		; citac znaku
+  0311'   C1                    	pop	bc		; navrat cit.imp.
+  0312'   3D                    	dec	a
+  0313'   20 CC                 	jr	nz,znak1	; dalis znak 
+  0315'   F1                    	pop	af		; citac poctu kodu
+  0316'   D1                    	pop	de		; adresa tab.kodu
+  0317'   37                    	scf			; znak nenalezen
+  0318'   C9                    	ret
+                                
+                                
+                                ; ------------------------------------------------
+                                ; ulozeni jednoho znaku (ulozeneho v A) do texto-
+                                ; veho bufferu - pri zaplneni vraci priznak CY=1
+                                ; ------------------------------------------------
+                                
+                                
+  0319'                         zapznk:				; zapis jedn.znaku
+  0319'   E5                    	push	hl
+  031A'   D5                    	push	de
+  031B'   2A 1800               	ld	hl,(uklad)
+  031E'   23                    	inc	hl
+  031F'   E5                    	push	hl
+  0320'   11 19FC               	ld	de,kontxt	; konec 
+  0323'   B7                    	or	a
+  0324'   ED 52                 	sbc	hl,de
+  0326'   E1                    	pop	hl
+  0327'   38 03                 	jr	c,zapzn1	; neni konec
+  0329'   21 1840               	ld	hl,text		; zacatek bufferu
+  032C'   E5                    zapzn1:	push	hl
+  032D'   ED 5B 1802            	ld	de,(cteni)	; adresa cteni
+  0331'   B7                    	or	a
+  0332'   ED 52                 	sbc	hl,de		; kontrola mista
+  0334'   E1                    	pop	hl
+  0335'   D1                    	pop	de
+  0336'   37                    	scf
+  0337'   28 05                 	jr	z,zapzn2	; neni misto		
+  0339'   22 1800               	ld	(uklad),hl	; nova uklad.adr.
+  033C'   77                    	ld	(hl),a		; ulozeni znaku
+  033D'   B7                    	or	a
+  033E'   E1                    zapzn2:	pop	hl
+  033F'   C9                    	ret
+                                
+                                
+                                
+                                
+  0340'                         kody:
+                                	
+  0340'                         kodc1:				; kod CKN
+  0340'   01 01 01 02           	db	1,1,1,2,2,2,4,4,4,4,4,4,4,4,4,4
+  0344'   02 02 04 04           
+  0348'   04 04 04 04           
+  034C'   04 04 04 04           
+  0350'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4	
+  0354'   04 04 04 04           
+  0358'   04 04 04 04           
+  035C'   04 04 04 04           
+  0360'   01 01 01 02           	db	1,1,1,2,2,2,4,4,4,4,4,4,4,4,4,4Š  0364'   02 02 04 04           
+  0368'   04 04 04 04           
+  036C'   04 04 04 04           
+  0370'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4
+  0374'   04 04 04 04           
+  0378'   04 04 04 04           
+  037C'   04 04 04 04           
+  0380'   01 01                 	db	1,1
+  0382'   04B3'                 	dw	dekock		; dekod.kodu CK
+  0384'   0458'                 	dw	outznk		; vystup znaku
+                                	
+  0386'                         kodc2:				; kod 39
+  0386'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+  038A'   04 04 04 04           
+  038E'   04 04 04 04           
+  0392'   04 09 09 09           
+  0396'   09 09 09 09           	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9
+  039A'   09 09 09 09           
+  039E'   09 09 09 09           
+  03A2'   09 09 09 09           
+  03A6'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+  03AA'   04 04 04 04           
+  03AE'   04 04 04 04           
+  03B2'   04 09 09 09           
+  03B6'   09 09 09 09           	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9
+  03BA'   09 09 09 09           
+  03BE'   09 09 09 09           
+  03C2'   09 09 09 09           
+  03C6'   04 00                 	db	4,0
+  03C8'   0789'                 	dw	deko39		; dekod.kodu 39
+  03CA'   0458'                 	dw	outznk
+                                
+  03CC'                         kodc3:				; kod 2/5 proklad.
+  03CC'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+  03D0'   04 04 04 04           
+  03D4'   04 04 04 04           
+  03D8'   04 09 09 09           
+  03DC'   09 09 09 09           	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9
+  03E0'   09 09 09 09           
+  03E4'   09 09 09 09           
+  03E8'   09 09 09 09           
+  03EC'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+  03F0'   04 04 04 04           
+  03F4'   04 04 04 04           
+  03F8'   04 09 09 09           
+  03FC'   09 09 09 09           	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9
+  0400'   09 09 09 09           
+  0404'   09 09 09 09           
+  0408'   09 09 09 09           
+  040C'   04 04                 	db	4,4
+  040E'   093D'                 	dw	dek25p		; dek.kodu 2/5 pr.
+  0410'   0458'                 	dw	outznk
+                                
+  0412'                         kodc4:				; kod EAN
+  0412'   01 01 01 02           	db	1,1,1,2,2,3,3,4,4,4,4,4,4,4,4,4
+  0416'   02 03 03 04           
+  041A'   04 04 04 04           
+  041E'   04 04 04 04           
+  0422'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4
+  0426'   04 04 04 04           
+  042A'   04 04 04 04           Š  042E'   04 04 04 04           
+  0432'   01 01 01 02           	db	1,1,1,2,2,3,3,4,4,4,4,4,4,4,4,4
+  0436'   02 03 03 04           
+  043A'   04 04 04 04           
+  043E'   04 04 04 04           
+  0442'   04 04 04 04           	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4
+  0446'   04 04 04 04           
+  044A'   04 04 04 04           
+  044E'   04 04 04 04           
+  0452'   01 01                 	db	1,1
+  0454'   09E5'                 	dw	dekean		; dekod.kodu EAN
+  0456'   0458'                 	dw	outznk
+                                
+                                
+

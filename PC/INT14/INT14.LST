@@ -1,0 +1,173 @@
+CONTEXT   0 241   2   3  72
+
+
+
+
+
+; *****************************************************************************
+;
+;                     Obsluha s‚riov‚ho portu COM RS232
+;
+; *****************************************************************************
+F000:2549 80FC03         CMP    AH,03
+F000:254C 7E01           JLE    254F 
+F000:254E CF             IRET
+
+F000:254F E8F600       * CALL   2648        ; £schova registr–
+F000:2552 2E8E1EC824     MOV    DS,CS:[24C8] ; datov˜ segment 40h
+F000:2557 8BFA           MOV    DI,DX       ; ‡¡slo portu
+F000:2559 03D2           ADD    DX,DX       ; port * 2
+F000:255B BB0000         MOV    BX,0000
+F000:255E 03DA           ADD    BX,DX       ; ‡¡slo portu * 2
+F000:2560 8B17           MOV    DX,[BX]     ; adresa portu
+F000:2562 8AD8           MOV    BL,AL       ; £schova znaku
+F000:2564 83FA00         CMP    DX,+00      ; je definov n ?
+F000:2567 7503           JNZ    256C        ; OK
+F000:2569 E9A600         JMP    2612        ; nedefinov n
+
+                                            ; slu‘ba 0 - inicializace portu
+F000:256C 80FC00       * CMP    AH,00
+F000:256F 7550           JNZ    25C1        ; nen¡ slu‘ba 0
+F000:2571 83C203         ADD    DX,+03      ; ©¡dic¡ registr linky
+F000:2574 86E0           XCHG   AH,AL       ; AL <- 0
+F000:2576 0C80           OR     AL,80       ; AL <- 80h
+F000:2578 EE             OUT    DX,AL       ; zapnut¡ sign lu DLAB
+F000:2579 33C9           XOR    CX,CX       ; CX <- 0
+F000:257B 0AEC           OR     CH,AH       ; CH <- parametry
+F000:257D 80C904         OR     CL,04       ; CL <- 4 po‡et rotac¡
+F000:2580 80E5E0         AND    CH,E0       ; ponech  p©enosovou rychlost
+F000:2583 D2ED           SHR    CH,CL       ; rychlost / 16
+F000:2585 80E100         AND    CL,00       ; CL <- 0
+F000:2588 86E9           XCHG   CH,CL       ; CH <- 0; CL <- rychlost
+F000:258A BB29E7         MOV    BX,E729     ; tabulka rychlost¡
+F000:258D 83EA03         SUB    DX,+03      ; registr dˆli‡ky
+F000:2590 03D9           ADD    BX,CX       ; adresa konstanty v tabulce
+F000:2592 1E             PUSH   DS          ; £schova DS
+F000:2593 0E             PUSH   CS 
+F000:2594 1F             POP    DS          ; DS <- CS
+F000:2595 8A07           MOV    AL,[BX]     ; ni‘¨¡ bajt konstanty
+F000:2597 EE             OUT    DX,AL       ; nastaven¡ ni‘¨¡ho bajtu dˆli‡ky
+F000:2598 83C201         ADD    DX,+01      ; registr vy¨¨¡ho bajtu dˆli‡ky
+F000:259B 43             INC    BX
+F000:259C 8A07           MOV    AL,[BX]     ; vy¨¨¡ bajt dˆli‡ky
+F000:259E EE             OUT    DX,AL       ; nastaven¡ vy¨¨¡ho bajtu dˆli‡ky
+F000:259F 1F             POP    DS          ; n vrat DS
+F000:25A0 80E41F         AND    AH,1F       ; bity pro nastaven¡ m¢du
+F000:25A3 42             INC    DX 
+F000:25A4 42             INC    DX          ; ©¡dic¡ registr linky
+F000:25A5 86E0           XCHG   AH,AL
+F000:25A7 EE             OUT    DX,AL       ; nastaven¡ ©¡dic¡ho registru
+F000:25A8 83EA03         SUB    DX,+03      ; datov˜ registr
+F000:25AB EB00           JMP    25AD        ; mal  prodleva
+F000:25AD EC             IN     AL,DX       ; ‡ten¡ datov‚ho registru
+F000:25AE EB00           JMP    25B0        ; prodleva
+F000:25B0 EB00           JMP    25B2        ; prodleva
+F000:25B2 2400           AND    AL,00       ; AL <- 0
+F000:25B4 42             INC    DX          ; registr povolen¡ p©eru¨en¡
+F000:25B5 EE             OUT    DX,AL       ; nastaven¡ registru p©eru¨en¡
+F000:25B6 83C204       * ADD    DX,+04      ; stavov˜ registr linky
+F000:25B9 EC             IN     AL,DX       ; ‡ten¡ stavov‚ho registru linky
+F000:25BA 86E0           XCHG   AH,AL       ; £schova stavov‚ho registru linky
+F000:25BC 42             INC    DX          ; stavov˜ registr modemu
+F000:25BD EC             IN     AL,DX       ; ‡ten¡ stavov‚ho registru modemu
+F000:25BE EB52           JMP    2612        ; n vrat
+F000:25C0 90             NOP     
+                                            ; slu‘ba 1 - vysl n¡ bajtu
+F000:25C1 80FC01         CMP    AH,01
+F000:25C4 7523           JNZ    25E9        ; nen¡ slu‘ba 1
+F000:25C6 B90330         MOV    CX,3003     ;
+F000:25C9 E84A00         CALL   2616        ; ‡ek n¡ na stav modemu
+F000:25CC 7244           JB     2612        ; byl TIME-OUT
+F000:25CE 83EA01         SUB    DX,+01      ; stavov˜ registr linky
+F000:25D1 B520           MOV    CH,20       ; bit p©ipravenosti vys¡la‡e
+F000:25D3 86D8           XCHG   BL,AL       ; £schova stavu modemu
+F000:25D5 E85500         CALL   262D        ; ‡ek n¡ na uvolnˆn¡ vys¡la‡e
+F000:25D8 86D8           XCHG   BL,AL       ; n vrat stavu modemu AL
+F000:25DA 7306           JNB    25E2        ; nen¡ TIME-OUT
+F000:25DC 80CC80       * OR     AH,80       ; p©¡znak TIME-OUT
+F000:25DF EB31           JMP    2612        ; n vrat z obsluhy
+F000:25E1 90             NOP     
+F000:25E2 83EA05       * SUB    DX,+05      ; datov˜ registr COM
+F000:25E5 EE             OUT    DX,AL       ; vysl n¡ datov‚ho bajtu
+F000:25E6 EB2A           JMP    2612        ; n vrat
+F000:25E8 90             NOP
+
+F000:25E9 80FC02         CMP    AH,02       ; je p©¡jem ?
+F000:25EC 751C           JNZ    260A        ; nen¡ p©¡jem
+F000:25EE B90120         MOV    CX,2001 
+F000:25F1 E82200         CALL   2616        ; ‡ek n¡ na stav modemu
+F000:25F4 721C           JB     2612        ; je TIME-OUT
+F000:25F6 83EA01         SUB    DX,+01      ; stavov˜ registr linky
+F000:25F9 B501           MOV    CH,01       ; bit p©ijat‚ho znaku
+F000:25FB E82F00         CALL   262D        ; ‡ek n¡ na p©¡jem znaku
+F000:25FE 72DC           JB     25DC        ; byl TIME-OUT
+F000:2600 83EA05         SUB    DX,+05      ; datov˜ registr COM
+F000:2603 EC             IN     AL,DX       ; ‡ten¡ p©ijat‚ho bajtu
+F000:2604 80E41E         AND    AH,1E       ; stavov˜ registr linky
+F000:2607 EB09           JMP    2612        ; n vrat
+F000:2609 90             NOP
+                                          ;* ‡ten¡ stavu
+F000:260A 83C201         ADD    DX,+01      ; registr povolen¡ p©eru¨en¡
+F000:260D 80FC03         CMP    AH,03
+F000:2610 74A4           JZ     25B6        ; je stav linky
+F000:2612 E84400       * CALL   2659        ; n vrat registr–
+F000:2615 CF             IRET
+                                          ;* ‡ek n¡ na stav modemu
+F000:2616 86D8           XCHG   BL,AL
+F000:2618 8AC1           MOV    AL,CL       ; bajt pro nastaven¡ modemu
+F000:261A 83C204         ADD    DX,+04      ; ©¡dic¡ registr modemu
+F000:261D EE             OUT    DX,AL       ; nastaven¡ registru modemu
+F000:261E 83C202         ADD    DX,+02      ; stavov˜ registr modemu
+F000:2621 E80900         CALL   262D        ; ‡ek n¡ na stav
+F000:2624 86D8           XCHG   BL,AL       ; AL <- stavov˜ registr modemu
+F000:2626 7304           JNB    262C        ; nebyl TIME-OUT
+F000:2628 80CC80         OR     AH,80       ; p©¡znak TIME-OUT
+F000:262B F9             STC                ; p©¡znak TIME-OUT
+F000:262C C3           * RET
+
+                                            ;* ‡ek n¡ na stav portu
+F000:262D 8ABD7C00       MOV    BH,[DI+007C] ; TIME-OUT portu
+F000:2631 83E600         AND    SI,+00      ; SI <- 0 ni‘¨¡ ‡¡ta‡ TIME-OUT
+F000:2634 4E           * DEC    SI          ; SI <- -1
+F000:2635 7505           JNZ    263C        ; nen¡ TIME-OUT
+F000:2637 FECF           DEC    BH          ; vy¨¨¡ ‡¡ta‡ TIME-OUT
+F000:2639 F9             STC                ; p©¡znak chyby
+F000:263A 740B           JZ     2647        ; je TIME-OUT
+F000:263C EC           * IN     AL,DX       ; ‡ten¡ stavov‚ho registru
+F000:263D 86E0           XCHG   AH,AL       ; £schova stavov‚ho registru
+F000:263F 8AC4           MOV    AL,AH       ; stavov˜ registr
+F000:2641 22C5           AND    AL,CH       ; maska testovan‚ho bity
+F000:2643 3AE8           CMP    CH,AL       ; je po‘adovan˜ stav bitu ?
+F000:2645 75ED           JNZ    2634        ; nen¡ - dal¨¡ ‡ek n¡
+F000:2647 C3           * RET
+
+                                            ; £schova registr–
+F000:2648 FB             STI
+F000:2649 53             PUSH   BX 
+F000:264A 51             PUSH   CX 
+F000:264B 52             PUSH   DX 
+F000:264C 57             PUSH   DI 
+F000:264D 56             PUSH   SI 
+F000:264E 55             PUSH   BP 
+F000:264F 1E             PUSH   DS 
+F000:2650 06             PUSH   ES 
+F000:2651 8BFC           MOV    DI,SP 
+F000:2653 368B7510       MOV    SI,SS:[DI+10] 
+F000:2657 56             PUSH   SI 
+F000:2658 C3             RET     
+
+                                            ; n vrat registr–
+F000:2659 5E             POP    SI
+F000:265A 8BFC           MOV    DI,SP 
+F000:265C 36897510       MOV    SS:[DI+10],SI 
+F000:2660 07             POP    ES 
+F000:2661 1F             POP    DS 
+F000:2662 5D             POP    BP 
+F000:2663 5E             POP    SI 
+F000:2664 5F             POP    DI 
+F000:2665 5A             POP    DX 
+F000:2666 59             POP    CX 
+F000:2667 5B             POP    BX 
+F000:2668 C3             RET     
+F000:2669 CF             IRET
+

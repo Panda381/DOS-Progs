@@ -1,0 +1,414 @@
+
+                     Ovládání tiskáren standardu EPSON a IBM
+                     ---------------------------------------
+                                Miroslav Nìmeèek
+
+
+  Syntaxe souboru:
+        # soubor  - vnoøený soubor
+        {...}     - poznámka
+        ;...      - poznámka (po konec øádku)
+        "..."     - ASCII text
+        !         - nahradí se znakem ESC (kód 27)
+        ?         - nahradí se znakem FS (kód 28)
+        /         - nahradí se znaky CR a LF (odøádkování)
+        $         - bude následovat znak v hexadecimálním kódu
+        èíslo     - dekadická hodnota bajtu k vyslání
+        ostatní   - znak se vytiskne nezmìnìnì
+
+
+V  následujících  tabulkách  jsou uvedeny nejrozšíøenìjší ovládací kódy tiskáren
+standardu  EPSON  a  IBM.  Jednotlivé  typy  tiskáren  se liší obvykle vybavením
+jednotlivými  funkcemi.  Pøedevším  se jedná o vybavení módem NLQ nebo LQ (vyšší
+kvalita  písma),  možností definování vlastních fontù znakù (DownLoad), množství
+fontù  znakù,  jemnost  grafiky a vybavení nìkterými speciálními funkcemi (napø.
+dvojnásobná výška písma).
+
+
+Tabulky øídicích kódù jsou rozdìleny do oblastí:
+
+         speciální øízení tiskárny     - ovládání vnitøních funkcí
+         vertikální nastavení          - posun formuláøe, øádkování
+         horizontální nastavení        - posun tiskové hlavy, okraje
+         nastavení typu písma          - zpùsob tisku znakù
+         fonty znakù                   - volba fontù, definice fontù
+         grafický tisk                 - ovládání grafiky
+
+
+V  prvním  sloupci  tabulek  je uvedena ASCII podoba øídicího kódu tiskárny. Pøi
+zápisu kódù se používají symboly podle následující tabulky øídicích kódù ASCII:
++----+-----+------------------------+----+-----+--------------------------+
+|  0 | NUL | prázdný znak           | 16 | DLE | rozšíøené ovládání linky |
+|  1 | SOH | zaèátek záhlaví dat    | 17 | DC1 | ovládání zaøízení 1      |
+|  2 | STX | zaèátek textu          | 18 | DC2 | ovládání zaøízení 2      |
+|  3 | ETX | konec textu            | 19 | DC3 | ovládání zaøízení 3      |
+|  4 | EOT | konec pøenosu          | 20 | DC4 | ovládání zaøízení 4      |
+|  5 | ENQ | dotaz                  | 21 | NAK | negativní potvrzení      |
+|  6 | ACK | potvrzení              | 22 | SYN | synchronizace            |
+|  7 | BEL | zvonek                 | 23 | ETB | konec pøenášeného bloku  |
+|  8 | BS  | krok spìt              | 24 | CAN | zrušení                  |
+|  9 | HT  | horizontální tabelátor | 25 | EM  | konec záznamového média  |
+| 10 | LF  | posun o øádek dolù     | 26 | SUB | náhrada (substituce)     |
+| 11 | VT  | vertikální tabelátor   | 27 | ESC | speciální øídicí znak    |
+| 12 | FF  | posun na novou stránku | 28 | FS  | oddìlovaè souborù        |
+| 13 | CR  | hlava na zaèátek øádku | 29 | GS  | oddìlovaè skupin         |
+| 14 | SO  | vypnutí pøesmykaèe     | 30 | RS  | oddìlovaè záznamù        |
+| 15 | SI  | zapnutí pøesmykaèe     | 31 | US  | oddìlovaè jednotek       |
++----+-----+------------------------+----+-----+--------------------------+
+
+
+V  druhém  sloupci  je uveden tvar øídicího pøíkazu ve tvaru, který lze použít v
+definièním  souboru  programu  DOWNLOAD.  Definièní soubor pro ovládání tiskárny
+programem  DOWNLOAD je bìžný textový soubor. Program DOWNLOAD interpretuje tento
+soubor  a  vysílá  data na standardní tiskové zaøízení PRN. Zpùsob zápisu kódù v
+definièním souboru pro ovládání tiskárny je uveden v následující tabulce:
++----------------------------+--------------------------------------------+
+|  èíslo 0 až 255            | dekadický kód bajtu, který se má vyslat    |
+|  $kód                      | hodnota bajtu udána v hexadecimálním kódu  |
+|  {poznámka}                | poznámka - ignoruje se                     |
+|  ;poznámka                 | poznámka (po konec øádku) - ignoruje se    |
+|  "text"                    | ASCII text - znaky se vyšlou beze zmìny    |
+|  !                         | vyšle se znak ESC (kód 27)                 |
+|  ?                         | vyšle se znak FS (kód 28)                  |
+|  /                         | vyšlou se znaky CR a LF (odøádkování textu)|
+|  #soubor                   | vnoøený definièní soubor                   |
+|  mezera, tabelátor, CR, LF | znaky se ignorují                          |
+|  ostatní znaky             | vyšlou se na tiskárnu beze zmìny           |
++----------------------------+--------------------------------------------+
+
+V posledním sloupci je uvedeno, zda je kód definován pro tiskárny kompatibilní s
+kódem EPSON (=EPS) nebo IBM.
+
+Speciální øízení tiskárny:
++-----------------------+---------------+----------------------------+---------+
+|ESC "@"                |! @            |inicializace tiskárny       |EPS  IBM |
++-----------------------+---------------+----------------------------+---------+
+|ESC "i" 1              |! i 1          |zap. režimu psacího stroje  |EPS      |
+|                       |               |(znak se ihned vytiskne)    |         |
+|ESC "i" 0              |! i 0          |vyp. režimu psacího stroje  |EPS      |
++-----------------------+---------------+----------------------------+---------+
+|ESC "8"                |! "8"          |vyp. indikace konce papíru  |EPS      |
+|ESC "9"                |! "9"          |zap. indikace konce papíru  |EPS      |
++-----------------------+---------------+----------------------------+---------+
+|ESC "s" 1              |! s 1          |zap. tichého módu tiskárny  |EPS-DRAFT|
+|                       |               |(polovièní rychlost tisku)  |         |
+|ESC "s" 0              |! s 0          |vyp. tichého módu tiskárny  |EPS-DRAFT|
++-----------------------+---------------+----------------------------+---------+
+|ESC "<"                |! <            |jednosmìrný tisk pro 1 øádek|EPS      |
+|                       |               |(vytiskne se zleva doprava) |         |
+|ESC "U" 1              |! U 1          |zapnutí jednosmìrného tisku |EPS      |
+|ESC "U" 0              |! U 0          |vypnutí jednosmìrného tisku |EPS      |
++-----------------------+---------------+----------------------------+---------+
+|ESC ">"                |! >            |nastavení 8.bitu znakù na 1 |EPS      |
+|ESC "="                |! =            |nastavení 8.bitu znakù na 0 |EPS      |
+|ESC "#"                |! "#"          |zrušení ovládání osmého bitu|EPS      |
++-----------------------+---------------+----------------------------+---------+
+|DC3                    |19             |zablokování tiskárny        |EPS      |
+|DC1                    |17             |odblokování tiskárny        |EPS      |
++-----------------------+---------------+----------------------------+---------+
+|ESC EM 4               |! 25 4         |zap. režimu podávání listù  |EPS      |
+|ESC EM 0               |! 25 0         |vyp. režimu podávání listù  |EPS      |
++-----------------------+---------------+----------------------------+---------+
+|BEL                    |7              |zvuková signalizace         |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|DEL                    |127            |smazání posledního znaku    |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|CAN                    |24             |zrušení øádku v tisk.bufferu|EPS      |
++-----------------------+---------------+----------------------------+---------+
+|ESC "5" 1              |! "5" 1        |zap. automat. LF pøi CR     |IBM      |
+|ESC "5" 0              |! "5" 0        |vyp. automat. LF pøi CR     |IBM      |
++-----------------------+---------------+----------------------------+---------+
+
+
+Vertikální nastavení:
++-----------------------+---------------+----------------------------+---------+
+|LF                     |10             |posun na další øádek        |EPS IBM  |
+|ESC LF                 |! 10           |posun na pøedcházející øádek|EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "J" n              |! J n          |posuv o n/216 palce vpøed   |EPS IBM  |
+|                       |               |(n=0...255); v módu IBM se  |         |
+|                       |               |provede automaticky CR      |         |
+|ESC "j" n              |! j n          |posuv o n/216 palce zpìt    |EPS IBM  |
+|                       |               |(n=0...255)                 |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "f" "1" n          |! f "1" n      |nastav. vertikální pozice o |EPS IBM  |
+|                       |               | n=0...255 øádkù vpøed      |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "0"                |! "0"          |nastav. øádkování 1/8 palce |EPS IBM  |
+|ESC "1"                |! "1"          |nastav. øádkování 7/72 palce|EPS IBM  |
+|ESC "2"                |! "2"          |nastav. øádkování 1/6 palce |EPS      |
+|ESC "2"                |! "2"          |programovatelné øádkování   |IBM      |
+|                       |               | (zadané pøík. ESC "A" n)   |         |
+|ESC "3" n              |! "3" n        |nastavení øádkování na n/216|EPS IBM  |
+|                       |               |palce (n=0...255)           |         |
+|ESC "A" n              |! A n          |nastavení øádkování na n/72 |EPS IBM  |
+|                       |               |palce (n=0...85); v módu IBM|         |
+|                       |               |se nastaví jen v pøípadì, že|         |
+|                       |               |je zadán pøíkaz ESC "2"     |         |
++-----------------------+---------------+----------------------------+---------+
+|FF                     |12             |odstránkování               |EPS IBM  |
+|ESC FF                 |! 12           |návrat na zaèátek stránky   |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "4"                |! "4"          |nastavení zaèátku stránky   |IBM      |
++-----------------------+---------------+----------------------------+---------+
+|ESC "C" n              |! C n          |nastavení délky stránky na  |EPS IBM  |
+|                       |               |n øádkù (n=1...127)         |         |
+|                       |               |(pro IBM je n=1...255)      |         |
+|                       |               |(souèasný øádek = zaèátek)  |         |
+|ESC "C" 0 n            |! C 0 n        |nastavení délky stránky na  |EPS IBM  |
+|                       |               |n palcù (n=1...22) (pro IBM |         |
+|                       |               |je n=1...127)               |         |
+|                       |               |(souèasný øádek = zaèátek)  |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "c" n              |! c n          |nastavení horního okraje    |EPS IBM  |
+|                       |               |stránky na n=1...127 øádkù  |         |
+|ESC "N" n              |! N n          |nastavení spodního okraje   |EPS IBM  |
+|                       |               |stránky na n øádkù          |         |
+|                       |               |(n=1...127); stand. 1 palec |         |
+|ESC "O"                |! O            |zrušení spod. a hor. okraje |EPS IBM  |
+|                       |               |(pøelom se nepøeskakuje)    |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "B" n1 n2 ... 0    |! B n1 n2 ... 0|defin. pozic vert. tabelát. |EPS IBM  |
+|                       |               |max. 16 tabel.; EPS=kanál 0;|         |
+|                       |               |(n1,n2,... = 1 ... 255)     |         |
+|ESC "b" c n1 n2...0    |! b c n1 n2...0|defin. pozic vertik. tabel. |EPS IBM  |
+|                       |               |v kanálech; pro každý c=0..7|         |
+|                       |               |lze nastavit 16 vert. tabel.|         |
+|                       |               |(n1, n2,... = 1...255)      |         |
+|ESC "/" c              |! / c          |volba kanálu vert. tabelace |EPS IBM  |
+|                       |               |(c=0...7 kanál vert. tabel.)|         |
+|ESC "e" "1" n          |! e "1" n      |relativní pozice vertikál.  |EPS IBM  |
+|                       |               |tabelátoru od souè. pozice  |         |
+|VT                     |11             |vertikální tabelace (není-li|EPS IBM  |
+|                       |               |tab., posun na další øádek  |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "R"                |! R            |inicializace tabelátorù     |IBM      |
++-----------------------+---------------+----------------------------+---------+
+
+
+Horizontální nastavení:
++-----------------------+---------------+----------------------------+---------+
+|CR                     |13             |tisková hlava na zaè. øádku |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|BS                     |8              |tisková hlava o znak vlevo  |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC " " n              |! 32 n         |nastavení meziznakové mezery|EPS      |
+|                       |               |na n bodù (n = 1...127)     |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "f" "0" n          |! f "0" n      |nastav. horiz. znak. pozice |EPS IBM  |
+|ESC $ n1 n2            |! "$" n1 n2    |nastavení absolutní pozice  |EPS IBM  |
+|                       |               |na bod (n1 + n2*256); šíøka |         |
+|                       |               |bodu 1/60 palce             |         |
+|ESC "\" n1 n2          |! \ n1 n2      |nastavení relativní pozice  |EPS      |
+|FS "\" n1 n2           |? \ n1 n2      |nastavení relativní pozice  |IBM      |
+|                       |               |vpøed o (n1 + n2*256) bodù; |         |
+|                       |               |šíøka bodu je 1/60 palce;   |         |
+|                       |               |posun zpìt: doplnìk do 65536|         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "a" 0              |! a 0          |zarovnávání doleva (stand.) |EPS IBM  |
+|ESC "a" 1              |! a 1          |zarovnání textu doprostøed  |EPS IBM  |
+|ESC "a" 2              |! a 2          |zarovnání textu doprava     |EPS IBM  |
+|ESC "a" 3              |! a 3          |zarovnání k obìma okrajùm   |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "D" n1 n2 ... 0    |! D n1 n2 ... 0|definování horizont. tabel. |EPS IBM  |
+|                       |               |(max. 32 tabel., vzestupnì, |         |
+|                       |               |n1,n2,... = 1...137)        |         |
+|ESC "e" "0" n          |! e "0" n      |relativní pozice horizont.  |EPS IBM  |
+|                       |               |tabelátoru od souè. pozice  |         |
+|HT                     |9              |horizontální tabelace       |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "Q" n              |! Q n          |pravý okraj: n=1...255 pozic|EPS      |
+|FS "Q" n               |? Q n          |pravý okraj: n=1...255 pozic|IBM      |
+|ESC "l" n              |! l n          |levý okraj: n=0...160 pozic |EPS IBM  |
+|                       |               |nesmí být vìtší než 8 palcù |         |
+|ESC "X" n1 n2          |! X n1 n2      |levý okraj n1, pravý n2     |EPS IBM  |
+|                       |               |min. šíøka 0.5 palcù        |         |
++-----------------------+---------------+----------------------------+---------+
+
+
+Nastavení typu písma:
++-----------------------+---------------+----------------------------+---------+
+|ESC "x" 1              |! x 1          |zap. vyšší kvality písma NLQ|EPS IBM  |
+|ESC "x" 0              |! x 0          |normální kvalita písma DRAFT|EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "!" n              |! "!" n        |univerzální nastavení písma |EPS IBM  |
+|                       |               |bit 0: 1=písmo ELITE 1/12"  |         |
+|                       |               |bit 1: 1=proporcionální tisk|         |
+|                       |               |bit 2: 1=zhuštìný tisk 60%  |         |
+|                       |               |bit 3: 1=zvýraznìný tisk    |         |
+|                       |               |bit 4: dvojitý pøetisk      |         |
+|                       |               |bit 5: dvojnásobná šíøka    |         |
+|                       |               |bit 6: šikmé písmo (kurzíva)|         |
+|                       |               |bit 7: podtržení            |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "M"                |! M            |písmo ELITE (12 znakù/palec)|EPS IBM  |
+|ESC "P"                |! P            |písmo PICA (10 znakù/palec) |EPS      |
+|DC2                    |18             |písmo PICA (10 znakù/palec) |IBM      |
+|ESC ":"                |! ":"          |písmo ELITE (12 znakù/palec)|IBM      |
++-----------------------+---------------+----------------------------+---------+
+|ESC "p" 1              |! p 1          |zap. proporcionálního tisku |EPS IBM  |
+|ESC "p" 0              |! p 0          |vyp. proporcionálního tisku |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "P" 1              |! P 1          |zap. proporcion. tisku PICA |IBM      |
+|ESC "P" 0              |! P 0          |vyp. proporcion. tisku PICA |IBM      |
++-----------------------+---------------+----------------------------+---------+
+|SI                     |15             |zap. zhuštìného tisku (60 %)|EPS IBM  |
+|ESC SI                 |! 15           |zap. zhuštìného tisku (60 %)|EPS IBM  |
+|DC2                    |18             |vyp. zhuštìného tisku       |EPS      |
++-----------------------+---------------+----------------------------+---------+
+|SO                     |14             |široký tisk v jednom øádku  |EPS IBM  |
+|ESC SO                 |! 14           |široký tisk v jednom øádku  |EPS IBM  |
+|DC4                    |20             |zrušení širokého tisku (SO) |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "W" 1              |! W 1          |zap. dvojnásobné šíøky písma|EPS IBM  |
+|ESC "W" 0              |! W 0          |vyp. dvojnásobné šíøky písma|EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "E"                |! E            |zap. zvýraznìného tisku     |EPS IBM  |
+|ESC "F"                |! F            |vyp. zvýraznìného tisku     |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "G"                |! G            |zap. dvojnásobného tisku    |EPS IBM  |
+|ESC "H"                |! H            |vyp. dvojnásobného tisku    |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "S" 0              |! S 0          |tisk exponentù (nadsazení)  |EPS IBM  |
+|ESC "S" 1              |! S 1          |tisk indexù (podsazení)     |EPS IBM  |
+|ESC "T"                |! T            |vyp. exponentù nebo indexù  |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "-" 1              |! - 1          |zapnutí podtrhávání textu   |EPS IBM  |
+|ESC "-" 0              |! - 0          |vypnutí podtrhávání textu   |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "_" 1              |! _ 1          |zapnutí pøeškrtnutí textu   |EPS IBM  |
+|ESC "_" 0              |! _ 0          |zapnutí pøeškrtnutí textu   |EPS IBM  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "4"                |! "4"          |zap. šikmého písma (kurzíva)|EPS      |
+|ESC "5"                |! "5"          |vyp. šikmého písma          |EPS      |
+|FS "4"                 |? "4"          |zap. šikmého písma (kurzíva)|IBM      |
+|FS "5"                 |? "5"          |vyp. šikmého písma          |IBM      |
++-----------------------+---------------+----------------------------+---------+
+
+
+Fonty znakù:
++-----------------------+---------------+----------------------------+---------+
+|ESC "R" n              |! R n          |nastavení národní sady znakù|EPS      |
+|FS "R" n               |? R n          |nastavení národní sady znakù|IBM      |
+|                       |               |0 USA        8 Japonsko     |         |
+|                       |               |1 Francie    9 Norsko       |         |
+|                       |               |2 Nìmecko   10 Dánsko II    |         |
+|                       |               |3 Anglie    11 Španìlsko II |         |
+|                       |               |4 Dánsko I  12 Lat. Amerika |         |
+|                       |               |5 Švédsko   13 Dánsko/Norsko|         |
+|                       |               |6 Itálie    14 Irsko        |         |
+|                       |               |7 Španìlsko I               |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "k" n              |! k n          |Volba fontu znakù (n=0..)   |EPS IBM  |
+|                       |               |Pøíklad pro FR-15:          |         |
+|                       |               | 0 Courier       4 Script   |         |
+|                       |               | 1 Sanserif      5 OCR-B    |         |
+|                       |               | 2 Letter-Gothic 6 TW-Light |         |
+|                       |               | 3 Orator        7 Cinema   |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "^"                |! ^            |Následující bajt je znak    |IBM      |
+|ESC "\" n1 n2          |! \ n1 n2      |Spojitý tisk všech znakù:   |IBM      |
+|                       |               |následujících (n1+n2*256)   |         |
+|                       |               |bajtù se bude tisknout jako |         |
+|                       |               |znaky (i kódy 0-31)         |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "t" 0              |! t 0          |standardní tabulka znakù EPS|EPS IBM  |
+|ESC "t" 1              |! t 1          |tabulka znakù IBM           |EPS IBM  |
+|ESC "t" 2              |! t 2          |pøesun DOWNLOAD znakù 0-127 |EPS IBM  |
+|                       |               |do prostoru 128-255         |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "=" n1 n2 DC4 m    |!"=" n1 n2 20 m|uživatelské fonty znakù     |IBM      |
+|       a1 a2 d1 ... d11| a1 a2 d1...d11| (n1+256*n2)=poèet dat.bajtù|         |
+|                       |               |m=první znak; a1=atributy   |         |
+|                       |               |a2=poè. a konc. pozice      |         |
+|ESC "&" 0 n1 n2 .data. |! "&" 0 n1 n2  |uživatelské fonty znakù:    |EPS IBM  |
+|       c d1 d2 ... d11 |  c d1 d2...d11|n1=první znak, n2=poslední  |         |
+|                       |               |znak; posloupnost c d1...d11|         |
+|                       |               |se opakuje pro každý znak:  |         |
+|                       |               | bajt atributù znaku c:     |         |
+|                       |               |   bit 7: 1=horních 8 jehel |         |
+|                       |               |          0=dolních 8 jehel |         |
+|                       |               |   bit 4-6: poèáteèní pozice|         |
+|                       |               |   bit 0-3: koncová pozice  |         |
+|                       |               |   (pozice se poèítá od 0)  |         |
+|                       |               |První datový bajt urèuje    |         |
+|                       |               |první sloupec, 11. bajt     |         |
+|                       |               |urèuje 11. sloupec. Nejvyšší|         |
+|                       |               |bit urèuje nejvyšší bod.    |         |
+|                       |               |Nedoporuèuje se tisk dvou   |         |
+|                       |               |bodù bezprostøednì za sebou.|         |
++-----------------------+---------------+----------------------------+---------+
+|ESC ":" 0 n 0          |! : 0 n 0      |kopírování stand.fontù z ROM|EPS      |
+|                       |               |do DOWNLOAD-RAM (n=è.fontu) |         |
+|FS ":" 0 n 0           |? : 0 n 0      |kopírování stand.fontù z ROM|IBM      |
+|                       |               |do DOWNLOAD-RAM (n=è.fontu) |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "%" 1              |! % 1          |zap. uživ. fontù DOWNLOAD   |DRAFT    |
+|ESC "%" 0              |! % 0          |zap. standard. fontù v ROM  |DRAFT    |
+|ESC "%" 1 0            |! % 1 0        |volba download DRAFT        |EP-1805  |
+|ESC "%" 1 1            |! % 1 1        |volba download NLQ          |EP-1805  |
++-----------------------+---------------+----------------------------+---------+
+|ESC "6"                |! "6"          |povolení znakù 128 až 159   |EPS      |
+|                       |               |nastav. obchodní sady znakù |IBM      |
+|ESC "7"                |! "7"          |znaky 128 až 159 jako øídicí|EPS      |
+|                       |               |nastav. normální sady znakù |IBM      |
++-----------------------+---------------+----------------------------+---------+
+|ESC "I" 1              |! I 1          |možný tisk øíd. znakù 0-31  |EPS      |
+|ESC "I" 0              |! I 0          |zákaz tisku øíd. znakù 0-31 |EPS      |
++-----------------------+---------------+----------------------------+---------+
+|ESC "I" n              |! I n          |volba tiskového módu (n=0..)|IBM      |
+|                       |               |Pøíklad pro FR-15:          |         |
+|                       |               | 0 = DRAFT PICA 1/10"       |         |
+|                       |               | 1 = DRAFT ELITE 1/12"      |         |
+|                       |               | 2 = Sanserif               |         |
+|                       |               | 3 = Courier                |         |
+|                       |               | 4 = DRAFT DOWNLOAD PICA    |         |
+|                       |               | 5 = DRAFT DOWNLOAD ELITE   |         |
+|                       |               | 6 = NLQ DOWNLOAD           |         |
+|                       |               | 7 = COURIER                |         |
++-----------------------+---------------+----------------------------+---------+
+
+
+Grafický tisk:
++-----------------------+---------------+----------------------------+---------+
+|ESC "*" m n1 n2 .data. |! "*" m n1 n2..|grafický tisk: m=0...7 režim|         |
+|                       |               |poèet bajtù=(n1 + n2*256)   |         |
+|                       |               |hustota=poèet bodù na palec |         |
+|                       |               |----------------------------|         |
+|                       |               |režim:              hustota:|         |
+|                       |               |----------------------------|         |
+|                       |               |0  jednoduchá hustota     60|         |
+|                       |               |1  dvojitá hustota       120|         |
+|                       |               |2  dvoj. hustota rychlá  120|         |
+|                       |               |3  ètyønásobná hustota   240|         |
+|                       |               |4  CRT grafika I          80|         |
+|                       |               |5  plotter grafika        72|         |
+|                       |               |6  CRT grafika II         90|         |
+|                       |               |7  plotter dvoj. hustota 144|         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "K" n1 n2 ..data.. |! K n1 n2 .....|graf. tisk s jedn. hustotou |         |
+|                       |               |- odpovídá ESC "*" 0 ...    |         |
+|                       |               |poèet bajtù=(n1 + n2*256)   |         |
+|ESC "L" n1 n2 ..data.. |! L n1 n2 .....|graf. tisk s dvojn. hustotou|         |
+|                       |               |- odpovídá ESC "*" 1 ...    |         |
+|                       |               |poèet bajtù=(n1 + n2*256)   |         |
+|ESC "Y" n1 n2 ..data.. |! Y n1 n2 .....|rychlý graf.tisk dvojn.hust.|         |
+|                       |               |- odpovídá ESC "*" 2 ...    |         |
+|                       |               |poèet bajtù=(n1 + n2*256)   |         |
+|ESC "Z" n1 n2 ..data.. |! Z n1 n2 .....|rychlý graf.tisk ètyøn.hust.|         |
+|                       |               |- odpovídá ESC "*" 3 ...    |         |
+|                       |               |poèet bajtù=(n1 + n2*256)   |         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "?" n m            |! "?" n m      |zmìha hustoty graf. tisku   |         |
+|                       |               |Pøíkazu ESC "K"..."Z" je    |         |
+|                       |               |pøiøazena jiná hodnota      |         |
+|                       |               |z tabulky módù ESC "*" m ...|         |
+|                       |               |(n="K","L","Y","Z"; m=0...7)|         |
++-----------------------+---------------+----------------------------+---------+
+|ESC "^" 0 n1 n2 .data. |! ^ 0 n1 n2 ...|graf.tisk 9 jehl.jedn.hust. |         |
+|ESC "^" 1 n1 n2 .data. |! ^ 1 n1 n2 ...|graf.tisk 9 jehl.dvojn.hust.|         |
+|                       |               |poèet bajtù=(n1 + n2*256)   |         |
+|                       |               |Pro každý sloupec se použijí|         |
+|                       |               |2 bajty, 8.bit 2.B=9.jehla  |         |
++-----------------------+---------------+----------------------------+---------+
+

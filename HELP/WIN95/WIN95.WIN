@@ -1,0 +1,707 @@
+--------D-21440DCX084A-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - LOCK LOGICAL VOLUME
+        AX = 440Dh
+        CX = 084Ah (category code 08h, minor code 4Ah)
+        BL = drive number (00h=default,01h=A:,etc)
+        BH = lock level (00h-03h)
+        DX = drive permissions (see #0883) for Level 1 lock or second
+            Level 0 lock when formatting
+Return: CF set on error
+            AX = error code (01h,02h,etc.) (see #0980 at AH=59h)
+        CF clear if successful
+Note:   the logical volume must be locked before direct disk accesses are
+          permitted by Windows95
+SeeAlso: AX=440Dh,AX=440Dh/CX=084Bh,AX=440Dh/CX=086Ah,AX=440Dh/CX=086Ch
+
+Bitfields for drive permissions:
+Bit(s)  Description     (Table 0883)
+ 0      allow writes
+ 1      disallow new file mappings
+ 2      volume locked for formatting
+--------D-21440DCX084B-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - LOCK PHYSICAL VOLUME
+        AX = 440Dh
+        CX = 084Bh (category code 08h, minor code 4Bh)
+        BL = physical drive number (00h-7Fh = floppy, 80h-FFh = hard disk)
+        BH = lock level (00h-03h)
+        DX = drive permissions (see #0883) for Level 1 lock or second
+            Level 0 lock when formatting
+Return: CF set on error
+            AX = error code (01h,02h,etc.) (see #0980 at AH=59h)
+        CF clear if successful
+Note:   the physical volume must be locked before direct disk writes via
+          INT 13 are permitted by Windows95
+SeeAlso: AX=440Dh,AX=440Dh/CX=084Ah,AX=440Dh/CX=086Bh,AX=440Dh/CX=086Ch
+--------D-21440DCX086A-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - UNLOCK LOGICAL VOLUME
+        AX = 440Dh
+        CX = 086Ah (category code 08h, minor code 6Ah)
+        BL = drive number (00h=default,01h=A:,etc)
+Return: CF set on error
+            AX = error code (01h,02h,etc.) (see #0980 at AH=59h)
+        CF clear if successful
+Note:   the logical volume must be locked before direct disk accesses via
+          INT 13 are permitted by Windows95
+SeeAlso: AX=440Dh,AX=440Dh/CX=084Ah,AX=440Dh/CX=086Bh
+--------D-21440DCX086B-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - UNLOCK PHYSICAL VOLUME
+        AX = 440Dh
+        CX = 086Bh (category code 08h, minor code 6Bh)
+        BL = physical drive number (00h-7Fh = floppy, 80h-FFh = hard disk)
+Return: CF set on error
+            AX = error code (01h,02h,etc.) (see #0980 at AH=59h)
+        CF clear if successful
+SeeAlso: AX=440Dh,AX=440Dh/CX=084Bh,AX=440Dh/CX=086Ah
+--------D-21440DCX086C-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - GET LOCK FLAG STATE
+        AX = 440Dh
+        CX = 086Ch (category code 08h, minor code 6Ch)
+        BL = drive number (00h=default,01h=A:,etc)
+Return: CF set on error
+            AX = error code (01h,02h,etc.) (see #0980 at AH=59h)
+        CF clear if successful
+            AX = access flag (see #0884)
+SeeAlso: AX=440Dh,AX=440Dh/CX=084Ah,AX=440Dh/CX=084Bh,AX=440Dh/CX=0870h
+
+(Table 0884)
+Values for drive access flag:
+ 0000h  no writes/file mappings since last call
+ 0001h  write operation has occurred since last call
+ 0002h  file mapping has occurred since last call
+Note:   function 6Ch resets the access flag every time it is called
+--------D-21440DCX086D-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - ENUMERATE OPEN FILES
+        AX = 440Dh
+        CX = 086Dh (category code 08h, minor code 6Dh)
+        BL = drive number (00h=default,01h=A:,etc)
+        DS:DX -> buffer for ASCIZ pathname
+        SI = file index (0000h to number of open files-1)
+        DI = enumeration type (0000h all files, 0001h unmovable files)
+Return: CF set on error
+            AX = error code (01h,02h,12h,etc.) (see #0980 at AH=59h)
+                0012h if file index is out of range
+        CF clear if successful
+            AX = file open mode (BX from AX=6C00h or AX=716Ch)
+            CX = file type (see #0885)
+SeeAlso: AX=440Dh,AX=440Dh/CX=084Ah,AX=440Dh/CX=086Ch,AX=440Dh/CX=086Eh
+SeeAlso: AX=6C00h,AX=716Ch
+
+(Table 0885)
+Values for file type:
+ 0000h  normal file
+ 0001h  memory-mapped file (unmovable)
+ 0002h  unmovable file
+ 0004h  swap file
+--------D-21440DCX086E-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - FIND SWAP FILE
+        AX = 440Dh
+        CX = 086Eh (category code 08h, minor code 6Eh)
+        BL = drive number (00h=default,01h=A:,etc)
+        DS:DX -> buffer for ASCIZ pathname
+        SI = file index
+        DI = enumeration type
+Return: CF set on error
+            AX = error code (01h,02h,etc.) (see #0980 at AH=59h)
+        CF clear if successful
+            AX = pager type
+                0001h no pager
+                0002h paging through MS-DOS
+                0003h protected-mode pager
+            CX:BX = swap file size in 4K pages
+SeeAlso: AX=440Dh,AX=440Dh/CX=086Dh
+--------D-21440DCX0870-----------------------
+INT 21 - MS-DOS 7.0 - GENERIC IOCTL - GET CURRENT LOCK STATE
+        AX = 440Dh
+        CX = 0870h (category code 08h, minor code 70h)
+        BL = drive number (00h=default,01h=A:,etc)
+Return: CF set on error
+            AX = error code (01h,02h,etc.) (see #0980 at AH=59h)
+        CF clear if successful
+            AX = current lock level (0-3) or FFFFh if not locked
+            CX = lock permissions if AX<>FFFFh (see #0883)
+SeeAlso: AX=440Dh,AX=440Dh/CX=086Ch
+--------D-215700-----------------------------
+INT 21 - DOS 2+ - GET FILE'S DATE AND TIME
+        AX = 5700h
+        BX = file handle
+Return: CF clear if successful
+            CX = file's time (see #0971)
+            DX = file's date (see #0972)
+        CF set on error
+            AX = error code (01h,06h) (see #0980)
+Note:   under DR DOS 3.41 and 5.0, this function returns 0 (no date/time) for
+          character devices; MS-DOS returns date and time of opening
+SeeAlso: AX=5701h,AX=5704h"Windows95"
+
+Bitfields for file time:
+Bit(s)  Description     (Table 0971)
+ 15-11  hours (0-23)
+ 10-5   minutes
+ 4-0    seconds/2
+
+Bitfields for file date:
+Bit(s)  Description     (Table 0972)
+ 15-9   year - 1980
+ 8-5    month
+ 4-0    day
+--------D-215701-----------------------------
+INT 21 - DOS 2+ - SET FILE'S DATE AND TIME
+        AX = 5701h
+        BX = file handle
+        CX = new time (see #0971)
+        DX = new date (see #0972)
+Return: CF clear if successful
+        CF set on error
+            AX = error code (01h,06h) (see #0980)
+SeeAlso: AX=5700h
+--------D-215704-----------------------------
+INT 21 - MS-DOS 7/Windows95 - GET LAST ACCESS DATE AND TIME
+        AX = 5704h
+        BX = file handle
+Return: CF clear if successful
+            DX = last access date (see #0972)
+            CX = last access time (currently always 0000h)
+        CF set on error
+            AX = error code
+SeeAlso: AX=5701h,AX=5705h,AX=5706h
+--------D-215705-----------------------------
+INT 21 - MS-DOS 7/Windows95 - SET LAST ACCESS DATE AND TIME
+        AX = 5705h
+        BX = file handle
+        CX = new last-access time (currently not supported, must be 0000h)
+        DX = new last-access date (see #0972)
+Return: CF clear if successful
+        CF set on error
+            AX = error code
+SeeAlso: AX=5700h,AX=5704h"Windows95",AX=5707h
+--------D-215706-----------------------------
+INT 21 - MS-DOS 7/Windows95 - GET CREATION DATE AND TIME
+        AX = 5706h
+        BX = file handle
+Return: CF clear if successful
+            CX = creation time (see #0971)
+            DX = creation date (see #0972)
+            SI = number of 10-millisecond units past time in CX (0-199)
+        CF set on error
+            AX = error code
+SeeAlso: AX=5701h,AX=5704h"Windows95",AX=5707h
+--------D-215707-----------------------------
+INT 21 - MS-DOS 7/Windows95 - SET CREATION DATE AND TIME
+        AX = 5707h
+        BX = file handle
+        CX = new creation time (see #0971)
+        DX = new creation date (see #0972)
+        SI = new creation time: 10-millisecond units past time in CX (0-199)
+Return: CF clear if successful
+        CF set on error
+            AX = error code
+SeeAlso: AX=5700h,AX=5705h,AX=5706h
+--------D-21710D-----------------------------
+INT 21 - Windows95 - RESET DRIVE
+        AX = 710Dh
+        CX = action (see #1077)
+        DX = drive number
+Return: nothing
+SeeAlso: AH=0Dh
+
+(Table 1077)
+Values for drive reset action:
+ 0000h  flush filesystem buffers for drive, and reset drive
+ 0001h  flush filesystem buffers and cache for drive, and reset drive
+ 0002h  remount DriveSpace volume
+--------D-217139-----------------------------
+INT 21 - Windows95 - LONG FILENAME - MAKE DIRECTORY
+        AX = 7139h
+        DS:DX -> ASCIZ long directory name (including path)
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+SeeAlso: AH=39h,AX=713Ah,AX=713Bh
+--------D-21713A-----------------------------
+INT 21 - Windows95 - LONG FILENAME - REMOVE DIRECTORY
+        AX = 713Ah
+        DS:DX -> ASCIZ long name of directory to remove
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+SeeAlso: AH=3Ah,AX=7139h
+--------D-21713B-----------------------------
+INT 21 - Windows95 - LONG FILENAME - CHANGE DIRECTORY
+        AX = 713Bh
+        DS:DX -> ASCIZ long name of directory to make current
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+SeeAlso: AH=0Eh,AH=3Bh,AX=7139h
+--------D-217141-----------------------------
+INT 21 - Windows95 - LONG FILENAME - DELETE FILE
+        AX = 7141h
+        DS:DX -> ASCIZ long name of file to delete
+        SI = wildcard and attributes flag
+                0000h wildcards are not allows, and search attributes are
+                        ignored
+                0001h wildcards are allowed, and only files with matching
+                        names and attributes are deleted
+        CL = search attributes
+        CH = must-match attributes
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+SeeAlso: AH=41h
+--------D-217143-----------------------------
+INT 21 - Windows95 - LONG FILENAME - EXTENDED GET/SET FILE ATTRIBUTES
+        AX = 7143h
+        DS:DX -> ASCIZ filename
+        BL = action
+            00h retrieve attributes
+                Return: CX = file attributes (see #0731)
+            01h set attributes
+                CX = attributes
+            02h get physical size of compressed file
+                Return: DX:AX = actual disk usage of file, in bytes
+            03h set last write date/time
+                DI = new last-write date (see #0972)
+                CX = new last-write time (see #0971)
+            04h get last write date/time
+                Return: CX = last write time (see #0971)
+                        DI = last write date (see #0972)
+            05h set last access date
+                DI = new last-access date (see #0972)
+            06h get last access date
+                Return: DI = last access date (see #0972)
+            07h set creation date/time
+                DI = new creation date (see #0972)
+                CX = new creation time (see #0971)
+                SI = hundredths (10-millisecond units past time in CX, 0-199)
+            08h get creation date/time
+                Return: CX = creation time (see #0971)
+                        DI = creation date (see #0972)
+                        SI = hundredths (10-millisecond units past time in CX)
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+SeeAlso: AX=4300h,AX=4301h
+--------D-217147-----------------------------
+INT 21 - Windows95 - LONG FILENAME - GET CURRENT DIRECTORY
+        AX = 7147h
+        DL = drive number (00h = current, 01h = A:, etc.)
+        DS:SI -> buffer for ASCIZ directory name
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+Notes:  the returned pathname does not include the drive letter, colon, or
+          leading backslash
+        the provided buffer must be at least as large as the value indicated
+          by AX=71A0h
+SeeAlso: AH=47h,AX=713Bh,AX=71A0h
+--------D-21714E-----------------------------
+INT 21 - Windows95 - LONG FILENAME - FIND FIRST MATCHING FILE
+        AX = 714Eh
+        CL = allowable-attributes mask (see #0731 at AX=4301h)
+              (bits 0 and 5 ignored)
+        CH = required-attributes mask (see #0731)
+        SI = date/time format (see #1078)
+        DS:DX -> ASCIZ filespec (both "*" and "*.*" match any filename)
+        ES:DI -> FindData record (see #1079)
+Return: CF clear if successful
+            AX = filefind handle (needed to continue search)
+            CX = Unicode conversion flags (see #1080)
+        CF set on error
+            AX = error code
+                7100h if function not supported
+Notes:  this function is only available when IFSMgr is running, not under bare
+          MS-DOS 7
+        the application should close the filefind handle with AX=71A1h as soon
+          as it has completed its search
+SeeAlso: AH=4Eh,AX=714Fh,AX=71A1h
+
+(Table 1078)
+Values for Windows95 date/time format:
+ 0000h  use 64-bit file time format
+ 0001h  use MS-DOS date/time values (see #0971,#0972) in low double-word of
+          file time QWORD (date is high word, time is low word of double-word)
+
+Format of Windows95 long filename FindData record:
+Offset  Size    Description     (Table 1079)
+ 00h    DWORD   file attributes
+                bits 0-6 standard DOS attributes (see #0731 at INT 21/AX=4301h)
+                bit 8: temporary file
+ 04h    QWORD   file creation time (number of 100ns intervals since 1/1/1601)
+ 0Ch    QWORD   last access time
+ 14h    QWORD   last modification time
+ 1Ch    DWORD   file size (high 32 bits)
+ 20h    DWORD   file size (low 32 bits)
+ 24h  8 BYTEs   reserved
+ 2Ch 260 BYTEs  ASCIZ full filename
+130h 14 BYTEs   ASCIZ short filename (for backward compatibility)
+
+Bitfields for Windows95 Unicode conversion flags:
+Bit(s)  Description     (Table 1080)
+ 0      the returned full filename contains underscores for un-convertable
+          Unicode characters
+ 1      the returned short filename contains underscores for un-convertable
+          Unicode characters
+--------D-21714F-----------------------------
+INT 21 - Windows95 - LONG FILENAME - FIND NEXT MATCHING FILE
+        AX = 714Fh
+        BX = filefind handle (from AX=714Eh)
+        SI = date/time format (see #1078)
+        ES:DI -> buffer for FindData record (see #1079)
+Return: CF clear if successful
+            CX = Unicode conversion flags (see #1080)
+        CF set on error
+            AX = error code
+                7100h if function not supported
+Note:   this function is only available when IFSMgr is running, not under bare
+          MS-DOS 7
+SeeAlso: AH=4Eh,AX=714Eh,AX=71A1h
+--------D-217156-----------------------------
+INT 21 - Windows95 - LONG FILENAME - RENAME FILE
+        AX = 7156h
+        DS:DX -> ASCIZ old file or directory name (long names allowed)
+        ES:DI -> ASCIZ new name (long names allowed)
+Return: CF clear if successful
+        CF set on error
+            AX = error code
+                7100h if function not supported
+Note:   the file may be renamed into a different directory, but not across
+          disks
+SeeAlso: AH=56h,AX=7141h
+--------D-217160CL00-------------------------
+INT 21 - Windows95 - LONG FILENAME - "TRUENAME" - CANONICALIZE PATH
+        AX = 7160h
+        CL = 00h
+        CH = SUBST expansion flag
+            00h return a path containing true path for a SUBSTed drive letter
+            80h return a path containing the SUBSTed drive letter
+        DS:SI -> ASCIZ filename or path (either long name or short name)
+        ES:DI -> 261-byte buffer for canonicalized name
+Return: CF set on error
+            AX = error code
+                02h invalid component in directory path or drive letter only
+                03h malformed path or invalid drive letter
+            ES:DI buffer unchanged
+        CF clear if successful
+            ES:DI buffer filled with fully qualified name
+            AX destroyed
+Desc:   determine the canonical name of the specified filename or path,
+          corresponding to the undocumented TRUENAME command in COMMAND.COM
+Note:   if a complete path is given, the result will be a short-form complete
+          path; otherwise, the given relative path is appended to the
+          short-form current directory name, '.'/'..'/'...'/etc. are resolved,
+          and the final result uppercased without converting any remaining
+          long-form names to short-form
+SeeAlso: AH=60h,AX=7160h/CX=0001h
+--------D-217160CL01-------------------------
+INT 21 - Windows95 - LONG FILENAME - GET SHORT (8.3) FILENAME FOR FILE
+        AX = 7160h
+        CL = 01h
+        CH = SUBST expansion flag
+            00h return a path containing true path for a SUBSTed drive letter
+            80h return a path containing the SUBSTed drive letter
+        DS:SI -> ASCIZ long filename or path
+        ES:DI -> 67-byte buffer for short filename
+Return: CF set on error
+            AX = error code
+                02h invalid component in directory path or drive letter only
+                03h malformed path or invalid drive letter
+            ES:DI buffer unchanged
+        CF clear if successful
+            ES:DI buffer filled with equivalent short filename (full path,
+                  even if relative path given, and all uppercase)
+Note:   this call returns the short name for any long-filename portions of
+          the provided pathname or filename
+SeeAlso: AH=60h,AX=7160h/CX=0000h,AX=7160h/CX=0002h
+--------D-217160CL02-------------------------
+INT 21 - Windows95 - LONG FILENAME - GET CANONICAL LONG FILENAME OR PATH
+        AX = 7160h
+        CL = 02h
+        CH = SUBST expansion flag
+            00h return a path containing true path for a SUBSTed drive letter
+            80h return a path containing the SUBSTed drive letter
+        DS:SI -> ASCIZ short filename or path
+        ES:DI -> 261-byte buffer for canonicalized long name
+Return: CF set on error
+            AX = error code
+                02h invalid component in directory path or drive letter only
+                03h malformed path or invalid drive letter
+            ES:DI buffer unchanged
+        CF clear if successful
+            ES:DI buffer filled with qualified long name (can contain
+                  lowercase letters)
+Desc:   determine the canonical name of the specified filename or path,
+          corresponding to the undocumented TRUENAME command in COMMAND.COM
+Note:   this call returns the short name for any long-filename portions of
+          the provided pathname or filename
+BUG:    even though the maximum length of a complete long pathname is 260
+          characters, Windows95 returns CF set/AX=0003h even if the file
+          exists whenever the full pathname is more than 255 characters
+SeeAlso: AH=60h,AX=7160h/CX=0000h,AX=7160h/CX=0001h
+--------D-21716C-----------------------------
+INT 21 - Windows95 - LONG FILENAME - CREATE OR OPEN FILE
+        AX = 716Ch
+        BX = access mode and sharing flags (see #1082,also AX=6C00h)
+        CX = attributes
+        DX = action (see #1081)
+        DS:SI -> ASCIZ filename
+        DI = alias hint (number to append to short filename for disambiguation)
+Return: CF clear if successful
+            AX = file handle
+            CX = action taken
+                0001h file opened
+                0002h file created
+                0003h file replaced
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+SeeAlso: AX=6C00h,AX=7141h,AX=7156h,AX=71A9h
+
+Bitfields for Windows95 long-name open action:
+Bit(s)  Description     (Table 1081)
+ 0      open file (fail if file does not exist)
+ 1      truncate file if it already exists (fail if file does not exist)
+ 4      create new file if file does not already exist (fail if exists)
+Note:   the only valid combinations of multiple flags are bits 4&0 and 4&1
+
+Bitfields for Windows95 file access/sharing modes:
+Bit(s)  Description     (Table 1082)
+ 2-0    file access mode
+        000 read-only
+        001 write-only
+        010 read-write
+        100 read-only, do not modify file's last-access time
+ 6-4    file sharing modes
+ 7      no-inherit flag
+ 8      do not buffer data (requires that all reads/writes be exact physical
+          sectors)
+ 9      do not compress file even if volume normally compresses files
+ 10     use alias hint in DI as numeric tail for short-name alias
+ 12-11  unused??? (0)
+ 13     return error code instead of generating INT 24h if critical error
+          while opening file
+ 14     commit file after every write operation
+SeeAlso: #0715
+--------D-2171A0-----------------------------
+INT 21 - Windows95 - LONG FILENAME - GET VOLUME INFORMATION
+        AX = 71A0h
+        DS:SI -> ASCIZ root name (e.g. "C:\")
+        ES:DI -> buffer for file system name
+        CX = size of ES:DI buffer
+Return: CF clear if successful
+            BX = file system flags (see below)
+            CX = maximum length of file name [usually 255]
+            DX = maximum length of path [usually 260]
+            ES:DI buffer filled (ASCIZ, e.g. "FAT","NTFS","CDFS")
+        CF set on error
+            AX = error code
+                7100h if function not supported
+Notes:  for the file system name buffer, 32 bytes should be sufficient; that's
+         what is used in some sample code by Walter Oney from Microsoft.
+        this function accesses the disk the first time it is called
+SeeAlso: AX=714Eh,AX=7160h/CL=00h
+
+Bitfields for long filename volume information flags:
+Bit(s)  Description     (Table 1083)
+ 0      searches are case sensitive
+ 1      preserves case in directory entries
+ 2      uses Unicode characters in file and directory names
+ 3-13   reserved (0)
+ 14     supports DOS long filename functions
+ 15     volume is compressed
+--------D-2171A1-----------------------------
+INT 21 - Windows95 - LONG FILENAME - "FindClose" - TERMINATE DIRECTORY SEARCH
+        AX = 71A1h
+        BX = filefind handle (from AX=714Eh)
+Return: CF clear if successful
+        CF set on error
+           AX = error code
+                7100h if function not supported
+Notes:  this function must be called after starting a search with AX=714Eh,
+          to indicate that the search handle returned by that function will
+          no longer be used
+        this function is only available when IFSMgr is running, not under bare
+          MS-DOS 7
+SeeAlso: AH=4Eh,AX=714Eh,AX=714Fh
+--------D-2171A6-----------------------------
+INT 21 - Windows95 - LONG FILENAME - GET FILE INFO BY HANDLE
+        AX = 71A6h
+        BX = file handle
+        DS:DX -> buffer for file information (see #1084)
+        CF set
+Return: CF clear if successful
+            file information record filled
+        CF set on error
+            AX = error code
+                7100h if function not supported
+SeeAlso: AX=71A7h/BL=00h
+
+Format of Windows95 file information:
+Offset  Size    Description     (Table 1084)
+ 00h    DWORD   file attributes
+ 04h    QWORD   creation time (0 = unsupported)
+ 0Ch    QWORD   last access time (0 = unsupported)
+ 14h    QWORD   last write time
+ 1Ch    DWORD   volume serial number
+ 20h    DWORD   high 32 bits of file size
+ 24h    DWORD   low 32 bits of file size
+ 28h    DWORD   number of links to file
+ 2Ch    DWORD   unique file identifier (high 32 bits)
+ 30h    DWORD   unique file identifier (low 32 bits)
+Note:   the file identifer and volume serial number together uniquely identify
+          a file while it is open; the identifier may change when the system
+          is restarted or the file is first opened
+--------D-2171A7BL00-------------------------
+INT 21 - Windows95 - LONG FILENAME - FILE TIME TO DOS TIME
+        AX = 71A7h
+        BL = 00h
+        DS:SI -> QWORD file time
+Return: CF clear if successful
+            CX = DOS time (see #0971)
+            DX = DOS date (see #0972)
+            BH = hundredths (10-millisecond units past time in CX)
+        CF set on error
+            AX = error code
+                7100h if function not supported
+Desc:   convert Win95 64-bit file time (UTC) into DOS-style date and time
+          (local timezone)
+Note:   the conversion fails if the file time's value is outside the range
+          1/1/1980 and 12/31/2107
+SeeAlso: AX=71A6h,AX=71A7h/BL=01h
+--------D-2171A7BL01-------------------------
+INT 21 - Windows95 - LONG FILENAME - DOS TIME TO FILE TIME
+        AX = 71A7h
+        BL = 01h
+        CX = DOS time (see #0971)
+        DX = DOS date (see #0972)
+        BH = hundredths (10-millisecond units past time in CX)
+        ES:DI -> buffer for QWORD file time
+Return: CF clear if successful
+            ES:DI buffer filled
+        CF set on error
+            AX = error code
+                7100h if function not supported
+Desc:   convert DOS-style date and time (local timezone) into Win95 64-bit
+          file time (UTC)
+SeeAlso: AX=71A6h,AX=71A7h/BL=00h
+--------D-2171A8-----------------------------
+INT 21 - Windows95 - LONG FILENAME - GENERATE SHORT FILENAME
+        AX = 71A8h
+        DS:SI -> ASCIZ long filename (no path allowed!)
+        ES:DI -> buffer for ASCIZ short filename
+        DH = short name's format
+            00h 11-char directory entry/FCB filename format
+            01h DOS 8.3
+        DL = character sets
+            bits 7-4: short name's character set (see #1085)
+            bits 3-0: long name's character set (see #1085)
+Return: CF clear if successful
+            ES:DI buffer filled
+        CF set on error
+            AX = error code
+                7100h if function not supported
+Note:   this function uses the same algorithm as the filesystem except that
+          the returned name never has a numeric tail for disambiguation
+SeeAlso: AX=7160h,AX=71A7h/BL=00h
+
+(Table 1085)
+Values for Windows95 filename character set:
+ 00h    Windows ANSI
+ 01h    current OEM character set
+ 02h    Unicode
+--------D-2171A9-----------------------------
+INT 21 - Windows95 - LONG FILENAME - SERVER CREATE OR OPEN FILE
+        AX = 71A9h
+        BX = access mode and sharing flags (see #1082,also AX=6C00h)
+        CX = attributes
+        DX = action (see #1081)
+        DS:SI -> ASCIZ filename
+        DI = alias hint (number to append to short filename for disambiguation)
+Return: CF clear if successful
+            AX = global file handle
+            CX = action taken
+                0001h file opened
+                0002h file created
+                0003h file replaced
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+Note:   for use by real-mode servers only
+SeeAlso: AX=6C00h,AX=716Ch
+--------D-2171AABH00-------------------------
+INT 21 - Windows95 - LONG FILENAME - CREATE SUBST
+        AX = 71AAh
+        BH = 00h
+        BL = drive number (00h = default, 01h = A:, etc.)
+        DS:DX -> ASCIZ pathname to associate with drive letter
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+SeeAlso: AX=71AAh/BH=01h,AX=71AAh/BH=02h,INT 2F/AX=1000h,#0950
+--------D-2171AABH01-------------------------
+INT 21 - Windows95 - LONG FILENAME - TERMINATE SUBST
+        AX = 71AAh
+        BH = 01h
+        BL = drive number (01h = A:, etc.)
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+Note:   the specified drive number may not be 00h (default), and presumably not
+          the current drive either
+SeeAlso: AX=71AAh/BH=00h,AX=71AAh/BH=02h,INT 2F/AX=1000h,#0950
+--------D-2171AABH02-------------------------
+INT 21 - Windows95 - LONG FILENAME - QUERY SUBST
+        AX = 71AAh
+        BH = 02h
+        BL = drive number (01h = A:, etc.)
+        DS:DX -> buffer for ASCIZ pathname associated with drive letter
+Return: CF clear if successful
+            DS:DX buffer filled
+        CF set on error
+            AX = error code (see #0980)
+                7100h if function not supported
+Note:   the specified drive number may not be 00h (default drive)
+SeeAlso: AX=71AAh/BH=00h,AX=71AAh/BH=01h,INT 2F/AX=1000h,#0950
+--------D-2172-------------------------------
+INT 21 - MS-DOS 7 (Windows95) - ???
+        AH = 72h
+        details not available
+--------D-2173-------------------------------
+INT 21 - MS-DOS 7 (Windows95) - DRIVE LOCKING ???
+        AH = 73h
+        AL = subfunction
+            00h get ???: CL =
+                00h: drive flag???
+                01h: ??? flag
+            01h set ???: CL =
+                00h: drive flag???
+                    set to 06h if CH bit 1 =1, else to 00h
+                01h: ??? flag
+                    set flag bit 3 to bit 3 of CH
+        DL = drive (0=current, 1=A:, etc.)
+Return: CF clear if successful
+            for AL=00h:
+                AL = value of CL on entry
+                for CL=00h: AH = flag and 06h (i.e. bits 1 and 2 used)
+                for CL=01h: AH = flag and 08h (i.e. bit 3 used)
+                (flag being taken from a table of bytes)
+        CF set on error
+            AX = error code
+                7300h if function not supported
+--------d-2F150C-----------------------------
+INT 2F - CD-ROM v2.00+ - GET MSCDEX.EXE VERSION (GET VERSION)
+        AX = 150Ch
+Return: BH = major version
+        BL = minor version
+Notes:  MSCDEX.EXE versions prior to 2.00 return BX=0000h
+        Corel's CORELCDX.COM v1.01d returns 2.20, v1.12a returns 2.21
+        Meridian Data's CDNETEX.EXE returns its own version number, e.g. 4.70
+        Windows95 returns v2.95
+SeeAlso: AX=1500h

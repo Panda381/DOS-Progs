@@ -1,0 +1,215 @@
+                                 Stuff  1.0
+                                     by
+                                 Rahul Dhesi
+
+
+The primary purpose of the public domain program Stuff 1.0 is to generate
+pathnames that may be fed to zoo version 1.5 or later to allow it to
+recursively archive a directory hierarchy in compressed form.  Invoke it as
+"stuff" without any parameters to get a help screen.  Stuff should work on
+any MS-DOS system;  IBM compatibility is not a requirement.
+
+Stuff is generally used as follows:
+
+     stuff /new | zoo aI newfiles
+
+The above pipeline causes Stuff to generate a list of all files in /new and
+its subdirectories and feed them to zoo, which in turn reads each filename
+and adds that file to the archive "newfiles.zoo".  Later, the zoo archive
+can be extracted with
+
+     zoo x.// newfiles
+
+to recreate the original directory hierarchy.
+
+The general format of a Stuff command is:
+
+     stuff pathnames ... [ conditions ... ]
+
+Following the name of the program "stuff" itself, you need to give a list of
+one or more file or directory names in any combination.  Following these you
+can optionally specify some conditions that a file must meet before its name
+will be listed by Stuff.
+
+In the simplest case, when all you want to do is archive all files in
+certain areas, you will simply say:
+
+     stuff /new /old /test | zoo aI backups
+
+The above command will cause all files in the /new, /old, and /test
+directories (and all subdirectories, and all subdirectories of
+subdirectories, and so on) to be archived into "backups.zoo".  Or you might
+archive certain selected files thus:
+
+     stuff *.c *.h /turboc/include | zoo aI cprogs
+
+This archives all *.c and *.h files in the current directory and also
+archives all files in /turboc/include and its subdirectories.
+
+For greater control, conditions may be specified.  For example, to archive
+only files with certain names, a possible command is:
+
+     stuff / ! -name *.obj ! -name *.exe ! -name *.bak | zoo aI sources
+
+This command asks Stuff to search the entire disk beginning with the root
+directory / and asks it to list names of all files except those that match
+*.obj or *.exe or *.bak.  The exclamation mark tells Stuff to make the
+following condition exclude matching files.
+
+Here is a list of all conditions accepted by Stuff 1.0:
+
+   -name pattern    wildcards ok, * matches all files, dot is not special
+   -size N          size is N kilobytes (+N means over N, -N means less than N)
+   -mtime N         modified N days ago (+N means over N, -N means less than N)
+   -modified        modified since last backup (tests "archive" bit)
+   -older filename  older than specified file (false if "filename" not found)
+   -newer filename  newer than specified file (true if "filename" not found)
+
+
+SELECTING BY NAME
+
+Files are selected by name with the -name condition.
+
+     -name pattern
+
+tells stuff to select a file only if its name matches the supplied pattern. 
+In the pattern, the wildcard characters ? and * may be used.  The ? wildcard
+matches any one character and * matches zero or more characters.  Arbitrary
+combinations may be used, and the dot is not special, so *x* will match
+"xyz.doc" as well as "doc.xyz".  To exclude files matching a pattern, use the
+! character thus:
+
+     ! -name pattern
+
+If the pattern contains no slashes, Stuff attempts to match only the 
+filename part of each file found, so that, for example, the pathname
+"/myfiles/sources/stuff.c" will match the pattern "st*c".  But if the
+pattern contains any slashes, then it must match the entire pathname of each
+file found, so that "/myfiles/sources/stuff.c" would not match "*/new/st*c"
+but it would match "*sources*/st*c".
+
+If more than one -name condition is specified, then a file is selected only
+if it satisfies all of them.  For example,
+
+     -name *.com -name abc* ! -name /new/*
+
+would select a file called "abcdef.com" provided it was not in a
+subdirectory of the /new directory.  It would not select a file called
+"xyz.com" because this does not match the pattern "abc*".
+
+
+SELECTING BY SIZE
+
+The condition -size allows selection of files based on if they are equal to,
+larger than, or smaller than, a certain number of kilobytes in size.  A
+kilobyte is 1024 bytes.  A file is considered to be n kilobytes long if
+dividing its size in bytes by 1024 and ignoring the remainder gives a value
+of n.  For example, a file that is 10137 bytes long (9.89 kilobytes) is
+considered to be 9 kilobytes in size.  To select files that are 8 kilobytes
+long, use the condition:
+
+     -size 8
+
+To select files that are more than 8 kilobytes long, use the condition:
+
+     -size +8
+
+Similarly, to select files that are less than 8 kilobytes long use the
+condition:
+
+     -size -8
+
+One can use multiple conditions, and all must be met.  Thus
+
+     -size +2 -size -9
+
+will select all files that are 3 to 8 kilobytes long.
+
+As with other conditions, ! reverses the sense of -size, so saying
+
+     ! -size +8
+
+selects files that are not bigger than 8 kilobytes.
+
+
+SELECTING BY AGE
+
+The -older, -newer, and -mtime conditions allow file selection based on when
+a file was last modified.  To select a file that was modified in the last 24
+hours, the condition is:
+
+     -mtime -1
+
+which selects files that are less than 1 day old.   As before using !  will
+reverse this, so
+
+     ! -mtime -1
+
+selects only files that were not modified in the last 24 hours.  The
+conditions -older and -newer allow you to test to see if a file is older or
+newer than another file whose name you specify.  For example, the Stuff
+command
+
+     stuff / -newer info.txt
+
+searches the entire disk for all files that are newer than the file
+"info.txt".  The -older condition is complementary, and again, both may be
+combined with ! to reverse their sense, so that
+
+     ! -older info.txt
+
+selects files that are not older than "info.txt" (so they must be of the
+same age or newer).  The use of the -newer condition allows you to
+intelligently update files in a zoo archive with a command line of this
+type:
+
+     stuff /sources ! -name *.obj -newer sources.zoo | zoo aI sources.zoo
+
+This command tells Stuff to find all files in /sources and subdirectories
+that are newer than the zoo archive "sources.zoo" (and which are not *.obj
+files) and list their names.  Since the datestamp of a zoo archive reflects
+the age of the newest file stored in it, the effect of the above is to bring
+the zoo archive up-to-date.  Note that a similar (though not necessarily
+identical) effect could be obtained with:
+
+     stuff /sources ! -name *.obj | zoo aIun sources.zoo
+
+which tells stuff to list all non-*.obj files, and tells zoo to add only new
+or newer files to "sources.zoo".
+
+
+SELECTING MODIFIED FILES ONLY
+
+MSDOS keeps track of whether or not a file has been backed up.  Some backup
+programs will set a file's backup status to be "backed up".  Every time a
+file is written to, MSDOS restores its backup status to mean "not backed
+up".  Thus it is easy to make sure that only those files that have been
+changed since the last backup was done will be backed up this time.  (This
+is the idea of an "incremental backup", which involves backing up only
+changed files.)
+
+The -modified condition selects a file only if it has been modified since it
+was last backed up.  Reversing it with ! selects a file only if it has not
+been modified since it was last backed up.
+
+Thus to archive all files that have been modified since their last backup, a
+possible command line is:
+
+     stuff / -modified | zoo aI backups
+
+which saves such files into "backups.zoo".  Note, however, that at this
+time, neither Stuff nor Zoo resets the file's backup status.
+
+
+                                 MS-DOS BUGS
+
+MS-DOS exhibits much confusion about the use of "/" and "\" to refer to
+directories.  Stuff consistently uses the forward slash in all pathnames it
+prints, though it will cheerfully accept pathnames typed by the user that
+contain backslashes too.
+
+Early versions of MS-DOS have a bug that prevents the root directory from
+being referred to as ".".  Instead of saying "stuff ." from the root
+directory, simply say "stuff /".
+
+                                      -- Rahul Dhesi 1988/02/06

@@ -1,0 +1,1380 @@
+  
+
+; ************************************************
+; 
+;             Ä A R O V ù     K ï D
+;
+; ************************************************
+
+
+	.z80
+
+; definice konstant
+
+ROM	equ	0		; zaá†tek ROM
+RAM	equ	1800h		; zaá†tek RAM
+PIO	equ	7ch		; b†z. adresa PIO
+TYPROM	equ	1000h		; dÇlka pamàti ROM
+TYPRAM	equ	400h		; dÇlka pamàti RAM
+
+vyp	equ	840		; konst.vypnut° 
+indik	equ	15000+256	; á°taá indikace
+prodmx	equ	20		; max. prodleva H 
+delay	equ	4000		; prodleva zap/vyp 
+prod1	equ	0c00h		; prodleva znaku
+prod2	equ	2c00h		; prodleva mezery
+mezer	equ	8		; mezer pri vystupu
+
+PIOAD	equ	PIO+0		; PIO-kanal A data
+PIOBD	equ	PIO+1		; PIO-kanal B data
+PIOAC	equ	PIO+2		; PIO-kanal A riz.
+PIOBC	equ	PIO+3		; PIO-kanal B riz.
+
+
+; definice adres v pameti RAM
+
+uklad	equ	RAM		; uklad. adresa 2B
+cteni	equ	RAM+2		; cteci adresa 2B
+par	equ	RAM+4		; param. dekod.1B
+				; b0: smer dekod.
+				;	0 = primy
+				;	1 = zpetny
+
+; data pouzivana pro kod CKN:
+kod	equ	RAM+5		; kod zaznamu 1B
+delka	equ	RAM+6		; delka zaznamu 1B
+kodad	equ	RAM+7		; adresa kodu 2B
+
+stack	equ	RAM+64		; zasobnik
+text	equ	RAM+64		; buf.textu 
+kontxt	equ	RAM+TYPRAM-204h ; konec buf.txt.+1
+timer1	equ	RAM+TYPRAM-204h	; refer.konst.c.2B
+timer2	equ	RAM+TYPRAM-202h	; refer.konst.m.2B
+buff	equ	RAM+TYPRAM-200h ; buffer imp. 512B
+konec	equ	RAM+TYPRAM	; konec RAM + 1
+
+
+	org	ROM		; zacatek ROM
+
+ä; ************************************************
+;
+;		cyklus vnitrnich testu
+;
+; ************************************************
+
+
+
+; ------------------------------------------------
+;        inicializace parametru snimace
+; ------------------------------------------------
+
+start:				; zacatek ROM
+
+				; start programu
+	ld	a,high intert	; tabulka prerus.
+	ld	i,a
+	im	2		; mod preruseni 2
+	ld	ix,RAM		; tabulka RAM
+	ld	sp,stack1 	; navrat.adresa 1
+	ld	hl,tabini	; tabulka inicial.
+	ld	bc,3*256+PIOAC
+	otir			; inicial. PIO-A
+	ld	bc,2*256+PIOBC 
+	otir			; inicial. PIO-B
+
+
+; ------------------------------------------------
+; zapnuti sondy a nastaveni preruseni na data
+; zaroven se nastavi citac pro citani doby
+; pro vypnuti sondy, je-li sonda v klidu
+; ------------------------------------------------
+
+
+aktiv:				; aktivace sondy
+	pop	hl		; zruseni navratu
+
+	ld	a,24h
+	out	(PIOAD),a	; zapnuti sondy	
+	ld	hl,delay	; prodleva zapnuti
+delay1:	dec	hl		; prodleva pro
+	ld	a,h		;   zapnuti sondy
+	or	l
+	jr	nz,delay1
+	ld	a,97h		; urov.LOW=mezera
+	out	(PIOAC),a	; povoleni prerus.
+	ld	a,0feh		; prerus.bitem 0
+	out	(PIOAC),a	; (prerus.daty) ä	xor	a
+	out	(PIOBD),a	; port B
+	call	insret		; instrukce RETI
+aktiv1:	ld	sp,stack	; zasobnik
+
+	in	a,(PIOAD)	; volba kodu
+	rlca
+	rlca
+	and	3
+	ld	b,a		; cislo volby kodu
+	inc	b
+	ld	de,70		; delka tabulky kodu
+	ld	hl,kody-70	; tabulka kodu
+aktkod:	add	hl,de
+	djnz	aktkod
+	push	hl
+	pop	iy		; zacatek kodu
+
+	ld	hl,vyp		; konst.vypnuti
+	ld	a,low interd	; vstup dat
+	out	(PIOAC),a	; vektor preruseni
+	ei			; povoleni prerus.
+
+
+; ------------------------------------------------
+; test pameti ROM - kontrolni soucet pro 
+; kontrolu je ulozen na adrese ROM+TYPROM-2 (ukla-
+; da se sem pri programovani pameti pomoci progra-
+; matoru BPE jako kontr. soucet Dirck-Johannsonuv
+; kod chyby je <carka>-<tecka>
+; ------------------------------------------------
+
+
+tstrom:				; test ROM
+	exx			; citac indik. HL'
+	ld	hl,start	; zacatek pameti
+	ld	bc,chksum-start	; delka pameti
+	xor	a		; vynul.registru 
+	ld	d,a
+tstro1:	rla
+	rl	d
+	adc	a,0
+	xor	(hl)
+	cpi
+	jp	pe,tstro1	; dalsi byte
+	ld	e,a
+	ld	hl,(chksum)	; ref.kontr.soucet
+	sbc	hl,de
+	ld	de,401h		; kod chyby
+	jp	nz,error 	; chyba kontr.souc.
+
+
+; ------------------------------------------------
+; test pameti RAM - provadi se destruktivne 
+; zapisem vzorku dat do pameti 55,00,AA,FF
+; a jejich kontrolou pres cely adresovy prostor
+; - chrani se pouze citac pro vypnuti CITAC
+; kod chyby je <tecka>-<carka>
+; ------------------------------------------------
+
+
+tstram:				; test RAM
+	ld	hl,RAM  	; zacatek RAM
+	ld	de,RAM+1
+	ld	bc,TYPRAM-1 	; delka RAM
+	ld	(hl),0		; prvni vzorek
+	ldir			; vymazani RAM
+
+	ld	de,5500h	; testovaci vzorek
+tstra1:	ld	hl,RAM		; zacatek RAM
+	ld	bc,TYPRAM	; delka RAM
+tstra2:	ld	a,(hl)
+	cp	e		; kontrola obsahu
+	jr	nz,ramerr	; chyba RAM
+	ld	(hl),d		; novy obsahä	ld	a,(hl)
+	cp	d		; kontrola obsahu
+	jr	nz,ramerr	; chyba RAM
+	inc	hl
+	dec	bc
+	ld	a,b
+	or	c
+	jr	nz,tstra2	; dalsi byte
+	ld	a,e
+	ld	e,d
+	cpl
+	ld	d,a
+	ld	a,e
+	or	a
+	jr	nz,tstra1	; dalsi vzorek
+
+
+; ------------------------------------------------
+; test portu PIO - provadi kontrolni cteni 
+; datovych registru - zda je port pristupny
+; kod chyby je <carka>-<carka>
+; ------------------------------------------------
+
+
+tstpio:				; test portu
+	in	a,(PIOAD)	; data PIO-A
+	and	0ch
+	cp	4
+	ld	de,404h
+	jr	nz,error	; chyba
+	in	a,(PIOBD)	; data PIO-B
+	or	a
+	jr	nz,error	; chyba
+
+
+; ------------------------------------------------
+; dekrementace citace vypnuti sondy
+; je-li dosazeno 0 citace (tj.doba vypnuti sondy),
+; je sonda vypnuta a preruseni od PIO-A je nasta-
+; veno na preruseni od signalu aktivace /AKT
+; a na adresu aktivace AKTIV
+; ------------------------------------------------
+
+
+	exx			; cit. vypnuti HL'
+	ld	a,h
+	or	l
+	jp	z,tstrom	; cekani na aktiv.
+	dec	hl		; dekrementace 
+	ld	a,h
+	or	l
+	jp	nz,tstrom	; neni 0 citace
+
+				; vypnuti sondy
+	di
+	ld	a,7
+	out	(PIOAC),a	; zakaz preruseni
+	ld	a,4
+	out	(PIOAD),a	; vypnuti sondy
+ä	ld	de,delay	; prodleva vypnuti
+delay2:	dec	de		; pro ustaleni
+	ld	a,d		; signalu sondy
+	or	e
+	jr	nz,delay2
+
+	ld	a,97h
+	out	(PIOAC),a	; prerus.aktivaci
+	ld	a,0fdh
+	out	(PIOAC),a	; prerus.aktivaci
+	ld	a,low intera	; prerus.aktivaci
+	out	(PIOAC),a	; port PIO-A riz.
+	ei			; povoleni prerus.
+	jp	tstrom		; pokrac.testu
+
+
+; ------------------------------------------------
+; program pro vystup chyboveho hlaseni
+; v registru D je ulozen prvni znak kodu
+; v registru E je ulozen druhy znak kodu
+; ------------------------------------------------
+
+ramerr:	ld	de,104h		; chyba RAM
+
+
+error:				; indikace chyby
+	di			; zakaz preruseni
+err6:	ld	b,d		; prvni prvek	
+	ld	a,24h		; zap.sondy
+err5:	out	(PIOAD),a	; zapnuti sondy
+err2:	ld	hl,indik	; citac indikace
+err1:	dec	l
+	jr	nz,err1
+	dec	h
+	jr	nz,err1
+	djnz	err2		; dalsi cast prvku
+	xor	20h		; zmena vystupu
+	inc	b		; delka mezery
+	bit	5,a		; vystup. bit
+	jr	z,err5		; nasleduje mezera
+	ld	b,e		; druhy prvek
+err7:	out	(PIOAD),a	
+err3:	ld	hl,indik	; citac indikace
+err4:	dec	l
+	jr	nz,err4
+	dec	h
+	jr	nz,err4
+	djnz	err3		; dalsi cast prvku
+	xor	20h		; zmena vystupu
+	ld	b,8		; velka mezera
+	bit	5,a		; vystup. bit
+	jr	z,err7		; je velka mezera
+	jr	err6		; opakovani indik.
+
+
+; ------------------------------------------------
+;        tabulka pro inicializaci portu
+; ------------------------------------------------
+
+
+tabini:	db	0ffh		; port A = bitovyä				;   vstup/vystup
+
+	db	0d3h		; bity 0,1,4,6,7 =
+				;   vstupy, 
+				;   bity 2,3,5 =
+				;   vystupy
+
+	db	7		; zakaz preruseni
+ 
+
+	db	3fh		; port B = bytovy
+				;   vystup
+
+	db	3		; zakaz preruseni
+		
+ 
+
+
+; ************************************************
+; 	
+;  	   Inicializace a vystup textu
+; 
+; ************************************************
+
+
+; ------------------------------------------------
+; inicializace dat pro vstup ze sondy pri prvnim
+; vstupu (vystupni buffer textu je prazdny)
+; ------------------------------------------------
+
+
+datini:				; data - inic.
+	pop	hl		; zruseni navratu
+	ld	hl,text		; buffer textu
+	ld	(uklad),hl	; ukladaci adresa
+	ld	(cteni),hl	; cteci adresa
+	call	zazn0		; vstup dat
+
+
+; ------------------------------------------------
+;       vystup dat zaznamenanych v pameti
+; ------------------------------------------------
+
+	ei
+output:	di
+	ld	de,(uklad)	; adresa uklad.
+	ld	hl,(cteni)	; adresa cteni
+	push	hl		; adresa cteni
+	or	a
+	sbc	hl,de		; poc.znaku textu
+	pop	hl		; adresa cteni
+	jp	z,aktiv1	; neni zadny znak
+	inc	hl		; zvyseni adresy
+	push	hl		; adresa cteni
+	ld	de,kontxt	; konec buff.textu
+	or	a
+	sbc	hl,de		; kontrola konce
+	pop	hl		; adresa cteni
+	jr	c,outp1		; neni konec
+	ld	hl,text		; zac.text.buff.
+outp1:	ld	(cteni),hl	; nova adr.cteniä	exx
+	ld	hl,output	; navratova adresa
+	push	hl		; navrat z vystupu
+	ld	l,(iy+68)
+	ld	h,(iy+69)
+	push	hl		; podpr. vystupu
+	exx 
+	ld	e,(hl)		; znak k vystupu
+	ei
+	ld	d,0
+	ld	a,e		; znak k vystupu
+	inc	a		; znak + 1, nast.Z
+	ret			; skok do podpro-
+				; gramu pro vystup
+
+
+; ------------------------------------------------
+;         zaznam dat pri vystupu textu
+; ------------------------------------------------
+
+
+zaznam:	push	hl		; preruseni
+	push	de
+	push	bc
+	push	af
+	call	zazn0		; vstup impulsu
+	pop	af
+	pop	bc
+	pop	de
+	pop	hl
+	ei
+	ret			; navrat k vystupu
+
+
+
+; ************************************************
+;
+;		vstup dat ze sondy
+;                  (podprogram)
+;
+; ************************************************
+
+  
+
+; ------------------------------------------------
+; vstup dat ze sondy (tez pri vystupu dat)
+; pomoci preruseni citani je odmerena delka 
+; impulsu a ulozena do bufferu absolutnich
+; impulsu (delka impulsu 2 B)
+; ukonceni nacitani impulsu je mozne bud prete-
+; cenim delky impulsu nebo prekrocenim max. poctu
+; impulsu (255)
+; podprogram byl vyvolan prerusenim impulsem 1 =
+; = prilozeni sondy k tmavemu podkladu
+; ------------------------------------------------
+
+				
+zazn0:	
+	in	a,(PIOAD)	; vstup dat
+	bit	0,a		; datovy bit
+	ld	bc,0a7h		; citac,byte prer.ä	jr	nz,vstup5	; mezera-navrat	
+	ld	a,c
+	out	(PIOAC),a	; prerus.HIGH
+insret:	reti			; povoleni prerus.
+
+vstup5:	ld	de,11		; korekce
+	ld	hl,buff		; buffer impulsu
+	ld	a,low interv	; vstup impulsu
+	out	(PIOAC),a	; preruseni daty
+	jr	vstup1
+vstup:	ld	(hl),e		; ulozeni impulsu
+	inc	hl
+	ld	(hl),d
+	inc	hl
+	pop	de		; zruseni navratu
+	ld	de,7		; korekce
+vstup1:	call	insret		; instrukce RETI
+	ld	a,c		; preruseni 
+	xor	20h		; zmena polarity
+	ld	c,a
+	out	(PIOAC),a	; nastaveni polar.
+	dec	b
+	jr	z,vstup2	; posledni impuls
+	ld	a,prodmx	; max.prodleva
+	ei
+cyklin:	inc	de		; mereni impulsu
+	cp	d		; preteceni ?
+	jr	nz,cyklin	; dosud neni pret. 
+	di
+
+vstup2:	ld	a,low interz	; dalsi zaznam dat
+	out	(PIOAC),a	; vektor prer.A
+	xor	a		; konec vstupu
+	sub	b
+	dec 	a
+	cp	3		; min.poc.impulsu
+	ret	c		; maly pocet
+	ld	b,a		; pocet impulsu
+	
+; ------------------------------------------------
+; prekodovani dat z absol. do relativniho tvaru
+; Absolutni impulsy jsou prepocitavany z absolut-
+; niho do relativniho tvaru - jako referencni je
+; uvazovan predesly impuls. Po vypoctu relativni
+; delky impulsu je z nej vypocitana nova referen-
+; cni konstanta. Referencni konstanty jsou pocita-
+; ny zvlast pro kladny a zaporny impuls.
+; Buffery abs. a rel. impulsu se prolinaji. 
+; ------------------------------------------------
+
+
+trans:				; prekodovani
+				; abs.impulsu
+				; na relativni
+	push	bc
+	ld	a,(iy+64)	; prvni cara rel.
+	ld	c,a
+	ld	b,0
+	ld	hl,(buff)	; prvni cara abs.ä	ld	de,0		; citac podilu
+	or	a
+	jr	z,trank4
+	dec	a
+	jr	z,trank4
+trank1:	inc	de		; citac podilu
+	sbc	hl,bc		; citani 
+	jr	nc,trank1
+	dec	de
+	ex	de,hl
+trank4:	ld	(timer1),hl	; ref.konst.cary
+	ld	(timer2),hl	; ref.konst.mezery
+	ld	a,(iy+65)	; prvni mezera rel.
+	ld	c,a
+	ld	hl,(buff+2)	; ref.konst.mezery
+	ld	de,0		; citac podilu
+	or	a
+	jr	z,trank3	; neporovnava se
+	dec	a
+	jr	z,trank5
+trank2:	inc	de		; citac podilu
+	sbc	hl,bc		; citani
+	jr	nc,trank2
+	dec	de
+	ex	de,hl
+trank5:	ld	(timer2),hl	; ref.konst.mezery
+trank3:	pop	bc
+
+
+	ld	de,buff		; abs.impulsy
+	ld	h,d
+	ld	l,e		; rel.impulsy		
+	ld	c,0		; citac impulsu
+
+trans1:	push	hl		; adresa rel.imp.
+	ld	a,(de)		; prect.abs.imp.
+	ld	l,a
+	inc	de
+	ld	a,(de)
+	ld	h,a		; abs.impuls
+	inc	de
+	push	de		; adresa abs.imp.
+	push	hl		; absolutni impuls
+	ld	de,(timer1)	; ref.konstanta c.
+	bit	0,c		; citac impulsu
+	jr	z,tranl1	; impuls cary
+	ld	de,(timer2)	; ref.konstanta m.
+tranl1:	srl	d		; vydeleni konst.2
+	rr	e
+	xor	a
+trans2:	sbc	hl,de		; abs.imp.- konst.
+	inc	a
+	jr	z,trans3	; preteceni
+	jr	nc,trans2	; prepocet na rel.
+	cp	33
+	jr	c,tranp1	; omezeni impulsu
+trans3:	ld	a,32
+tranp1:	dec	a
+	bit	0,c
+	jr	z,tranp6	; impuls cary
+	add	a,32		; korekce pro mez.
+tranp6:	exx
+	push	iy		; tabulka kodu
+	pop	hl
+	ld	d,0
+	ld	e,a		; rel.impuls
+	add	hl,de		; adresa prvkuä	ld	a,(hl)		; prvek
+	exx
+	pop	hl		; absolutni impuls
+	cp	1
+	jr	z,tranp7
+	cp	2
+	jr	z,tranp8
+	cp	4
+	jr	z,tranp9
+	cp	8
+	jr	z,tranpa
+	cp	16
+	jr	z,tranpb
+	cp	32
+	jr	nz,tranpc
+	srl	h		; impuls/32
+	rr	l
+tranpb:	srl	h		; impuls/16
+	rr	l
+tranpa:	srl	h		; impuls/8
+	rr	l
+tranp9:	srl	h		; impuls/4 
+	rr	l
+tranp8:	srl	h		; impuls/2
+	rr	l
+	jr	tranp7
+
+tranpc:	push	bc		; citac impulsu
+	ld	b,0
+	ld	c,a		; rel.impuls
+	ld	de,0		; podil
+	or	a
+tranp3:	inc	de		; citac podilu
+	sbc	hl,bc
+	jr	nc,tranp3	; neni preteceni
+	dec	de
+	pop	bc		; citac impulsu
+	ex	de,hl		; HL=novy impuls
+tranp7:	bit	0,c
+	jr	nz,tranp4	; sudy impuls-mez.
+	ld	(timer1),hl	; ref.konst.cary
+	jr	tranp5
+tranp4:	ld	(timer2),hl	; ref.konst.mezery
+tranp5:	pop	de		; adresa abs.imp.
+	pop	hl		; adresa rel.imp.
+	ld	(hl),a		; ulozeni rel.imp.
+	inc	hl		; adr.rel.impulsu
+	inc	c		; citac impulsu
+	dec	b
+	jp	nz,trans1	; dalsi impuls
+
+	
+; ------------------------------------------------
+; Dekodovani zaznamu.
+; Jsou vyvolavany podle nastaveneho kodu podpro-
+; gramy, ktere od nastavene pozice v rel.bufferu
+; prekodovavaji impulsy do vysledneho textu, ktery
+; ukladaji do textoveho bufferu.
+; ------------------------------------------------
+ 
+äDEKOD:				; smer dekodovani 
+	res	0,(ix+par-RAM)	; smer primy
+	ld	hl,buff		; buffer rel.imp.
+	call	dekodx		; dekodovani kodu
+	ret	nc		; uspech
+	set	0,(ix+par-RAM)	; smer	zpetny
+	dec	hl
+	call	dekodx		; dekodovani kodu
+	ret	
+
+
+
+; ------------------------------------------------
+;	dekodovani zpravy v jednom smeru
+; ------------------------------------------------
+
+
+dekodx:	
+	ld	b,c		; pocet rel. imp.
+dekx1:	push	hl		; ukaz.rel.imp.
+	push	bc		; citac imp.
+	ld	a,c		; pocet impulsu
+	sub	b		; poradi impulsu
+	ld	c,a
+	exx
+	ld	hl,(uklad)	; zapis.adresa
+	push	hl
+	ld	hl,dekx4	; navratova adresa
+	push	hl
+	ld	l,(iy+66)	; adresa podprogr.
+	ld	h,(iy+67)	; pro dekodovani
+	push	hl		; adresa programu
+	exx
+	ret			; skok do progr.
+
+dekx4:	pop	de		; zapis.adresa
+	pop	bc		; citac imp.
+	pop	hl		; ukaz.rel.imp.
+	jr	nc,dekx3	; uspesne
+	ld	(uklad),de	; navrat ukl.adr.
+	bit	0,(ix+par-RAM)	; posuv ukaz.imp.	
+	inc	hl
+	jr	z,dekx2		; smer primy
+	dec	hl		; smer zpetny
+	dec	hl
+dekx2:	djnz	dekx1		; dalsi pozice
+	ret			; navrat pri chybe
+
+	
+				; zablikani sondy
+				; pri spravnem 
+				; precteni
+dekx3:	ld	a,3
+	out	(PIOAC),a	; zakaz preruseni
+	ld	b,3		; pocet bliknuti
+blik1: 	ld	a,4		; vypnuti sondy
+	out	(PIOAD),a
+	ld	hl,indik/2+128	; citac indikace
+blik2:	dec	l
+	jr	nz,blik2
+	dec	hä	jr	nz,blik2
+	ld	a,24h
+	out	(PIOAD),a
+	ld	hl,indik/16+240
+blik3:	dec	l
+	jr	nz,blik3
+	dec	h
+	jr	nz,blik3
+	djnz	blik1
+	ld	a,83h
+	out	(PIOAC),a	; preruseni
+	ret			; navrat ze cteni
+
+
+; ------------------------------------------------
+; dekodovani jednoho znaku:
+; V registru DE je adresa tabulky pouziteho kodu,
+; vraci v reg.A poradi kodu v tabulce. Pri nasta-
+; veni priznaku CY = 1 nebyl kod v tabulce nalezen
+; pri CY = 0 (tj.NC) - kod nalezen uspesne
+; ------------------------------------------------
+
+znak:	ld	a,(de)		; pocet kodu
+	push	de		; adresa tab. kodu
+	push	af		; citac kodu
+	inc	de		; zacatek 1.znaku
+znak1:	push	bc		; citac impulsu
+	ld	c,a		; citac poctu kodu
+	push	hl		; adresa impulsu
+znak2:	ld	a,b		; citac impulsu
+	or	a
+	jr	z,znak3		; konec impulsu 
+	dec	b		; dalsi impuls
+	ld	a,(de)		; prvek znaku 
+	and	7fh
+	jr	z,znak7		; prvek = 0, tj.
+				; neni kontrolovan
+	cp	(hl)		; porov.s prvkem
+	jr	nz,znak3	; nesouhlasi
+znak7:	bit	0,(ix+par-RAM)	; 0 = primy smer
+	inc	hl		; zvyseni ukazat.
+	jr	z,znak6		; smer primy
+ 	dec	hl		; snizeni ukazat.
+	dec	hl
+znak6:	ld	a,(de)		; prvek znaku 
+	inc	de
+	and	80h
+	jr	z,znak2		; nebyl posl.znak
+	pop	de		; adr.imp.-zruseni
+	pop	de		; cit.imp.-zruseni
+	pop	af		; cit.poc.znaku 
+	sub	c		; poradi znaku 
+	ld	c,e		; navrat reg.C
+	pop	de		; adr.tab.kodu
+	or	a		; spravne dekod.
+	ret
+
+znak3:	inc	de		; konec znaku
+	ld	a,(de)
+	and	80h
+	jr	z,znak3		; nalezeni konce ä	inc	de		; nasled.znak
+	pop	hl 		; navrat adr.imp.
+	ld	a,c		; citac znaku
+	pop	bc		; navrat cit.imp.
+	dec	a
+	jr	nz,znak1	; dalis znak 
+	pop	af		; citac poctu kodu
+	pop	de		; adresa tab.kodu
+	scf			; znak nenalezen
+	ret
+
+
+; ------------------------------------------------
+; ulozeni jednoho znaku (ulozeneho v A) do texto-
+; veho bufferu - pri zaplneni vraci priznak CY=1
+; ------------------------------------------------
+
+
+zapznk:				; zapis jedn.znaku
+	push	hl
+	push	de
+	ld	hl,(uklad)
+	inc	hl
+	push	hl
+	ld	de,kontxt	; konec 
+	or	a
+	sbc	hl,de
+	pop	hl
+	jr	c,zapzn1	; neni konec
+	ld	hl,text		; zacatek bufferu
+zapzn1:	push	hl
+	ld	de,(cteni)	; adresa cteni
+	or	a
+	sbc	hl,de		; kontrola mista
+	pop	hl
+	pop	de
+	scf
+	jr	z,zapzn2	; neni misto		
+	ld	(uklad),hl	; nova uklad.adr.
+	ld	(hl),a		; ulozeni znaku
+	or	a
+zapzn2:	pop	hl
+	ret
+
+
+
+
+kody:
+	
+kodc1:				; kod CKN
+	db	1,1,1,2,2,2,4,4,4,4,4,4,4,4,4,4
+	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4	
+	db	1,1,1,2,2,2,4,4,4,4,4,4,4,4,4,4
+	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4
+	db	1,1
+	dw	dekock		; dekod.kodu CK
+	dw	outznk		; vystup znaku
+	
+kodc2:				; kod 39
+	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9ä	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9
+	db	4,0
+	dw	deko39		; dekod.kodu 39
+	dw	outznk
+
+kodc3:				; kod 2/5 proklad.
+	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9
+	db	4,4,4,4,4,4,4,4,4,4,4,4,4,9,9,9
+	db	9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9
+	db	4,4
+	dw	dek25p		; dek.kodu 2/5 pr.
+	dw	outznk
+
+kodc4:				; kod EAN
+	db	1,1,1,2,2,3,3,4,4,4,4,4,4,4,4,4
+	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4
+	db	1,1,1,2,2,3,3,4,4,4,4,4,4,4,4,4
+	db	4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4
+	db	1,1
+	dw	dekean		; dekod.kodu EAN
+	dw	outznk
+
+
+
+; ************************************************
+;
+;	     vstupne/vystupni podprogramy
+;
+; ************************************************
+
+; ------------------------------------------------
+;          podprogramy pro vystup znaku	
+; ------------------------------------------------
+
+outznk:				; vystup znaku
+				; na klavesnici
+	jr	nz,outp5	; neni prodleva
+				; zde je vystup 
+				; mezery mezi texty
+	ld	b,mezer		; pocet vystupu
+				; mezery
+outp0:	push	bc
+	ld	bc,prod1+prod2	; doba 1 klavesy
+outp4:	dec	bc
+	ld	a,b
+	or	c
+	jr	nz,outp4
+	pop	bc
+	djnz	outp0
+outp5:	ld	a,e
+	cp	41ä	jr	c,outp7		; mensi nez 40
+	ld	e,40
+outp7:	ld	hl,kodtab	; vystupni tabulka
+	add	hl,de		; adresa znaku
+	ld	a,(hl)		; znak k vystupu
+	ld	bc,prod1	; prodleva znaku
+	out	(PIOBD),a	; vystup znaku
+outp2:	dec	bc
+	ld	a,b
+	or	c
+	jr	nz,outp2	; cekani
+	xor	a 
+	out	(PIOBD),a	; vystup mezery
+	ld	bc,prod2	; prodleva mezery
+outp3:	dec	bc
+	ld	a,b
+	or	c
+	jr	nz,outp3	; cekani
+	ret
+
+
+kodtab:				; tab.pro klavesn.
+	db	14h,24h,23h,0bh ; kl. 0,1,2,3
+	db	44h,43h,42h,84h	; kl. 4,5,6,7
+	db	83h,82h,17h,27h	; kl. 8,9,M1,M2
+	db	47h,87h,16h,26h ; kl. M3,M4,M5,M6
+	db	46h,86h,0ah,0fh	; kl. M7,M8,<,>
+	db	0eh,0dh,0ch,13h	; kl. *,\/,-,.
+	db	85h,81h,45h,41h ; kl. A,B,C,D
+	db	25h,22h,15h,12h ; kl. E,F,X,Y
+	db	09h,11h,21h,08h ; kl. P1,P2,P3,P4 
+	db	10h,20h,40h,80h ; kl. P5,P6,P7,P8
+	db	0		; mezera
+	
+
+
+; ------------------------------------------------
+;          podprogramy pro vstup znaku
+;      dekodovani kodu CKN od zadane pozice
+; ------------------------------------------------
+
+dekock:	ld	de,kodck3	; SYN0 
+	call	znak		; prekod.znaku SYN
+	ret	c
+ 	cp	1
+	scf
+	ret	nz		; neni znak SYN
+	ld	de,kodck4	; kod CK
+	call	znak		; prekod.zn.KOD
+	ret	c
+	ld	(kod),a		; nastaveni kodu
+	push	hl		; ukaz.relat.imp.
+	ld	hl,adrkod	; tabulka adres CK
+	ld	d,0
+	ld	e,a
+	add	hl,de
+	add	hl,de		; adresa kodu
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	ld	(kodad),de	; adresa tab.koduä	pop	hl		; ukaz.relat.imp.		
+	ld	de,kodck7
+	call	znak		; znak DELKA
+	ret	c	
+	ld	(delka),a	; nast.delky zazn.
+	ld	c,a		; citac znaku
+	or	a
+	ld	de,(uklad)	; zapis.adresa
+	push	de
+	push	af
+	jr	z,dekp6		; neni zadny znak
+	
+dekp3:	ld	de,(kodad)	; adresa kodu
+	call	znak		; dekod.znaku
+	jr	c,dekp7		; chyba
+	call	zapznk		; zapis znaku
+	jr	nc,dekp8
+dekp7:	pop	af		; chyba
+	pop	de		; preplneni
+	scf
+	ret
+
+dekp8:	dec	c	
+	jr	nz,dekp3	; dalsi znak
+	ld	a,(kod)
+	cp	2
+	jr	nz,dekp6
+	ld	a,21		; odesilaci znak
+	call	zapznk
+	jr	c,dekp7
+	ld	a,0ffh		; mezera 
+	call	zapznk
+	jr	c,dekp7
+dekp6:	
+	pop	af		; pocet znaku
+	ex	(sp),hl		; ukaz.rel.imp.
+				; HL=uklad.adr.
+	ld	c,a		; pocet znaku
+	ld	a,28
+	rlca
+	xor	(ix+kod-RAM)
+	rlca
+	xor	c
+	ld	de,kontxt	; konec text.buff.
+	inc	c		; pocet znaku
+
+dekp4:	dec	c
+	jr	z,dekp5		; zadny znak
+	inc	hl		; uklad.adr.
+	push	hl
+	sbc 	hl,de		; kontrola konce
+	pop	hl		; uklad.adr.
+	jr	c,dekp9		; prekrocen konec
+	ld	hl,text		; zacat.text.buff.
+dekp9:	rlca
+	xor	(hl)
+	jr	dekp4
+
+dekp5:	sub	55
+	jr	nc,dekp5
+	add	a,55ä	pop	hl
+
+	ld	c,a		; uschova kontr.s.
+	ld	de,kodck8
+	call	znak		; dekod.kontrol.s.
+	ret	c
+	cp	c		; kontrola shody 
+	scf
+	ret	nz		; neshoda kontr.s.
+	xor	a		; spravne prekod.
+	ret
+
+
+
+
+; ------------------------------------------------
+;	      T A B U L K Y   D A T
+; ------------------------------------------------
+
+
+
+adrkod:	dw	kodck3		; adresy tabulek kodu
+	dw	kodck4
+	dw	kodck5
+	dw	kodck6
+	dw	kodck7
+	dw	kodck8
+
+
+kodck3:	db	3		; pocet kodu CK3
+	db	1,1,81h		; "0"
+	db	1,82h		; "1"
+	db	2,81h		; "2"
+
+kodck4:	db	6		; pocet kodu CK4
+	db	1,1,1,81h	; "0"
+	db	1,1,82h		; "1"
+	db	1,2,81h		; "2"
+	db	2,1,81h		; "3"
+	db	2,82h		; "4"
+	db	84h		; "5"
+
+kodck5:	db	10		; pocet kodu CK5
+	db	1,1,1,1,81h	; "0"
+	db	1,1,1,82h	; "1"
+	db	1,1,2,81h	; "2"
+	db	1,2,1,81h	; "3"
+	db	2,1,1,81h	; "4"
+	db	1,2,82h		; "5"
+	db	2,1,82h		; "6"
+	db	2,2,81h		; "7"
+	db	1,84h		; "8"
+	db	4,81h		; "9"
+
+kodck6:	db	18		; pocet kodu CK6
+	db	1,1,1,1,1,81h	; "0"
+	db	1,1,1,1,82h	; "1"
+	db	1,1,1,2,81h	; "2"
+	db	1,1,2,1,81h	; "3"
+	db	1,2,1,1,81h	; "4"
+	db	2,1,1,1,81h	; "5"ä	db	1,1,2,82h	; "6"
+	db	1,2,1,82h	; "7"
+	db	2,1,1,82h	; "8"
+	db	1,2,2,81h	; "9"
+	db	2,1,2,81h	; "10"
+	db	2,2,1,81h	; "11"
+	db	2,2,82h		; "12"
+	db	1,1,84h		; "13"
+	db	1,4,81h		; "14"
+	db	4,1,81h		; "15"
+	db	2,84h		; "16"
+	db	4,82h		; "17"
+
+kodck7:	db	31		; pocet kodu CK7
+	db	1,1,1,1,1,1,81h	; "0"
+	db	1,1,1,1,1,82h	; "1"
+	db	1,1,1,1,2,81h	; "2"
+	db	1,1,1,2,1,81h	; "3"
+	db	1,1,2,1,1,81h	; "4"
+	db	1,2,1,1,1,81h	; "5"
+	db	2,1,1,1,1,81h	; "6"
+	db	1,1,1,2,82h	; "7"
+	db	1,1,2,1,82h	; "8"
+	db	1,2,1,1,82h	; "9"
+	db	2,1,1,1,82h	; "10"
+	db	1,1,2,2,81h	; "11"
+	db	1,2,1,2,81h	; "12"
+	db	2,1,1,2,81h	; "13"
+	db	1,2,2,1,81h	; "14"
+	db	2,1,2,1,81h	; "15"
+	db	2,2,1,1,81h	; "16"
+	db	1,2,2,82h	; "17"
+	db	2,1,2,82h	; "18"
+	db	2,2,1,82h	; "19"
+	db	2,2,2,81h	; "20"
+	db	1,1,1,84h	; "21"
+	db	1,1,4,81h	; "22"
+	db	1,4,1,81h	; "23"
+	db	4,1,1,81h	; "24"
+	db	1,2,84h		; "25"
+	db	2,1,84h		; "26"
+	db	1,4,82h		; "27"
+	db	2,4,81h		; "28"
+	db	4,1,82h		; "29"
+	db	4,2,81h		; "30"
+
+kodck8:	db	55		; pocet kodu CK8
+	db	1,1,1,1,1,1,1,81h ; "0"
+	db	1,1,1,1,1,1,82h	; "1"
+	db	1,1,1,1,1,2,81h	; "2"
+	db	1,1,1,1,2,1,81h	; "3"
+	db	1,1,1,2,1,1,81h	; "4"
+	db	1,1,2,1,1,1,81h	; "5"
+	db	1,2,1,1,1,1,81h	; "6"
+	db	2,1,1,1,1,1,81h	; "7"
+	db	1,1,1,1,2,82h	; "8"
+	db	1,1,1,2,1,82h	; "9"
+	db	1,1,2,1,1,82h	; "10"
+	db	1,2,1,1,1,82h	; "11"
+	db	2,1,1,1,1,82h	; "12"
+	db	1,1,1,2,2,81h	; "13"ä	db	1,1,2,1,2,81h	; "14"
+	db	1,2,1,1,2,81h	; "15"
+	db	2,1,1,1,2,81h	; "16"
+	db	1,1,2,2,1,81h	; "17"
+	db	1,2,1,2,1,81h	; "18"
+	db	2,1,1,2,1,81h	; "19"
+	db	1,2,2,1,1,81h	; "20"
+	db	2,1,2,1,1,81h	; "21"
+	db	2,2,1,1,1,81h	; "22"
+	db	1,1,2,2,82h	; "23"
+	db	1,2,1,2,82h	; "24"
+	db	2,1,1,2,82h	; "25"
+	db	1,2,2,1,82h	; "26"
+	db	2,1,2,1,82h	; "27"
+	db	2,2,1,1,82h	; "28"
+	db	1,2,2,2,81h	; "29"
+	db	2,1,2,2,81h	; "30"
+	db	2,2,1,2,81h	; "31"
+	db	2,2,2,1,81h	; "32"
+	db	1,1,1,1,84h	; "33"
+	db	1,1,1,4,81h	; "34"
+	db	1,1,4,1,81h	; "35"
+	db	1,4,1,1,81h	; "36"
+	db	4,1,1,1,81h	; "37"
+	db	2,2,2,82h	; "38"
+	db	1,1,2,84h	; "39"
+	db	1,2,1,84h	; "40"
+	db	2,1,1,84h	; "41"
+	db	1,1,4,82h	; "42"
+	db	1,2,4,81h	; "43"
+	db	2,1,4,81h	; "44"
+	db	1,4,1,82h	; "45"
+	db	1,4,2,81h	; "46"
+	db	2,4,1,81h	; "47"
+	db	4,1,1,82h	; "48"
+	db	4,1,2,81h	; "49"
+	db	4,2,1,81h	; "50"
+	db	2,2,84h		; "51"
+	db	2,4,82h		; "52"
+	db	4,2,82h		; "53"
+	db	4,84h		; "54"
+
+
+; -----------------------------------------------
+; 		dekodovani kodu 39
+; -----------------------------------------------
+
+deko39:	ld	de,tab39	; tabulka kodu 39
+	call	znak
+	ret	c
+	cp	43		; je znak START ?
+	scf
+	ret	nz		; neni
+dk39a:	call	znak
+	ret	c		; chyba
+	cp	43
+	ret	z		; je znak STOP
+	cp	42		; prodleva ?
+	jr	nz,dk39b
+	ld	a,0ffh		; znak prodlevy
+dk39b:	call	zapznk		; ulozeni znakuä	ret	c		; preteceni
+	jr	dk39a
+
+
+
+tab39:	db	44
+	db	4,4,4,9,9,4,9,4,84h ; 0  (0)
+	db	9,4,4,9,4,4,4,4,89h ; 1  (1)
+	db	4,4,9,9,4,4,4,4,89h ; 2  (2)
+	db	9,4,9,9,4,4,4,4,84h ; 3  (3)
+	db	4,4,4,9,9,4,4,4,89h ; 4  (4)
+	db	9,4,4,9,9,4,4,4,84h ; 5  (5)
+	db	4,4,9,9,9,4,4,4,84h ; 6  (6)
+	db	4,4,4,9,4,4,9,4,89h ; 7  (7)
+	db	9,4,4,9,4,4,9,4,84h ; 8  (8)
+	db	4,4,9,9,4,4,9,4,84h ; 9  (9)
+	db	4,4,4,4,4,9,9,4,89h ; M1 (G)
+	db	9,4,4,4,4,9,9,4,84h ; M2 (H)
+	db	4,4,9,4,4,9,9,4,84h ; M3 (I)
+	db	4,4,4,4,9,9,9,4,84h ; M4 (J)
+	db	9,4,4,4,4,4,4,9,89h ; M5 (K)
+	db	4,4,9,4,4,4,4,9,89h ; M6 (L)
+	db	9,4,9,4,4,4,4,9,84h ; M7 (M)
+	db	4,4,4,4,9,4,4,9,89h ; M8 (N)
+	db	4,9,4,9,4,9,4,4,84h ; <  ($)
+	db	4,4,4,9,4,9,4,9,84h ; >  (%)
+	db	4,9,4,4,4,9,4,9,84h ; *  (*)
+	db	4,9,4,9,4,4,4,9,84h ; \/ (/)
+	db	4,9,4,4,4,4,9,4,89h ; -  (-)
+	db	9,9,4,4,4,4,9,4,84h ; .  (.)
+	db	9,4,4,4,4,9,4,4,89h ; A  (A)
+	db	4,4,9,4,4,9,4,4,89h ; B  (B)
+	db	9,4,9,4,4,9,4,4,84h ; C  (C)
+	db	4,4,4,4,9,9,4,4,89h ; D  (D)
+	db	9,4,4,4,9,9,4,4,84h ; E  (E)
+	db	4,4,9,4,9,9,4,4,84h ; F  (F)
+	db	4,9,4,4,9,4,4,4,89h ; X  (X)
+	db	9,9,4,4,9,4,4,4,84h ; Y  (Y)
+	db	9,4,4,4,9,4,4,9,84h ; P1 (O)
+	db	4,4,9,4,9,4,4,9,84h ; P2 (P)
+	db	4,4,4,4,4,4,9,9,89h ; P3 (Q)
+	db	9,4,4,4,4,4,9,9,84h ; P4 (R)
+	db 	4,4,9,4,4,4,9,9,84h ; P5 (S)
+	db	4,4,4,4,9,4,9,9,84h ; P6 (T)
+	db	9,9,4,4,4,4,4,4,89h ; P7 (U)
+	db	4,9,9,4,4,4,4,4,89h ; P8 (V)
+	db	4,9,4,4,4,9,4,9,84h ;    (W)
+	db	4,9,9,4,9,4,4,4,84h ;    (Z)
+	db	4,9,9,4,4,4,9,4,84h ; prod.(SPACE)
+	db	4,9,4,4,9,4,9,4,84h ; start/stop
+
+; -----------------------------------------------
+; 		dekodovani kodu 2/5 prokladany
+; -----------------------------------------------
+
+dek25p:	
+	ld	de,tab25p	; tab.kodu 25 pr.
+	call	znak		; dekod.znaku
+	ret	c
+	cp	10		; je znak START ?ä	scf
+	ret	nz		; neni
+dk25pa:	push	hl		; ukazatel impulsu
+	push	bc		; citac impulsu
+	call	znak		; dekod.car
+	pop	bc		; citac impulsu
+	pop	hl		; ukazatel impulsu
+	ret	c
+	cp	10
+	scf
+	ret	z
+	cp	11
+	jr	z,dk25pb	; je znak STOP
+	call	zapznk		; ulozeni znaku
+	ret	c		; preteceni
+	inc	hl
+	dec	b
+	call	znak		; dekod.mezer
+	ret	c
+	cp	10
+	ccf
+	ret	c
+	call	zapznk
+	ret	c		; preteceni
+	jr	dk25pa
+
+dk25pb:	ld	a,21		; odesilaci znak
+	call	zapznk		; ulozeni znaku
+	ret	c
+	ld	a,0ffh		; mezera
+	call	zapznk		; ulozeni znaku
+	ret
+	
+
+
+tab25p:	db	12
+	db	4,0,4,0,9,0,9,0,84h	; 0
+	db	9,0,4,0,4,0,4,0,89h	; 1
+	db	4,0,9,0,4,0,4,0,89h	; 2
+	db	9,0,9,0,4,0,4,0,84h	; 3
+	db	4,0,4,0,9,0,4,0,89h	; 4
+	db	9,0,4,0,9,0,4,0,84h	; 5
+	db	4,0,9,0,9,0,4,0,84h	; 6
+	db	4,0,4,0,4,0,9,0,89h	; 7
+	db	9,0,4,0,4,0,9,0,84h	; 8
+	db	4,0,9,0,4,0,9,0,84h	; 9
+	db	4,4,4,84h		; start
+	db	9,9,4,84h		; stop
+
+
+
+; -----------------------------------------------
+; 		dekodovani kodu EAN 8
+; -----------------------------------------------
+
+dekean:	
+	ld	de,tbean3	; tabulka kodu EAN
+	call	znak
+	ret	c
+	cp	1		; je znak START ?
+	scfä	ret	nz		; neni
+
+	ld	de,tbean1	; znak 1
+	call	znak
+	ret	c
+	call	zapznk		; ulozeni znaku
+	ret	c		; preteceni
+
+	ld	de,tbean2	; znak 2
+	call	znak
+	ret	c
+	call	zapznk
+	ret	c
+
+	ld	de,tbean2	; znak 3
+	call	znak
+	ret	c
+	call	zapznk
+	ret	c
+
+	ld	de,tbean1	; znak 4
+	call	znak
+	ret	c
+	call	zapznk
+	ret	c
+
+	ld	de,tbean3	; synchronizace
+	call	znak
+	ret	c
+	cp	2
+	scf
+	ret	nz
+
+	ld	de,tbean1	; znak 5
+	call	znak
+	ret	c
+	call	zapznk		; ulozeni znaku
+	ret	c		; preteceni
+
+	ld	de,tbean2	; znak 6
+	call	znak
+	ret	c
+	call	zapznk
+	ret	c
+
+	ld	de,tbean2	; znak 7
+	call	znak
+	ret	c
+	call	zapznk
+	ret	c
+
+	ld	de,tbean1	; znak 8
+	call	znak
+	ret	c
+	call	zapznk
+	ret	c
+
+	ld	de,tbean3	; STOP
+	call	znak
+	ret	c
+	cp	3ä	scf
+	ret	nz
+	xor	a
+	ret
+
+
+tbean1:	db	10			; leva cast
+	db	3,2,1,81h		; 0
+	db	2,2,2,81h		; 1
+	db	2,2,1,82h		; 2
+	db	1,4,1,81h		; 3
+	db	2,3,1,81h		; 4
+	db	1,3,2,81h		; 5
+	db	4,1,1,81h		; 6
+	db	2,1,3,81h		; 7
+	db	3,1,2,81h		; 8
+	db	3,1,1,82h		; 9
+
+
+tbean2:	db	10			; prava cast
+	db	1,1,2,83h		; 0
+	db	1,2,2,82h		; 1
+	db	2,1,2,82h		; 2
+	db	1,1,4,81h		; 3
+	db	1,1,3,82h		; 4
+	db	1,2,3,81h		; 5
+	db	1,1,1,84h		; 6
+	db	1,3,1,82h		; 7
+	db	1,2,1,83h		; 8
+	db	2,1,1,83h		; 9
+
+
+
+tbean3:	db	3
+	db	1,1,81h			; start
+	db	1,1,1,1,81h		; oddelov.
+	db	1,1,81h			; stop
+
+
+
+
+	.xlist
+
+	rept	TYPROM-12-($-start) AND TYPROM-1
+	db	0ffh
+	endm
+
+	.list
+
+
+stack1:	dw	aktiv1		; navrat. adresa 1
+
+
+intert:				; tabulka preruseni
+
+intera:	dw	aktiv		; aktivace
+interd:	dw	datini		; data - inic.
+interz:	dw	zaznam		; zaznam dat
+interv:	dw	vstup		; vstup dat
+
+chksum:	dw	0		; kontrolni soucet
+
+	end	start
+
+
+
+ 

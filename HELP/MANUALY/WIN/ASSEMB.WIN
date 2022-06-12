@@ -1,0 +1,541 @@
+
+                    Základy programování v ASSEMBLERU IBM PC
+                    ----------------------------------------
+
+Obsah:
+         1.- instrukce procesoru 8086
+               1. 1. Registry procesoru 8086/8088
+               1. 2. Registr pøíznakù
+               1. 3. Adresace pamìti, operandy
+               1. 4. Aritmetické operace
+               1. 5. Logické operace, rotace
+               1. 6. Øetìzcové operace
+               1. 7. Skoky
+               1. 8. Podprogramy
+               1. 9. Pøesuny dat
+               1.10. Øídicí instrukce procesoru
+         2.- základní sluby BIOS
+         3.- základní sluby DOS
+         3.- rezidentní programy
+         4.-
+
+
+
+
+
+                       1.1. Registry procesoru 8086/8088
+                       ---------------------------------
+  +----> 15 ............... 0
+  |       7 ..... 0 7 ..... 0
++-+-----------^---------^---+
+| AX    =    AH    +   AL   | akumulátor          --+ hlavní registry
+| BX    =    BH    +   BL   | bázovı registr        |
+| CX    =    CH    +   CL   | èítací registr        |
+| DX    =    DH    +   DL   | datovı registr      --+
++---------------------------+
+|            SP             | ukazatel zásobníku  --+ ukazatele
+|            BP             | bázovı ukazatel     --+
++---------------------------+
+|            SI             | zdrojovı index      --+ indexy
+|            DI             | cílovı index        --+
++---------------------------+
+|            IP             | ukazatel instrukcí  --+ øízení programu
+|          FLAGS            | registr pøíznakù    --+
++---------------------------+
+|            CS             | kódovı segment      --+ segmentové registry
+|            DS             | datovı segment        |
+|            SS             | segment zásobníku     |
+|            ES             | zvláštní segment    --+
++---------------------------+
+
+                             1.2. Registr pøíznakù
+                             ---------------------
+
+ bit  0: CF pøenos ........ nastaví se pøi pøeteèení aritmetické operace
+
+ bit  2: PF parita ........ nastaví se pøi sudém poètu bitù 1 po aritm. operaci
+
+ bit  4: AF pomocnı pøenos  nastaví se pøi pøenosu z niší poloviny operandu
+
+ bit  6: ZF pøíznak nuly .. nastaví se, je-li vısledkem operace nula (shoda)
+
+ bit  7: SF znaménko ...... odpovídá nejvyššímu bitu vısledku (1=zápornı)
+
+ bit  8: TF krokování ..... pøi nastavení kadá instrukce vyvolá pøerušení INT3
+
+ bit  9: IF pøerušení ..... pøi nastavení je povoleno pøerušení (kromì NMI)
+
+ bit 10: DF smìr .......... pøi nastavení se ukazatele sniují, pøi 0 zvyšují
+
+ bit 11: OF pøeplnìní ..... nastaví se pøi pøeteèení operace se znaménkem
+
+
+
+
+
+                         1.3. Adresace pamìti, operandy
+                         ------------------------------
+Pamì  se  adresuje  pomocí  20 bitù - tj. lze adresovat 1 MB pamìti. Absolutní
+adresa vznikne souètem segmentového registru * 16 s offsetovım registrem:
+
+      segmentovı registr (napø. DS):  xxxx xxxx xxxx xxxx .... (16 bitù)
+      offset        (napø. SI + BX):  .... yyyy yyyy yyyy yyyy (16 bitù)
+                                      ------------------------
+      absolutní adresa                xxxx zzzz zzzz zzzz yyyy (20 bitù)
+
+- konstanta (èíslo 8 nebo 16 bitù)
+- registr Al,BL,CL,DL, AH,BH,CH,DH, AX,BX,CX,DX, SP,BP, SI,DI, CS,DS,SS,ES
+- index        [SI],    [SI+offset],    [SI+návìští],    implicitní segm. DS
+- index        [DI],    [DI+offset],    [DI+návìští],    implicitní segm. DS
+- báze         [BX],    [BX+offset],    [BX+návìští],    implicitní segm. DS
+- báze         [BP],    [BP+offset],    [BP+návìští],    implicitní segm. SS !
+- báze + index [BX+SI], [BX+SI+offset], [BX+SI+návìští], implicitní segm. DS
+- báze + index [BX+DI], [BX+SI+offset], [BX+SI+návìští], implicitní segm. DS
+- báze + index [BP+SI], [BP+SI+offset], [BP+SI+návìští], implicitní segm. SS !
+- báze + index [BP+DI], [BP+SI+offset], [BP+SI+návìští], implicitní segm. SS !
+- øetìzová instrukce     zdroj DS:SI,  pøíjemce ES:DI
+
+Varování: U  AT  se  nesmí  adresovat  slovo na pøelomu segmentù (tj. nesmí bıt
+          offset adresy slova = 0FFFFh) - vyvolá pøerušení INT 0Dh a zamrzne !
+
+                            1.4. Aritmetické operace
+                            ------------------------
+ Nekovaná èísla BCD (v AL niší èíslice 0 a 9, v AH vyšší èíslice 0 a 9):
+AAA      - ASCII korekce po souètu BCD (AH <- 1. èíslice, AL <- 2. èíslice)
+AAS      - ASCII korekce po odeèítání (AH <- 1. èíslice, AL <- 2. èíslice)
+AAD      - ASCII korekce pøed dìlením BCD (AL <- AH*10+AL, AH <- 0)
+AAM      - ASCII korekce po násobení BCD (AH <- AL/10, AL <- AL MOD 10)
+
+ Pakovaná èísla BCD (v niší tetrádì AL niší èíslice, ve vyšší tetrádì vyšší)
+DAA      - dekadická korekce po souètu (AL_H <- 1. èíslice, AL_L <- 2. èíslice)
+DAS      - dekadická korekce po odeèítání (AL_H <-1.èíslice, AL_L <-2.èíslice)
+
+ADD      - aritmetickı souèet
+ADC      - aritmetickı souèet s pøiètením pøíznaku pøenosu CF
+SUB      - aritmetickı rozdíl
+SBB      - aritmetickı rozdíl s odeètením pøíznaku pøenosu CF
+CMP      - porovnání dvou operandù (pøíznaky pøenosu jako pøi operaci SUB)
+NEG      - negace operandu
+INC      - inkrementace (zvıšení o 1) - pozor, neovlivní pøíznak CF !
+DEC      - dekrementace (sníení o 1) - pozor, neovlivní pøíznak CF !
+
+DIV      - dìlení bez znaménka (AX/op->AL,AH=zbytek) (DX:AX/op->AX,DX=zbytek)
+IDIV     - dìlení se znaménkem (AX/op->AL,AH=zbytek) (DX:AX/op->AX,DX=zbytek)
+MUL      - násobení bez znaménka (AL*op->AX) (AX*op->DX:AX) (neplatí pøíznaky!)
+IMUL     - násobení se znaménkem (AL*op->AX) (AX*op->DX:AX) (neplatí pøíznaky!)
+
+                          1.5. Logické operace, rotace
+                          ----------------------------
+AND      - logické AND
+OR       - logické OR
+XOR      - logické XOR (pouívá se pro nulování registrù - XOR BX,BX)
+NOT      - logická inverze operandu
+TEST     - test operandu 1 operandem 2 (nastaví pøíznaky jako AND)
+
+
+První  operand  pro  rotace mùe bıt libovolnı kromì segmentù, druhı operand je
+èíslo 1 nebo registr CL a udává poèet rotací.
+
+RCL      - rotace vlevo, pøes pøíznak CF (mìní jen pøíznaky OF a CF)
+RCR      - rotace vpravo pøes pøíznak CF (mìní jen pøíznaky OF a CF)
+ROL      - rotace vlevo, kopie bitu 7 do pøíznaku CF (mìní jen pøízn. OF a CF)
+ROR      - rotace vpravo, kopie bitu 7 do pøíznaku CF (mìní jen pøízn. OF a CF)
+SAL      - aritm. posun vlevo, CF <- bit 7, bit 0 <- 0 (nastaví pøíznaky)
+SAR      - aritm. posun vpravo, SF -> bit 7, bit 0 -> CF (nastaví pøíznaky)
+SHL      - logickı posun vlevo, CF <- bit 7, bit 0 <- 0 (nastaví pøíznaky)
+SHR      - logickı posun vpravo, 0 -> bit 7, bit 0 -> CF (nastaví pøíznaky)
+
+
+
+
+                             1.6. Øetìzcové operace
+                             ----------------------
+Po  provedení  kadé  øetìzcové  instrukce  se ukazatele posunou podle pøíznaku
+smìru  DF  nahoru  nebo  dolù.  Pøi  pouití prefixu REP se øetìzcová instrukce
+opakuje CX krát (po provedení je v CX 0). Je-li CX=0, neprovede se ani jednou).
+Prefix REPE se po provedení jednoho kroku opakuje pouze v pøípadì shody operace
+porovnání  (pouití  pøi porovnání øetìzcù na shodu). Pøi pouití prefixu REPNE
+se operace opakuje jen pøi neshodì (pouití pøi vyhledání znaku v øetìzci).
+
+CMPSB    - porovnání øetìzcù s velikostí bajt (vıznam  CMP DS:[SI],ES:[DI])
+CMPSW    - porovnání øetìzcù s velikostí slovo (vıznam  CMP DS:[SI],ES:[DI])
+
+LODSB    - naètení bajtu AL z øetìzce DS:SI (vıznam MOV AL,DS:[SI])
+LODSW    - naètení slova AX z øetìzce DS:SI (vıznam MOV AX,DS:[SI])
+
+MOVSB    - pøesun bajtu z adresy DS:SI do adresy ES:DI
+MOVSW    - pøesun slova z adresy DS:SI do adresy ES:DI
+
+SCASB    - porovnání AL s øetìzcem ES:DI (vıznam CMP AL,ES:[DI])
+SCASW    - porovnání AX s øetìzcem ES:DI (vıznam CMP AX,ES:[DI])
+
+STOSB    - uloení AL do adresy ES:DI (vıznam MOV ES:[DI],AL)
+STOSW    - uloení AX do adresy ES:DI (vıznam MOV ES:[DI],AX)
+
+
+                                   1.7. Skoky
+                                   ----------
+JMP      - nepodmínìnı skok (typ SHORT, NEAR nebo FAR)
+JA,JNBE  - skok, je-li nad = není pod ani shoda (je CF=0 a ZF=0)
+JAE,JNB,JNC - skok, je-li nad nebo shoda = není pod = není pøenos CF (je CF=0)
+JB,JNAE,JC  - skok, je-li pod = není nad ani shoda = je pøenos CF (je CF=1)
+JBE,JNA  - skok, je-li pod nebo shoda = není nad (je CF=1 nebo CF=1)
+JE,JZ    - skok, je-li shoda = je nula (je ZF=1)
+JNE,JNZ  - skok, není-li shoda = není nula (je ZF=0)
+JG,JNLE  - skok, je-li vìtší = není menší ani shoda (je ZF=0 a SF=OF)
+JGE,JNL  - skok, je-li vìtší nebo shoda = není menší (je SF=OF)
+JL,JNGE  - skok, je-li menší = není vìtší ani shoda (je SF<>OF)
+JLE,JNG  - skok, je-li menší nebo shoda = není vìtší (je SF<>OF nebo ZF=1)
+JO       - skok, je-li pøeteèení (je OF=1)
+JNO      - skok, není-li pøeteèení (je OF=0)
+JP,JPE   - skok, je-li parita = parita je sudá (PF=1)
+JNP,JPO  - skok, není-li parita = parita je lichá (PF=0)
+JS       - skok, je-li znaménko = je záporné (SF=1)
+JNS      - skok, není-li znaménko = je kladné (SF=0)
+JCXZ     - skok, je-li registr CX=0 (neovlivní pøíznaky)
+LOOP     - sníení CX o 1 a skok, je-li CX<>0
+LOOPE,LOOPZ - sníení CX o 1 a skok, je-li CX<>0 a zároveò je shoda/nula
+LOOPNE,LOOPNZ - sníení CX o 1 a skok, je-li CX<>0 a zároveò není shoda/nula
+
+
+                                1.8. Podprogramy
+                                ----------------
+CALL     - vyvolání podprogramu (NEAR - uloí se IP, FAR - uloí se CS a IP)
+RET      - návrat z podprogramu (NEAR - návrat IP, FAR - návrat IP a CS)
+
+INT      - vyvolání pøerušení èíslo 0 a 255 (uloí se FLAGS, CS a IP)
+INTO     - vyvolání pøerušení INT 4 v pøípadì, e je pøíznak pøeteèení OF
+IRET     - návrat z obsluhy pøerušení (navrátí IP, CS a FLAGS)
+
+
+                                1.9. Pøesuny dat
+                                ----------------
+MOV      - pøesun obsahu operandu 2 do operandu 1
+LEA      - naplnìní efektivní adresou (napø. LEA AX,[BP+offset])
+LDS      - naplnìní registru i segmentu DS dvojslovem (napø. LDS SI,[ukazatel])
+LES      - naplnìní registru i segmentu ES dvojslovem (napø. LES DI,[ukazatel])
+LAHF     - naplnìní registru AH obsahem pøíznak. registru FLAGS - LOW
+SAHF     - uloení registru AH do pøíznak. registru FLAGS - LOW
+PUSH     - uloení slova do zásobníku (registr nebo adresa)
+POP      - návrat slova ze zásobníku (registr nebo adresa, nesmí bıt CS)
+PUSHF    - uloení registru pøíznakù do zásobníku
+POPF     - návrat registru pøíznakù ze zásobníku
+XCHG     - zámìna dat
+XLAT     - tabulkovı pøevod (vıznam MOV AL,DS:[BX+AL])
+
+                        1.10. Øídicí instrukce procesoru
+                        --------------------------------
+CBW      - konverze bajtu v AL na slovo v AX (s dodrením znaménka)
+CWD      - konverze slova v AX na dvojslovo DX:AX (s dodrením znaménka)
+
+CLC      - nulování pøíznaku pøenosu CF
+CMC      - doplnìk pøíznaku pøenosu CF (inverze)
+STC      - nastavení pøíznaku pøenosu CF
+
+CLD      - nulování pøíznaku smìru DF (bude smìr nahoru)
+STD      - nastavení pøíznaku smìru DF (bude smìr dolù)
+
+CLI      - nulování pøíznaku pøerušení (pøerušení bude zakázáno)
+STI      - nastavení pøíznaku pøerušení (pøerušení bude povoleno)
+
+IN       - vstup z portu (povoleno IN AL,DX; IN AX,DX; IN AL,[n8]; IN AX,[n8])
+OUT      - vıstup na port (OUT DX,AL; OUT DX,AX; OUT [n8],AL; OUT [n8],AX)
+
+ESC      - pøedání øízení koprocesoru
+HLT,HALT - zastavení procesoru (pokraèování po pøerušení)
+LOCK     - uzamèení sbìrnice pro následující instrukci (proti pøerušení a DMA)
+NOP      - prázdná instrukce, nic se neprovede (jednobajtovı kód 90h)
+WAIT     - èekání (je-li vstup procesoru TEST aktivní)
+
+
+
+INT 00h  - vyvolá se pøi chybì dìlení nulou nebo pøi pøeteèení dìlení
+INT 01h  - vyvolá se po kadé instrukci, je-li nastaven pøíznak krokování TF
+INT 02h  - nemaskovatelné pøerušení (chyba pamìti, vıpadek napìtí)
+INT 03h  - bod pøerušení programu (pouívá debugger - instrukce má kód 0C0h)
+INT 04h  - pøeteèení (vyvolá se instrukcí INTO, je-li pøíznak pøeteèení OF)
+INT 05h  - tisk obrazovky (vyvolá se z INT 09h stiskem klávesy PrintScreen);
+           nastavuje systémovı pøíznak na adrese 0040h:0100h (0000h:0500h):
+                     0 ...... obsluha Print Screen neprobíhá
+                     1 ...... obsluha Print Screen právì probíhá
+                     0FFh ... bìhem poslední funkce Print Screen nastala chyba
+INT 06h  - pøerušení AT pøi nedefinovaném oper. kódu
+INT 07h  - pøerušení AT, není-li matem. koprocesor
+INT 08h  - pøerušení od systémovıch hodin (IRQ 0) (18.20651 krát za sekundu);
+           Èítá  èítaè  (dvojslovo)  na adrese 0040h:006Ch. Po dosaení pùlnoci
+           (hodnota  èítaèe  1573040) se èítaè vynuluje a nastaví se pøíznak na
+           adrese 0040h:0070h na 1 (pøíznak zvıšení data) - nuluje ètením èasu
+INT 09h  - pøerušení od klávesnice (IRQ 1) - pøi stisku nebo uvolnìní klávesy
+              0040h:001Ah  - ètecí adresa z bufferu klávesnice
+              0040h:001Ch  - ukládací adresa do bufferu klávesnice
+              0040h:001Eh  - standardní buffer klávesnie (16 slov)
+              0040h:0080h  - offset zaèátku bufferu klávesnice (segment 0040h)
+              0040h:0082h  - offset konce bufferu klávesnice (segment 0040h)
+
+
+              0040h:0017h  - pøesmykaèe  bit 0: 1=pravı Shift stisknut
+                                         bit 1: 1=levı Shift stisknut
+                                         bit 2: 1=nìkterı Ctrl stisknut
+                                         bit 3: 1=nìkterı Alt stisknut
+                                         bit 4: 1=Scroll Lock zapnut
+                                         bit 5: 1=Num Lock zapnut
+                                         bit 6: 1=Caps Lock zapnut
+                                         bit 7: 1=Insert zapnut
+              0040h:0018h  - rozšíøenı statut pøesmykaèù
+                                         bit 0: 1=levı Ctrl stisknut
+                                         bit 1: 1=levı Alt stisknut
+                                         bit 2: 1=klávesa SysRq stisknuta
+                                         bit 3: 1=probíhá obsluha Pause
+                                         bit 4: 1=klávesa Scroll Lock stisknuta
+                                         bit 5: 1=klávesa Num Lock stisknuta
+                                         bit 6: 1=klávesa Caps Lock stisknuta
+                                         bit 7: 1=klávesa Insert stisknuta
+                             Pozn.: Opakovanım  nulováním  bitu 7 lze dosáhnout
+                                    autorepeat u Insert.
+              0040h:0096h  - bit 4: 1=je rozšíøená klávesnice AT 101/102 kláves
+              0040h:0097h  - bit 0: 1=svítí Scroll Lock
+                             bit 1: 1=svítí Num Lock
+                             bit 2: 1=svítí Caps Lock
+                             bit 6: 1=indikátory LED vyslány na klávesnici
+              Ke zmìnì stavu LED postaèí zmìnit stav pøesmykaèù 0040h:0017h.
+INT 0Ah  - pøerušení pøi zpìtném bìhu EGA, kaskádní pøerušení AT (IRQ 2)
+INT 0Bh  - pøerušení od sériového portu COM 2 a COM 4 (IRQ 3)
+           Adresa portù je uloena na 0040h:0002h (COM 2) a 0040h:0006h (COM 4)
+INT 0Ch  - pøerušení od sériového portu COM 1 a COM 3 (IRQ 4)
+           Adresa portù je uloena na 0040h:0000h (COM 1) a 0040h:0004h (COM 3)
+INT 0Dh  - pøerušení od øadièe pevného disku XT a od tiskárny LPT2/LPT4 (IRQ 5)
+           Adresa portù je uloena na 0040h:000Ah (LPT 2) a 0040h:000Eh (LPT 4)
+           Té pøerušení AT pøi chybì pamìti - slovní operace na offetu 0FFFFh
+INT 0Eh  - pøerušení od øadièe prunıch diskù (IRQ 6)
+INT 0Fh  - pøerušení od tiskárny LPT1/LPT3 (IRQ 7), pøeruš. AT pøi matem. chybì
+           Adresa portù je uloena na 0040h:0008h (LPT 1) a 0040h:000Ch (LPT 3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+INT 10h  - obsluha displeje, v AH je poadovaná funkce
+
+              AH = 0  nastavení videomódu AL
+                       U EGA a VGA se nastavením bitu 7 displej nemae.
++---+-------+-------+---------+------------+-----------+--------------------+
+|0,1| text  | 40x25 | 16 barev|adresa B800h|8 stránek  |(CGA, EGA, VGA)     |
+|2,3| text  | 80x25 | 16 barev|adresa B800h|8 stránek  |(CGA, EGA, VGA)     |
+|4,5|grafika|320x200|  4 barvy|adresa B800h|4/8 stránek|(CGA, EGA, VGA)     |
+| 6 |grafika|640x200|  2 barvy|adresa B800h|4/8 stránek|(CGA, EGA, VGA)     |
+| 7 | text  | 80x25 |monochrom|adresa B000h|1/8 stránek|(MDA,Herc.,EGA,VGA) |
+|13 |grafika|320x200| 16 barev|adresa A000h|8 stránek  |(EGA, VGA)          |
+|14 |grafika|640x200| 16 barev|adresa A000h|4 stránky  |(EGA, VGA)          |
+|15 |grafika|640x350|monochrom|adresa A000h|2 stránky  |(EGA, VGA)          |
+|16 |grafika|640x350| 16 barev|adresa A000h|2 stránky  |(EGA, VGA)          |
+|17 |grafika|640x480|  2 barvy|adresa A000h|1 stránka  |(VGA)               |
+|18 |grafika|640x480| 16 barev|adresa A000h|1 stránka  |(VGA)               |
+|19 |grafika|320x200|256 barev|adresa A000h|1 stránka  |(VGA)               |
++---+-------+-------+---------+------------+-----------+--------------------+
+              AH=1   nastavení velikosti kurzoru (pouze textové módy)
+                     CH=zaèátek, CL=konec (módy 0 a 3 = 0-7, mód 7 = 0-13)
+              AH=2   nastavení pozice kurzoru (BH=stránka, DH=øádek, DL=pozice)
+              AH=3   navrácení pozice a velikosti kurzoru (vstup BH=stránka,
+                     vıstup -> DH=øádek, DL=pozice, CH=zaèátek, CL=konec kurz.)
+              AH=4   ètení pozice svìtelného pera (nemá ji VGA)
+              AH=5   nastavení aktivní stránky displeje na AL
+              AH=6   rolování okna o AL øádkù nahoru (BH=barva novıch øádkù,
+                     CH=horní  øádek, CL=levá pozice, DH=spodní øádek, DL=pravá
+                     pozice); pouívá se té k vymazání okna (AL=0)
+              AH=7   rolování okna o AL øádkù dolù (jako pøedešlá sluba)
+              AH=8   ètení  znaku  a  atributu  z  pozice kurzoru (té grafické
+                     módy) (vstup BH=stránka, vıstup AL=znak, AH=atribut)
+              AH=9   zápis   znaku  a  atributu  na  pozici  kurzoru  (AL=znak,
+                     BH=stránka, BL=atribut barvy, CX=poèet zápisù)
+              AH=0Ah zápis znaku na pozici kurzoru, barva zùstává pùvodní
+              AH=0Bh nastavení palet barev (módy CGA);
+                      BH=0: BL=pozadí 0-31 (graf. mód) nebo okolí (text. mód)
+                      BH=1: (módy 4 a 5) BL=0 palety bez modré, BL=1 s modrou
+              AH=0Ch zápis grafického bodu (AL=barva, CX=X, DX=Y, BH=stránka)
+              AH=0Dh ètení grafického bodu (CX=X, DX=Y, BH=stránka -> AL=barva)
+              AH=0Eh zápis   znaku   v  telegrafním  módu  (AL=znak,  BL=barva,
+                     BH=stránka);  v  textovém  módu  zùstává  barva obrazovky;
+                     interpretují  se øídicí znaky 08h (BS), 0Dh (CR), 0Ah (LF)
+                     a 09h (TAB), pøesahem konce obrazovky øádky rolují
+              AH=0Fh navrácení videomódu (->AL mód, AH=pozic/øádek, BH=stránka)
+              AH=10H nastavení palet EGA, VGA
+                      AL=0   nastavení registru BL (0-15) na paletu BH (0-63)
+                      AL=1   nastavení registru okolí na paletu BH (0-63)
+                      AL=2   nastavení registrù a okolí na palety ES:DX (17 B)
+                      AL=3   nastavení blikání (BL=1) / jasného pozadí (BL=0)
+                      AL=10h nastavení   registru  BX  (0  a  255)  karty  VGA
+                             (CH=zelená 0-63, CL=modrá 0-63, DH=èervená 0-63)
+                      AL=12h nastavení  CX  registrù  od BX karty VGA na palety
+                             ES:DX (poloky po 3 bajtech: zelená, modrá, èerv.)
+              AH=11h generátor znakù EGA/VGA
+                    AL=0,10h naètení  uiv.  text. fontù (ES:BP=fonty, CX=poèet
+                             znakù, DX=poèát. znak, BL=blok 0-3, BH=bajtù/znak)
+                    AL=1,11h naètení text. fontu 8x14 (BL=blok fontu 0-3)
+                    AL=2,12h naètení text. fontu 8x8 (BL=blok fontu 0-3)
+                    AL=3     nastavení  bloku  fontù  (BL=bit  0  a 1: blok pro
+                             bìnı text, bit 2 a 3: blok pro vysvícenı text)
+                    AL=4,14h naètení text. fontu 8x16 (BL=blok fontu 0-3)
+                    AL=20h   naètení uiv.graf.fontù 8x8 (ES:BP=fonty)->INT 1Fh
+                    AL=21h   naètení  uiv.  graf. fontù (ES:BP=fonty, CX=bajtù
+                             na  znak, BL=poèet øádkù: 0=poèet øádkù v DL, 1=14
+                             øádkù, 2=25 øádkù, 3=43 øádkù, 4=25 øádkù)
+
+                      AL=
+
+
+
+
+
+
+
+
+               Kódy kláves (CapsLock je vypnutı, NumLock zapnutı)
+               --------------------------------------------------
++-------------+---+-------------------+-------------------+-------------------+
+|   klávesa   |kod|buff.XT, sluba 00h|buff. klávesnice AT|   sluba 10h (AT) |
+|             |60h|    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+|     Esc     |01h|011B|011B|011B|  - |011B|011B|011B|01F0|011B|011B|011B|0100|
+|     1 !     |02h|0231|0221|  - |7800|0231|0221|  - |7800|0231|0221|  - |7800|
+|     2 @     |03h|0332|0340|0300|7900|0332|0340|0300|7900|0332|0340|0300|7900|
+|     3 #     |04h|0433|0423|  - |7A00|0433|0423|  - |7A00|0433|0423|  - |7A00|
+|     4 $     |05h|0534|0524|  - |7B00|0534|0524|  - |7B00|0534|0524|  - |7B00|
+|     5 %     |06h|0635|0625|  - |7C00|0635|0625|  - |7C00|0635|0625|  - |7C00|
+|     6 ^     |07h|0736|075E|071E|7D00|0736|075E|071E|7D00|0736|075E|071E|7D00|
+|     7 &     |08h|0837|0826|  - |7E00|0837|0826|  - |7E00|0837|0826|  - |7E00|
+|     8 *     |09h|0938|092A|  - |7F00|0938|092A|  - |7F00|0938|092A|  - |7F00|
+|     9 (     |0Ah|0A39|0A28|  - |8000|0A39|0A28|  - |8000|0A39|0A28|  - |8000|
+|     0 )     |0Bh|0B30|0B29|  - |8100|0B30|0B29|  - |8100|0B30|0B29|  - |8100|
+|     - _     |0Ch|0C2D|0C5F|0C1F|8200|0C2D|0C5F|0C1F|8200|0C2D|0C5F|0C1F|8200|
+|     = +     |0Dh|0D3D|0D2B|  - |8300|0D3D|0D2B|  - |8300|0D3D|0D2B|  - |8300|
+|  Back Space |0Eh|0E08|0E08|0E7F|  - |0E08|0E08|0E7F|0EF0|0E08|0E08|0E7F|0E00|
+|     Tab     |0Fh|0F09|0F00|  - |  - |0F09|0F00|9400|A500|0F09|0F00|9400|A500|
+|      Q      |10h|1071|1051|1011|1000|1071|1051|1011|1000|1071|1051|1011|1000|
+|      W      |11h|1177|1157|1117|1100|1177|1157|1117|1100|1177|1157|1117|1100|
+|      E      |12h|1265|1245|1205|1200|1265|1245|1205|1200|1265|1245|1205|1200|
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
++-------------+---+-------------------+-------------------+-------------------+
+|   klávesa   |kod|buff.XT, sluba 00h|buff. klávesnice AT|   sluba 10h (AT) |
+|             |60h|    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+|      R      |13h|1372|1352|1312|1300|1372|1352|1312|1300|1372|1352|1312|1300|
+|      T      |14h|1474|1454|1414|1400|1474|1454|1414|1400|1474|1454|1414|1400|
+|      Y      |15h|1579|1559|1519|1500|1579|1559|1519|1500|1579|1559|1519|1500|
+|      U      |16h|1675|1655|1615|1600|1675|1655|1615|1600|1675|1655|1615|1600|
+|      I      |17h|1769|1749|1709|1700|1769|1749|1709|1700|1769|1749|1709|1700|
+|      O      |18h|186F|184F|180F|1800|186F|184F|180F|1800|186F|184F|180F|1800|
+|      P      |19h|1970|1950|1910|1900|1970|1950|1910|1900|1970|1950|1910|1900|
+|     [ {     |1Ah|1A5B|1A7B|1A1B|  - |1A5B|1A7B|1A1B|1AF0|1A5B|1A7B|1A1B|1A00|
+|     ] }     |1Bh|1B5D|1B7D|1B1D|  - |1B5D|1B7D|1B1D|1BF0|1B5D|1B7D|1B1D|1B00|
+|    Enter    |1Ch|1C0D|1C0D|1C0A|  - |1C0D|1C0D|1C0A|1CF0|1C0D|1C0D|1C0A|1C00|
+|   [Enter]   |1Ch|1C0D|1C0D|1C0A|  - |E00D|E00D|E00A|A600|E00D|E00D|E00A|A600|
+|    Ctrl-    |1Dh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|      A      |1Eh|1E61|1E41|1E01|1E00|1E61|1E41|1E01|1E00|1E61|1E41|1E01|1E00|
+|      S      |1Fh|1F73|1F53|1F13|1F00|1F73|1F53|1F13|1F00|1F73|1F53|1F13|1F00|
+|      D      |20h|2064|2044|2004|2000|2064|2044|2004|2000|2064|2044|2004|2000|
+|      F      |21h|2166|2146|2106|2100|2166|2146|2106|2100|2166|2146|2106|2100|
+|      G      |22h|2267|2247|2207|2200|2267|2247|2207|2200|2267|2247|2207|2200|
+|      H      |23h|2368|2348|2308|2300|2368|2348|2308|2300|2368|2348|2308|2300|
+|      J      |24h|246A|244A|240A|2400|246A|244A|240A|2400|246A|244A|240A|2400|
+|      K      |25h|256B|254B|250B|2500|256B|254B|250B|2500|256B|254B|250B|2500|
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
++-------------+---+-------------------+-------------------+-------------------+
+|   klávesa   |kod|buff.XT, sluba 00h|buff. klávesnice AT|   sluba 10h (AT) |
+|             |60h|    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+|      L      |26h|266C|264C|260C|2600|266C|264C|260C|2600|266C|264C|260C|2600|
+|     ; :     |27h|273B|273A|  - |  - |273B|273A|  - |27F0|273B|273A|  - |2700|
+|     ' "     |28h|2827|2822|  - |  - |2827|2822|  - |28F0|2827|2822|  - |2800|
+|     ` ~     |29h|2960|297E|  - |  - |2960|297E|  - |29F0|2960|297E|  - |2900|
+| levı Shift- |2Ah|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|     \ |     |2Bh|2B5C|2B7C|2B1C|  - |2B5C|2B7C|2B1C|2BF0|2B5C|2B7C|2B1C|2B00|
+|      Z      |2Ch|2C7A|2C5A|2C1A|2C00|2C7A|2C5A|2C1A|2C00|2C7A|2C5A|2C1A|2C00|
+|      X      |2Dh|2D78|2D58|2D18|2D00|2D78|2D58|2D18|2D00|2D78|2D58|2D18|2D00|
+|      C      |2Eh|2E63|2E43|2E03|2E00|2E63|2E43|2E03|2E00|2E63|2E43|2E03|2E00|
+|      V      |2Fh|2F76|2F56|2F16|2F00|2F76|2F56|2F16|2F00|2F76|2F56|2F16|2F00|
+|      B      |30h|3062|3042|3002|3000|3062|3042|3002|3000|3062|3042|3002|3000|
+|      N      |31h|316E|314E|310E|3100|316E|314E|310E|3100|316E|314E|310E|3100|
+|      M      |32h|326D|324D|320D|3200|326D|324D|320D|3200|326D|324D|320D|3200|
+|     , <     |33h|332C|333C|  - |  - |332C|333C|  - |33F0|332C|333C|  - |3300|
+|     . >     |34h|342E|343E|  - |  - |342E|343E|  - |34F0|342E|343E|  - |3400|
+|     / ?     |35h|352F|353F|  - |  - |352F|353F|  - |35F0|352F|353F|  - |3500|
+|     [/]     |35h|352F|352F|  - |  - |E02F|E02F|9500|A400|E02F|E02F|9500|A400|
+| pravı Shift-|36h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| Print Screen|37h|  - |  - |7200|  - |  - |  - |7200|  - |  - |  - |7200|  - |
+|     [*]     |37h|372A|372A|  - |  - |372A|372A|9600|37F0|372A|372A|9600|3700|
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
++-------------+---+-------------------+-------------------+-------------------+
+|   klávesa   |kod|buff.XT, sluba 00h|buff. klávesnice AT|   sluba 10h (AT) |
+|             |60h|    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+|     Alt-    |38h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|Space(mezera)|39h|3920|3920|3920|3920|3920|3920|3920|3920|3920|3920|3920|3920|
+|  Caps Lock  |3Ah|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|     F1      |3Bh|3B00|5400|5E00|6800|3B00|5400|5E00|6800|3B00|5400|5E00|6800|
+|     F2      |3Ch|3C00|5500|5F00|6900|3C00|5500|5F00|6900|3C00|5500|5F00|6900|
+|     F3      |3Dh|3D00|5600|6000|6A00|3D00|5600|6000|6A00|3D00|5600|6000|6A00|
+|     F4      |3Eh|3E00|5700|6100|6B00|3E00|5700|6100|6B00|3E00|5700|6100|6B00|
+|     F5      |3Fh|3F00|5800|6200|6C00|3F00|5800|6200|6C00|3F00|5800|6200|6C00|
+|     F6      |40h|4000|5900|6300|6D00|4000|5900|6300|6D00|4000|5900|6300|6D00|
+|     F7      |41h|4100|5A00|6400|6E00|4100|5A00|6400|6E00|4100|5A00|6400|6E00|
+|     F8      |42h|4200|5B00|6500|6F00|4200|5B00|6500|6F00|4200|5B00|6500|6F00|
+|     F9      |43h|4300|5C00|6600|7000|4300|5C00|6600|7000|4300|5C00|6600|7000|
+|     F10     |44h|4400|5D00|6700|7100|4400|5D00|6700|7100|4400|5D00|6700|7100|
+|  Num Lock   |45h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| Scroll Lock |46h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+|    Break    |46h|  - |  - |0000|  - |  - |  - |0000|  - |  - |  - |0000|  - |
+|     [7]     |47h|4737|4700|7700|  - |4737|4700|7700|  - |4737|4700|7700|  - |
+|    Home     |47h|4700|4700|7700|  - |47E0|47E0|77E0|9700|47E0|47E0|77E0|9700|
+|     [8]     |48h|4838|4800|  - |  - |4838|4800|8D00|  - |4838|4800|8D00|  - |
+| Up (nahoru) |48h|4800|4800|  - |  - |48E0|48E0|8DE0|9800|48E0|48E0|8DE0|9800|
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
++-------------+---+-------------------+-------------------+-------------------+
+|   klávesa   |kod|buff.XT, sluba 00h|buff. klávesnice AT|   sluba 10h (AT) |
+|             |60h|    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+|     [9]     |49h|4939|4900|8400|  - |4939|4900|8400|  - |4939|4900|8400|  - |
+|   Page Up   |49h|4900|4900|8400|  - |49E0|49E0|84E0|9900|49E0|49E0|84E0|9900|
+|     [-]     |4Ah|4A2D|4A2D|  - |  - |4A2D|4A2D|8E00|4AF0|4A2D|4A2D|8E00|4A00|
+|     [4]     |4Bh|4B34|4B00|7300|  - |4B34|4B00|7300|  - |4B34|4B00|7300|  - |
+| Left (vlevo)|4Bh|4B00|4B00|7300|  - |4BE0|4BE0|73E0|9B00|4BE0|4BE0|73E0|9B00|
+|     [5]     |4Ch|4C35|  - |  - |  - |4C35|4CF0|8F00|  - |4C35|4C00|8F00|  - |
+|     [6]     |4Dh|4D36|4D00|7400|  - |4D36|4D00|7400|  - |4D36|4D00|7400|  - |
+|Right(vpravo)|4Dh|4D00|4D00|7400|  - |4DE0|4DE0|74E0|9D00|4DE0|4DE0|74E0|9D00|
+|     [+]     |4Eh|4E2B|4E2B|  - |  - |4E2B|4E2B|9000|4EF0|4E2B|4E2B|9000|4E00|
+|     [1]     |4Fh|4F31|4F00|7500|  - |4F31|4F00|7500|  - |4F31|4F00|7500|  - |
+|     End     |4Fh|4F00|4F00|7500|  - |4FE0|4FE0|75E0|9F00|4FE0|4FE0|75E0|9F00|
+|     [2]     |50h|5032|5000|  - |  - |5032|5000|9100|  - |5032|5000|9100|  - |
+| Down (dolù) |50h|5000|5000|  - |  - |50E0|50E0|91E0|A000|50E0|50E0|91E0|A000|
+|     [3]     |51h|5133|5100|7600|  - |5133|5100|7600|  - |5133|5100|7600|  - |
+|  Page Down  |51h|5100|5100|7600|  - |51E0|51E0|76E0|A100|51E0|51E0|76E0|A100|
+|     [0]     |52h|5230|5200|  - |  - |5230|5200|9200|  - |5230|5200|9200|  - |
+|   Insert    |52h|5200|5200|  - |  - |52E0|52E0|92E0|A200|52E0|52E0|92E0|A200|
+|     [.]     |53h|532E|5300|  - |  - |532E|5300|9300|  - |532E|5300|9300|  - |
+|   Delete    |53h|53E0|53E0|  - |  - |53E0|53E0|93E0|A300|53E0|53E0|93E0|A300|
+|   Sys Rqst  |54h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
++-------------+---+-------------------+-------------------+-------------------+
+|   klávesa   |kod|buff.XT, sluba 00h|buff. klávesnice AT|   sluba 10h (AT) |
+|             |60h|    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |    |Shft|Ctrl|Alt |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+| \ | zdvojená|56h|2B5C|2B7C|2B1C|  - |565C|567C|561C|  - |565C|567C|561C|  - |
+|     F11     |57h|  - |  - |  - |  - |8500|8700|8900|8B00|8500|8700|8900|8B00|
+|     F12     |58h|  - |  - |  - |  - |8600|8800|8A00|8C00|8600|8800|8A00|8C00|
+| ... prefix  |E0h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| .... pause  |E1h|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| .... ready  |FAh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| ... repeat  |FEh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
+| ..... full  |FFh|  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |  - |
++-------------+---+----+----+----+----+----+----+----+----+----+----+----+----+
+Klávesy   oznaèené  lomenımi  závorkami  []  jsou  klávesy  v  numerickém  poli
+klávesnice.
+

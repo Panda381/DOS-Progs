@@ -1,0 +1,265 @@
+CONTEXT   0 241   0   5  89
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+    BOOT - zav dˆc¡ sektor diskety 360 KB                          - # -
+
+
+                               COMMENT %
+
+                                *************************************************************************
+
+                                                 zav dˆc¡ sektor opera‡n¡ho syst‚mu
+                                                       - disketa 360 KB -
+                                *************************************************************************
+
+                                   Zav dˆc¡  sektor  opera‡n¡ho  syst‚mu  je  um¡stˆn  v prvn¡m sektoru na
+                               disketˆ  (hlava  0, v lec 0, sektor 1). P©i startu po‡¡ta‡e jej zavede BIOS
+                               pomoc¡ slu‘by INT 19H od adresy 0:7C00H, na kterou potom p©ed  ©¡zen¡.
+
+                                   Zav dˆc¡  sektor  syst‚mu  resetuje  disk, zavede  do pamˆti od adresy
+                               0:0500H  prvn¡ sektor z kladn¡ho adres ©e disku, zkontroluje zda jsou prvn¡
+                               dvˆ  polo‘ky  adres ©e  soubory IO.SYS a MSDOS.SYS. Pokud je v¨e v po© dku,
+                               zavede ze za‡ tku datov‚ho prostoru diskety (tj. ze za‡ tku souboru IO.SYS)
+                               od  adresy  0:0700H prvn¡ t©i sektory a p©ed  ©¡zen¡ na tuto adresu (adresa
+                               0070:0000H). Pokud vznikne p©i nˆkter‚ operaci chyba, ohl s¡ chybu zav dˆn¡
+                               syst‚mu a ‡ek  na stisk libovoln‚ kl vesy.
+
+                                    %
+
+0000                           code     SEGMENT   page
+                                        ASSUME    cs:code,ds:code
+
+7C00                                    org       7c00h
+
+7C00  EB 3C 90                 start:   jmp       boot                     ; start zavadˆ‡e syst‚mu
+
+
+7C03  4D 53 44 4F 53 34 2E              db        'MSDOS4.0'               ; verze opera‡n¡ho syst‚mu (OEM)
+      30
+7C0B  0200                     delka    dw        512                      ; d‚lka sektoru (bajt–)
+7C0D  02                       blok     db        2                        ; velikost bloku (sektor–)
+7C0E  0001                     rezsekt  dw        1                        ; po‡et rezerv.sektor– p©ed FAT
+7C10  02                       numfat   db        2                        ; po‡et aloka‡n¡ch tabulek FAT
+7C11  0070                     maxroot  dw        112                      ; max. po‡. pol. z kl. adres ©e
+7C13  02D0                     maxsekt  dw        720                      ; celkov˜ po‡et sekt. na m‚diu
+7C15  FD                       typdsk   db        0fdh                     ; typ disku (popisova‡ m‚dia)
+7C16  0002                     sektfat  dw        2                        ; po‡et sektor– v jednom FAT
+7C18  0009                     sektnm   dw        9                        ; po‡et sektor– na stopu
+7C1A  0002                     numhlav  dw        2                        ; po‡et hlav disku
+7C1C  00 00 00 00              hidsekt  dd        0                        ; po‡et skryt˜ch sektor–
+7C20  00 00 00 00              maxsekh  dd        0                        ; celk.po‡et sekt.na m‚diu
+7C24  00                       disk     db        0                        ; ‡¡slo disku
+7C25  00                       hlava    db        0                        ; ‡¡slo hlavy ke ‡ten¡
+7C26  29                       ident    db        29h                      ; identifikace
+7C27  D0 15 51 21              serial   dd        215115d0h                ; s‚riov‚ ‡¡slo diskety
+7C2B  4E 4F 20 4E 41 4D 45     label    db        'NO NAME    '            ; ozna‡en¡ disku
+      20 20 20 20
+7C36  46 41 54 31 32 20 20     typfat   db        'FAT12   '               ; ozna‡en¡ typu FAT
+      20
+
+
+
+7C3E                           tabdsk:                                     ; zde se ulo‘¡ tab. disk.param.
+                                                                           ; (p©ekryje ‡ st programu)
+
+                               COMMENT %
+
+                               offset, adresa, velikost
+
+                                + 0    7c3eh   1     bity 0-3: rychlost krok.; bity 4-7:‡as po ‡ten¡ hlavy
+                                + 1    7c3fh   1     bit 0:1=pou‘¡t DMA; bity 2-7: ‡as do ‡ten¡ hlavy
+                                + 2    7c40h   1     ‡ek n¡ motoru p©ed vypnut¡m (v jednotk ch 55 ms)
+                                + 3    7c41h   1     velikost sektoru (0=128; 1=256; 2=512; 3=1024)
+                                + 4    7c42h   1     posledn¡ sektor stopy (po‡et sektor–)
+                                + 5    7c43h   1     d‚lka prodlevy pro ‡tec¡/z pisov‚ operace
+                                + 6    7c44h   1     max. d‚lka p©enosu dat
+                                + 7    7c45h   1     d‚lka prodelvy pro form tovac¡ operace
+                                + 8    7c46h   1     pln¡c¡ znak pro form tov n¡ (norm lnˆ 0F6H = 'ö')
+                                + 9    7c47h   1     ‡as p©¡tlaku hlavy (v milisekund ch)
+                                +10    7c48h   1     ‡as pot©ebn˜ k zapnut¡ motoru (v jednotk ch 1/8 sek.)
+
+                                +11    7c49h   2     ‡¡ta‡ relat. ‡¡sla sektoru p©i ‡ten¡ (ni‘¨¡ slovo)
+                                +13    7c4Bh   2     ‡¡ta‡ relat. ‡¡sla sektoru p©i ‡ten¡ (vy¨¨¡ slovo)
+                                +15    7c4dh   2     ‡¡slo v lce ke ‡ten¡
+                                +17    7c4fh   1     ‡¡slo sektoru ke ‡ten¡
+                                +18    7c50h   2     po‡ te‡n¡ sektor z kladn¡ho adres ©e (ni‘¨¡ slovo)
+                                +20    7c52h   2     po‡ te‡n¡ sektor z kladn¡ho adres ©e (vy¨¨¡ slovo)
+
+                                       %
+
+
+7C3E                           boot:                                       ; start programu zavadˆ‡e
+
+7C3E  FA                                cli                                ; z kaz p©eru¨en¡
+7C3F  33 C0                             xor       ax,ax                    ; segment = 0000
+7C41  8E D0                             mov       ss,ax                    ; nastaven¡ segm. z sobn¡ku 0
+7C43  BC 7C00 R                         mov       sp,offset start          ; ukazatel z sob. pod program
+7C46  16                                push      ss                       ; = 00
+7C47  07                                pop       es                       ; ES <- 0000 (segment 0)
+7C48  BB 0078                           mov       bx,78h                   ; ukazatel disk. param. INT 13H
+7C4B  36: C5 37                         lds       si,ss:[bx]               ; DS:SI <-- tab. disk. param.
+7C4E  1E                                push      ds                       ; segment tab. disk. parametr–
+7C4F  56                                push      si                       ; offset tabulky disk.parametr–
+7C50  16                                push      ss                       ; segment 0000
+7C51  53                                push      bx                       ; adr. ukaz. tab. disk. param.
+7C52  BF 7C3E R                         mov       di,offset tabdsk         ; za‡ tek tabulky parametr–
+7C55  B9 000B                           mov       cx,11                    ; d‚lka tabulky disk. parametr–
+7C58  FC                                cld                                ; smˆr p©enosu nahoru
+7C59  F3/ A4                            rep       movsb                    ; na‡ten¡ tab. disk. parametr–
+7C5B  06                                push      es                       ; segment 0 (DI=7C49H)
+7C5C  1F                                pop       ds                       ; DS <-- 0000
+7C5D  C6 45 FE 0F                       mov       byte ptr [di-2],0fh      ; 7C47H <-- 0FH ‡as p©¡tlaku
+7C61  8B 0E 7C18 R                      mov       cx,[sektnm]              ; po‡et sektor– na stopu
+7C65  88 4D F9                          mov       byte ptr [di-7],cl       ; 7C42H <-- posledn¡ sekt.stopy
+7C68  89 47 02                          mov       word ptr [bx+2],ax       ; adresa tab.disk.par.<--tabdsk
+7C6B  C7 07 7C3E R                      mov       word ptr [bx],offset tabdsk; nov  adresa tab. disk. par.
+7C6F  FB                                sti                                ; povolen¡ p©eru¨en¡
+7C70  CD 13                             int       13h                      ; reset disku (AH=0)
+7C72  72 7C                             jc        booterr                  ; chyba zav dˆn¡ syst‚mu
+7C74  33 C0                             xor       ax,ax                    ; AX <- 0000
+7C76  39 06 7C13 R                      cmp       [maxsekt],ax             ; celkov˜ po‡et sekt. na m‚diu
+7C7A  74 08                             jz        boot1                    ; nen¡ ‘ dn˜ sektor
+7C7C  8B 0E 7C13 R                      mov       cx,[maxsekt]             ; celkov˜ po‡et sekt. na m‚diu
+7C80  89 0E 7C20 R                      mov       word ptr [maxsekh],cx    ; celkov˜ po‡et sekt. na m‚diu
+7C84  A0 7C10 R                boot1:   mov       al,[numfat]              ; po‡et aloka‡n¡ch tabulek FAT
+7C87  F7 26 7C16 R                      mul       word ptr [sektfat]       ; po‡et sektor– v jednom FAT
+7C8B  03 06 7C1C R                      add       ax,word ptr [hidsekt]    ; po‡et skryt˜ch sektor–-LOW
+7C8F  13 16 7C1E R                      adc       dx,word ptr [hidsekt+2]  ; po‡et skryt˜ch sektor–-HIGH
+7C93  03 06 7C0E R                      add       ax,[rezsekt]             ; po‡et rezerv.sektor– p©ed FAT
+7C97  83 D2 00                          adc       dx,0                     ; p©enos do vy¨¨¡ho slova
+7C9A  A3 7C50 R                         mov       word ptr [tabdsk+18],ax  ; po‡ t.sekt.z kl.adres ©e-LOW
+7C9D  89 16 7C52 R                      mov       word ptr [tabdsk+20],dx  ; po‡ t.sekt.z kl.adres ©e-HIGH
+7CA1  A3 7C49 R                         mov       word ptr [tabdsk+11],ax  ; ‡¡ta‡ rel. ‡¡sla sekt.-LOW
+7CA4  89 16 7C4B R                      mov       word ptr [tabdsk+13],dx  ; ‡¡ta‡ rel. ‡¡sla sekt.-HIGH
+7CA8  B8 0020                           mov       ax,32                    ; d‚lka polo‘ky adres. (bajt–)
+7CAB  F7 26 7C11 R                      mul       word ptr [maxroot]       ; v˜po‡et d‚lky z kl. adres ©e
+7CAF  8B 1E 7C0B R                      mov       bx,[delka]               ; d‚lka sektoru (bajt–)
+7CB3  03 C3                             add       ax,bx                    ; zaokrouhl. na vy¨¨¡ po‡et s.
+7CB5  48                                dec       ax                       ; sn¡‘en¡ o posledn¡ polo‘ku
+7CB6  F7 F3                             div       bx                       ; v˜po‡et po‡tu sekt. adres ©e
+7CB8  01 06 7C49 R                      add       word ptr [tabdsk+11],ax  ; po‡ te‡n¡ sektor dat-LOW
+7CBC  83 16 7C4B R 00                   adc       word ptr [tabdsk+13],0   ; po‡ te‡n¡ sektor dat-HIGH
+7CC1  BB 0500                           mov       bx,0500h                 ; adresa k zaveden¡ adres ©e
+7CC4  8B 16 7C52 R                      mov       dx,word ptr [tabdsk+20]  ; po‡ t.sekt.z kl.adres ©e-HIGH
+7CC8  A1 7C50 R                         mov       ax,word ptr [tabdsk+18]  ; po‡ t.sekt.z kl.adres ©e-LOW
+7CCB  E8 7D55 R                         call      setpar                   ; nastav.sektoru, v lce a hlavy
+7CCE  72 20                             jc        booterr                  ; chyba (p©ete‡en¡ disku)
+7CD0  B0 01                             mov       al,1                     ; po‡et sektor– ke ‡ten¡ = 1
+7CD2  E8 7D76 R                         call      readsekt                 ; ‡ten¡ sekt. adres. od 0:0500H
+7CD5  72 19                             jc        booterr                  ; chyba ‡ten¡ adres ©e
+7CD7  8B FB                             mov       di,bx                    ; 1. polo‘ka adres ©e (sektor)
+7CD9  B9 000B                           mov       cx,11                    ; d‚lka jm‚na souboru IO.SYS
+7CDC  BE 7DDB R                         mov       si,offset soubio         ; jm‚no souboru IO.SYS
+7CDF  F3/ A6                            rep       cmpsb                    ; kontrola jm‚na
+7CE1  75 0D                             jnz       booterr                  ; nen¡ shoda - hl ¨en¡ chyby
+7CE3  8D 7F 20                          lea       di,[bx+32]               ; DI - 2. polo‘ka v adres ©i
+7CE6  BE 7DE6 R                         mov       si,offset soubdos        ; jm‚no souboru MSDOS.SYS
+7CE9  B9 000B                           mov       cx,11                    ; d‚lka jm‚na MSDOS.SYS
+7CEC  F3/ A6                            rep       cmpsb                    ; porovn n¡ jm‚na MSDOS.SYS
+7CEE  74 18                             jz        readio                   ; shoda-na‡ten¡ zavadˆ‡e IO.SYS
+7CF0  BE 7D93 R                booterr: mov       si,offset texterr        ; text 'Non-System disk ...'
+7CF3  E8 7D47 R                         call      tisktxt                  ; tisk chybov‚ho hl ¨en¡
+7CF6  32 E4                             xor       ah,ah                    ; funkce ‡ten¡ znaku z kl ves.
+7CF8  CD 16                             int       16h                      ; ‡ek n¡ na stisk kl vesy
+7CFA  5E                                pop       si                       ; adresa ukazat.tab.disk.par.
+7CFB  1F                                pop       ds                       ; segment 0000
+7CFC  8F 04                             pop       [si]                     ; n vrat p–vodn¡ho ukaz.tab.d.p.
+7CFE  8F 44 02                          pop       [si+2]                   ; p–vodn¡ segment ukaz.tab.d.p.
+7D01  CD 19                             int       19h                      ; skok do slu‘by zaveden¡ syst.
+7D03  58                       booter2: pop       ax                       ; po‡et sektor– k zaveden¡
+7D04  58                                pop       ax                       ; ‡¡slo sektoru - HIGH
+7D05  58                                pop       ax                       ; ‡¡slo sektoru - LOW
+7D06  EB E8                             jmp       booterr                  ; skok na hl ¨en¡ chyby
+
+
+                                                                           ; na‡ten¡ zavadˆ‡e IO.SYS
+                                                                           ; ES = segment (=0000)
+7D08  BB 0700                  readio:  mov       bx,0700h                 ; adresa po‡ tku bufferu
+7D0B  B9 0003                           mov       cx,3                     ; po‡et sektor– k na‡ten¡ = 3
+7D0E  A1 7C49 R                         mov       ax,word ptr [tabdsk+11]  ; rel. ‡¡slo sektoru - LOW
+7D11  8B 16 7C4B R                      mov       dx,word ptr [tabdsk+13]  ; rel. ‡¡slo sektoru - HIGH
+7D15  50                       nxtsekt: push      ax                       ; ‡¡slo sektoru - LOW
+7D16  52                                push      dx                       ; ‡¡slo sektoru - HIGH
+7D17  51                                push      cx                       ; po‡et sektor–
+7D18  E8 7D55 R                         call      setpar                   ; nastav.sektoru, v lce a hlavy
+7D1B  72 E6                             jc        booter2                  ; chybov‚ hl ¨en¡
+7D1D  B0 01                             mov       al,1                     ; po‡et sektor– ke ‡ten¡ = 1
+7D1F  E8 7D76 R                         call      readsekt                 ; na‡ten¡ sektor– do pamˆti
+7D22  59                                pop       cx                       ; po‡et sektor–
+7D23  5A                                pop       dx                       ; ‡¡slo sektoru
+7D24  58                                pop       ax                       ; ‡¡slo stopy
+7D25  72 C9                             jc        booterr                  ; chybov‚ hl ¨en¡
+7D27  05 0001                           add       ax,1                     ; zv˜¨en¡ ukaz. stopy (LOW)
+7D2A  83 D2 00                          adc       dx,0                     ; zv˜¨en¡ ukaz. stopy (HIGH)
+7D2D  03 1E 7C0B R                      add       bx,[delka]               ; zv˜¨en¡ ukl dac¡ adr.o sektor
+7D31  E2 E2                             loop      nxtsekt                  ; dal¨¡ sektor ke ‡ten¡
+7D33  8A 2E 7C15 R                      mov       ch,[typdsk]              ; typ disku (popisova‡ m‚dia)
+7D37  8A 16 7C24 R                      mov       dl,[disk]                ; ‡¡slo disku
+7D3B  8B 1E 7C49 R                      mov       bx,word ptr [tabdsk+11]  ; rel. ‡¡slo n sled. sektoru
+7D3F  A1 7C4B R                         mov       ax,word ptr [tabdsk+13]  ;    -  "  -  (ni‘¨¡ slovo)
+
+7D42  EA 00 00 70 00                    db        0eah,0,0,70h,0
+                               ;        jmp       far ptr 0070h:0000h      ; start modulu IO.SYS
+
+                                                                           ; tisk textu na adrese DS:SI
+7D47  AC                       tisktxt: lodsb                              ; p©e‡ten¡ znaku k tisku
+7D48  0A C0                             or        al,al                    ; byl koncov˜ znak ?
+7D4A  74 29                             jz        bootret                  ; konec tisku textu
+7D4C  B4 0E                             mov       ah,0eh                   ; funkce tisku znaku v TTY m¢du
+7D4E  BB 0007                           mov       bx,0007h                 ; = b¡l‚ p¡smo, str nka 0
+7D51  CD 10                             int       10h                      ; tisk znaku v AL
+7D53  EB F2                             jmp       tisktxt                  ; dal¨¡ znak k tisku
+
+                                                                           ; nastav.sektoru, v lce a hlavy
+                                                                           ; vstup:AX = rel.sektor (LOW)
+                                                                           ;       DX = rel.sektor (HIGH)
+7D55  3B 16 7C18 R             setpar:  cmp       dx,[sektnm]              ; po‡et sektor– na stopu
+7D59  73 19                             jnc       setpar2                  ; nen¡ dal¨¡ sektor na stopˆ
+7D5B  F7 36 7C18 R                      div       word ptr [sektnm]        ; po‡et sektor– na stopu
+7D5F  FE C2                             inc       dl                       ; ‡¡slo sektoru ke ‡ten¡
+7D61  88 16 7C4F R                      mov       byte ptr [tabdsk+17],dl  ; ‡¡slo sektoru ke ‡ten¡
+7D65  33 D2                             xor       dx,dx
+7D67  F7 36 7C1A R                      div       word ptr [numhlav]       ; dˆleno po‡tem hlav disku
+7D6B  88 16 7C25 R                      mov       [hlava],dl               ; ‡¡slo hlavy ke ‡ten¡
+7D6F  A3 7C4D R                         mov       word ptr [tabdsk+15],ax  ; ‡¡slo v lce ke ‡ten¡
+7D72  F8                                clc                                ; p©evod OK
+7D73  C3                                ret
+7D74  F9                       setpar2: stc                                ; nastaven¡ p©¡znaku chyby
+7D75  C3                       bootret: ret
+                                                                           ; na‡ten¡ sektor– do pamˆti
+                                                                           ; vstup:  AL = po‡et sektor–
+7D76  B4 02                    readsekt:mov       ah,2                     ; funkce ‡ten¡ sekt. do pamˆti
+7D78  8B 16 7C4D R                      mov       dx,word ptr [tabdsk+15]  ; ‡¡slo v lce ke ‡ten¡
+7D7C  B1 06                             mov       cl,6                     ; po‡et rotac¡
+7D7E  D2 E6                             shl       dh,cl                    ; vyn soben¡ * 64 (bity 9,8)
+7D80  0A 36 7C4F R                      or        dh,byte ptr [tabdsk+17]  ; ‡ten˜ sekt.OR bity 9,8 stopy
+7D84  8B CA                             mov       cx,dx                    ; CL = ‡.v lce; CH = ‡.sektoru
+7D86  86 E9                             xchg      ch,cl                    ; CH = ‡.v lce; CL = ‡.sektoru
+7D88  8A 16 7C24 R                      mov       dl,[disk]                ; ‡¡slo disku
+7D8C  8A 36 7C25 R                      mov       dh,[hlava]               ; ‡¡slo hlavy ke ‡ten¡
+7D90  CD 13                             int       13h                      ; ‡ten¡ sektor– do pamˆti
+7D92  C3                                ret
+
+7D93  0D 0A 4E 6F 6E 2D 53     texterr  db        0dh,0ah,'Non-System disk or disk error'
+      79 73 74 65 6D 20 64
+      69 73 6B 20 6F 72 20
+      64 69 73 6B 20 65 72
+      72 6F 72
+7DB2  0D 0A 52 65 70 6C 61              db        0dh,0ah,'Replace and press any key'
+      63 65 20 61 6E 64 20
+      70 72 65 73 73 20 61
+      6E 79 20 6B 65 79
+7DCD  20 77 68 65 6E 20 72              db        ' when ready',0dh,0ah,0
+      65 61 64 79 0D 0A 00
+
+7DDB  49 4F 20 20 20 20 20     soubio   db        'IO      SYS'
+      20 53 59 53
+7DE6  4D 53 44 4F 53 20 20     soubdos  db        'MSDOS   SYS'
+      20 53 59 53
+7DF1  00 00 00 00 00 00 00              db        0,0,0,0,0,0,0,0,0,0,0,0,0
+      00 00 00 00 00 00
+7DFE  55 AA                             dw        0aa55h                   ; identifika‡n¡ slovo sektoru
+
+7E00                                    code      ends
+                                        end       start
+

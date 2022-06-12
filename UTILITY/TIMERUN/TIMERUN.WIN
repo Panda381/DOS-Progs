@@ -1,0 +1,125 @@
+
+                                TIMERUN                      verze 1.0
+                      èasované spouštìní programù
+
+Syntaxe:
+-------
+TIMERUN    jméno   [dnù]  [/A]  [/?]
+             jméno .......... jméno  testované  podmínky  (napø. jméno
+                              programu)  -  lze použít bìžné znaky DOS
+                              kromì mezer a znakù "/", "<", ">" a "|"
+             dnù ............ poèet   dnù   od   posledního   spuštìní
+                              programu (implicitnì 1 den)
+             /A ............. aktualizace   data   podmínky   (program
+                              spuštìn)  -  provede  se jen pøi splnìní
+                              podmínky
+             /P ............. zobrazení ubìhlého poètu dnù podmínky
+             /R ............. zobrazení zbývajícího poètu dnù podmínky
+
+Návratové kódy:  0 .......... dosaženo požadovaného poètu dnù
+                 1 .......... program ještì není potøeba spouštìt
+
+
+Charakteristika:
+---------------
+Program  TIMERUN  je urèen k periodickému spouštìní programù s vìtšími
+èasovými  odstupy  (nìkolik  dnù).  Jeho  hlavní  využití je v souboru
+AUTOEXEC.BAT  pøi  zavádìní operaèního systému. Napø. pøi vícenásobném
+startování  poèítaèe  za den lze zajistit, aby nìkteré z programù byly
+spouštìny pouze pøi prvním startu poèítaèe.
+
+
+Funkce:
+------
+Program  TIMERUN  je urèen pøedevším pro povelové soubory. Jeho hlavní
+funkce   spoèívá  v  evidenci  data  posledního  spuštìní  sledovaného
+programu.  Pøi opakovaném provádìní povelového souboru program TIMERUN
+sleduje, zda již uplynulo od posledního spuštìní programu zadaný poèet
+dnù  a  podle  toho  navrací návratový kód, kterým lze povelový soubor
+vìtvit.  Evidence  posledního  spuštìní programù se uchovává v souboru
+TIMERUN.DAT  v  domovském  adresáøi  programu  TIMERUN (ve vyjímeèných
+pøípadech  -  verze  DOS nižší než 3.00, nekompatibilní prostøedí - se
+evidenèní soubor vytvoøí v aktuálním adresáøi). Aby bylo možné program
+TIMERUN  používat  na  více  místech  povelového  souboru, oznaèují se
+jednotlivé podmínky (resp. jednotlivé sledované programy) svými jmény,
+které je tøeba pøi použití uvádìt.
+
+
+Použití:
+-------
+Pøi spuštìní programu TIMERUN je nutno zadat jako první parametr jméno
+podmínky.  Jako  jméno podmínky lze zvolit libovolný text o délce max.
+40  znakù  (velká a malá písmena se nerozlišují), text nesmí obsahovat
+znaky /, <, >, | a mezeru. Pod tímto jménem se bude uchovávat evidence
+posledního spuštìní sledovaného programu v evidenèním souboru.
+
+Jako  volitelný  parametr  lze  zadat èíslo pøedstavující poèet dnù od
+posledního  spuštìní  sledovaného programu (implicitnì 1 den). Program
+TIMERUN  zkontroluje,  zda  ubìhlo  od posledního spuštìní sledovaného
+programu  zadané  množství  dnù.  Pokud  ano,  navrátí návratový kód 0
+(program  se  má spustit), jinak navrátí 1 (program ještì není potøeba
+spouštìt).
+
+Další  volitelný  parametr  je  "/A".  Po zadání tohoto parametru bude
+aktualizováno  datum  spuštìní  programu  -  nulování poèítání dnù pro
+zadanou  podmínku. Poèet dnù pøi dalším testu podmínky bude poèítán od
+aktuálního  data.  Datum  je  aktualizováno  pouze  v  pøípadì,  že je
+podmínka poètu ubìhlých dnù splnìna. Proto lze parametr zadat souèasnì
+pøi testu poètu ubìhlých dnù. Bez zadání tohoto parametru lze provádìt
+vícestupòový  test  poètu  dnù  a  až pøed spuštìním program (nebo po)
+aktualizovat datum.
+
+Zadáním  parametru  "/P"  se  zobrazí  poèet  dnù uplynulý od poslední
+aktualizace  data  (od  posledního  spuštìní  programu).  Poèet dnù se
+zobrazí jako jednoduchý èíselný údaj, který mùže být souèástí hlášení.
+
+Zadáním  parametru  "/R"  se  zobrazí  poèet dnù zbývající do pøíštího
+spuštìní  programu  (podle  zadaného  poètu dnù). Poèet dnù se zobrazí
+jako jednoduchý èíselný údaj, který mùže být souèástí hlášení.
+
+
+Pøíklad:
+-------
+Pomocný soubor HLAS.TXT obsahuje text:
+    Do provedení komprese disku zbývá:
+Tento text je ukonèen jednou mezerou, není ukonèen CR/LF na konci øádku.
+
+
+Povelový soubor KOMP.BAT:
+
+
+@echo off
+TIMERUN Komprese_Disku 7
+if errorlevel 1 goto Dale
+
+compress
+TIMERUN Komprese_Disku /A
+goto Konec
+
+:Dale
+TIMERUN Komprese_Disku
+if errorlevel 1 goto Konec
+
+TIMERUN Komprese_Disku 6
+if errorlevel 1 goto Dale2
+
+echo Zítra bude provedena komprese disku...
+goto Konec
+
+:Dale2
+type HLAS.TXT
+TIMERUN Komprese_Disku 7 /R
+
+TIMERUN Komprese_Disku 3
+if errorlevel 1 goto Dale3
+
+echo  dny
+goto Konec
+
+:Dale3
+echo  dnù
+
+:Konec
+
+
+

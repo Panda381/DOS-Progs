@@ -1,0 +1,1420 @@
+
+{ =========================================================================== }
+{                                                                             }
+{                            Deklarace promˆnn˜ch                             }
+{                                                                             }
+{ =========================================================================== }
+
+Word Hrac;                        { aktivn¡ hr ‡ }
+
+Word Znak;
+
+Word ParExp, HracExp, Ne, Ne2;     { p©¡znak exploze; majitel exploze; ukazatel }
+Word E1, E2, E3, E4;          { p©¡znaky smˆr– nahoru, vpravo, dol– a vlevo }
+
+Word Xt:=200, Ft:=0, Xp:=200, Fp:=0;     { pozice turisty a pt ka }
+
+Word M:=10, N:=10, X:=230, Y:=167, F, S, F0;
+Word St;
+
+Word HS, Nn, Xn, Yn;          { hr ‡, ‡¡slo a sou©adnice pro zobrazen¡ ‡¡sla }
+
+Word Mk, Nk;
+
+Word PocetHracu:=2, VelikostPole:=2, VolbaHracu:=-1;  { volby }
+Word MaxPole:=19, PocX:=7, PocY:=5, Sirka:=20; { maxim ln¡ prvek pole, po‡ tek pole }
+
+Word HracN(5):=(10,10,10,10,10);       { uschovan˜ © dek N }
+Word HracM(5):=(10,10,10,10,10);       { uschovan  pozice M }
+Word HracX(5):=(230,230,230,230,230);  { uschovan  pozice X }
+Word HracY(5):=(167,167,167,167,167);  { uschovan˜ © dek Y }
+Word HracS(5):=(0,0,0,0,0);            { stav sk¢re }
+Word HracA(5):=(0,1,1,1,1);            { aktivita hr ‡– }
+Word HracT(5):=(0,0,0,0,0);            { p©¡znak automat– }
+
+Word Ma, Na, Ma1, Na1, Ma2, Na2, Sa, Sa0;   { promˆnn‚ automatu }
+
+Word Zvuk:=-1;                         { p©¡znak zvuku }
+
+Byte  TabK(400);               { tabulka kamen– }
+Byte  TabM(400);               { tabulka majitel– pol¡ }
+
+{ =========================================================================== }
+{                                                                             }
+{                        Volba parametr– pro novou hru                        }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Volba
+
+Window(0,0,639,349);
+
+Pattern(%00010001,%01000100,%00100010,%10001000,
+        %00010001,%01000100,%00100010,%10001000);
+
+FBox($100+3,0,0,639,349);
+
+Pattern($ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff);
+
+Pic(Nadpis,208,16);
+Pic(Text1,4,50);
+Pic(Text2,10,180);
+Pic(PocHrac,268,237);
+Pic(VelPole,262,283);
+Pic(Lic,457,332);
+
+Do
+    VSyn(1);
+    HSyn(250);
+
+    If PocetHracu=2 Then
+         If VolbaHracu<>0 Then
+              FBox(14,30,252,209,269);
+         Else
+              FBox(11,30,252,209,269);
+         EndIf;
+         Pic(Poch20,114,256);
+    Else
+         FBox(0,30,252,209,269);
+         Pic(Poch2,114,256);
+    EndIf;
+
+    If PocetHracu=3 Then
+         If VolbaHracu<>0 Then
+              FBox(14,230,252,409,269);
+         Else
+              FBox(11,230,252,409,269);
+         EndIf;
+         Pic(Poch30,314,256);
+    Else
+         FBox(0,230,252,409,269);
+         Pic(Poch3,314,256);
+    EndIf;
+
+    If PocetHracu=4 Then
+         If VolbaHracu<>0 Then
+              FBox(14,430,252,609,269);
+         Else
+              FBox(11,430,252,609,269);
+         EndIf;
+         Pic(Poch40,514,256);
+    Else
+         FBox(0,430,252,609,269);
+         Pic(Poch4,514,256);
+    EndIf;
+
+    VSyn(1);
+    HSyn(300);
+
+    If VelikostPole=1 Then
+         If VolbaHracu=0 Then
+              FBox(14,30,298,159,315);
+         Else
+              FBox(11,30,298,159,315);
+         EndIf;
+         Pic(VPole10,65,302);
+    Else
+         FBox(0,30,298,159,315);
+         Pic(VPole1,65,302);
+    EndIf;
+
+    If VelikostPole=2 Then
+         If VolbaHracu=0 Then
+              FBox(14,180,298,309,315);
+         Else
+              FBox(11,180,298,309,315);
+         EndIf;
+         Pic(VPole20,214,302);
+    Else
+         FBox(0,180,298,309,315);
+         Pic(VPole2,214,302);
+    EndIf;
+
+    VSyn(1);
+    HSyn(300);
+
+    If VelikostPole=3 Then
+         If VolbaHracu=0 Then
+              FBox(14,330,298,459,315);
+         Else
+              FBox(11,330,298,459,315);
+         EndIf;
+         Pic(VPole30,365,302);
+    Else
+         FBox(0,330,298,459,315);
+         Pic(VPole3,365,302);
+    EndIf;
+
+    If VelikostPole=4 Then
+         If VolbaHracu=0 Then
+              FBox(14,480,298,609,315);
+         Else
+              FBox(11,480,298,609,315);
+         EndIf;
+         Pic(VPole40,515,302);
+    Else
+         FBox(0,480,298,609,315);
+         Pic(VPole4,515,302);
+    EndIf;
+
+
+    Znak:=GetKey;
+
+    If ((Znak >> 8)=$4d) And (VolbaHracu<>0) Then
+         PocetHracu:=PocetHracu+1;
+         If PocetHracu>4 Then PocetHracu:=2; EndIf;
+    EndIf;
+
+    If ((Znak >> 8)=$4b) And (VolbaHracu<>0) Then
+         PocetHracu:=PocetHracu-1;
+         If PocetHracu<2 Then PocetHracu:=4; EndIf;
+    EndIf;
+
+    If ((Znak >> 8)=$4d) And (VolbaHracu=0) Then
+         VelikostPole:=VelikostPole+1;
+         If VelikostPole>4 Then VelikostPole:=1; EndIf;
+    EndIf;
+
+    If ((Znak >> 8)=$4b) And (VolbaHracu=0) Then
+         VelikostPole:=VelikostPole-1;
+         If VelikostPole<1 Then VelikostPole:=4; EndIf;
+    EndIf;
+
+    If (Znak >> 8)=$48 Then
+         VolbaHracu:=-1;
+    EndIf;
+
+    If (Znak >> 8)=$50 Then
+         VolbaHracu:=0;
+    EndIf;
+
+    Znak:=Znak And $ff;
+
+    On (Znak=13) Or (Znak=" ") Or (Znak=27) Exit;
+
+EndDo;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                        Synchronizace na paprsek                             }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Synch
+
+VSyn(1);
+HSyn(Y);
+
+EndProc;
+
+
+{ =========================================================================== }
+{                                                                             }
+{                          Obsluha krajiny                                    }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Krajina
+
+If Xt>=460 Then
+     Window(Xt,330,Xt+10,350);
+     Pic(Pole,455,0);
+EndIf;
+
+If Xp>=460 Then
+     Window(Xp,280,Xp+10,300);
+     Pic(Pole,455,0);
+EndIf;
+
+Ft:=(Ft+1) Mod 2;
+Xt:=Xt-3;
+If Xt<(-1200) Then Xt:=640; EndIf;
+
+Fp:=(Fp+1) Mod 4;
+Xp:=Xp-3;
+If Xp<(-1800) Then Xp:=640; EndIf;
+
+If Xt>=460 Then
+     Window(Xt,330,Xt+10,350);
+     Case Ft
+          In 0: Pic(Turista1,Xt,330);
+          In 1: Pic(Turista2,Xt,330);
+     EndCase;
+EndIf;
+
+If Xp>=460 Then
+     Window(Xp,280,Xp+10,350);
+     Case Fp
+          In 0: Pic(Ptak1,Xp,280);
+          In 1: Pic(Ptak2,Xp,280);
+          In 2: Pic(Ptak3,Xp,280);
+          In 3: Pic(Ptak4,Xp,280);
+     EndCase;
+EndIf;
+
+EndProc;
+
+
+{ =========================================================================== }
+{                                                                             }
+{                          Zobrazen¡ ‡¡sla (3 m¡stn‚)                         }
+{                     (Nn = ‡¡slo, Xn a Yn = sou©adnice)                      }
+{ =========================================================================== }
+
+Proc Cislo
+
+Case Nn/100                    { zobraz¡ se © d stovek }
+     In 0: Pic(NX,Xn,Yn);
+     In 1: Pic(N1,Xn,Yn);
+     In 2: Pic(N2,Xn,Yn);
+     In 3: Pic(N3,Xn,Yn);
+     In 4: Pic(N4,Xn,Yn);
+     In 5: Pic(N5,Xn,Yn);
+     In 6: Pic(N6,Xn,Yn);
+     In 7: Pic(N7,Xn,Yn);
+     In 8: Pic(N8,Xn,Yn);
+     In 9: Pic(N9,Xn,Yn);
+EndCase;
+
+Case (Nn Mod 100)/10               { zobraz¡ se des¡tky }
+     In 0: If Nn>99 Then
+          Pic(N0,Xn+8,Yn);
+           Else
+          Pic(NX,Xn+8,Yn);
+           EndIf;
+     In 1: Pic(N1,Xn+8,Yn);
+     In 2: Pic(N2,Xn+8,Yn);
+     In 3: Pic(N3,Xn+8,Yn);
+     In 4: Pic(N4,Xn+8,Yn);
+     In 5: Pic(N5,Xn+8,Yn);
+     In 6: Pic(N6,Xn+8,Yn);
+     In 7: Pic(N7,Xn+8,Yn);
+     In 8: Pic(N8,Xn+8,Yn);
+     In 9: Pic(N9,Xn+8,Yn);
+EndCase;
+
+Case Nn Mod 10                    { zobraz¡ se jednotky }
+     In 0: If Nn>9 Then
+          Pic(N0,Xn+16,Yn);
+           Else
+          Pic(NX,Xn+16,Yn);
+           EndIf;
+     In 1: Pic(N1,Xn+16,Yn);
+     In 2: Pic(N2,Xn+16,Yn);
+     In 3: Pic(N3,Xn+16,Yn);
+     In 4: Pic(N4,Xn+16,Yn);
+     In 5: Pic(N5,Xn+16,Yn);
+     In 6: Pic(N6,Xn+16,Yn);
+     In 7: Pic(N7,Xn+16,Yn);
+     In 8: Pic(N8,Xn+16,Yn);
+     In 9: Pic(N9,Xn+16,Yn);
+EndCase;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                          Zobrazen¡ sk¢re hr ‡e  HS                          }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Skore
+
+Window(0,0,639,349);
+Yn:=HS*42-1;
+Xn:=512;
+Nn:=HracS(HS);
+Cislo;
+
+If Nn=0 Then
+     Pic(Nx,Xn+32,Yn);
+     Pic(Nx,Xn+40,Yn);
+Else
+     Pic(N0,Xn+32,Yn);
+     Pic(N0,Xn+40,Yn);
+EndIf;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                          Zobrazen¡ kamen– pole Mk, Nk                       }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Kamen;
+
+Window((Mk*22)+PocX,(Nk*17)+PocY,(Mk*22)+PocX+22,(Nk*17)+PocY+17);
+
+If Nk=(-1) Then
+        Pattern(%11101110,%11111111,%10111011,%11111111,
+               %11101110,%11111111,%10111011,%11111111);
+        FBox($900+3,0,0,454,349);
+EndIf;
+
+{FBox(3,0,0,454,4);}
+
+If (Mk<0) Or (Mk>MaxPole) Or (Nk<0) Or (Mk>MaxPole) Then Return(0); EndIf;
+
+
+Case TabM((Nk*Sirka)+Mk)
+     In 0: Pic(K0,(Mk*22)+PocX,(Nk*17)+PocY);
+
+     In 1:     Case TabK((Nk*Sirka)+Mk)
+               In 0: Pic(Km0,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 1: Pic(Km1,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 2: Pic(Km2,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 3: Pic(Km3,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 4: Pic(Km4,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 5..10: Pic(Km5,(Mk*22)+PocX,(Nk*17)+PocY);
+          EndCase;
+
+     In 2:     Case TabK((Nk*Sirka)+Mk)
+               In 0: Pic(Kr0,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 1: Pic(Kr1,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 2: Pic(Kr2,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 3: Pic(Kr3,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 4: Pic(Kr4,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 5..10: Pic(Kr5,(Mk*22)+PocX,(Nk*17)+PocY);
+          EndCase;
+
+     In 3:     Case TabK((Nk*Sirka)+Mk)
+               In 0: Pic(Kz0,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 1: Pic(Kz1,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 2: Pic(Kz2,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 3: Pic(Kz3,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 4: Pic(Kz4,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 5..10: Pic(Kz5,(Mk*22)+PocX,(Nk*17)+PocY);
+          EndCase;
+
+     In 4:     Case TabK((Nk*Sirka)+Mk)
+               In 0: Pic(Kc0,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 1: Pic(Kc1,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 2: Pic(Kc2,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 3: Pic(Kc3,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 4: Pic(Kc4,(Mk*22)+PocX,(Nk*17)+PocY);
+               In 5..10: Pic(Kc5,(Mk*22)+PocX,(Nk*17)+PocY);
+          EndCase;
+
+EndCase;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                          Exploze do pol¡‡ka                                 }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Exp0
+
+HS:=TabM(Ne2);                         { p–vodn¡ majitel pole }
+
+If (HS<>HracExp) And (HS<>0) Then          { je to jin˜ majitel }
+
+     HracS(HS):=HracS(HS)-TabK(Ne2);          { sn¡‘en¡ skore protihr ‡e }
+     HracS(HracExp):=HracS(HracExp)+TabK(Ne2);      { p©evede se k nov‚mu hr ‡i }
+     Skore;                         { zobrazen¡ skore protihr ‡e }
+     If HracS(HS)=0 Then
+         HracA(HS):=0;                 { hr ‡ vy©azen }
+         Window(0,0,639,349);
+         Pic(Vyr,484,(HS*42)-3);       { text - vy©azen }
+     EndIf;
+     HS:=HracExp;
+     Skore;                         { zobrazen¡ skore aktiv. hr ‡e }
+EndIf;
+
+TabK(Ne2):=TabK(Ne2)+1;                    { zv˜¨en¡ po‡tu kamen– }
+TabM(Ne2):=HracExp;                    { nov˜ majitel }
+
+Kamen;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                              Exploze                                        }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Exploze
+
+
+Mk:=0;
+Nk:=0;
+
+Do
+     ParExp:=0;               { p©¡znak, ‘e nastala exploze }
+
+     Do
+          E1:=1; E2:=1; E3:=1; E4:=1; { nahoru, vpravo, dol–, vlevo }
+
+          If Mk=0 Then E4:=0; EndIf;      { nen¡ smˆr vlevo }
+          If Mk=MaxPole Then E2:=0; EndIf;      { nen¡ smˆr vpravo }
+          If Nk=0 Then E1:=0; EndIf;     { nen¡ smˆr nahoru }
+          If Nk=MaxPole Then E3:=0; EndIf;     { nen¡ smˆr dol– }
+
+          Ne:=(Nk*Sirka)+Mk;               { index testovan‚ho pole }
+          HracExp:=TabM(Ne);          { majitel testovan‚ho pole }
+
+          If TabK(Ne)>=(E1+E2+E3+E4) Then     { dosa‘eno maxima ? }
+
+               ParExp:=1;          { p©¡znak exploze }
+               TabK(Ne):=TabK(Ne)-(E1+E2+E3+E4); { sn¡‘en¡ kamen– }
+               If Zvuk Then Music(O3L1 +c); EndIf; { zvukov˜ efekt }
+               Kamen;               { zobrazen¡ nov‚ho kamene }
+
+               If E1 Then          { exploze nahoru }
+                    Ne2:=Ne-Sirka;
+                    Nk:=Nk-1;
+                    Exp0;
+                    Nk:=Nk+1;
+               EndIf;
+
+               If E2 Then          { exploze vpravo }
+                    Ne2:=Ne+1;
+                    Mk:=Mk+1;
+                    Exp0;
+                    Mk:=Mk-1;
+               EndIf;
+
+               If E3 Then          { exploze dol– }
+                    Ne2:=Ne+Sirka;
+                    Nk:=Nk+1;
+                    Exp0;
+                    Nk:=Nk-1;
+               EndIf;
+
+               If E4 Then          { exploze vlevo }
+                    Ne2:=Ne-1;
+                    Mk:=Mk-1;
+                    Exp0;
+                    Mk:=Mk+1;
+               EndIf;
+
+          EndIf;
+
+          On ParExp Exit;          { nastala exploze }
+
+          Mk:=Mk+1;
+          If Mk=Sirka Then
+               Nk:=Nk+1;
+               Mk:=0;
+          EndIf;
+          On Nk=Sirka Exit;
+     EndDo;
+
+     On ParExp=0 Exit;          { nenastala ‘ dn  exploze - konec OK }
+     On (HracA(1)+HracA(2)+HracA(3)+HracA(4))=1 Exit; { zbyl posledn¡ hr ‡ }
+
+     Nk:=Nk-1;               { znovu od p©ede¨l‚ho © dku }
+     If Nk<0 Then Nk:=0; EndIf;
+
+     Mk:=Mk-1;               { znovu od p©ede¨l‚ pozice }
+     If Mk<0 Then Mk:=0; EndIf;
+
+EndDo;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                          Zobrazen¡ figurky                                  }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Panak
+
+Window(0,0,639,349);                   { je mo‘n‚ pln‚ okno }
+
+F0:=F;
+
+Case Hrac
+     In 1: Case F
+         In 1: Pic(M1,X,Y);
+         In 2: Pic(M2,X,Y);
+         In 3: Pic(M3,X,Y);
+         In 4: Pic(M4,X,Y);
+         In 5: Pic(M5,X,Y);
+         In 6: Pic(M6,X,Y);
+         In 7: Pic(M7,X,Y);
+         In 8: Pic(M8,X,Y);
+         In 9: Pic(M9,X,Y);
+         In 10: Pic(M10,X,Y);
+         In 11: Pic(M11,X,Y);
+         In 12: Pic(M12,X,Y);
+         In 13: Pic(M13,X,Y);
+         In 14: Pic(M14,X,Y);
+         In 15: Pic(M15,X,Y);
+         In 16: Pic(M16,X,Y);
+         In 17: Pic(M17,X,Y);
+         In 18: Pic(M18,X,Y);
+         In 19: Pic(M19,X,Y);
+         In 20: Pic(M20,X,Y);
+         In 21: Pic(M21,X,Y);
+         In 22: Pic(M22,X,Y);
+         In 23: Pic(M23,X,Y);
+     EndCase;
+
+     In 2: Case F
+         In 1: Pic(R1,X,Y);
+         In 2: Pic(R2,X,Y);
+         In 3: Pic(R3,X,Y);
+         In 4: Pic(R4,X,Y);
+         In 5: Pic(R5,X,Y);
+         In 6: Pic(R6,X,Y);
+         In 7: Pic(R7,X,Y);
+         In 8: Pic(R8,X,Y);
+         In 9: Pic(R9,X,Y);
+         In 10: Pic(R10,X,Y);
+         In 11: Pic(R11,X,Y);
+         In 12: Pic(R12,X,Y);
+         In 13: Pic(R13,X,Y);
+         In 14: Pic(R14,X,Y);
+         In 15: Pic(R15,X,Y);
+         In 16: Pic(R16,X,Y);
+         In 17: Pic(R17,X,Y);
+         In 18: Pic(R18,X,Y);
+         In 19: Pic(R19,X,Y);
+         In 20: Pic(R20,X,Y);
+         In 21: Pic(R21,X,Y);
+         In 22: Pic(R22,X,Y);
+         In 23: Pic(R23,X,Y);
+     EndCase;
+
+     In 3: Case F
+         In 1: Pic(Z1,X,Y);
+         In 2: Pic(Z2,X,Y);
+         In 3: Pic(Z3,X,Y);
+         In 4: Pic(Z4,X,Y);
+         In 5: Pic(Z5,X,Y);
+         In 6: Pic(Z6,X,Y);
+         In 7: Pic(Z7,X,Y);
+         In 8: Pic(Z8,X,Y);
+         In 9: Pic(Z9,X,Y);
+         In 10: Pic(Z10,X,Y);
+         In 11: Pic(Z11,X,Y);
+         In 12: Pic(Z12,X,Y);
+         In 13: Pic(Z13,X,Y);
+         In 14: Pic(Z14,X,Y);
+         In 15: Pic(Z15,X,Y);
+         In 16: Pic(Z16,X,Y);
+         In 17: Pic(Z17,X,Y);
+         In 18: Pic(Z18,X,Y);
+         In 19: Pic(Z19,X,Y);
+         In 20: Pic(Z20,X,Y);
+         In 21: Pic(Z21,X,Y);
+         In 22: Pic(Z22,X,Y);
+         In 23: Pic(Z23,X,Y);
+     EndCase;
+
+     In 4: Case F
+         In 1: Pic(C1,X,Y);
+         In 2: Pic(C2,X,Y);
+         In 3: Pic(C3,X,Y);
+         In 4: Pic(C4,X,Y);
+         In 5: Pic(C5,X,Y);
+         In 6: Pic(C6,X,Y);
+         In 7: Pic(C7,X,Y);
+         In 8: Pic(C8,X,Y);
+         In 9: Pic(C9,X,Y);
+         In 10: Pic(C10,X,Y);
+         In 11: Pic(C11,X,Y);
+         In 12: Pic(C12,X,Y);
+         In 13: Pic(C13,X,Y);
+         In 14: Pic(C14,X,Y);
+         In 15: Pic(C15,X,Y);
+         In 16: Pic(C16,X,Y);
+         In 17: Pic(C17,X,Y);
+         In 18: Pic(C18,X,Y);
+         In 19: Pic(C19,X,Y);
+         In 20: Pic(C20,X,Y);
+         In 21: Pic(C21,X,Y);
+         In 22: Pic(C22,X,Y);
+         In 23: Pic(C23,X,Y);
+     EndCase;
+EndCase;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                 Obnoven¡ podkladu pod figurkou                              }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Obnov
+
+Mk:=M;
+Nk:=N-1;
+Kamen;
+Nk:=N;
+Kamen;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                           Krok figurky vlevo                                }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Vlevo
+
+If M=0 Then
+    F:=2;
+    Synch;
+    Obnov;
+    Panak;
+    Wait(4);
+    Return(0);
+EndIf;              { je ji‘ lev˜ okraj }
+
+Synch;
+
+Obnov;                         { obnoven¡ podkladu }
+
+F:=5;
+X:=X-11;
+Panak;
+Wait(2);
+
+Synch;
+
+Obnov;
+M:=M-1;
+Obnov;
+
+F:=2;
+X:=X-11;
+Panak;
+Wait(2);
+
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                           Krok figurky vpravo                               }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Vpravo
+
+If M=MaxPole Then
+    F:=3;
+    Synch;
+    Obnov;
+    Panak;
+    Wait(4);
+    Return(0);
+EndIf;              { je ji‘ prav˜ okraj }
+
+Synch;
+
+Obnov;                         { obnoven¡ podkladu }
+
+F:=6;
+X:=X+11;
+Panak;
+Wait(2);
+
+Synch;
+
+Obnov;                         { obnoven¡ podkladu }
+M:=M+1;
+Obnov;                         { obnoven¡ podkladu }
+
+F:=3;
+X:=X+11;
+Panak;
+Wait(2);
+
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                           Krok figurky nahoru                               }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Nahoru
+
+If F=1 Then
+    F:=2;
+    Obnov;                         { obnoven¡ podkladu }
+    Panak;
+    Wait(1);
+EndIf;
+
+
+If N=0 Then
+    F:=4;
+    Synch;
+    Obnov;
+    Panak;
+    Wait(4);
+    Return(0);
+EndIf;              { je ji‘ horn¡ okraj }
+
+Synch;
+
+Obnov;                         { obnoven¡ podkladu }
+
+F:=9;
+Y:=Y-8;
+Panak;
+Wait(2);
+
+Synch;
+
+Obnov;                         { obnoven¡ podkladu }
+N:=N-1;
+Obnov;                         { obnoven¡ podkladu }
+
+F:=10;
+Y:=Y-9;
+Panak;
+Wait(2);
+
+F:=4;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                           Krok figurky dol–                                 }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Dolu
+
+If N=MaxPole Then
+    F:=1;
+    Synch;
+    Obnov;
+    Panak;
+    Wait(4);
+    Return(0);
+EndIf;              { je ji‘ doln¡ okraj }
+
+Synch;
+
+Obnov;                         { obnoven¡ podkladu }
+
+F:=7;
+Y:=Y+8;
+Panak;
+Wait(2);
+
+Synch;
+
+Obnov;                         { obnoven¡ podkladu }
+N:=N+1;
+Obnov;                         { obnoven¡ podkladu }
+
+F:=8;
+Y:=Y+9;
+Panak;
+Wait(2);
+
+F:=1;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                         Automatick˜ tah                                     }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Automat
+
+Ma:=M;
+Na:=N;
+
+Sa:=-1;
+Sa0:=1;
+
+If (TabM((N*Sirka)+M)=0) Or (TabM((N*Sirka)+M)=Hrac) Then
+     Sa:=TabK((N*Sirka)+M);
+EndIf;
+
+Mk:=M;
+Nk:=N;
+
+Do
+    Mk:=Mk-1;
+    If Mk<0 Then Mk:=MaxPole; Nk:=Nk-1; EndIf;
+    On Nk<0 Exit;
+
+    If (TabM((Nk*Sirka)+Mk)=0) Or (TabM((Nk*Sirka)+Mk)=Hrac) Then
+         If TabK((Nk*Sirka)+Mk)=Sa Then Sa0:=Sa0+1; EndIf;
+         If TabK((Nk*Sirka)+Mk)>Sa Or
+            ((TabK((Nk*Sirka)+Mk)=Sa) And (Sa>0) And (Rnd(Sa0)=1)) Then
+              Ma:=Mk; Na:=Nk;
+              Sa:=TabK((Nk*Sirka)+Mk);
+         EndIf;
+    EndIf;
+EndDo;
+
+Mk:=M;
+Nk:=N;
+
+Do
+    Mk:=Mk+1;
+    If Mk>MaxPole Then Mk:=0; Nk:=Nk+1; EndIf;
+    On Nk>MaxPole Exit;
+
+    If (TabM((Nk*Sirka)+Mk)=0) Or (TabM((Nk*Sirka)+Mk)=Hrac) Then
+         If TabK((Nk*Sirka)+Mk)=Sa Then Sa0:=Sa0+1; EndIf;
+         If TabK((Nk*Sirka)+Mk)>Sa Or
+            ((TabK((Nk*Sirka)+Mk)=Sa) And (Sa>0) And (Rnd(Sa0)=1)) Then
+              Ma:=Mk; Na:=Nk;
+              Sa:=TabK((Nk*Sirka)+Mk);
+         EndIf;
+    EndIf;
+EndDo;
+
+
+Do
+    On (Ma=M) And (Na=N) Exit;
+
+    If Ma<M Then Vlevo; Krajina; EndIf;
+    If Ma>M Then Vpravo; Krajina; EndIf;
+    If Na<N Then Nahoru; Krajina; EndIf;
+    If Na>N Then Dolu; Krajina; EndIf;
+EndDo;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                      Inicializace pro novou hru                             }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Init
+
+Case VelikostPole
+    In 1: MaxPole:=5;
+    In 2: MaxPole:=7;
+    In 3: MaxPole:=14;
+    In 4: MaxPole:=19;
+EndCase;
+
+Sirka:=MaxPole+1;
+
+PocX:=7+(((19-MaxPole)*22)/2);
+PocY:=5+(((19-MaxPole)*17)/2);
+
+M:=MaxPole/2;
+N:=MaxPole/2;
+X:=PocX+3+(M*22);
+Y:=PocY+(N*17)-8;
+
+HS:=1;
+
+Do
+    HracN(HS):=N;
+    HracM(HS):=M;
+    HracX(HS):=X;
+    HracY(HS):=Y;
+    HracS(HS):=0;
+    HracT(HS):=0;
+    If HS<=PocetHracu Then
+         HracA(HS):=1;
+    Else
+         HracA(HS):=0;
+    EndIf;
+    HS:=HS+1;
+    On HS=5 Exit;
+EndDo;
+
+Pattern(%11101110,%11111111,%10111011,%11111111,
+        %11101110,%11111111,%10111011,%11111111);
+FBox($900+3,0,0,454,349);
+FBox($300,PocX+7,PocY+7,PocX+(MaxPole*22)+29,PocY+(MaxPole*17)+24);
+
+Pattern($ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff);
+FBox(14,PocX,PocY,PocX+(MaxPole*22)+22,PocY+(MaxPole*17)+17);
+
+Mk:=0;
+Do
+    Line(0,PocX+(Mk*22),PocY,PocX+(Mk*22),PocY+(MaxPole*17)+17);
+    Mk:=Mk+1;
+    On Mk>Sirka Exit;
+EndDo;
+
+Nk:=0;
+Do
+    Line(0,PocX,PocY+(Nk*17),PocX+(MaxPole*22)+22,PocY+(Nk*17));
+    Nk:=Nk+1;
+    On Nk>Sirka Exit;
+EndDo;
+
+Pic(Pole,455,0);
+
+Mk:=0;
+
+Do
+     TabK(Mk):=0;
+     TabM(Mk):=0;
+     Mk:=Mk+1;
+     On Mk=400 Exit;
+EndDo;
+
+Hrac:=1;
+
+EndProc;
+
+{ =========================================================================== }
+{                                                                             }
+{                           Hlavn¡ procedura                                  }
+{                                                                             }
+{ =========================================================================== }
+
+Proc Main
+
+Video(16);
+
+{Palette(?,?,?,?,?,?,?,?,?,?,?,?,?,?,38,?,?);}
+
+Do
+
+Volba;
+
+On Znak=27 Exit;
+
+Init;                         { inicializace pro novou hru }
+
+F0:=0;
+
+Do
+
+     Znak:=TestKey And $ff;
+
+     If (Znak=" ") Or (Znak="s") Or (Znak="S") Or (Znak="a") Or (Znak="n")
+         Or (Znak="A") Or (Znak="N") Or (Znak=13) Then GetKey; EndIf;
+
+     On Znak=27 Exit;
+
+     If (Znak="s") Or (Znak="S") Then Zvuk:=Not Zvuk; EndIf;
+
+     If (Znak="a") Or (Znak="A") Then HracT(Hrac):=-1; EndIf;
+     If (Znak="n") Or (Znak="N") Then HracT(Hrac):=0; EndIf;
+
+     If HracT(Hrac) Then
+         Synch;
+         Obnov;
+         F:=13;
+         Panak;
+         F0:=0;
+         Wait(4);
+         Krajina;
+         Wait(4);
+         Krajina;
+         If (TestKey And %11011111)<>"N" Then
+              Automat;
+              Znak:=" ";
+         EndIf;
+         Wait(4);
+         Krajina;
+         Wait(2);
+         F:=1;
+     EndIf;
+
+     If ((Znak=" ") Or (Znak=13)) And ((TabM((N*Sirka)+M)=Hrac) Or
+     (TabM((N*Sirka)+M)=0)) Then
+          If Zvuk Then Music(O2L1C); EndIf;
+
+          TabK((N*Sirka)+M):=TabK((N*Sirka)+M)+1;
+          TabM((N*Sirka)+M):=Hrac;
+          HracS(Hrac):=HracS(Hrac)+1;     { zv˜¨en¡ skore }
+          HS:=Hrac;
+          Skore;                    { zobrazen¡ skore aktiv. hr ‡e }
+
+          Obnov;
+          Exploze;
+          F0:=0;
+          S:=0;
+
+          HracX(Hrac):=X;
+          HracY(Hrac):=Y;
+          HracM(Hrac):=M;
+          HracN(Hrac):=N;
+
+          Do
+               Hrac:=(Hrac Mod 4) + 1;
+               On HracA(Hrac) Exit;         { nalezen¡ aktivn¡ho hr ‡e }
+          EndDo;
+
+          X:=HracX(Hrac);
+          Y:=HracY(Hrac);
+          M:=HracM(Hrac);
+          N:=HracN(Hrac);
+
+     EndIf;
+
+    On (HracA(1)+HracA(2)+HracA(3)+HracA(4))=1 Exit; { konec }
+
+    Krajina;
+
+    If HracT(Hrac)=0 Then
+
+      St:=Stick;
+
+      Case St
+         In 1: Nahoru;
+         In 2: Nahoru;
+               Vpravo;
+         In 3: Vpravo;
+         In 4: Vpravo;
+               Dolu;
+         In 5: Dolu;
+         In 6: Vlevo;
+               Dolu;
+         In 7: Vlevo;
+         In 8: Vlevo;
+               Nahoru;
+      EndCase;
+
+    Else
+      St:=0;
+    EndIf;
+
+    If St=0 Then
+
+            S:=S+1;
+         Case ((S*2) Mod 740)
+          In 2: If F=4 Then
+                     F:=2;
+                     Synch;
+                     Obnov;
+                     Panak;
+                     Wait(2);
+                 EndIf;
+                 F:=1;
+             In 4: F:=1;
+             In 50:F:=11;          { rozm chne ruce }
+             In 56:F:=1;
+             In 80:F:=12;
+             In 110:F:=13;
+             In 120:F:=14;
+             In 126:F:=13;
+             In 130:F:=14;
+             In 136:F:=13;
+             In 140:F:=14;
+             In 146:F:=13;
+             In 150:F:=14;
+             In 156:F:=13;
+             In 190:F:=12;
+
+          In 230:F:=15;
+          In 236:F:=16;
+          In 238:F:=17;
+          In 240:F:=16;
+          In 242:F:=17;
+          In 244:F:=16;
+          In 246:F:=17;
+          In 248:F:=18;
+          In 250:F:=19;
+          In 254:F:=18;
+          In 256:F:=19;
+          In 260:F:=18;
+          In 262:F:=19;
+          In 266:F:=18;
+          In 268:F:=19;
+
+          In 270:F:=15;
+          In 274:F:=16;
+          In 276:F:=17;
+          In 280:F:=16;
+          In 282:F:=17;
+          In 284:F:=16;
+          In 288:F:=17;
+          In 290:F:=18;
+          In 294:F:=19;
+          In 296:F:=18;
+          In 300:F:=19;
+          In 302:F:=18;
+          In 306:F:=19;
+          In 308:F:=18;
+          In 312:F:=19;
+
+             In 316:F:=12;
+          In 340:F:=20;
+          In 360:F:=21;
+          In 364:F:=20;
+          In 386:F:=21;
+          In 390:F:=20;
+          In 410:F:=21;
+          In 416:F:=20;
+          In 436:F:=21;
+          In 440:F:=20;
+          In 460:F:=21;
+          In 466:F:=20;
+          In 486:F:=21;
+          In 490:F:=20;
+          In 510:F:=21;
+          In 516:F:=20;
+          In 536:F:=21;
+          In 540:F:=20;
+
+          In 600:F:=12;
+          In 630:F:=1;
+          In 640:F:=2;
+          In 642:F:=5;
+          In 646:F:=2;
+          In 646:F:=5;
+          In 650:F:=2;
+          In 652:F:=5;
+          In 656:F:=2;
+          In 658:F:=5;
+          In 660:F:=2;
+          In 662:F:=5;
+          In 666:F:=23;
+          In 668:F:=22;
+          In 670:F:=23;
+          In 672:F:=22;
+          In 676:F:=23;
+          In 678:F:=22;
+          In 680:F:=23;
+          In 682:F:=22;
+          In 686:F:=23;
+          In 688:F:=22;
+          In 690:F:=23;
+          In 692:F:=22;
+          In 696:F:=23;
+          In 698:F:=22;
+          In 700:F:=23;
+          In 702:F:=2;
+          In 710:F:=12;
+
+         EndCase;
+
+         If F<>F0 Then
+              Synch;
+              Obnov;
+              Panak;
+         EndIf;
+
+         Wait(4);
+     Else
+          S:=0;
+     EndIf;
+
+
+EndDo;
+
+If TestKey Then GetKey; EndIf;
+
+Window(0,0,639,349);
+
+Do
+    On Znak=27 Exit;
+    Window(0,0,639,349);
+    Pic(Vit1,484,(Hrac*42)-3);
+    Wait(4);
+    Krajina;
+    On TestKey<>0 Exit;
+    Wait(4);
+    Krajina;
+    On TestKey<>0 Exit;
+    Window(0,0,639,349);
+    Pic(Vit2,484,(Hrac*42)-3);
+    Wait(4);
+    Krajina;
+    On TestKey<>0 Exit;
+    Wait(4);
+    Krajina;
+    On TestKey<>0 Exit;
+EndDo;
+
+If TestKey Then GetKey; EndIf;
+
+EndDo;
+
+EndProc;
+
+Link(Pole,"Pole.scr");
+
+Link(VelPole,"VelPole.scr");
+Link(PocHrac,"PocHrac.scr");
+
+Link(VPole1,"VPole1.scr");
+Link(VPole2,"VPole2.scr");
+Link(VPole3,"VPole3.scr");
+Link(VPole4,"VPole4.scr");
+
+Link(VPole10,"VPole10.scr");
+Link(VPole20,"VPole20.scr");
+Link(VPole30,"VPole30.scr");
+Link(VPole40,"VPole40.scr");
+
+Link(PocH2,"PocH2.scr");
+Link(PocH3,"PocH3.scr");
+Link(PocH4,"PocH4.scr");
+
+Link(PocH20,"PocH20.scr");
+Link(PocH30,"PocH30.scr");
+Link(PocH40,"PocH40.scr");
+
+Link(Vyr,"Vyr.scr");
+Link(Vit1,"Vit1.scr");
+Link(Vit2,"Vit2.scr");
+
+Link(Nadpis,"Nadpis.scr");
+Link(Text1,"Text1.scr");
+Link(Text2,"Text2.scr");
+Link(Lic,"Lic.scr");
+
+Link(NX,"NX.scr");
+Link(N0,"N0.scr");
+Link(N1,"N1.scr");
+Link(N2,"N2.scr");
+Link(N3,"N3.scr");
+Link(N4,"N4.scr");
+Link(N5,"N5.scr");
+Link(N6,"N6.scr");
+Link(N7,"N7.scr");
+Link(N8,"N8.scr");
+Link(N9,"N9.scr");
+
+Link(K0,"K0.scr");
+
+Link(Km0,"Km0.scr");
+Link(Km1,"Km1.scr");
+Link(Km2,"Km2.scr");
+Link(Km3,"Km3.scr");
+Link(Km4,"Km4.scr");
+Link(Km5,"Km5.scr");
+
+Link(Kr0,"Kr0.scr");
+Link(Kr1,"Kr1.scr");
+Link(Kr2,"Kr2.scr");
+Link(Kr3,"Kr3.scr");
+Link(Kr4,"Kr4.scr");
+Link(Kr5,"Kr5.scr");
+
+Link(Kz0,"Kz0.scr");
+Link(Kz1,"Kz1.scr");
+Link(Kz2,"Kz2.scr");
+Link(Kz3,"Kz3.scr");
+Link(Kz4,"Kz4.scr");
+Link(Kz5,"Kz5.scr");
+
+Link(Kc0,"Kc0.scr");
+Link(Kc1,"Kc1.scr");
+Link(Kc2,"Kc2.scr");
+Link(Kc3,"Kc3.scr");
+Link(Kc4,"Kc4.scr");
+Link(Kc5,"Kc5.scr");
+
+Link(M1,"M1.scr");
+Link(M2,"M2.scr");
+Link(M3,"M3.scr");
+Link(M4,"M4.scr");
+Link(M5,"M5.scr");
+Link(M6,"M6.scr");
+Link(M7,"M7.scr");
+Link(M8,"M8.scr");
+Link(M9,"M9.scr");
+Link(M10,"M10.scr");
+Link(M11,"M11.scr");
+Link(M12,"M12.scr");
+Link(M13,"M13.scr");
+Link(M14,"M14.scr");
+Link(M15,"M15.scr");
+Link(M16,"M16.scr");
+Link(M17,"M17.scr");
+Link(M18,"M18.scr");
+Link(M19,"M19.scr");
+Link(M20,"M20.scr");
+Link(M21,"M21.scr");
+Link(M22,"M22.scr");
+Link(M23,"M23.scr");
+
+Link(R1,"R1.scr");
+Link(R2,"R2.scr");
+Link(R3,"R3.scr");
+Link(R4,"R4.scr");
+Link(R5,"R5.scr");
+Link(R6,"R6.scr");
+Link(R7,"R7.scr");
+Link(R8,"R8.scr");
+Link(R9,"R9.scr");
+Link(R10,"R10.scr");
+Link(R11,"R11.scr");
+Link(R12,"R12.scr");
+Link(R13,"R13.scr");
+Link(R14,"R14.scr");
+Link(R15,"R15.scr");
+Link(R16,"R16.scr");
+Link(R17,"R17.scr");
+Link(R18,"R18.scr");
+Link(R19,"R19.scr");
+Link(R20,"R20.scr");
+Link(R21,"R21.scr");
+Link(R22,"R22.scr");
+Link(R23,"R23.scr");
+
+Link(Z1,"Z1.scr");
+Link(Z2,"Z2.scr");
+Link(Z3,"Z3.scr");
+Link(Z4,"Z4.scr");
+Link(Z5,"Z5.scr");
+Link(Z6,"Z6.scr");
+Link(Z7,"Z7.scr");
+Link(Z8,"Z8.scr");
+Link(Z9,"Z9.scr");
+Link(Z10,"Z10.scr");
+Link(Z11,"Z11.scr");
+Link(Z12,"Z12.scr");
+Link(Z13,"Z13.scr");
+Link(Z14,"Z14.scr");
+Link(Z15,"Z15.scr");
+Link(Z16,"Z16.scr");
+Link(Z17,"Z17.scr");
+Link(Z18,"Z18.scr");
+Link(Z19,"Z19.scr");
+Link(Z20,"Z20.scr");
+Link(Z21,"Z21.scr");
+Link(Z22,"Z22.scr");
+Link(Z23,"Z23.scr");
+
+Link(C1,"C1.scr");
+Link(C2,"C2.scr");
+Link(C3,"C3.scr");
+Link(C4,"C4.scr");
+Link(C5,"C5.scr");
+Link(C6,"C6.scr");
+Link(C7,"C7.scr");
+Link(C8,"C8.scr");
+Link(C9,"C9.scr");
+Link(C10,"C10.scr");
+Link(C11,"C11.scr");
+Link(C12,"C12.scr");
+Link(C13,"C13.scr");
+Link(C14,"C14.scr");
+Link(C15,"C15.scr");
+Link(C16,"C16.scr");
+Link(C17,"C17.scr");
+Link(C18,"C18.scr");
+Link(C19,"C19.scr");
+Link(C20,"C20.scr");
+Link(C21,"C21.scr");
+Link(C22,"C22.scr");
+Link(C23,"C23.scr");
+
+Link(Ptak1,"Ptak1.scr");
+Link(Ptak2,"Ptak2.scr");
+Link(Ptak3,"Ptak3.scr");
+Link(Ptak4,"Ptak4.scr");
+
+Link(Turista1,"Turista1.scr");
+Link(Turista2,"Turista2.scr");
+

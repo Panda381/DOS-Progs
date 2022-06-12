@@ -1,0 +1,399 @@
+    Tseng Super VGA
+
+    ET3000-AX    512k 8/16 bit Main chip
+          -BX    512k  8 bit
+          -Bp    256k  8 bit  Basic chip
+    ET4000       1M   8/16 bit
+    ET4000/W32   4MB  Accelerator.
+    ET4000/W32i  4MB  Accelerator. Can interleave DRAM
+    ET4000/W32p  4MB  Accelerator, PCI support
+
+
+
+    Registers:
+
+102h: Microchannel Setup Control
+bit 0  Disable Card if set
+
+3BFh (R/W): Hercules Compatibility Mode
+bit   1  Enable second page (B800h-BFFFh)
+
+3C0h index 16h: ATC Miscellaneous
+bit 4,5  High resolution timings.
+          0: Normal powerup mode, 2: Hiresolution 256color mode
+          3: 15/16 bit HiColor mode
+      7  Ignore EGA internal palette
+
+3C3h (R/W): Microchannel Video Subsystem Enable Register:
+bit 0  Enable Microchannel VGA if set
+
+3C4h index  6  (R/W): Zoom Control                               (ET3000 Only)
+bit 0-2  Yzoom factor 0=1:1
+    4-6  Xzoom factor 0=1:1
+      7  Hardware zoom enabled if set
+
+3C4h index  6  (R/W): TS State Control                            (not ET3000)
+bit 1-2  Font Width Select: 0: 9, 1: 8, 2: 10, 3: 11, 4: 12, 7: 16
+         Only valid if 3d4h index 34h bit 3 set.
+
+3C4h index  7  (R/W): TS Auxiliary Mode
+bit 0  (ET3000 Only) Switch Normal Window if set (Text/Graph)
+       (not ET3000)  Selects MCLK/4 as video clock if set (bit 6 must be set)
+    1  (ET3000 Only) Switch Zoom Window if set (Text/Graph)
+       (not ET3000)  Selects SCLK=MCLK
+    2  (ET3000 Only) Switch Split Window if set (Text/Graph)
+       (not ET3000)  Always 1
+    4  (ET3000 Only) If set 8 simultaneous fonts are enabled,
+                     using bit 3,4,6 of each attribute byte
+                     to select the font.
+  3,5  ROM Bios Enable/Disable:
+         0 0  C000-C3FF Enabled
+         0 1  ROM disabled
+         1 0  C000-C5FF,C680-C7FF Enabled
+         1 1  C000-C7FF Enabled
+    6  MCLK/2 if set (ET4000: bit 0 must be 0)
+    7  VGA compatible if set EGA else.
+
+3CBh (R/W): PEL Address/Data Wd                                  (3000/4000 ?)
+
+3CBh (R/W): Extended bank register                                  (W32 only)
+bit 0-1  Write bank bit 4-5. The lower 4 bits are in 3CDh bit 0-3.
+    4-5  Read bank bit 4-5.  The lower 4 bits are in 3CDh bit 4-7.
+
+3CDh (R/W): Segment Select
+bit 0-2  (ET3000) 64k Write bank nbr
+    3-5  (ET3000) 64k Read bank nbr
+    6-7  (ET3000) Segment Configuration.
+                    0  128K segments
+                    1   64K segments
+                    2  1M linear memory
+    0-3  (ET4000) 64k Write bank nbr (0..15)
+    4-7  (ET4000) 64k Read bank nbr (0..15)
+
+3CEh index  Dh (R/W): Microsequencer Mode
+
+3CEh index  Eh (R/W): Microsequencer Reset 
+
+3d4h index 1Bh (R/W): X Zoom Start Address                       (ET3000 Only)
+bit 0-7  Offset of Zoom window start in character clocks
+         (8 pixels) from left edge
+
+3d4h index 1Ch (R/W): X Zoom End                                 (ET3000 Only)
+bit 0-7  Offset of Zoom window end in char clocks from left edge
+
+3d4h index 1Dh (R/W): Y Zoom Start Address                       (ET3000 Only)
+bit 0-7  Start line of zoom window bit 0-7
+
+3d4h index 1Eh (R/W): Y Zoom End Address                         (ET3000 Only)
+bit 0-7  (ET3000 Only) End line of zoom window bit 0-7
+
+3d4h index 1Fh (R/W): Y Zoom Start and End High                  (ET3000 Only)
+bit 0-2  End line of zoom window bit 8-10
+    3-5  Start line of zoom window bit 8-10
+
+3d4h index 20h (R/W): Zoom Start Address Low                     (ET3000 Only)
+bit 0-7  Zoom Start Address bit 0-7. Address of Zoom data
+
+3d4h index 21h (R/W): Zoom Start Address Middle                  (ET3000 Only)
+bit 0-7  Zoom Start Address bit 8-15
+
+3d4h index 23h (R/W): Extended start ET3000                      (ET3000 Only)
+bit   0  Cursor start address bit 16
+      1  Display start address bit 16
+      2  Zoom start address bit 16
+
+3d4h index 24h (R/W): Compatibility Control                      (ET3000 only)
+bit   0  Enable Clock Translate
+      1  Clock Select bit 2. Bits 0-1 are in 3C2h/3CCh.
+      2  Enable tri-state for all output pins
+      3  Enable input A8 of 1MB DRAMs
+      4  Reserved
+      5  Enable external ROM CRTC translation
+      6  Enable Double Scan and Underline Attribute
+      7  CGA/MDA/Hercules
+
+3d4h index 25h (R/W): Overflow High ET3000                       (ET3000 Only)
+bit   0  Vertical Blank Start bit 10
+      1  Vertical Total Start bit 10
+      2  Vertical Display End bit 10
+      3  Vertical Sync Start bit 10
+      4  Line Compare bit 10
+    5-6  Reserved
+      7  Vertical Interlace if set
+
+3d4h index 30h (R/W):
+bit 0-4  Exists on W32, but ET4000 ??
+
+3d4h index 32h (R/W): RAS/CAS Video Config                        (not ET3000)
+bit 0-4  Controls the Trsp, Tcsw, Tcsp timings
+      5  Recharge time (Trcd)? <=50ns if clear
+      7  (W32i/p) Set if using interleaved memory.
+      Ram timing, System clock and Ram type. Sample values:
+          00h  VRAM  80nsec
+          09h  VRAM 100nsec
+          00h  VRAM  28MHz
+          08h  VRAM  36MHz
+          70h  DRAM  40MHz
+
+3d4h index 33h (R/W): Extended start ET4000                       (not ET3000)
+bit 0-1  (4000) Display Start Address bits 16-17
+    2-3  (4000) Cursor start address bits 16-17
+         Can be used to ID ET4000
+    0-3  (W32x) Display Start Address bits 16-19
+
+3d4h index 34h (R/W): Compatibility Control Register
+bit   0  Enable CS0 (alternate clock timing)
+      1  Clock Select bit 2.  Bit 0-1 in 3C2h bits 2-3.
+      2  Tristate ET4000 bus and color outputs
+      3  Video Subsystem Enable Register at 46E8h if set, at 3C3h if clear.
+      4  Enable Translation ROM for reading CRTC and MISCOUT
+      5  Enable Translation ROM for writing CRTC and MISCOUT
+      6  Enable double scan in AT&T compatibility mode
+      7  Enable 6845 compatibility
+
+3d4h index 35h (R/W): Overflow High ET4000                        (not ET3000)
+bit   0  Vertical Blank Start Bit 10
+      1  Vertical Total Bit 10
+      2  Vertical Display End Bit 10
+      3  Vertical Sync Start Bit 10
+      4  Line Compare Bit 10
+      5  Gen-Lock Enabled if set (External sync)
+      6  Read/Modify/Write Enabled if set. Currently not implemented.
+      7  Vertical interlace if set
+
+3d4h index 36h (R/W): Video System Configuration 1                (not ET3000)
+bit 0-2  Refresh count (-1)
+      3  16 bit wide fonts if set, else 8 bit wide
+      4  Linear addressing if set
+         Video Memory is mapped as a 1 Meg block above 1MB.
+      5  Enable Tseng Addressing Mode
+      6  16 bit data path (video memory) if set
+      7  16 bit data (I/O operations) if set
+
+3d4h index 37h (R/W): Video System Configuration 2                (not ET3000)
+bit 0-1  (4000) Bus width (VGA chip to video memory):
+                  1 = 8 bit, 2 = 16 bit, 3 = 32 bit.
+      0  (W32x) Bus Width 0: 16bit, 1: 32bit
+      2  Bus Read Latch control (0: Delay one clock before latching)
+      3  (4000) Size of RAM chips. 0: 64Kx, 1: 256Kx
+         (W32x) Size of RAM chips. 0: 1Mx, 1: 256Kx
+         RAM size is (Chip size 64k/256k/1M) * (Bus Width 1/2/4 bytes)
+         For W32i/p multiply with 2 if interleaved.
+      4  Disable Block Readahead (One source says: 16 bit ROM access if set)
+      5  Memory bandwidth (0 better than 1) ???
+      6  Enable test mode (One source says: Block read ahead (BRA)  if clear)
+      7  VRAM installed if set DRAM if clear.
+
+3d4h index 3Fh (R/W):                                             (not ET3000)
+bit   7  This bit seems to be bit 8 of the CRTC offset register (3d4h index
+         13h).
+
+3d8h (R/W): Display Mode Control
+
+217Ah index E0h W(R/W):  Cursor X-position                          (W32 only)
+bit 0-15  The X position of the HardWare Cursor
+
+217Ah index E2h (R/W):                                              (W32 only)
+bit  0-7  The pixel number (from the right) within the cursor bitmap of the
+          first used pixel.
+
+217Ah index E4h W(R/W):  Cursor Y-position                          (W32 only)
+bit 0-15  The Y position of the HardWare cursor
+
+217Ah index E6h (R/W):                                              (W32 only)
+bit  0-7  The pixel number (from the top) within the cursor bitmap of the
+          first used pixel.
+
+217Ah index E8 3(R/W):  Cursor Map Address                          (W32 only)
+bit 0-23  The address in Video Memory of the start of the Cursor BitMap.
+          In bytes in planar modes, and in DWORDs in packed modes.
+
+217Ah index EBh (R/W):                                              (W32 only)
+bit  0-7  Width of the Cursor Map: 2=16 bytes per line, 4=32 bytes
+
+217Ah index ECh (R/?):                                              (W32 only)
+bit  0-3  Mask revision ??
+     4-7  Chip version. 0: W32, 3: W32i, 2,4: W32p ?
+
+217Ah index EDh (R/W):                                              (W32 only)
+
+217Ah index EEh (R/W):                                              (W32 only)
+bit  0-7  1: Cursor data is loaded from every byte in the Cursor Map.
+          2: Cursor data is only loaded from even bytes in the Cursor Map
+
+217Ah index EFh (R/W):                                              (W32 only)
+
+217Ah index F7h (R/W):                                              (W32 only)
+bit    7  Set to enable the HardWare Cursor.
+
+46E8h (R):  Video Subsystem Enable Register
+bit   3  Enable VGA if set
+
+
+       3C4h index 05 used.
+ 
+
+  Bank Switching:
+
+     64k banks are selected by the Segment Select Register at 3CDh.
+     Both a Read and a Write segment can be selected.
+
+  Hardware Zoom (ET3000 Only).
+
+     The ET3000 can zoom a part of display memory in a window.
+     The display memory position and window position are selected
+     by 3d4h index 1Bh to 21h.
+
+
+  Identify Tseng Chipset:
+
+  outp($3BF,3);
+  outp($3D8,$A0);   {Enable ET4000 extensions}
+  if tstrg($3CD,$3F) then
+    if testinx2(base,$33,$F) then
+      if tstrg($3CB,$33) then
+        case rdinx($217A,$EC) shr 4 of
+          0:Tseng ET4000W32
+          3:Tseng ET4000W32i
+          2:Tseng ET4000W32p    {Not quite sure yet}
+        end
+      else Tseng 4000
+    else Tseng 3000;
+
+Memory:     (Tseng BIOS version 3.00 and up)
+0:488h  BYTE  Bit 4  High bit of the 1024x768 mode flag
+                      0: 87Hz interlaced, 1: 60Hz, 2: 72Hz, 3: 70Hz
+                  5  High bit of 800x600 mode flag
+                      0: 60Hz, 1: 56Hz, 2: 72Hz 
+                  6  If set 640x480 is 72Hz, else 60Hz 
+0:489h  BYTE  Bit 5  Low bit of the 1024x768 mode flag
+                  6  Low bit of the 800x600 flag 
+
+
+
+  Video Modes:
+     8   T   132   25   2                   (STB only)
+     Ah  T   132   44   2
+    18h  T   132   44   4  (8x8)   B000
+    19h  T   132   25   4  (9x14)  B000
+    1Ah  T   132   28   4  (9x13)  B000
+    22h  T   132   44  16  (8x8)
+    23h  T   132   25  16  (8x14)
+    24h  T   132   28  16  (8x13)
+    25h  G   640  480  16  planar
+    26h  T    80   60  16  (8x8)
+    27h  G   720  512  16  PL4        (Tseng recommended, few boards)
+    29h  G   800  600  16  PL4
+    2Ah  T   100   40  16  PL4
+    2Dh  G   640  350 256  P8
+    2Eh  G   640  480 256  P8
+    2Fh  G   640  400 256  P8         (ET4000 Only)
+    2Fh  G   720  512 256  P8         (Tseng recommended, few boards)
+    30h  G   800  600 256  P8
+    36h  G   960  720  16  PL4        (STB only)
+    37h  G  1024  768  16  PL4
+    38h  G  1024  768 256  P8         (ET4000 Only)
+    3Dh  G  1280 1024  16  PL4        (newer ET4000s)
+    3Eh  G  1280  960  16  PL4        (Definicon)
+    6Ah  G   800  600  16  PL4        Newer ET4000s 
+
+   BIOS extensions  (Tseng 4000 Sierra HiColor DAC):
+
+----------1010E0-----------------------------
+INT 10 - VIDEO - SpeedStar 24 - SET TrueColor GRAPHICS MODE
+        AX = 10E0h
+        BL = 2Eh    
+Return: AX = 0010h if successful
+             other on error
+Enters 24bit 640x480 mode if SS24 DAC present.
+Video memory is NOT cleared.
+Each line uses 2048 bytes with only 640x3=1920 bytes actually used.
+So that a line can never cross a 64K border.
+----------1010F0-----------------------------
+INT 10 - VIDEO - Tseng ET-4000 BIOS - SET HiColor GRAPHICS MODE
+        AX = 10F0h
+        BL = video mode (see also AH=00h)
+             32768-color modes:
+                   13h = 320x200
+                   2Dh = 640x350
+                   2Eh = 640x480
+                   2Fh = 640x400
+                   30h = 800x600
+             16M color modes:
+                   3Eh = 640x480   (Genoa 7900) 
+        BX =     2DFFh = 640x350   (MEGAVGA/2)
+                 2EFFh = 640x480   (MEGAVGA/2)
+                 2FFFh = 640x400   (MEGAVGA/2)
+Return: AX = 0010h if successful
+             other on error
+----------1010F1-----------------------------
+INT 10 - VIDEO - Tseng ET-4000 BIOS - GET DAC TYPE
+        AX = 10F1h
+Return: AX = 0010h if successful, errorcode if not
+        BL = type of digital/analog converter
+             00h normal VGA DAC
+             01h Sierra SC11481/6/8 HiColor DAC
+
+         (Diamond SpeedStar 24:)
+             02h New SS24 DAC  (16M colors) (actually)
+
+         (Tseng generic BIOS rev 8.00 or later:)
+             02h Sierra Mark2 (15-bit) or Mark3 (15/16-bit) DAC  
+             03h ATT20c490/1/2 15/16/24 bit HiColor DAC
+             04h AcuMos ADAC1 (15/16/24 bit)
+             05h Sierra SC15025/26 (15/16/24 bit DAC)
+             06h Cirrus Internal 15/16/24 bit DAC (from CL-GD54xx series).
+             07h Diamond SS2410. (15/24 bit).
+             08h Music MU9c4910 (15/16/24 bit DAC).
+             09h Unknown Type 9 ??
+----------1010F2-----------------------------
+INT 10 - VIDEO - Tseng ET-4000 BIOS - GET/SET HiColor MODE
+        AX = 10F2h
+        BL = 00h  Get current HiColor mode
+             01h  Set 15bit HiColor mode
+             02h  Set 16bit HiColor mode
+Return: AX = 0010h if successful, errorcode if not
+        BL = Current HiColor mode:
+             00h  Not in HiColor mode or not a HiColor DAC
+             01h  15-bit RGB mode
+             02h  16-bit RGB mode
+             03h  24-bit RGB mode  
+Note: Set HiColor mode (BL=1 or 2) only works if already in some HiColor mode.
+----------101D-------------------------------
+INT 10 - VIDEO - SpeedSTAR Plus BIOS v4.23+ - SET SYNC PARAMETERS
+        AH = 1Dh
+        AL = Video Mode
+        ES = Caller's segment
+Note: The caller's segment contains a table at offset 5Ch or 100h
+Offset    Size    Description
+ 00h    9 BYTEs   ID string 'ey5CENTER'
+ 09h    5 BYTEs   sync parameters for 640x480 modes 11h,12h,25h,26h,2Eh
+ 0Eh    5 BYTEs   sync parameters for 800x600 modes 29h,30h,2Ah
+ 13h    5 BYTEs   sync parameters for 1024x768 modes 37h, 38h
+----------101DAA-----------------------------
+INT 10 - VIDEO - Diamond SpeedSTAR - CHECK FOR SPEEDSTAR
+        AX = 1DAAh
+        BX = FDECh
+Return: BX = DECFh if found
+        AL = AH = DACtype:
+                    00h  Standard VGA DAC
+                    01h  Highcolor DAC with command bit 3 not writable
+                         (Sierra "Mark 1" - SC11481/6/8)
+                    02h  SS2410 DAC
+                    05h  Highcolor DAC with command bit 3 writable (Sierra
+                         "Mark 2/3" - SC11482/3/4/5/7/9)
+        SI:DI -> BIOS version & Copyright string
+
+
+
+
+Notes:
+  The sequence: 
+
+      port[$3BF]:=3;
+      port[$3D8]:=$A0;
+
+is apparently needed to enable the extensions in the Tseng 3000/4000.
+Most BIOSes do this by default, but some such as the Sigma VGA Legend
+requires this sequence.
+Let me know if you encounter any other examples.

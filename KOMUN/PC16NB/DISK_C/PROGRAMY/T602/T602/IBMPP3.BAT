@@ -1,0 +1,2 @@
+COPY IBMPP3.FNT LPT1: /B
+

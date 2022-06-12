@@ -1,0 +1,651 @@
+Obsazen°_portñ_procesoru:
+
+KANèL 0:
+    bit 0 aë bit 3 - zelen† indikaán° LED; 1=sv°t°, 0=nesv°t°
+    bit 4 aë bit 7 - áerven† indikaán° LED; 1=sv°t°, 0=nesv°t°
+
+KANèL 1:
+    bit 0 - áerpadlo; 1=zapnuto
+    bit 1 - vstup z tlaá°tka START/STOP; 0=stisknuto
+    bit 2 - napou®tàc° ventil 1; 0=zapnut
+    bit 3 - napou®tàc° ventil 2; 0=zapnut
+    bit 4 - napou®tàc° ventil 3; 0=zapnut
+    bit 6 a bit 5 - 11=klid, 10=pran° vlevo, 01=pran° vpravo, 00=ost©edàn°
+    bit 7 - topen°; 0=zapnuto
+
+KANèL 2:
+    bit 0 - vstup z tlaá°tka volby programu "A"
+    bit 1 - vstup z tlaá°tka volby programu "B"
+    bit 2 - vstup z tlaá°tka volby programu "C"
+    bit 3 - vstup z tlaá°tka volby programu "D"
+    bit 4 - mà©en° teploty vody
+    bit 5 - mà©en° nastaven° polohy potenciometru
+    bit 6 - vstup z hladinovÇho sp°naáe 1 (0=hladiny dosaëeno)
+    bit 7 - vstup z hladinovÇho sp°naáe 2 (0=hladiny dosaëeno)
+
+vstup T0 - vstup z hladinovÇho sp°naáe 0 (0=hladiny dosaëeno)
+
+vstup T1 - vstup ze sn°maáe prñchodu proudu nulou (1=je prñchod nulou)
+
+vstup I - vstup ze sn°maáe prñchodu napàt° nulou (0=je prñchod nulou)
+
+
+
+
+    Frekvence  gener†toru  je  5˙MHz  tj.  0.2˙Ês,  1˙takt hodin je 3˙pulsy
+gener†toru  tj.  1.67˙MHz  tj.  0.6˙Ês,  1˙cyklus  instrukce je 5˙taktñ tj.
+333.3˙kHz  tj.  3˙Ês, 1˙takt áasovaáe je 32*5˙taktñ procesoru tj. 10.42˙kHz
+tj.  96˙Ês,  celkov† doba cyklu áasovaáe (prñchod 256˙takty) je 40.7˙Hz tj.
+24.576˙ms.  P©eru®en°  od  áasovaáe  se  pouë°v† pouze pro kontrolu vòpadku
+s°tà.  K  mà©en°  áasu  se  pouë°v†  p©eru®en°  ze  s°tà. Sign†l ze s°tà je
+p©iveden  na  vstup  /INT  a generuje p©eru®en° kaëdòch 10˙ms resp. kaëdòch
+20˙ms.  P©i  tomto  p©eru®en°  se zaznamen† stav áasovaáe (kterò se pozdàji
+poëije  pro  up©esnàn° bodu sp°n†n° v nule) a áasovaá se vynuluje. Souáasnà
+se prov†d° inkrementace vnit©n°ho á°taáe áasu. Pokud po dobu 25˙ms nep©ijde
+p©eru®en° ze s°tà, vygeneruje se p©eru®en° od áasovaáe a provede se obsluha
+vòpadku  nap†jen°.
+
+
+
+
+    Program_program†toru
+
+
+
+                             S T R è N K A   0
+
+                             Obsluhy p©eru®en°
+
+      RESET:  JMP       reset0         ; start program†toru
+
+              db        0ffh           ; nepouëit† data
+
+      INT:    JMP       int0           ; obsluha vnàj®°ho p©eru®en°
+
+              db        0ffh,0ffh      ; nepouëit† data
+
+      TINT:   JMP       tint0          ; obsluha p©eru®en° od áasovaáe
+
+
+
+
+      INT0:                            ; obsluha vnàj®°ho p©eru®en°
+              SEL       RB1            ; vòbàr banky registrñ 1 (R0' - R7')
+              MOV       R7,A           ; £schova registru A
+
+
+                                     ;* obsluha á°taáe pro áek†n° programu
+              MOV       A,R3           ; á°taá doby jednÇ sekundy
+              JNZ       intc0          ; nen° je®tà dosaëeno nuly
+              MOV       R3,101         ; poáet p©eru®en° pro 1 sekundu + 1
+              SEL       RB0            ; vòbàr banky registrñ 0 (R0 - R7)
+              MOV       A,R5           ; á°taá sekund pro krok programu
+              JNZ       intc1          ; nen° je®tà dosaëeno 0
+              MOV       A,R4           ; konstanta pro á°taá sekund kroku
+              MOV       R5,A           ; á°taá sekund pro krok
+              INC       R5             ; p©ednastaven° á°taáe
+              MOV       A,R6           ; á°taá krokñ doby pro áek†n°
+              JZ        intc1          ; je jië dosaëeno nuly á°taáe
+              DEC       R6             ; sn°ëen° á°taáe krokñ pro áek†n°
+      intc1:  DEC       R5             ; sn°ëen° á°taáe sekund pro krok
+              SEL       RB1            ; vòbàr banky registrñ 1 (R0' - R7')
+      intc0:  DEC       R3             ; sn°ëen° á°taáe doby jednÇ sekundy
+
+                                     ;* obsluha vody
+              CALL      tstvod         ; test dosaëen° hladiny vody
+              MOV       R0,ventily     ; adresa ventilñ
+              CLR       A              ; A <- 0
+              JF0       intv1          ; hladiny je dosaëeno-ë†dnÇ ventily
+              MOV       A,@R0          ; poëadovanÇ ventily
+              RL        A              ; rotace na bit 1
+              RL        A              ; rotace na bit 2
+      intv1:  MOV       R0,faze01      ; f†ze pro zapnut° áerpadla
+              JF0       intv3          ; hladiny dosaëeno - vypnut° áerp.
+              JZ        intv2          ; je poëadov†no vypou®tàn° vody
+      intv3:  INC       R0             ; je napou®tàn° vody
+              ORL       A,1            ; p©°znak vypnut° áerpadla
+      intv2:  XRL       A,1dh          ; bity na poëadovanou polarity
+              MOV       R6,A           ; poëadovan† polarita bitñ
+              IN        A,P1           ; vstup z kan†lu 1
+              XRL       A,R6           ; maska bitñ ke zmànà
+
+                                     ;* test zmàn bitñ portu
+              MOV       R6,1           ; mànànò bit - áerpadlo
+              JB1       intt5          ; zmàna stavu áerpadla
+              INC       R0
+              INC       R0             ; adresa f†ze ventilu 1
+              MOV       R6,4           ; mànànò bit - ventil 1
+              JB2       intt5          ; ventil 1 nen° zapnut - zapnut°
+              INC       R0
+              INC       R0             ; f†ze pro zapnut° ventilu 2
+              MOV       R6,8           ; mànànò bit - ventil 2
+              JB3       intt5          ; ventil 2 nen° zapnut - zapnut°
+              INC       R0
+              INC       R0             ; f†ze pro zapnut° ventilu 3
+              MOV       R6,10h         ; mànànò bit - ventil 3
+              JB4       intt5          ; ventil 3 nen° zapnut - zapnut°
+                                       ; jinak pokraáov†n° v programu
+
+                                     ;* obsluha topen°
+              CALL      tsttep         ; test dosaëen° teploty
+              MOV       R6,80h         ; mànànÇ bity - topen°
+              MOV       R0,faze71      ; f†ze pro zapnut° topen°
+              IN        A,P1           ; vstup z kan†lu 1
+              JF0       intt4          ; teploty je dosaëeno
+              JB7       intt5          ; topen° vypnuto - zapnut°
+              JMP       intt8          ; topen° je jië zapnuto - OK
+      intt4:  JB7       intt8          ; topen° je jië vypnuto - OK
+              DEC       R0             ; f†ze pro vypnut° topen°
+      intt5:  MOV       A,@R0          ; f†ze pro zmànu stavu topen°
+              MOV       R5,A           ; f†ze pro zmànu stavu kan†lu 1
+              JMP       int6           ; konec obsluhy za©°zen°
+
+      intt8:
+
+      int6:                            ; konec obsluhy za©°zen°
+
+
+
+
+
+
+
+
+
+
+                             S T R è N K A   1
+
+                              Obsluhy za©°zen°
+
+
+
+
+
+
+
+
+      RESET0:
+
+
+Vnit©n° testy:
+
+testy vnit©n°ch pamàt° (56 bajtñ):
+                                     ;* test aktu†ln° banky programu ROM
+                                       ; (v®echna p©eru®en° jsou zak†z†na,
+                                       ; program je ve str†nce 1, vybr†na
+                                       ; banka registrñ 0) (13 bajtñ)
+
+B8 00         MOV       R0,0           ; poá†teán° adresa banky programu 1
+B9 00         MOV       R1,0           ; vòchoz° hodnota kontroln°ho souátu
+F8    t1:     MOV       A,R0           ; adresa bajtu z ROM
+A3            MOVP      A,@A           ; p©eáten° bajtu z ROM
+D9            XRL       A,R1           ; XOR s kontroln°m souátem
+77            RR        A              ; rotace vpravo
+A9            MOV       R1,A           ; uloëen° kontroln°ho souátu
+E8 xx         DJNZ      R0,t1          ; dal®° bajt k testov†n°
+96 xx         JZ        t2             ; nen° chyba kontroln°ho souátu
+
+D3 02 ch:     MOV       A,2            ; k¢d chyby pamàt° procesoru
+04 xx         JMP       chyba          ; skok do str†nky 2 - indikace chyby
+
+
+                                     ;* test banky konstant ROM (9 bajtñ)
+
+F8    t2:     MOV       A,R0           ; adresa bajtu z ROM
+E3            MOVP3     A,@A           ; p©eáten° bajtu z ROM (str†nka 3)
+D9            XRL       A,R1           ; XOR s kontroln°m souátem
+77            RR        A              ; rotace vpravo
+A9            MOV       R1,A           ; uloëen° kontroln°ho souátu
+E8 xx         DJNZ      R0,t2          ; dal®° bajt k testov†n°
+96 xx         JNZ       ch             ; chyba kontroln°ho souátu
+
+
+                                     ;* test pamàti RAM (29 bajtñ)
+
+B9 3D         MOV       R1,61          ; dÇlka testovanÇ oblasti RAM
+B8 03         MOV       R0,3           ; ukazatel testovanÇho bajtu RAM
+F0    t3:     MOV       A,@R0          ; pñvodn° hodnota bajtu
+AA            MOV       R2,A           ; £schova pñvodn° hodnoty bajtu RAM
+23 55         MOV       A,55h          ; testovac° vzorek 1
+A0            MOV       @R0,A          ; uloëen° vzorku 1
+00            NOP                      ; prodleva pro ust†len° sbàrnice
+F0            MOV       A,@R0          ; zpàtnÇ áten° vzorku 1
+D3 55         XRL       A,55h          ; kontrola,zda zñstal pñvodn° vzorek
+96 xx         JNZ       ch             ; vzorek nezñstal - chyba
+23 AA         MOV       A,0aah         ; testovac° vzorek 2
+A0            MOV       @R0,A          ; uloëen° vzorku 2
+00            NOP                      ; prodleva pro ust†len° sbàrnice
+F0            MOV       A,@R0          ; zpàtnÇ áten° vzorku 2
+D3 AA         XRL       A,0aah         ; kontrola,zda zñstal pñvodn° vzorek
+96 xx         JNZ       ch             ; vzorek nezñstal - chyba
+FA            MOV       A,R2           ; pñvodn° obsah testovanÇho bajtu
+A0            MOV       @R0,A          ; n†vrat pñvodn°ho obsahu RAM
+18            INC       R0             ; zvò®en° ukazatele vzorku
+E9 xx         DJNZ      R1,t3          ; test dal®°ho bajtu RAM
+
+
+              JMP       interp         ; skok do interpreteru programu
+
+
+                                       ; zde jsou testy portñ a vnàj®°ch
+                                       ; za©°zen°
+
+
+
+
+
+      tstvod:                          ; test dosaëen° hladiny vody
+                                       ; pouëitÇ registry: A,R0
+                                       ; VùSTUP: F0=1 - dosaëeno hladiny
+
+              CLR       F0             ; p©°znak - hladiny nedosaëeno
+              MOV       R0,ventily     ; adresa ventilñ
+              MOV       A,@R0          ; poëadovanÇ ventily
+              INC       R0
+              JNZ       tstvna         ; je napou®tàn° vody
+              CPL       F0             ; pro vypou®tàn° opaánò p©°znak
+      tstvna: MOV       A,@R0          ; poëadovan† hladina vody
+              CPL       A              ; NOT A
+              INC       A              ; negace A
+              INC       R0             ; skuteán† hladina vody
+              ADD       A,@R0          ; odeáten° skhlad-pozhlad
+              JNC       tstvh          ; hladina je nië®°
+              CPL       F0             ; stav - hladina je vy®®° nebo rovna
+      tstvh:  RET                      ; n†vrat z podprogramu
+
+      tsttep:                          ; test dosaëen° teploty vody
+                                       ; pouëitÇ registry: A,R0
+                                       ; VùSTUP: F0=1 - dosaëeno teploty
+
+              CLR       F0             ; p©°znak - teploty nedosaëeno
+              MOV       R0,poztep      ; poëadovan† teplota
+              MOV       A,@R0          ; poëadovan† teplota
+              JZ        tsttn          ; je vypnut° oh©evu - teplota OK
+              CALL      prevtep        ; áten° poëadovanÇ teploty
+              CPL       A              ; NOT A
+              INC       A              ; negace A
+              MOV       R0,sktep       ; skuteán† teplota vody
+              INC       R0             ; skuteán† teplota vody
+              ADD       A,@R0          ; odeáten° sktep-poztep
+              JNC       tstth          ; teplota je nië®°
+      tsttn:  CPL       F0             ; stav - hladina je vy®®° nebo rovna
+      tstth:  RET                      ; n†vrat z podprogramu
+
+
+      prevtep:                         ; p©evod á°sla na teplotu
+                                       ; pouëitÇ registry: A,R0
+                                       ; VùSTUP: A=teplota
+
+              MOV       R0,poztep      ; poëadovan† teplota
+              MOV       A,@R0          ; poëadovan† teplota
+              XRL       A,0fh          ; je poëadovan† ruán° regulace ?
+              JNZ       prevt1         ; nen° ruán° regulace
+              MOV       R0,ructep      ; ruán° regulace teploty
+              MOV       A,@R0          ; poëadovan† ruán° regulace teploty
+              RET
+      prevt1: MOV       A,@R0          ; poëadovan† teplota
+              ADD       A,tabtep-1     ; bajt v tabulce teplot
+              MOVP3     A,@A           ; p©eveden† poëadovan† teplota
+              RET
+
+
+
+
+
+
+
+
+
+                             S T R è N K A   2
+
+                            Interpreter programu
+
+;
+;
+; pouëit° registrñ:
+;
+;   R7 - ukazatel programu v pamàti ROM (str†nka 3)
+;   R6 - á°taá krokñ doby pro áek†n° (podm°nànÇ ái nepodm°nànÇ)
+;   R5 - á°taá sekund pro krok áek†n°
+;   R4 - konstanta pro á°taá sekund kroku áek†n°
+;   R3 - nastaven† doba pro podm°nànÇ áek†n°
+;   R2 - £schova p©°kazu z programu
+;   R1 - ukazatel z†sobn°ku (STACK aë STACK0)
+;   R0 - pomocnò registr (ukazatel adres dat)
+;
+
+
+      interp:                        ;* zaá†tek interpretace instrukce
+
+              MOV       A,R7           ; ukazatel programu
+              INC       R7             ; zvò®en° ukazatele programu
+              MOVP3     A,@A           ; p©eáten° instrukce programu
+
+      interp0:                       ;* interpretace instrukce v A
+
+              MOV       R2,A           ; £schova instrukce programu
+              JB7       kod1x          ; bit 7 = 1
+              JB6       voda           ; je instrukce VODA
+              JZ        stop           ; je instrukce STOP
+      CEKEJ:  JB5       cekejW         ; nastaven° doby podm°nànÇho áek†n°
+              MOV       R5,0           ; nulov†n° á°taáe sekund pro krok
+              MOV       R6,A           ; doba pro nepodm°nànÇ áek†n°
+              MOV       A,sekc         ; adresa konstanty nepodm. áek†n°
+              MOVP3     A,@A           ; konstanta nepodm. áek†n°
+              MOV       R4,A           ; nastaven° konstanty á°taáe sekund
+      cekej0: MOV       A,R6           ; á°taá doby áek†n°
+              JNZ       cekej0         ; áek†n° na uplynut° danÇ doby
+              JMP       interp         ; dals° krok programu
+      cekejw: ANL       A,1fh          ; nov† doba podm°nànÇho áek†n°
+              MOV       R3,A           ; nastaven° novÇ doby podm. áek†n°
+              JMP       interp         ; dal®° krok programu
+
+      STOP:                            ; ukonáen° prac°ho programu
+
+      VODA:                            ; povel VODA
+              ANL       A,7            ; ventily k proveden° operace
+              MOV       R1,ventily     ; adresa ventilñ
+              MOV       @R1,A          ; nastaven° poëadovanòch ventilñ
+              MOV       A,R2           ; uschovanò povel programu
+              ANL       A,18h
+              RR        A
+              RR        A
+              RR        A
+              MOV       R1,pozhlad
+              MOV       @R1,A          ; poëadovan† hladina
+              MOV       A,R2           ; uschovanò povel programu
+              JB5       vodac          ; je áek†n° na dosaëen° hladiny
+              JMP       interp         ; dal®° krok programu
+                                     ;* áek†n° na dosaëen° hladiny
+      vodac:  MOV       R5,0           ; nulov†n° á°taáe sekund pro krok
+              MOV       A,R3           ; doba pro podm°nànÇ áek†n°
+              MOV       R6,A           ; doba pro podm°nànÇ áek†n°
+              MOV       A,sekw         ; adresa konstanty nepodm. áek†n°
+              MOVP3     A,@A           ; konstanta nepodm. áek†n°
+              MOV       R4,A           ; nastaven° konstanty á°taáe sekund
+      voda1:  CALL      tstvod         ; test dosaëen° hladiny vody
+              JF0       interp         ; hladiny dosaëeno - pokraáov†n°
+              MOV       A,R6           ; á°taá doby áek†n°
+              JNZ       voda1          ; áek†n° na uplynut° danÇ doby
+              JMP       interp         ; dal®° krok programu
+
+
+      kod1x:  JB6       kod11x         ; bit 6 = 1
+              JB5       kod101x        ; bit 5 = 1
+
+      TOPENI:                          ; povel TOPENã
+              ANL       A,0fh          ; poëadovan† teplota vody
+              MOV       R1,poztep      ; poëadovan† teplota
+              MOV       @R1,A          ; poëadovan† teplota
+              MOV       A,R2           ; uschovanò povel programu
+              JB4       topc           ; je áek†n° na dosaëen° teploty
+              JMP       interp         ; dal®° krok programu
+                                     ;* áek†n° na dosaëen° teploty
+      topc:   ANL       A,0fh          ; poëadovan† teplota
+              MOV       R5,0           ; nulov†n° á°taáe sekund pro krok
+              MOV       A,R3           ; doba pro podm°nànÇ áek†n°
+              MOV       R6,A           ; doba pro podm°nànÇ áek†n°
+              MOV       A,sekw         ; adresa konstanty nepodm. áek†n°
+              MOVP3     A,@A           ; konstanta nepodm. áek†n°
+              MOV       R4,A           ; nastaven° konstanty á°taáe sekund
+      top1:   CALL      tsttep         ; test dosaëen° teploty vody
+              JF0       interp         ; teploty dosaëeno - pokraáov†n°
+              MOV       A,R6           ; á°taá doby áek†n°
+              JNZ       top1           ; áek†n° na uplynut° danÇ doby
+              JMP       interp         ; dal®° krok programu
+
+
+      kod101x:JB4       rskok          ; je povel RSKOK
+
+      MOTOR:                           ; povel MOTOR
+              ANL       A,0fh          ; poëadovanò typ ot†áen° motoru
+              MOV       R0,pozmot      ; poëadovanÇ nastaven° motoru
+              MOV       @R0,A          ; poëadovanÇ nastaven° motoru
+              JMP       interp         ; dal®° krok programu
+
+      RSKOK:                           ; povel RSKOK
+              JB3       rskok1         ; je skok zpàt
+              ANL       A,7            ; offset skoku
+              INC       R7             ; n†sleduj°c° adresa + 1
+      rskok0: ADD       A,R7           ; nov† adresa
+              MOV       R7,A           ; nov† adresa
+              JMP       interp         ; dal®° krok programu
+      rskok1: ANL       A,7            ; offset skoku
+              DEC       R7             ; adresa zaá†tku instrukce RSKOK
+              CPL       A              ; - (offset + 1)
+              JMP       rskok0         ; vòpoáet novÇ adresy
+
+      kod11x: JB5       kod111x        ; bit 5 = 1
+      kod110x:JB4       podp           ; bit 4 = 1
+
+      SKOK:                            ; povel SKOK
+              CALL      srclab         ; nalezen° n†và®t°
+              JF0       skok1          ; n†và®t° nalezeno
+              JMP       interp         ; n†và®t° nenalezeno
+      skok1:  MOV       R7,A           ; nastaven° novÇ adresy
+              JMP       interp         ; pokraáov†n° v programu
+
+      PODP:                            ; povel PODP
+              CALL      srclab         ; nalezen° n†và®t°
+              JF0       podp1          ; n†và®t° nalezeno
+              JMP       interp         ; n†và®t° nenalezeno - pokraáov†n°
+      podp1:  MOV       R2,A           ; mezi£schova novÇ adresy
+              MOV       A,R1           ; ukazatel z†sobn°ku
+              XRL       A,stack0       ; je jië konec z†sobn°ku ?
+              JZ        interp         ; z†sobn°k je jië plnò
+              MOV       A,R7           ; n†vratov† adresa podprogramu
+              MOV       @R1,A          ; uloëen° n†vratovÇ adresy
+              INC       R1             ; zvò®en° ukazatele z†sobn°ku
+              MOV       A,R2           ; nov† adresa skoku
+              MOV       R7,A           ; nastaven° novÇ adresy
+              JMP       interp         ; dal®° povel programu
+
+      kod111x:JB4       kodFx          ; bit 4 = 1
+
+
+
+      IND:    ANL       A,0fh          ; poëadovanò k¢d blik†n°
+              MOV       R0,kodblik     ; poëadovanò k¢d blik†n°
+              MOV       @R0,A          ; poëadovanò k¢d blik†n°
+              JMP       interp
+
+      kodFx:  JB3      kodF1x          ; bit 3 = 1
+
+      PAR:    JB2       defpar         ; je definice parametrñ
+              ANL       A,3            ; á°slo n†hradn°ho parametru
+              ADD       A,par1         ; adresa parametru v tabulce
+              MOV       R0,A           ; adresa parametru v tabulce
+              MOV       A,@R0          ; p©eáten° n†hradn°ho parametru
+              JMP       interp0        ; proveden° n†hradn°ho parametru
+      defpar: ANL       A,3            ; poáet parametrñ - 1
+              INC       A              ; poáet parametrñ
+              MOV       R0,par1        ; tabulka parametrñ
+              MOV       R2,A           ; pomocnò á°taá parametrñ
+      defp1:  MOV       A,R7           ; adresa parametru
+              INC       R7             ; zvò®en° adresy programu
+              MOVP3     A,@A           ; p©eáten° parametru
+              MOV       @R0,A          ; uloëen° novÇho parametru
+              INC       R0             ; zvò®en° ukl†dac° adresy
+              DJNZ      R2,defp1       ; definice dal®°ho parametru
+              JMP       interp         ; proveden° dal®°ho povelu
+
+      kodF1x: JB2       kodF11x        ; bit 2 = 1
+
+      PODM:   CLR       F1             ; p©°znak - je z†porn† podm°nka
+              JB1       podm1          ; je z†porn† podm°nka
+              CPL       F1             ; p©°znak - je kladn† podm°nka
+      podm1:  CALL      tstvod         ; test dosaëen° hladiny vody
+              JB0       podm2          ; je test hladiny vody
+              CALL      tsttep         ; test dosaëen° teploty vody
+      podm2:  JF1       podm3          ; je kladn† podm°nka
+              CPL       F0             ; z†porn† podm°nka - negace testu
+      podm3:  JF0       interp         ; podm°nka splnàna, povel se provede
+              INC       R7             ; p©eskoáen° n†sleduj°c°ho povelu
+              JMP       interp         ; dal®° p©°kaz
+
+      kodF11x:JB1       kodF111x       ; bit 1 = 1
+              JMP       interp         ; nevòkonnÇ povely LABEL nebo BOD
+
+      kodF111x: JB0     interp         ; bit 0 = 1 - je nevòkonnò povel NOP
+
+      RETN:   MOV       A,R1           ; ukazatel z†sobn°ku
+              XRL       A,stack        ; je jië zaá†tek z†sobn°ku ?
+              JZ        stop           ; je zaá†tek - funkce STOP
+              DEC       R1             ; sn°ëen° ukazatele z†sobn°ku
+              MOV       A,@R1          ; n†vratov† adresa
+              MOV       R7,A           ; n†vrat n†vratovÇ adresy
+              JMP       interp         ; dal®° povel programu
+
+
+
+
+      srclab:                          ; nalezen° n†và®t° (á°slo v A)
+                                       ; pouëitÇ registry: A,R0,R2
+                                       ; VùSTUP: F0=1 - n†và®t° nalezeno
+                                       ;         A=adresa n†và®t° LABEL
+
+              CLR       F0             ; p©°znak - n†và®t° nenalezeno
+              ANL       A,0fh          ; á°slo n†và®t° - 1
+              INC       A              ; á°slo n†và®t°
+              MOV       R2,A           ; á°taá á°sla n†và®t°
+              MOV       R0,program     ; zaá†tek tabulky programñ
+      srcl1:  MOV       A,R0           ; adresa bajtu programu
+              INC       R0             ; zvò®en° adresy programu
+              JZ        srcl2          ; konec pamàti - n†vrat
+              MOVP3     A,@A           ; p©eáten° povelu programu
+              XRL       A,0FCh         ; kontrola, zda je povel LABEL
+              JNZ       srcl1          ; nen° LABEL - dal®° adresa programu
+              DJNZ      R2,srcl1       ; hled†n° dal®°ho povelu LABEL
+              MOV       A,R0           ; n†sled. adresa za n†và®t°m LABEL
+              CPL       F0             ; nastaven° p©°znaku F0 (nalezeno)
+      srcl2:  RET
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                 STRèNKA 3
+
+                        Program praáky, tabulky dat
+
+
+
+
+      sekc:   db                       ; konstanta - poáet sekund áek†n°
+      sekw:   db                       ; konstanta - poáet sekund podm. áek.
+
+
+      tabtep: ds        14             ; tabulka teplot 1 aë 14
+
+
+      tabmot:                          ; tabulka definice ot†áen° motoru
+              ds        6 * 4          ; 6 definic, kaëd† definice obsahuje
+                                       ; dobu ot†áen° p©i pran° v jednom
+                                       ; smàru, prodlevu, dobu ot†áen° ve
+                                       ; zpàtnÇm smàru a prodlevu
+
+      tabind:                        ;* tabulka definice barev indikace
+                                       ; STRUKTURA:
+                                       ; bit 0, bit 1 - zelen† podkladu
+                                       ; bit 2, bit 3 - áerven† podkladu
+                                       ; bit 4, bit 5 - zelen† bliknut°
+                                       ; bit 6, bit 7 - áerven† bliknut°
+              db        3              ; barva 1 (zelen†) (0+3)
+              db        7              ; barva 2 (ëlutozelen†) (1+2)
+              db        0ah            ; barva 3 (ëlut†) (2+2)
+              db        9              ; barva 4 (oranëov†) (2+1)
+      tabinds:                       ;* tabulka definice systÇmovòch barev
+              db        0a3h           ; systÇmov† barva 1 (zelen†/ëlut†)
+              db        0c3h           ; systÇmov† barva 2 (zelen†/áerv.)
+              db        0cah           ; systÇmov† barva 3 (ëlut†/áerven†)
+              db        0c0h           ; systÇmov† barva 4 (tma/áerven†)
+
+
+
+
+
+                                   R A M
+
+
+                                     ;* registry pouë°vanÇ interpreterem
+
+      R7:     db                       ; ukazatel programu v pamàti ROM
+      R6:     db                       ; á°taá krokñ doby pro áek†n°
+      R5:     db                       ; á°taá sekund pro krok áek†n°
+      R4:     db                       ; konstanta pro á°taá sekund kroku
+      R3:     db                       ; nastaven† doba pro podm°n. áek†n°
+      R2:     db                       ; £schova p©°kazu z programu
+      R1:     db                       ; ukazatel z†sobn°ku programu
+      R0:     db                       ; pomocnò registr
+
+
+              ds        16             ; systÇmovò z†sobn°k
+
+                                     ;* registry pouë°vanÇ p©eru®en°m INT
+
+      R7':    db                       ; £schova registru A
+      R6':    db                       ; vòstup na kan†l 1 - mànànÇ bity
+      R5':    db                       ; doba ve f†zi pro zmànu kan†lu 1
+      R4':    db                       ; á°taá á°t†n° barvy (100 Hz)
+      R3':    db                       ; á°taá á°t†n° doby indikace
+      R2':    db                       ; á°taá pro á°t†n° doby sekundy
+      R1':    db                       ;
+      R0':    db                       ; pomocnò registr
+
+
+      faze01: db                       ; f†ze pro zapnut° áerpadla
+      faze00: db                       ; f†ze pro vypnut° áerpadla
+      faze20: db                       ; f†ze pro vypnut° ventilu 1
+      faze21: db                       ; f†ze pro zapnut° ventilu 1
+      faze30: db                       ; f†ze pro vypnut° ventilu 2
+      faze31: db                       ; f†ze pro zapnut° ventilu 2
+      faze40: db                       ; f†ze pro vypnut° ventilu 3
+      faze41: db                       ; f†ze pro zapnut° ventilu 3
+      faze50: db                       ; f†ze pro vypnut° relÇ motoru 1
+      faze51: db                       ; f†ze pro zapnut° relÇ motoru 1
+      faze60: db                       ; f†ze pro vypnut° relÇ motoru 2
+      faze61: db                       ; f†ze pro zapnut° relÇ motoru 2
+      faze70: db                       ; f†ze pro vypnut° topen°
+      faze71: db                       ; f†ze pro zapnut° topen°
+
+
+
+      citsek: db                       ; á°taá doby sekundy
+
+      aktven: db                       ; skuteánà sepnutÇ ventily
+      ventily:db                       ; poëadovanÇ ventily
+      pozhlad:db                       ; poëadovan† hladina vody
+      skhlad: db                       ; skuteán† hladina vody
+
+      ructep: db                       ; ruánà nastaven† teplota
+      poztep: db                       ; poëadovan† teplota vody
+      sktep:  db                       ; skuteán† teplota vody
+      sktop:  db                       ; bit 7=skuteánÇ nastaven° topen°
+
+      skmot:  db                       ; skuteánÇ nastaven° motoru
+      pozmot: db                       ; poëadovanÇ nastaven° motoru
+
+
+
+      stack:  ds        8              ; z†sobn°k n†vratovòch adres prog.
+      stack0:                          ; konec z†sobn°ku
+
+      kodblik:db                       ; poëadovan† barva blik†n°
+                                       ; bit 0, bit 1 - barva (z tabulky)
+                                       ; bit 2, bit 3 - poáet bliknut°
+                                       ; bit 4 - je systÇmov† tabulka
+
+      par1    db                       ; parametr 1
+      par2    db                       ; parametr 2
+      par3    db                       ; parametr 3
+      par4    db                       ; parametr 4
+

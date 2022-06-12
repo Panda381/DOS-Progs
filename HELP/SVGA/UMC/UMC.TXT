@@ -1,0 +1,141 @@
+UMC 85c408
+
+
+Support chips:
+
+UM9502     Clock chip
+
+UM70c178   High color 15/16 bit DAC (Similar to Sierra SC11487)
+
+
+3BFh (R/W):
+Note: written with ACh on startup ?
+
+3C4h index 5 (R/W):
+bit   5
+      7
+
+3C4h index 6 (R/W):
+bit 0-3  Read bank in 64K units
+    4-7  Write bank in 64K units
+
+3C4h index 7 (R/W):
+bit   0  Clock select?
+      1
+      2  If set memory access is 16bit, if clear 8bit.
+      3
+    6-7  Video Memory: 0: 256K, 1: 512K, 2/3: 1MB
+         Set by BIOS on initialisation.
+
+3C4h index 8 (R/W):
+bit   3  If set causes the first >200 pixels of each scanline to be blanked ??
+      5  If set changes the order/way pixels are displayed:
+         In 16 color modes each even byte is shown twice, causing the odd ones
+         to be skipped.
+         In "normal" 256color modes (3d4h index 33h bit 4 is clear), each even
+         bank (64K) is shown twice, causing the odd ones to be skipped.
+         In extended 256color modes (3d4h index 33h bit 4 is set) some strange
+         pixel replication happens
+      6  Clock select ?
+      7  If clear disables bit 0 of the bank registers
+
+3C4h index 9 (R/W):
+bit   2  Causes drastic color shifts if set??
+      3  Blanks display if set
+      7  Clock select ??
+
+3C4h index 0Ah (R/W):
+
+3CEh index  9  (R/W):
+bit   2
+      3  Changes the order/way pixels are decoded within each byte/word/dword.
+
+3CEh index 0Ah (R/W):  Scratch
+bit   0
+      1
+      2  If set HiColor is 64K, if clear 32K
+      3  If set only use lowest 2 bits of each bank register
+      4  
+      6
+      7  If set only use lowest bit of the bank registers
+
+3CEh index 0Bh (R/W):  Scratch
+bit 0-7  Current Video Mode
+
+3d4h index 2Eh (R/W):
+bit   3  If set doubles each scan line
+    4-5  Clock select ??
+      7  Clock select ??
+
+3d4h index 2Fh (R/W):
+bit   0  Set if in an interlaced mode
+      1  If set disables access to memory above 256K ?
+    4-7  Clock select ??
+
+3d4h index 33h (R/W):
+bit   1  Display Start Address bit 16
+      4  Set if in an extended 256color mode
+
+
+ID UMC superVGA:
+
+  old:=inp($3BF);
+  outp($3BF,3);
+  if not testinx($3C4,6) then
+  begin
+    outp($3BF,$AC);
+    if testinx($3C4,6) then UMC
+  end;
+  outp($3BF,old);
+
+
+
+Modes:
+
+  46h  T   132   25    2  (8x14)
+  47h  T   132   29    2  (8x12)
+  48h  T   132   32    2  (8x12)
+  49h  T   132   44    2  (8x8)
+  50h  G   640  480  32K  P15/P16    !Note: 32K or 64K is selected
+  51h  G   800  600  32K  P15/P16    !from 3CEh index Ah bit 2.
+  58h  T    80   32   16  (9x16)
+  5Ch  G   640  480  256  P8
+  5Eh  G   800  600  256  P8
+  5Fh  G  1024  768   16  PL4
+  60h  T   132   25   16  (8x14)
+  61h  T   132   29   16  (8x12)
+  62h  T   132   32   16  (8x12)
+  63h  T   132   44   16  (8x8)
+  64h  T   132   60   16  (8x8)
+  6Ah  G   800  100   16  PL4
+  6Bh  T   100   37   16  (8x16)
+  6Ch  G   800  600  256  P8
+  72h  T    80   60   16  (8x8)
+  73h  G   640  480   16  PL4
+  74h  T    80   66   16  (8x8)
+  78h  T   100   37   16  (8x16)
+  79h  G   800  600   16  PL4
+  7Ah  G  1280 1024   16  PL4
+  7Dh  G   512  512  256  P8
+  7Eh  G   640  400  256  P8
+  7Fh  G  1024  768  256  P8
+
+---------V-1012-A0----------------------------
+INT 10 - VIDEO - UMC - SET SCROLL TYPE
+        AH = 12h
+        BL = A0h
+        AL = Type of scroll in text modes
+              00h  Jump    (Sets 0:487h bit 6)
+              01h  Smooth  (Clears 0:487h bit 6)
+---------V-102000-----------------------------
+INT 10 - VIDEO - UMC - GET BANKs
+        AH = 2000h
+Return: AL = 20h if supported
+        BL = Read bank
+        BH = Write bank
+---------V-102001-----------------------------
+INT 10 - VIDEO - UMC - SET BANKs
+        AH = 2001h
+        BL = Read Bank
+        BH = Write Bank
+Return: AL = 20h if supported

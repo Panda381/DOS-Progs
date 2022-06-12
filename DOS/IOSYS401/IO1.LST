@@ -1,0 +1,528 @@
+CONTEXT   0 123   2   0  80
+              IO1.LST               - # -
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+; *****************************************************************************
+;
+;                  Modul IO.SYS opera‡n¡ho syst‚mu MS DOS V 4.01
+;
+; *****************************************************************************
+
+; start modulu IO.SYS - po startu syst‚mu zavede zavadˆ‡ opera‡n¡ho
+; syst‚mu prvn¡ 3 sektory se souboru IO.SYS do pamˆti od adresy
+; 0070:0000H a p©ed  na tuto adresu ©¡zen¡. V prvn¡ch 3 sektorech IO.SYS
+; je um¡stˆn zavadˆ‡ modulu IO.SYS, kter˜ zavede zbytek souboru IO.SYS
+; do pamˆti od adresy 0070:0000h (tj. data od adresy 4dfh souboru IO.SYS)
+; a p©ed  na tuto adresu ©¡zen¡. Pro um¡stˆn¡ IO.SYS plat¡ omezen¡, ‘e
+; mus¡ b˜t v adres ©i jako prvn¡ soubor a jeho prvn¡ aloka‡n¡ blok (resp.
+; i druh˜, pokud je m‚nˆ sektor– na blok ne‘ 3) mus¡ b˜t prvn¡m blokem
+; na disku. Ostatn¡ bloky mohou b˜t ji‘ libovoln‚.
+
+;segment 0000:
+                                               ;* vlastn¡ tabulka disk. param.
+
+;0522                 db     0                   ; rychlost krokov n¡
+;0523                 db     0                   ; ‡as pro ust len¡ hlavy
+;0524                 db     0                   ; doba vypnut¡ motoru
+;0525                 db     0                   ; velikost sektoru (0=128,...)
+;0526                 db     0                   ; posledn¡ sektor na stopˆ
+;0527                 db     0                   ; d‚lka prodlevy ‡ten¡/z pis
+;0528                 db     0                   ; d‚lka p©en ¨en˜ch dat
+;0529                 db     0                   ; prodleva pro form tov n¡
+;052A                 db     0                   ; znak pro form tov n¡
+;052B                 db     0                   ; ust len¡ hlav [ms]
+;052C                 db     0                   ; doba startu motoru
+;
+; -----------------------------------------------------------------------------
+
+0000  E9B500         JMP    00B8                 ; start modulu
+
+0003                 dw     4                    ; verze opera‡n¡ho syst‚mu
+
+0005                 dw     40h dup(0)           ; z sobn¡k
+                                               ;* konec z sobn¡ku
+
+0085                 dw     0                    ; po‡et hlav na disk
+0087                 dw     0                    ; d‚lka bloku v bajtech
+
+0089                 dd     0                    ; ukazatel ‡ten˜ch sektor–
+008d                 dw     0                    ; po‡et dat. alok. blok– HIGH
+                                                 ; ‡¡slo stopy ke ‡ten¡
+008f                 dw     0                    ; £schova polo‘ky FAT
+0091                 dw     -1                   ; sektor FAT v pamˆti
+0093                 dw     0                    ; ‡¡ta‡ ‡ten˜ch sektor–
+0095                 dw     0                    ; po‡et sektor– v jedn‚ FAT
+0097                 dd     0                    ; po‡et skryt˜ch sektor–
+009b                 dw     0                    ; d‚lka sektoru (v bajtech)
+009d                 dw     0                    ; po‡et rezervovan˜ch sektor–
+009f                 dw     0                    ; ‡¡slo dal¨¡ho alok. bloku
+00a1                 dw     0                    ; ukl d. adresa pro dal¨¡ blok
+00a3                 dd     0                    ; rel. ‡¡slo sektoru
+00a7                 dd     0                    ; celkov˜ po‡et sektor– disku
+00ab                 dw     0                    ; po‡et sektor– na stopu
+00ad                 db     0                    ; ‡¡slo aktivn¡ho disku
+00ae                 db     0                    ; 01h,04h typ polo‘ky FAT
+00af                 db     0                    ; typ disku (popisova‡ m‚dia)
+00b0                 db     0                    ; p©¡znak konce souboru
+00b1                 dd     0                    ; p–vodn¡ adresa INT 1Eh
+00b5                 dw     0                    ; segment pro na‡ten¡ sektoru
+00b7                 db     0                    ; velikost bloku (v sektorech)
+
+; -----------------------------------------------------------------------------
+;     Start zavadˆ‡e modulu IO.SYS
+; -----------------------------------------------------------------------------
+
+                                                 ; VSTUP: AX:BX=dal¨¡ sektor
+                                                 ;        CH=popisova‡ m‚dia
+                                                 ;        DL=disk
+                                                 ;        DS:SI=p–v.adr.INT 1Eh
+
+                                               ;* £schova registr– ze zavadˆ‡e
+00B8  2E891EA300     MOV    CS:[00A3],BX         ; ni‘¨¡ slovo rel. ‡¡sla sekt.
+00BD  2E882EAF00     MOV    CS:[00AF],CH         ; typ disku (popisova‡ m‚dia)
+00C2  2E8816AD00     MOV    CS:[00AD],DL         ; ‡¡slo aktivn¡ho disku
+00C7  2E8936B100     MOV    CS:[00B1],SI         ; offset p–vodn¡ adresy INT 1Eh
+00CC  1E             PUSH   DS                   ; segment p–v. adresy INT 1Eh
+00CD  2E8F06B300     POP    CS:[00B3]            ; p–vodn¡ adresy INT 1Eh
+
+                                               ;* tabulka disk.parametr– INT 1Eh
+00D2  33C9           XOR    CX,CX                ; CX <- 0
+00D4  8ED9           MOV    DS,CX                ; DS <- 0
+00D6  06             PUSH   ES                   ; £schova ES
+00D7  8EC1           MOV    ES,CX                ; ES <- 0
+00D9  8B367800       MOV    SI,[0078]            ; ukazatel disk. param. INT 1EH
+00DD  8E1E7A00       MOV    DS,[007A]            ; segment tabulky disk. param.
+00E1  BF2205         MOV    DI,0522              ; vlastn¡ tabulka disk. param.
+00E4  B90B00         MOV    CX,000B              ; d‚lka tabulky 11 bajt–
+00E7  FC             CLD                         ; smˆr p©enosu nahoru
+00E8  F3A4           REP    MOVSB                ; £schova tabulky na adr.0:500h
+00EA  06             PUSH   ES                   ; ES=0
+00EB  1F             POP    DS                   ; DS <- 0000h
+00EC  C70678002205   MOV    [0078],0522          ; p©esmˆrov n¡ na kopii tabulky
+00F2  8C1E7A00       MOV    [007A],DS            ; segment kopie tabulky
+00F6  07             POP    ES                   ; n vrat ES
+
+                                               ;* £schova standard.parametr– IBM
+00F7  8B0E0B7C       MOV    CX,[7C0B]            ; d‚lka sektoru (v bajtech)
+00FB  2E890E9B00     MOV    CS:[009B],CX         ; d‚lka sektoru (v bajtech)
+0100  8A0E0D7C       MOV    CL,[7C0D]            ; velikost bloku (v sektorech)
+0104  2E880EB700     MOV    CS:[00B7],CL         ; velikost bloku (v sektorech)
+0109  8B0E187C       MOV    CX,[7C18]            ; po‡et sektor– na stopu
+010D  2E890EAB00     MOV    CS:[00AB],CX         ; po‡et sektor– na stopu
+0112  8B0E1A7C       MOV    CX,[7C1A]            ; po‡et hlav na disk
+0116  2E890E8500     MOV    CS:[0085],CX         ; po‡et hlav na disk
+011B  8B0E167C       MOV    CX,[7C16]            ; po‡et sektor– v jedn‚ FAT
+011F  2E890E9500     MOV    CS:[0095],CX         ; po‡et sektor– v jedn‚ FAT
+0124  8B0E0E7C       MOV    CX,[7C0E]            ; po‡et rezervovan˜ch sektor–
+0128  2E890E9D00     MOV    CS:[009D],CX         ; po‡et rezervovan˜ch sektor–
+012D  8B0E1C7C       MOV    CX,[7C1C]            ; po‡et skryt˜ch sektor– LOW
+0131  2E890E9700     MOV    CS:[0097],CX         ; po‡et skryt˜ch sektor– LOW
+0136  8B0E137C       MOV    CX,[7C13]            ; celkov˜ po‡et sektor– disku
+013A  2E890EA700     MOV    CS:[00A7],CX         ; celkov˜ po‡et sektor– disku
+
+                                               ;* £schova roz¨i©uj¡c¡ch param.
+013F  803E267C29     CMP    [7C26],29            ; jsou roz¨i©uj¡c¡ informace ?
+0144  751E           JNE    0164                 ; nejsou roz¨i©uj¡c¡ informace
+0146  2EA3A500       MOV    CS:[00A5],AX         ; rel. ‡¡slo sektoru HIGH
+014A  A11E7C         MOV    AX,[7C1E]            ; po‡et skryt˜ch sektor– HIGH
+014D  2EA39900       MOV    CS:[0099],AX         ; po‡et skryt˜ch sektor– HIGH
+0151  83F900         CMP    CX,0000              ; po‡et sektor– na m‚diu
+0154  750E           JNZ    0164                 ; po‡et sektor– < 65535
+0156  A1207C         MOV    AX,[7C20]            ; celkov˜ po‡et sektor– LOW
+0159  2EA3A700       MOV    CS:[00A7],AX         ; celkov˜ po‡et sektor– disku
+015D  A1227C         MOV    AX,[7C22]            ; celkov˜ po‡et sektor– HIGH
+0160  2EA3A900       MOV    CS:[00A9],AX         ; celkov˜ po‡et sektor– HIGH
+
+                                               ;* zji¨tˆn¡ konce pamˆti DOS
+0164  FC           * CLD                         ; smˆr nahoru
+0165  33F6           XOR    SI,SI                ; SI <- 0
+0167  8BFE           MOV    DI,SI                ; DI <- 0
+0169  CD12           INT    12                   ; hl ¨en¡ o velikosti pamˆti
+016B  B106           MOV    CL,06                ; po‡et rotac¡ pro p©epo‡et
+016D  D3E0           SHL    AX,CL                ; segment konce pamˆti DOS
+
+                                               ;* segment pro na‡ten¡ sektoru
+016F  B104           MOV    CL,04                ; po‡et rotac¡ pro p©epo‡et
+0171  2E8B169B00     MOV    DX,CS:[009B]         ; d‚lka sektoru (v bajtech)
+0176  D3EA           SHR    DX,CL                ; p©evod sektoru na odstavce
+0178  42             INC    DX                   ; rezerva (pro zaokrouhlen¡)
+0179  2BC2           SUB    AX,DX                ; segment p©ed koncem pamˆti
+017B  2EA3B500       MOV    CS:[00B5],AX         ; segment pro na‡ten¡ sektoru
+
+                                               ;* adresa pro p©em¡stˆn¡ zavadˆ‡e
+017F  BADF04         MOV    DX,04DF              ; d‚lka zavadˆ‡e IO.SYS
+0182  D3EA           SHR    DX,CL                ; p©evod d‚lky na odstavce
+0184  42             INC    DX                   ; rezerva (pro zaokrouhlen¡)
+0185  2BC2           SUB    AX,DX                ; segment pro p©enos zavadˆ‡e
+0187  8EC0           MOV    ES,AX                ; segment pro p©enos zavadˆ‡e
+
+                                               ;* p©em¡stˆn¡ zavadˆ‡e nahoru
+0189  0E             PUSH   CS
+018A  1F             POP    DS                   ; DS <- CS
+018B  B9DF04         MOV    CX,04DF              ; d‚lka zavadˆ‡e IO.SYS
+018E  F3A4           REP    MOVSB                ; p©em¡stˆn¡ zavadˆ‡e na konec
+0190  06             PUSH   ES                   ; segment zavadˆ‡e IO.SYS
+0191  B89601         MOV    AX,0196              ; adresa pokra‡ov n¡ programu
+0194  50             PUSH   AX                   ; adresa pokra‡ov n¡ programu
+0195  CB             RET    Far                  ; skok do kopie zavadˆ‡e IO.SYS
+
+; -----------------------------------------------------------------------------
+;     Pokra‡ov n¡ zavadˆ‡e v kopii pod vrcholem pamˆti
+; -----------------------------------------------------------------------------
+
+                                               ;* inicializace z sobn¡ku
+0196  8CC8         * MOV    AX,CS                ; aktu ln¡ segment programu
+0198  8ED0           MOV    SS,AX                ; nastavej¡ segmentu z sobn¡ku
+019A  BC8500         MOV    SP,0085              ; konec pracovn¡ho z sobn¡ku
+
+                                               ;* v˜po‡et velikosti bloku v Baj.
+019D  33C0           XOR    AX,AX                ; AX <- 0
+019F  8ED8           MOV    DS,AX                ; DS <- 0
+01A1  A10B7C         MOV    AX,[7C0B]            ; d‚lka sektoru (bajt–)
+01A4  33DB           XOR    BX,BX                ; BX <- 0
+01A6  8A1E0D7C       MOV    BL,[7C0D]            ; po‡et sektor– na blok
+01AA  F7E3           MUL    BX                   ; v˜po‡et d‚lky bloku v bajtech
+01AC  2EA38700       MOV    CS:[0087],AX         ; d‚lka bloku (bajt–)
+
+01B0  2EC606AE0001   MOV    CS:[00AE],01         ; 01h,04h typ polo‘ky FAT
+
+                                               ;* ode‡ten¡ rezervovan˜ch sektor–
+01B6  2E8B16A900     MOV    DX,CS:[00A9]         ; celkov˜ po‡et sektor– HIGH
+01BB  2EA1A700       MOV    AX,CS:[00A7]         ; celkov˜ po‡et sektor– LOW
+01BF  2E2B069D00     SUB    AX,CS:[009D]         ; -po‡et rezervovan˜ch sektor–
+01C4  83DA00         SBB    DX,0000              ; p©enos do vy¨¨¡ho slova
+
+                                               ;* ode‡ten¡ sektor– FAT
+01C7  2E8B1E9500     MOV    BX,CS:[0095]         ; po‡et sektor– v jedn‚ FAT
+01CC  D1E3           SHL    BX,1                 ; po‡et sektor– na 2 tab. FAT
+01CE  2BC3           SUB    AX,BX                ; ode‡ten¡ sektor– FAT
+01D0  83DA00         SBB    DX,0000              ; p©enos do vy¨¨¡ho slova
+
+                                               ;* ode‡ten¡ sektor– ROOT
+01D3  8B1E117C       MOV    BX,[7C11]            ; max. po‡et polo‘ek z kl. adr.
+01D7  B104           MOV    CL,04                ; po‡et rotac¡ (*16)
+01D9  D3EB           SHR    BX,CL                ; po‡et sektor– adres ©e ROOT
+01DB  2BC3           SUB    AX,BX                ; po‡et datov˜ch sektor–
+01DD  83DA00         SBB    DX,0000              ; p©enos do vy¨¨¡ho slova
+
+                                               ;* v˜po‡et po‡tu alok. dat. blok–
+01E0  33C9           XOR    CX,CX                ; CX <- 0
+01E2  8A0E0D7C       MOV    CL,[7C0D]            ; velikost bloku v sektorech
+01E6  50             PUSH   AX                   ; po‡et datov˜ch sektor– LOW
+01E7  8BC2           MOV    AX,DX                ; po‡et datov˜ch sektor– HIGH
+01E9  33D2           XOR    DX,DX                ; DX <- 0
+01EB  F7F1           DIV    CX                   ; v˜po‡et po‡tu alok.dat.blok–
+01ED  2EA38D00       MOV    CS:[008D],AX         ; po‡et alok. blok– HIGH
+01F1  58             POP    AX                   ; po‡et datov˜ch sektor– LOW
+01F2  F7F1           DIV    CX                   ; v˜po‡et po‡tu alok.dat.blok–
+
+                                               ;* nastaven¡ typu tabulky FAT
+01F4  3DF60F         CMP    AX,0FF6              ; je po‡et blok– > 0FF6h ?
+01F7  7206           JC     01FF                 ; po‡et blok– < 0FF6h
+01F9  2EC606AE0004   MOV    CS:[00AE],04         ; 01h,04h typ polo‘ky FAT
+
+                                               ;* test, zda je necel˜ blok
+01FF  B80300       * MOV    AX,0003              ; po‡et ji‘ zaveden˜ch sektor–
+0202  2EF636B700     DIV    B/CS:[00B7]          ; po‡et zaveden˜ch blok–
+0207  80FC00         CMP    AH,00                ; zbyly v bloku nˆjak‚ sektory?
+020A  7444           JZ     0250                 ; nezbyly ‘ dn‚ sektory
+
+                                               ;* na‡ten¡ zbyl˜ch sektor– bloku
+020C  32E4           XOR    AH,AH                ; AX=po‡et na‡ten˜ch alok.blok–
+020E  50             PUSH   AX                   ; po‡et na‡ten˜ch alok. blok–
+020F  2E8B0EA300     MOV    CX,CS:[00A3]         ; rel. ‡¡slo sektoru - LOW
+0214  2E890E8900     MOV    CS:[0089],CX         ; ukazatel ‡ten˜ch sektor– LOW
+0219  2E8B0EA500     MOV    CX,CS:[00A5]         ; rel. ‡¡slo sektoru - HIGH
+021E  2E890E8B00     MOV    CS:[008B],CX         ; ukazatel ‡ten˜ch sektor– HIGH
+0223  2EF626B700     MUL    B/CS:[00B7]          ; velikost bloku (v sektorech)
+0228  2E01068900     ADD    CS:[0089],AX         ; ukazatel ‡ten˜ch sektor–
+022D  2E83168B0000   ADC    CS:[008B],0000       ; ukazatel ‡ten˜ch sektor– HIGH
+0233  58             POP    AX                   ; po‡et na‡ten˜ch alok. blok–
+0234  50             PUSH   AX                   ; po‡et na‡ten˜ch alok. blok–
+0235  BF0007         MOV    DI,0700              ; offset k na‡ten¡ IO.SYS
+0238  2EF7268700     MUL    W/CS:[0087]          ; zaveden  ‡ st IO.SYS v bajt.
+023D  03F8           ADD    DI,AX                ; adresa k zaveden¡ IO.SYS
+023F  33C0           XOR    AX,AX                ; AX <- 0
+0241  8EC0           MOV    ES,AX                ; ES <- 0000h
+0243  2EA0B700       MOV    AL,CS:[00B7]         ; velikost bloku (v sektorech)
+0247  2EA39300       MOV    CS:[0093],AX         ; po‡et sektor– k na‡ten¡
+024B  E8AA00         CALL   02F8                 ; zaveden¡ sektor– do pamˆti
+024E  58             POP    AX                   ; po‡et na‡ten˜ch alok. blok–
+024F  40             INC    AX                   ; zv˜¨en¡ po‡tu na‡ten˜ch blok–
+
+                                               ;* p©em¡stˆn¡ zbytku za zavadˆ‡em
+                                               ;* na spr vnou adresu 0070:0000h
+0250  40           * INC    AX                   ; ‡¡slo dal¨¡ho alok. bloku
+0251  2EA39F00       MOV    CS:[009F],AX         ; ‡¡slo dal¨¡ho alok. bloku
+0255  1E             PUSH   DS                   ; £schova DS
+0256  2EA19F00       MOV    AX,CS:[009F]         ; ‡¡slo dal¨¡ho alok. bloku
+025A  2D0100         SUB    AX,0001              ; ‡¡slo dal¨¡ho bloku - 1
+025D  2EF7268700     MUL    W/CS:[0087]          ; velikost ji‘ zaveden‚ ‡ sti
+0262  2DDF04         SUB    AX,04DF              ; ode‡ten¡ velikosti zavadˆ‡e
+0265  90             NOP
+0266  8BC8           MOV    CX,AX                ; velikost ji‘ zaveden‚ ‡ sti
+0268  B87000         MOV    AX,0070              ; segment k na‡ten¡ IO.SYS
+026B  8ED8           MOV    DS,AX                ; DS <- 0070h
+026D  8EC0           MOV    ES,AX                ; ES <- 0070h
+026F  BEDF04         MOV    SI,04DF              ; zbytek za zavadˆ‡em IO.SYS
+0272  BF0000         MOV    DI,0000              ; nov  adresa zbytku dat
+0275  F3A4           REP    MOVSB                ; p©enos ‡ sti IO.SYS
+0277  2E893EA100     MOV    CS:[00A1],DI         ; nov  ukl dac¡ adresa
+027C  1F             POP    DS                   ; n vrat DS
+
+                                               ;* nalezen¡ dal¨¡ho alok. bloku
+027D  32E4         * XOR    AH,AH                ; AH <- 0
+027F  2EA0B700       MOV    AL,CS:[00B7]         ; velikost bloku (v sektorech)
+0283  2EA39300       MOV    CS:[0093],AX         ; po‡et sektor– pro ‡ten¡ bloku
+0287  2EFF369300     PUSH   CS:[0093]            ; £schova velikosti bloku
+028C  E81801         CALL   03A7                 ; nalezen¡ ‡¡sla dal¨¡ho bloku
+028F  2E8F069300     POP    CS:[0093]            ; n vrat velikosti bloku
+0294  2EA39F00       MOV    CS:[009F],AX         ; ‡¡slo dal¨¡ho alok. bloku
+0298  2E803EB000FF   CMP    CS:[00B0],FF         ; je ji‘ konec souboru ?
+029E  7440           JZ     02E0                 ; konec - start modulu IO.SYS
+
+                                               ;* nastaven¡ parametr– pro ‡ten¡
+02A0  33D2           XOR    DX,DX                ; DX <- 0
+02A2  2D0200         SUB    AX,0002              ; ‡¡slo dal¨¡ho zav d. bloku
+02A5  32ED           XOR    CH,CH                ; CH <- 0
+02A7  2E8A0EB700     MOV    CL,CS:[00B7]         ; velikost bloku (v sektorech)
+02AC  F7E1           MUL    CX                   ; offset sektoru dal¨¡ho bloku
+02AE  2E0306A300     ADD    AX,CS:[00A3]         ; ni‘¨¡ slovo rel.‡¡sla sektoru
+02B3  2E1316A500     ADC    DX,CS:[00A5]         ; vy¨¨¡ slovo rel.‡¡sla sektoru
+02B8  2EA38900       MOV    CS:[0089],AX         ; ukazatel ‡ten˜ch sektor– LOW
+02BC  2E89168B00     MOV    CS:[008B],DX         ; ukazatel ‡ten˜ch sektor– HIGH
+02C1  2E8B3EA100     MOV    DI,CS:[00A1]         ; ukl dac¡ adresa pro ‡ten¡
+
+                                               ;* na‡ten¡ dal¨¡ho bloku IO.SYS
+02C6  2EFF369300     PUSH   CS:[0093]            ; d‚lka bloku v sektorech
+02CB  B87000         MOV    AX,0070              ; segment pro ukl d n¡ dat
+02CE  8EC0           MOV    ES,AX                ; segment pro ukl d n¡ dat
+02D0  E82500         CALL   02F8                 ; na‡ten¡ dat z disku do pamˆti
+02D3  58             POP    AX                   ; d‚lka bloku v sektorech
+02D4  2EF7269B00     MUL    W/CS:[009B]          ; d‚lka sektoru (v bajtech)
+02D9  2E0106A100     ADD    CS:[00A1],AX         ; zv˜¨en¡ ukl dac¡ adresy
+02DE  EB9D           JMP    027D                 ; zaveden¡ dal¨¡ho bloku IO.SYS
+
+                                               ;* start modulu IO.SYS
+02E0  2E8A2EAF00   * MOV    CH,CS:[00AF]         ; typ disku (popisova‡ m‚dia)
+02E5  2E8A16AD00     MOV    DL,CS:[00AD]         ; ‡¡slo aktivn¡ho disku
+02EA  2E8B1EA300     MOV    BX,CS:[00A3]         ; n sleduj¡c¡ sektor LOW
+02EF  2EA1A500       MOV    AX,CS:[00A5]         ; n sleduj¡c¡ sektor HIGH
+02F3  EA00007000     JMP    0070:0000            ; skok do modulu IO.SYS
+                                                 ;    AX:BX=dal¨¡ sektor
+                                                 ;    CH=popisova‡ m‚dia
+                                                 ;    DL=disk
+
+; -----------------------------------------------------------------------------
+;     Na‡ten¡ dat z disku do pamˆti
+; -----------------------------------------------------------------------------
+
+02F8  B90500       * MOV    CX,0005              ; po‡et pokus– o na‡ten¡ dat
+02FB  51           * PUSH   CX                   ; ‡¡ta‡ pokus–
+02FC  2EA18900       MOV    AX,CS:[0089]         ; ukazatel ‡ten˜ch sektor– LOW
+0300  2E8B168B00     MOV    DX,CS:[008B]         ; ukazatel ‡ten˜ch sektor– HIGH
+0305  50             PUSH   AX                   ; £schova ukazatele sektor–
+0306  8BC2           MOV    AX,DX                ; AX <- ukazatel sektor– HIGH
+0308  33D2           XOR    DX,DX                ; DX <- 0
+030A  2EF736AB00     DIV    W/CS:[00AB]          ; v˜po‡et ‡¡sla stopy a sektoru
+030F  2EA38D00       MOV    CS:[008D],AX         ; ‡¡slo stopy ke ‡ten¡ HIGH
+0313  58             POP    AX                   ; ukazatel sektor–
+0314  2EF736AB00     DIV    W/CS:[00AB]          ; v˜po‡et ‡¡sla stopy LOW
+0319  2E8B1EAB00     MOV    BX,CS:[00AB]         ; po‡et sektor– na stopu
+031E  2BDA           SUB    BX,DX                ; po‡et zbyl˜ch sektor– stopy
+0320  8BF3           MOV    SI,BX                ; po‡et zbyl˜ch sektor– stopy
+0322  2E39369300     CMP    CS:[0093],SI         ; je m‚nˆ po‘adovan˜ch sektor–?
+0327  7305           JNC    032E                 ; po‘adovan˜ch sekotr– je v¡ce
+0329  2E8B369300     MOV    SI,CS:[0093]         ; omezen¡ na po‘adovan˜ po‡et
+032E  FEC2         * INC    DL                   ; ‡¡slo sektoru ke ‡ten¡
+0330  8ADA           MOV    BL,DL                ; ‡¡slo sektoru ke ‡ten¡
+0332  2E8B168D00     MOV    DX,CS:[008D]         ; ‡¡slo stopy ke ‡ten¡ HIGH
+0337  50             PUSH   AX                   ; ‡¡slo stopy LOW
+0338  8BC2           MOV    AX,DX                ; ‡¡slo stopy HIGH
+033A  33D2           XOR    DX,DX                ; DX <- 0
+033C  2EF7368500     DIV    W/CS:[0085]          ; v˜po‡et v lce HIGH
+0341  2EA38D00       MOV    CS:[008D],AX         ; ‡¡slo v lce ke ‡ten¡
+0345  58             POP    AX                   ; ‡¡slo stopy LOW
+0346  2EF7368500     DIV    W/CS:[0085]          ; v˜po‡et v lce a hlavy
+034B  8AF2           MOV    DH,DL                ; ‡¡slo hlavy
+034D  B106           MOV    CL,06                ; po‡et posuv–
+034F  D2E4           SHL    AH,CL                ; nejvy¨¨¡ 2 bity ‡¡sla v lce
+0351  0AE3           OR     AH,BL                ; ‡¡slo v lce a ‡¡slo sektoru
+0353  8AE8           MOV    CH,AL                ; ‡¡slo v lce - ni‘¨¡ch 8 bit–
+0355  8ACC           MOV    CL,AH                ; ‡¡slo sektoru, 2 bity v lce
+0357  8BDF           MOV    BX,DI                ; adresa pro ‡ten¡ sektoru
+0359  2E8A16AD00     MOV    DL,CS:[00AD]         ; ‡¡slo aktivn¡ho disku
+035E  8BC6           MOV    AX,SI                ; po‡et sektor– ke ‡ten¡
+0360  B402           MOV    AH,02                ; funkce ‡ten¡ sektor–
+0362  50             PUSH   AX                   ; po‡et sektor– k na‡ten¡
+0363  57             PUSH   DI                   ; ukl dac¡ adresa pro ‡ten¡
+0364  CD13           INT    13                   ; ‡ten¡ sektor– z disku
+0366  5F             POP    DI                   ; ukl dac¡ adresa pro ‡ten¡
+0367  58             POP    AX                   ; po‡et sektor– k na‡ten¡
+0368  59             POP    CX                   ; ‡¡ta‡ pokus– o ‡ten¡ dat
+0369  7318           JNC    0383                 ; ‡ten¡ probˆhlo OK
+
+                                               ;* chyba ‡ten¡ - dal¨¡ pokus
+036B  8BDF           MOV    BX,DI                ; ukl dac¡ adresa pro ‡ten¡
+036D  32E4           XOR    AH,AH                ; funkce resetov n¡ disku
+036F  51             PUSH   CX                   ; ‡¡ta‡ pokus– ‡ten¡ syst‚mu
+0370  2E8A16AD00     MOV    DL,CS:[00AD]         ; ‡¡slo aktivn¡ho disku
+0375  57             PUSH   DI                   ; ukl dac¡ adresa pro ‡ten¡
+0376  CD13           INT    13                   ; reset disku
+0378  5F             POP    DI                   ; ukl dac¡ adresa pro ‡ten¡
+0379  59             POP    CX                   ; ‡¡ta‡ pokus– ‡ten¡ syst‚mu
+037A  49             DEC    CX                   ; sn¡‘en¡ ‡¡ta‡e pokus–
+037B  7403           JZ     0380                 ; v¨echny pokusy - chyba
+037D  E97BFF         JMP    02FB                 ; dal¨¡ pokus o na‡ten¡ syst‚mu
+0380  E9E800       * JMP    046B                 ; chyba zaveden¡ syst‚mu
+
+                                               ;* operace ‡ten¡ OK - je konec ?
+0383  32E4         * XOR    AH,AH                ; AH <- 0
+0385  2E29069300     SUB    CS:[0093],AX         ; sn¡‘en¡ ‡¡ta‡e sektor–
+038A  741A           JZ     03A6                 ; je konec zav dˆn¡
+038C  2E01068900     ADD    CS:[0089],AX         ; zv˜¨en¡ uakzatele sektor–
+0391  2E83168B0000   ADC    CS:[008B],0000       ; ukazatel ‡ten˜ch sektor– HIGH
+0397  33DB           XOR    BX,BX                ; BX <- 0
+0399  8AD8           MOV    BL,AL                ; po‡et na‡ten˜ch sektor–
+039B  2EA19B00       MOV    AX,CS:[009B]         ; d‚lka sektoru (v bajtech)
+039F  F7E3           MUL    BX                   ; d‚lka na‡ten˜ch dat
+03A1  03F8           ADD    DI,AX                ; zv˜¨en¡ ukl dac¡ adresy
+03A3  E952FF         JMP    02F8                 ; zav dˆn¡ z dal¨¡ stopy
+03A6  C3           * RET
+
+; -----------------------------------------------------------------------------
+;     Nalezen¡ dal¨¡ho aloka‡n¡ho bloku
+; -----------------------------------------------------------------------------
+                                               ;* VSTUP: AX=dal¨¡ alok. blok
+
+03A7  06           * PUSH   ES                   ; £schova ES
+
+03A8  2EA1B500       MOV    AX,CS:[00B5]         ; segment pro ulo‘en¡ sektoru
+03AC  8EC0           MOV    ES,AX                ; segment pro ulo‘en¡ sektoru
+03AE  2EC606B000FF   MOV    CS:[00B0],FF         ; ozna‡en¡ konce souboru
+03B4  2EA19F00       MOV    AX,CS:[009F]         ; ‡¡slo nynˆj¨¡ho alok. bloku
+03B8  2E803EAE0001   CMP    CS:[00AE],01         ; 01h,04h typ polo‘ky FAT
+03BE  7540           JNZ    0400                 ; nen¡ FAT 12 - je FAT 16
+                                               ;* ‡ten¡ ‡¡sla z tabulky FAT 12
+03C0  8BF0           MOV    SI,AX                ; ‡¡slo nynˆj¨¡ho alok. bloku
+03C2  D1E8           SHR    AX,1                 ; ‡¡slo bloku / 2
+03C4  03F0           ADD    SI,AX                ; ‡¡slo bloku * 1.5
+03C6  E84E00         CALL   0417                 ; na‡ten¡ polo‘ky FAT
+03C9  7519           JNZ    03E4                 ; nen¡ polo‘ka na p©elomu sekt.
+                                               ;* ‡ten¡ ‡¡sla z p©elomu sektor–
+03CB  268A07         MOV    AL,ES:[BX]           ; ni‘¨¡ ‡ st ‡¡sla bloku
+03CE  2EA28F00       MOV    CS:[008F],AL         ; £schova ‡¡sla bloku
+03D2  46             INC    SI                   ; zv˜¨en¡ offsetu polo‘ky
+03D3  E84100         CALL   0417                 ; na‡ten¡ n sleduj¡c¡ho ‡¡sla
+03D6  26A00000       MOV    AL,ES:[0000]         ; vy¨¨¡ ‡ st ‡¡sla bloku
+03DA  2EA29000       MOV    CS:[0090],AL         ; vy¨¨¡ ‡ st ‡¡sla bloku
+03DE  2EA18F00       MOV    AX,CS:[008F]         ; ‡¡slo n sleduj¡c¡ho bloku
+03E2  EB03           JMP    03E7
+                                               ;* ‡¡slo bloku z FAT 12
+03E4  268B07       * MOV    AX,ES:[BX]           ; ‡¡slo n sleduj¡c¡ho bloku
+
+03E7  2EF7069F000100*TEST   CS:[009F],0001       ; je to lich‚ ‡¡slo bloku ?
+03EE  7505           JNZ    03F5                 ; je lich‚ ‡¡slo
+03F0  25FF0F         AND    AX,0FFF              ; ‡¡slo bloku je sud‚
+03F3  EB04           JMP    03F9                 ; nedˆlaj¡ se rotace
+03F5  B104         * MOV    CL,04                ; po‡et rotac¡
+03F7  D3E8           SHR    AX,CL                ; rotace o 4 bity vpravo
+03F9  3DF80F       * CMP    AX,0FF8              ; je ji‘ konec souboru ?
+03FC  7317           JNC    0415                 ; konec souboru
+03FE  EB0F           JMP    040F                 ; nen¡ je¨tˆ konec souboru
+                                               ;* je FAT 16
+0400  D1E0         * SHL    AX,1                 ; AX * 2
+0402  8BF0           MOV    SI,AX                ; offset polo‘ky ve FAT 16
+0404  E81000         CALL   0417                 ; na‡ten¡ polo‘ky z FAT
+0407  268B07         MOV    AX,ES:[BX]           ; ‡¡slo dal¨¡ho bloku
+040A  3DF8FF         CMP    AX,FFF8              ; je ji‘ konec souboru ?
+040D  7306           JNC    0415                 ; je konec souboru
+040F  2EC606B00000 * MOV    CS:[00B0],00         ; p©¡znak - nen¡ konec souboru
+0415  07           * POP    ES                   ; n vrat ES
+0416  C3             RET
+; -----------------------------------------------------------------------------
+;     Na‡ten¡ polo‘ky z tabulky FAT
+; -----------------------------------------------------------------------------
+                                               ;* VSTUP: SI=offset v tabulce FAT
+                                                 ;       ES=segment ke ‡ten¡ FAT
+                                               ;* VSTUP: BX=offset v sektoru
+                                                 ;        ZY=na p©elomu sektor–
+
+0417  50           * PUSH   AX                   ; £schova AX
+0418  56             PUSH   SI                   ; £schova SI
+0419  57             PUSH   DI                   ; £schova DI
+041A  52             PUSH   DX                   ; £schova DX
+                                               ;* kontrola, zda je sektor na‡ten
+041B  33D2           XOR    DX,DX                ; DX <- 0
+041D  8BC6           MOV    AX,SI                ; offset polo‘ky v tabulce
+041F  2E8B0E9B00     MOV    CX,CS:[009B]         ; d‚lka sektoru (v bajtech)
+0424  F7F1           DIV    CX                   ; ‡¡slo sektoru tabulky FAT
+0426  2E3B069100     CMP    AX,CS:[0091]         ; je sektor ji‘ FAT v pamˆti ?
+042B  7434           JZ     0461                 ; sektor je ji‘ v pamˆti
+042D  2EA39100       MOV    CS:[0091],AX         ; nov˜ sektor FAT v pamˆti
+                                               ;* zji¨tˆn¡ ‡¡sla sektoru
+0431  52             PUSH   DX                   ; £schova offsetu v sektoru
+0432  33D2           XOR    DX,DX                ; DX <- 0
+0434  2E03069700     ADD    AX,CS:[0097]         ; po‡et skryt˜ch sektor– LOW
+0439  2E13169900     ADC    DX,CS:[0099]         ; po‡et skryt˜ch sektor– HIGH
+043E  2E03069D00     ADD    AX,CS:[009D]         ; po‡et rezervovan˜ch sektor–
+0443  83D200         ADC    DX,0000              ; p©enos do vy¨¨¡ho slova
+0446  2EA38900       MOV    CS:[0089],AX         ; ukazatel ‡ten˜ch sektor– LOW
+044A  2E89168B00     MOV    CS:[008B],DX         ; ukazatel ‡ten˜ch sektor– HIGH
+044F  2EC70693000100 MOV    CS:[0093],0001       ; 1 sektor ke ‡ten¡
+                                               ;* na‡ten¡ sektoru FAT
+0456  33FF           XOR    DI,DI                ; ukl dac¡ adresa
+0458  E89DFE         CALL   02F8                 ; na‡ten¡ dat z disku do pamˆti
+                                               ;* kontrola, zda je p©elom sekt.
+045B  5A             POP    DX                   ; n vrat offsetu v sektoru
+045C  2E8B0E9B00     MOV    CX,CS:[009B]         ; d‚lka sektoru (v bajtech)
+0461  49           * DEC    CX                   ; posledn¡ bajt v sektoru
+0462  3BD1           CMP    DX,CX                ; je polo‘ka na hranici ?
+0464  8BDA           MOV    BX,DX                ; offset polo‘ky v sektoru
+
+0466  5A             POP    DX                   ; n vrat DX
+0467  5F             POP    DI                   ; n vrat DI
+0468  5E             POP    SI                   ; n vrat SI
+0469  58             POP    AX                   ; n vrat AX
+046A  C3             RET
+
+; -----------------------------------------------------------------------------
+;     Chyba zaveden¡ syst‚mu
+; -----------------------------------------------------------------------------
+                                                 ; chyba ‡ten¡ syst‚mu z disku
+046B  0E           * PUSH   CS
+046C  1F             POP    DS                   ; DS <- CS
+046D  BE9704         MOV    SI,0497              ; text chybov‚ho hl ¨en¡
+0470  E81600         CALL   0489                 ; zobrazen¡ chybov‚ho hl ¨en¡
+0473  32E4           XOR    AH,AH                ; AH <- 0
+0475  CD16           INT    16                   ; ‡ek n¡ na stisk kl vesy
+0477  33DB           XOR    BX,BX                ; BX <- 0
+0479  8EDB           MOV    DS,BX                ; DS <- 0
+047B  C41EB100       LES    BX,[00B1]            ; p–vodn¡ adresa INT 1Eh
+047F  BE7800         MOV    SI,0078              ; ukazatel disk. param. INT 1Eh
+0482  891C           MOV    [SI],BX              ; n vrat ukazatele disk. par.
+0484  8C4402         MOV    [SI+02],ES           ; segment p–v. adresy INT 1Eh
+0487  CD19           INT    19                   ; opakov n¡ zaveden¡ syst‚mu
+
+; -----------------------------------------------------------------------------
+;     Zobrazen¡ chybov‚ho hl ¨en¡
+; -----------------------------------------------------------------------------
+
+0489  AC           * LODSB                       ; znak k zobrazen¡
+048A  0AC0           OR     AL,AL                ; je konec textu ?
+048C  7408           JZ     0496                 ; je konec textu
+048E  B40E           MOV    AH,0E                ; funkce zobrazen¡ znaku
+0490  B307           MOV    BL,07                ; barva pro zobrazen¡ znaku
+0492  CD10           INT    10                   ; zobrazen¡ znaku textu
+0494  EBF3           JMP    0489                 ; dal¨¡ znak k zobrazen¡
+0496  C3           * RET
+
+; -----------------------------------------------------------------------------
+;     Data
+; -----------------------------------------------------------------------------
+
+0497                 db     13,10,'Non-System disk or disk error'
+                     db     13,10,'Replace and press any key when ready'
+                     db     13,10,0
+04df
+

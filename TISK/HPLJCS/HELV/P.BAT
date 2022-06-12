@@ -1,0 +1,2 @@
+qfont
+portrait

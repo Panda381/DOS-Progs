@@ -1,0 +1,481 @@
+RAMDACs
+
+AcuMos:
+ADAC1        15/16/24 bit.
+
+Analog Devices:
+ADV471       6bit DAC       15 overlay registers
+ADV475       6bit DAC       15 overlay registers
+ADV476       6bit DAC
+ADV477       8bit DAC       15 overlay registers
+ADV478       6/8bit DAC     15 overlay registers
+
+ATI:
+ATI68830     15/16/24bit    Up to 80 MHz    !
+ATI68860     15/16/24bit    ???
+ATI68875     15/16/24bit    Up to 135 MHz   ! Used in ATI Graphics Ultra + and 
+                            Pro.  Same as TI34075 ??
+
+AT&T:
+ATT20c490    15/16/24 bit.  6/8 bit DAC.
+ATT20c491    15/16/24 bit.  6/8 bit DAC w/gamma correction
+ATT20c492    15/16/18 bit   6bit DACs. w/gamma correction
+ATT20c493    15/16/18 bit   6bit DACs
+ATT20c497    24bit          ?
+
+Avance Logic:
+ALG1101      16-bit.        Appears to be different from the other HiColor
+                            DACs.
+
+Avasem:
+AV3676       6bit DAC
+
+Brooktree:
+Bt476        6bit DAC.
+Bt478        6/8bit DAC.
+Bt481
+Bt482
+Bt484        15/16/24bit    6/8bit DAC. Has hardware cursor.
+Bt485        15/16/24bit    6/8bit DAC. Has hardware cursor.
+
+Cirrus Logic
+CL-GD5200    15/16/24 bit   Same as Acumos ADAC1 
+
+Diamond:
+SS2410       15/24 bit.     
+
+Inmos:
+IMSG171
+IMSG176      6bit DAC
+IMSG178
+
+MUSIC:
+MU9C1710     8 bit ??
+MU9C4870     15/16 bit      Similar to Sierra "Mark 3".
+MU9C4910     15/16/24bit
+
+OAK:
+OTI66        6bit DAC
+OTI66HC      15/16bit       Similar to Sierra "Mark 3"
+
+Samsung:
+KDA476       6bit DAC
+
+Sierra  "Mark1":       Only works if the VGA controller can send a byte on
+                       both the rising AND falling edge of the dot clock.
+SC11481      15-bit.        6-bit DAC.   Overlay.
+SC11486      15-bit.        6-bit DAC.
+SC11488      15 bit.        6/8 bit DAC. Overlay.
+
+Sierra  "Mark2":
+SC11482      15-bit.        6-bit DAC.   Overlay.
+SC11483      15-bit.        6-bit DAC.
+SC11484      15-bit.        6/8 bit DAC. Overlay.
+
+Sierra  "Mark3":
+SC11485      15/16 bit.     6-bit DAC.   Overlay.
+SC11487      15/16 bit.     6-bit DAC. 
+SC11489      15/16 bit.     6/8 bit DAC. Overlay.
+
+SC15025      15/16/24 bit.
+SC15026      15/16/24 bit.
+
+UMC:
+UM70c178     15/16 bit        Similar to Sierra "Mark 3"
+
+
+15-bit modes have 5 bits of each basic color:
+bit  0- 4 blue.
+     5- 9 green.
+    10-14 red.
+The pixel is stored in two bytes in Intel style (little endian).
+
+16-bit modes have 5 bits of red and blue, and 6 bits of green:
+bits 0- 4  blue.
+     5-10  green.
+    11-15  red.
+The pixel is stored in two bytes in Intel style (little endian).
+
+24-bit modes have 8 bits of each basic color:
+bits 0- 7  blue.
+     8-15  green
+    16=23  red.
+The pixel is stored in three bytes in Intel style (little endian).
+
+
+
+The DACs are addressed on port 3C6h-3C9h. Advanced DACs have 1 or 2 extra
+address lines (RS2 and RS3). These may be controlled from high address bits
+(A10-A15) or from registers.
+In the following +A is used if RS2 is set, +B is used if RS3 is set and +C if both RS2 and RS3 are set.
+
+
+
+HiColor DACs:     (Sierra SC1148x, MUSIC MU9C4870, OAK OTI66HC, UMC UM70C178)
+
+3C6h+A  (R/W):  Command Register
+bit   5  (not SC11481/6/8)
+         If set two pixel clocks are used to latch the two bytes
+         needed for each pixel. Low byte is latched first.
+         If clear the low byte is latched on the rising edge of the
+         pixel clock and the high byte is latched on the falling edge.
+         Only some VGA chips (ET4000 and C&T655x0) can handle this.
+      6  (SC11485/7/9, OTI66HC, UM70C178) Set in 16bit (64k) modes (Only valid
+           if bit 7 set). On the SC11482/3/4 this bit is read/writable, but
+           has no function. On the SC11481/6/8 this bit does not exist.
+      7  Set in HiColor (32k/64k) modes, clear in palette modes.
+Note:  This register can also be accessed at 3C6h by reading 3C6h four times,
+       then all accesses to 3C6h will go the this register until one of the
+       registers 3C7h, 3C8h or 3C9h is accessed.
+
+3C7h+A  (R/W):  Overlay RAM Read Address              (SC11481/2/4/5/8/9 only)
+bit 0-3  Read index for the Overlay registers.
+
+3C8h+A  (R/W):  Overlay RAM Write Address             (SC11481/2/4/5/8/9 only)
+bit 0-3  Write index for the Overlay registers.
+
+3C9h+A  (R/W):  Overlay RAM                           (SC11481/2/4/5/8/9 only)
+bit 0-5  Data port for the overlay registers. Works like the PEL data register
+         (3C9h) except that the overlay registers are accessed and the Overlay
+         Address registers are used for indexes.
+Note: on the SC11484/8/9 the Color Look-up Table and the overlay registers are
+      24bits wide (rather than 18bits) if the 8/6 pin is high. 
+
+
+
+Sierra SC15025/6 Truecolor DACs:
+
+3C6h+A  (R/W):  Command Register
+bit 5-7  Mode:  0: Normal, 3: 24bit, 4,5: 15bit, 6,7: 16bit
+      4  If set 3C7h is the index port and 3C8h the data port for an extra
+         register set:
+           index   8h:   DAC width. 00h: 6bit, 01h: 8bit
+                   9h:   53h
+                   Ah:   00h ??
+                   Bh:   DAC Speed. ACh: 135MHz, B1h: 80NHz
+                Ch-Fh:   FFh ??
+                  10h:   00h ??
+Note:  This register can also be accessed at 3C6h by reading 3C6h four times,
+       then all accesses to 3C6h will go the this register until one of the
+       registers 3C7h, 3C8h or 3C9h is accessed.
+
+
+
+AT&T 20c49x Truecolor DACs:
+
+3C6h+A  (R/W):  Command Register
+bit   1  (not 492,493) In mode 0 this bit when set selects 8bit DACs, when
+         clear 6bit DACs.
+    5-7  Mode:  0: Palette, 5: 15bit (32k), 6: 16bit (64k), 7: 24bit (16m)
+Note:  This register can also be accessed at 3C6h by reading 3C6h four times,
+       then all accesses to 3C6h will go the this register until one of the
+       registers 3C7h, 3C8h or 3C9h is accessed.
+
+
+
+BrookTree Bt484, Bt485 Truecolor DACs:
+
+3C6h+A  (R/W):  Command Reg 0
+bit    1  Set if DAC and palette registers are 8bit DACs, clear if 6bit.
+       7  If clear the Status register is present at 3C&h+A, if set 3C8h
+          determines which register is present at 3C6h+A:
+            00h    Status Register
+            01h    Command Register 3
+3C6h+B is the Command Register 3, if clear the Status Register
+         
+
+3C7h+A  (R/W):  Cursor Read Address
+bit 0-7  The PEL data register (0..255) to be read from 3C9h.
+Note: After reading the 3 bytes at 3C9h this register will increment,
+      pointing to the next data register.
+
+3C8h+A  (R/W):  Cursor Write Address
+bit 0-7  The PEL data register (0..255) to be written to 3C9h.
+Note: After writing the 3 bytes at 3C9h this register will increment, pointing
+      to the next data register.
+
+3C9h+A  (R/W):  Cursor Data
+bit 0-5  Color value
+Note:  Each read or write of this register will cycle through first the
+       registers for Red, Blue and Green, then increment the appropriate
+       address register.
+Note: the registers 3C7h-3C9h (+A) works like the normal 3C7h-3C9h registers,
+      except that a separate set of palette registers (16 overlay registers ?)
+      are being accessed.
+      Index 00h  Overscan color
+            01h  Cursor Background
+            02h  Cursor Foreground
+
+3C6h+B  (R/W):  Status Reg
+Note: The two registers at 3C6h+B are selected by bit 7 of 3C6h+A.
+
+3C6h+B  (R/W):  Command Reg 3
+Bit  0-1  Bits 8-9 of the Palette Write Address (3C8h)
+       2  Set if using 64x64 cursor, clear if 32x32 cursor.
+       3  Enable Clock Doubler if set ?
+Note: The two registers at 3C6h+B are selected by bit 7 of 3C6h+A.
+
+3C7h+B  (R/W):  Cursor Ram Data
+bit  0-7  Data port for the Hardware Cursor Map.
+          There are 2 128byte (32x32bit) maps. The map at offset 0 is the
+          cursor image and the one at 80h is the cursor shape.
+          To update the cursor map, write the start address to 3C8h and start
+          writing to this register. The index will increment for each byte.
+
+3C8h+B  (R/W):  Command Reg 1
+bit  0-7  Mode: 10h: 24bit, 30h: 15bit, 38h: 16bit, 40h: 8bit palette,
+           60h: 4bit palette
+
+3C9h+B  (R/W):  Command Reg 2
+bit  0-1  Cursor mode. 2 for Windows, 3 for X11, 0 for off ??
+       3  Set in interlaced modes ?
+     2-7  Always 8 ??
+
+3C6h+C  W(R/W):  Hardware Cursor X-position
+bit 0-1  The X-position of the rightmost pixel of the hardware cursor
+
+3C8h+C  W(R/W):  Hardware Cursor Y-position
+bit 0-11  The Y-position of the lower scanline of the hardware cursor
+
+
+
+
+Forcing HiColor DACs into command mode:
+
+procedure dactocomm;   {switches DAC to command register}
+var x:word;
+begin
+  x:=inp($3C8);    {clear old state}
+  x:=inp($3C6);
+  x:=inp($3C6);
+  x:=inp($3C6);    {Read $3C6 4 times.}
+  x:=inp($3C6);
+end;
+
+Now reads and writes to $3C6 will access the command register.
+Any access to $3C7-$3C9 will switch back to the PEL mask register.
+
+
+Forcing HiColor DACs into normal mode:
+
+procedure dactopel;  {switches DAC back to normal mode}
+var x:word;
+begin
+  x:=inp($3C8);
+end;
+
+
+
+function testdac:string;
+var
+  x,y,z,v,oldcommreg,oldpelreg:word;
+
+type
+  pel=record
+        index,red,green,blue:byte;
+      end;
+
+procedure readpelreg(index:word;var p:pel);
+begin
+  p.index:=index;
+  disable;
+  outp($3C7,index);
+  p.red  :=inp($3C9);
+  p.blue :=inp($3C9);
+  p.green:=inp($3C9);
+  enable;
+end;
+
+procedure writepelreg(var p:pel);
+begin
+  disable;
+  outp($3C8,p.index);
+  outp($3C9,p.red);
+  outp($3C9,p.blue);
+  outp($3C9,p.green);
+  enable;
+end;
+
+function setcomm(cmd:word):word;
+begin
+  dac2comm;
+  outp($3c6,cmd);
+  dac2comm;
+  setcomm:=inp($3c6);
+end;
+
+procedure waitforretrace;
+begin
+  repeat until (inp(CRTC+6) and 8)=0;
+  repeat until (inp(CRTC+6) and 8)>0;    {Wait until we're in retrace}
+end;
+
+function dacis8bit:boolean;
+var
+  pel2,x,v:word;
+  pel1:pel;
+begin
+  pel2:=inp($3C8);
+  readpelreg(255,pel1);
+  v:=pel1.red;
+  pel1.red:=255;
+  writepelreg(pel1);
+  readpelreg(255,pel1);
+  x:=pel1.red;
+  pel1.red:=v;
+  writepelreg(pel1);
+  outp($3C8,pel2);
+  dacis8bit:=(x=255);
+end;
+
+function testdacbit(bit:word):boolean;
+begin
+  dac2pel;
+  outp($3C6,oldpel and (bit xor $FF));
+  dac2comm;
+  disable;
+  outp($3C6,oldcomm or bit);
+  v:=inp($3C6);
+  outp($3C6,v and (bit xor $FF));
+  enable;
+  testdacbit:=(v and bit)<>0;
+end;
+
+begin
+
+  setDAC(_dac8,'Normal');
+  dac2comm;
+  oldcomm:=inp($3C6);
+  dactopel;
+  oldpel:=inp($3c6);
+
+  dac2comm;
+  outp($3c6,0);
+  dac8:=dacis8bit;
+  dac2pel;
+
+  notcomm:=oldcomm xor 255;
+  outp($3c6,notcomm);
+  dac2comm;
+  v:=inp($3c6);
+  if v<>notcomm then
+    if (setcomm($E0) and $e0)<>$e0 then
+    begin           {Bits 5-7 of command register NOT writable.}
+      dac2pel;
+      x:=inp($3C6);
+      repeat
+        y:=x;         {wait for the same value twice}
+        x:=inp($3C6);
+      until (x=y);
+      z:=x;
+      dac2comm;
+      if daccomm<>$8E then
+      begin                 {If command register=$8e, we've got an SS24}
+        y:=8;
+        repeat
+          x:=inp($3C6);
+          dec(y);
+        until (x=$8E) or (y=0);
+      end
+      else x:=daccomm;
+      if x=$8e then setDAC(_dacss24,'SS24')
+               else setDAC(_dac15,'Sierra SC11486');
+      dac2pel;
+    end
+    else begin
+      if (setcomm($60) and $E0)=0 then
+      begin
+        if (setcomm(2) and 2)>0 then setDAC(_dacatt,'ATT 20c490')
+                                else setDAC(_dacatt,'ATT 20c490');
+      end
+      else begin
+        x:=setcomm(oldcomm);
+        if inp($3c6)=notcomm then
+        begin
+          if setcomm($FF)<>$ff then setDAC(_dacadac1,'Acumos ADAC1')
+          else begin
+            dac8now:=dacis8bit;
+            dac2comm;
+            outp($3C6,(oldcomm or 2) and $FE);
+            dac8now:=dacis8bit;
+            if dac8now then
+              if dacis8bit then setDAC(_dacatt,'ATT 20c491')
+                           else setDAC(_dacCL24,'Cirrus 24bit DAC')
+            else setDAC(_dacatt,'ATT 20c492');
+          end;
+        end
+        else begin
+          if trigdac=notcomm then setDAC(_dacCL24,'Cirrus 24bit DAC')
+          else begin
+            dac2pel;
+            outp($3c6,$FF);
+            case trigdac of
+              $44:setDAC(_dacmus,'MUSIC ??');
+              $82:setDAC(_dacmus,'MUSIC MU9C4910');
+              $8e:setDAC(_dacss24,'Diamond SS2410');
+            else
+              if testdacbit($10) then setDAC(_dacsc24,'Sierra 16m')
+              else if testdacbit(4) then setDAC(_dacUnk9,'Unknown DAC #9')
+                                else setDAC(_dac16,'Sierra 32k/64k');
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    dac2comm;
+    outp($3c6,oldcomm);
+  end;
+  dac2pel;
+  outp($3c6,oldpel);
+
+  if (dactype=_dac8) and (DAC_RS2<>0) and (DAC_RS3<>0) then
+  begin
+    oldpel :=inp($3C6);
+    oldcomm:=inp($3C6+DAC_RS2);
+    outp($3C6+DAC_RS2,oldpel xor $FF);
+    if (inp($3C6)=oldpel) and (inp($3C6+DAC_RS2)=(oldpel xor $FF)) then
+      SetDAC(_dacBt484,'Brooktree Bt484');
+
+    outp($3C6+DAC_RS2,oldcomm);
+    outp($3C6,oldpel);
+  end;
+
+
+
+  if dactype=_dac8 then
+  begin
+    WaitforRetrace;
+    outp($3C8,222);
+    outp($3C9,$43);
+    outp($3C9,$45);
+    outp($3C9,$47);    {Write 'CEGEDSUN' + mode to DAC index 222}
+    outp($3C8,222);
+    outp($3C9,$45);
+    outp($3C9,$44);
+    outp($3C9,$53);
+    outp($3C8,222);
+    outp($3C9,$55);
+    outp($3C9,$4E);
+    outp($3C9,13);     {Should be in CEG mode now}
+    outp($3C6,255);
+    x:=(inp($3c6) shr 4) and 7;
+    if x<7 then
+    begin
+      setDAC(_dacCEG,'Edsun CEG rev. '+chr(x+48));
+      WaitforRetrace;
+      outp($3C8,223);
+      outp($3C9,0);    {Back in normal dac mode}
+    end;
+  end;
+end;
+
+
+This ID's all known DAC types, except:
+ - Sierra "mark2" and "Mark3" are all ID'd as Mark 3.
+
+ - Avance Logic ALG1101 DAC can not be ID'd.
+
+ - TI 34075, ATI 68830, 68860 and 68875 can not be ID'd
+
+ - The Edsun CEG test has not been verified.

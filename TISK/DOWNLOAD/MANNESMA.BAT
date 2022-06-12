@@ -1,0 +1,1 @@
+COPY /b QEPSFX85.DL lpt1:

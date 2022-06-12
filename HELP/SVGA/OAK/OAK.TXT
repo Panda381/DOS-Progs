@@ -1,0 +1,209 @@
+   OAK Technologies. OTI.
+
+   OTI037C has 256K or 512K.
+   OTI-067 has 256K or 512K.
+   OTI-077 allows 1MB and up to 1024x768 in 256 colors.
+   OTI-087 allows 2MB
+
+
+OAK-037, 067 and 077:
+
+3DEh (R/W):  Index register
+bit 0-4  Index to the OAK extended registers at 3DF.
+    5-7  (R) Chip version.  0=OAK=037C, 2=OAK-067, 5=OAK-077, 7=OAK-057
+Note: Has anyone seen an 057 ????
+
+3DEh index  9h (R/W):
+
+3DEh index 0Ah (R/W):
+
+3DEh index 0Ch (R/W):  CRT Control
+bit   3  I/O write test ?
+
+3DEh index 0Dh (R/W):  Misc
+bit 2-3  Should be set to enable access to memory above 256k
+      4  For 16 color modes should be set to enable access for memory above
+         256K
+      5  Clock Select bit 2. Bits 0-1 are in 3C2h/3CCh
+      6  1MB if set
+      7  512K if set, 256 else.
+
+3DEh index 0Eh (R/W):  Backwards Compatability
+bit   7  VGA mode if set
+
+3DEh index 11h (R/W):  Segment
+bit 0-3  Read Bank no 
+    4-7  Write Bank no
+Note: This register apparently write only in Oak-037C.
+
+3DEh index 12h (R/W):  Config
+
+3DEh index 14h (R/W):  Overflow
+bit   0  Bit 10 of the VTotal Register (3d4h index 6)
+      1  Bit 10 of the Vertical Display End Register (3d4h index 12h)
+      2  Bit 10 of the Vertical Retrace Start Register (3d4h index 10h).
+      3  Bit 16 of the Display Start Address
+      7  Set if Interlace is enabled.
+
+3DEh index 15h (R/W):  Hsync/2
+bit 0-7  How far into the scanline the odd frame should start in interlaced
+         modes. Usually half the VTotal value.
+
+3DEh index 16h (R/W):  Overflow 2                                    (77 only)
+bit   3  Bit 17 of the Display Start address
+Note: For 256color modes the Display Start Address is in units of 8 bytes,
+      rather than 4 bytes.
+
+Bank Switching:
+
+Two banks exist in reg 3DEh index 11h.
+
+
+
+OAK-087:
+
+3DEh index  0:
+bit   1  Set for OTI-083, Clear for OTI-087
+
+3DEh index  2  (R/W):
+bit 1-2  Video Memory. 0=256k, 1=512k, 2=1M, 3=2M
+
+3DEh index  3  (R/W):
+bit   5  ?? (Causes vertical stripes)
+      7  ?? 
+
+3DEh index  4  (R/W):
+bit   2  Set if using Zero Wait States for the VESA Local BUS interface.
+
+3DEh index  6  (R/W):
+bit   0  Clock select ??
+      2  Clock select ??
+      3  Output to RS2 on the DAC. ??
+         If set causes 3C6h-3C9h to access the extended registers on the DAC
+      4  ?? (Display reset ??)
+
+3DEh index  9  (R/W):
+bit   0  Set if 24bit DAC available ?
+
+3DEh index  Bh:
+bit   6  Clear if VESA monitor timings (Jumper )
+      7  Clear if non-interlaced monitor timings
+
+3DEh index  Dh (R/W):
+bit   4  Should be set in 16color modes
+      5  Clock Select ??
+
+3DEh index 10h (R/W):
+
+
+3DEh index 14h (R/W):  
+bit   0  ?? (Makes the display "shake")
+      2  ??
+      3  Bit 16 of the Display Start Address. Note index 17h
+      7  Set if the display is interlaced
+
+3DEh index 17h (R/W):
+bit 0-2  Display Start Address bit 16-18
+
+3DEh index 18h (R/W):
+bit   2  Clock Select??
+
+3DEh index 21h (R/W):
+bit 0-1  Clock select ??
+      2  Clear in mode 13h, set in all other 256color modes
+
+3DEh index 23h (R/W):  Write Bank Register
+bit 0-4  Read Bank in 64k units.
+
+3DEh index 24h (R/W):  Read Bank Register
+bit 0-4  Write Bank in 64k units.
+
+Indices 2-6, 9-Bh, Dh, 11h, 13h-15h, 17h-19h, 20-25h, 30h-36h are used by the
+ OTI-087.
+
+
+
+  ID Oak VGA:
+
+  if testinx2($3DE,$D,$38) then
+  begin
+    { We have an OAK }
+    if testreg2($3DE,$23,$1F) then
+      if (rdinx($3DE,0) and 2)=0 then _OAK_087
+                                 else _OAK_083
+    else
+      case inp($3DE) div 32 of
+        0:_OAK_037C
+        2:_OAK_067
+        5:_OAK_077
+        7:_OAK_057
+      end;
+  end;
+
+
+  Modes:
+
+  (OTI 067/077/087)
+
+  4Eh  T    80   60  16  (8x8)      Not all 067's
+  4Fh  T   132   60  16  (8x8)
+  50h  T   132   25  16  (8x14)
+  51h  T   132   43  16  (8x8)
+  52h  G   800  600  16  PL4
+  53h  G   640  480 256  P8
+  54h  G   800  600 256  P8
+  55h  G  1024  768   4 ??
+  56h  G  1024  768  16  PL4
+  57h  G   768 1024   4  ??
+  58h  G  1280 1024  16  PL4
+  59h  G  1024  768 256  P8     OTI-077/87 only
+  5Ah  G   640  480 64k  P16    OTI-077 w/Sierra
+  5Bh  G   640  400 32k  P15    OTI-077 w/Sierra
+  5Ch  G   640  480 32k  P15    OTI-077 w/Sierra
+  5Dh  G   800  600 32k  P15
+  5Eh  G  1280 1024 256  P8
+  5Fh  G   640  480 16m  P24
+  60h  G   800  600 64k  P16
+  61h  G   640  400 256  P8
+
+Note that the OAK-087 BIOS version 1.01B does not set the DAC mode of the
+HiColor modes correctly.
+
+
+  (OTI037C "UNIQUE" VGA)
+
+  50h  T   132   25  16  (8x14)
+  51h  T   132   43  16  (8x8)
+  52h  G   800  600  16  PL4
+
+
+  (OTI037C with NEL Electronics BIOS)
+
+  50h  G   640  480  16  PL4
+  51h  T    80   30      (16x9)
+  52h  G  1024  480  16  PL4
+  53h  T    80   25      (16x8)
+  54h  T   132   43      (8x8)
+  55h  T   132   25      (14x8)
+  56h  T   132   43      (8x9)
+  57h  T   132   25      (14x9)
+  58h  T    80   43      (8x8)
+  59h  T    80   43      (8x9)
+  5Ah  T    80   60      (8x8)
+  5Bh  G   800  600  16  PL4
+  5Ch  T   100   37      (16x8)
+  5Dh  T   100   75      (8x8)
+  5Eh  G   800  600  16  PL4
+  6Ah  G   800  600  16  PL4
+  6Bh  T   100   37      (16x8)
+
+----------10FF-----------------------------------
+INT 10 - VIDEO - OAK VGA BIOS v1.02+ - SET EMULATION
+        AH = FFh
+        AL = Emulation
+               43h  CGA emulation
+               45h  EGA emulation
+               4Dh  Hercules emulation
+               56h  VGA emulation
+        ES:DI -> signature string "Calamity"
+Switches to the desired emulation

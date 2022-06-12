@@ -1,0 +1,1192 @@
+                                - 35 -
+0986    LD   A,20
+0988    OR   A
+0989    SCF
+098A    RET
+
+        data tisku
+
+098B    DEFW 'FILENAME'+0D
+
+        wait ~3.4 ms
+                A=0, F=Z,NC,P,PO
+
+0996    PUSH BC
+0997    LD   B,15
+0999    CALL 0A4A       ;wait 0.23 ms
+099C    DJNZ 0999       ;opakuj 21*
+099E    POP  BC
+099F    RET
+
+        data tisku
+
+09A0    DEFW 'LOADING'+0D
+
+        wait ~1.33 ms
+                A=0, F=Z,NC,P,PO
+
+09A9    LD   A,73
+09AB    DEC  A
+09AC    JP   NZ,09AB
+09AF    RET
+
+        na‡ten¡ do Acc pr vˆ zm ‡klou kl vesu ve video-k¢du s
+        blik n¡m kursoru
+                AF=?
+
+09B0    NOP
+09B1    NOP
+09B2    NOP
+09B3    PUSH HL
+09B4    CALL 09B2       ;inicializace p©ed blik n¡m kursoru
+09B7    CALL 057E       ;blik n¡ kursoru s kontrolou kl vesnice
+09BA    JR   NZ,09B7    ;je¨tˆ je nˆco zm ‡kl‚ => opakuj
+09BC    CALL 057E       ;blik n¡ kursoru s kontrolou kl vesnice
+09BF    JR   Z,09BC     ;nen¡ nic zm ‡kl‚
+09C1    LD   H,A        ;H=videok¢d zm ‡kl‚ kl vesy
+09C2    CALL 0996       ;wait ~3.4 ms
+09C5    CALL 08CA       ;na‡ten¡ zm ‡kl‚ kl vesy ve video-k¢du
+09C8    PUSH AF
+09C9    CP   H          ;porovn n¡ s p©edchoz¡ kl vesou
+09CA    POP  HL         ;nyn¡ zm ‡kl  kl vesa do H
+09CB    JP   NZ,09BC    ;zm ‡kl‚ kl vesy byly r–zn‚
+09CD    PUSH HL         ;p©e‡ten¡ zm ‡kl‚ kl vesy do Acc
+09CE    POP  AF
+09CF    CALL 05F0       ;navr cen¡ znaku pod kursorem do VRAM
+09D2    POP  HL
+09D3    RET
+
+                                - 36 -
+
+        vynulov n¡ 800 byt– pamˆti od HL
+                BC=0,HL=HL+BC,A=0,F=Z,NC,P,PO
+
+09D4    XOR  A
+
+        vyakumul torov n¡ 800 byt– pamˆti od HL
+                BC=0,HL=HL+BC,A=0,F=Z,NC,P,PO
+
+09D5    LD   BC,0800
+
+        vyakumul torov n¡ BC byt– pamˆti od HL
+                BC=0,HL=HL+BC,A=0,F=Z,NZ,P,PO
+
+09D8    PUSH DE
+09D9    LD   D,A        ;D=pvodn¡ Acc,Acc bude pou‘it pro
+                        ;kontrolu pr–bˆh
+09DA    LD   (HL),D     ;ulo‘en¡ D na adresu HL
+09DB    INC  HL         ;zvˆt¨en¡ adresy
+09DC    DEC  BC         ;zmen¨en¡ po‡¡tadla
+09DD    LD   A,B
+09DE    OR   C          ;kontrola nulovosti po‡¡tadla
+09DF    JR   NZ,09DA    ;nen¡ nulov‚ => opakuj
+09E1    POP  DE
+09E2    RET
+
+        blik n¡ kursoru 1.5 Hz; p©ed skokem nutno ulo‘it znak
+        kursoru i pod kursorem do syst‚mov˜ch promˆnn˜ch
+                -
+
+09E3    PUSH AF
+09E4    PUSH HL
+09E5    LD   A,(E002)   ;na‡ten¡ sign lu pro blik n¡ kursoru
+09E8    RLCA
+09E9    RLCA
+09EA    JR   C,097B     ;sign aktivn¡ => vyma‘ kursor a navraŸ
+                        ;znak pod n¡m
+09EC    LD   A,(1192)   ;na‡ten¡ znaku kursoru
+09EF    CALL 0FB1       ;na‡ten¡ do  HL posici kursoru
+09F2    LD   (HL),A     ;ulo‘en¡ znaku kursoru do VRAM
+09F3    POP  HL         ;n vrat
+09F4    POP  AF
+09F5    RET
+
+        jin‚ adresy pro start podprogramu pro blik n¡ kursoru
+
+09F6-FE NOP
+09FF    JR   09E3
+
+        z pis nulov‚ho bitu na magn. (z pis 1 a 0 dlouh‚ .2 ms)
+                -
+
+0A01    PUSH AF
+0A02    LD   A,3
+0A04    LD   (E003),A   ;vysl n¡ jedni‡kov‚ho sign lu na magn.
+
+                                - 37 -
+
+0A07    CALL 0759       ;wait .1 ms
+0A0A    CALL 0759       ;wait .1 ms
+0A0D    LD   A,2
+0A0F    LD   (E003),A   ;z pis nulov‚ho sign lu na magnetofon
+0A12    CALL 0759       ;wait .1 ms
+0A15    CALL 0759       ;wait .1 ms
+0A18    POP  AF
+0A19    RET
+
+        z pis jedni‡kov‚ho bitu (z pis 1 a 0 s d‚lkou 1.3 ms)
+
+
+0A1A    PUSH AF
+0A1B    LD   A,3
+0A1D    LD   (E003),A   ;vysl n¡ jedni‡kov‚ho sign lu na magn.
+0A20    CALL 09A9       ;wait 1.3 ms
+0A23    LD   A,2
+0A25    LD   (E003),A   ;z pis nulov‚ho sign lu na magnetofon
+0A28    CALL 09A9       ;wait 1.3 ms
+0A2B    POP  AF
+0A2C    RET
+
+        test funk‡n¡ch kl ves (8.© dek kl vesnice)
+                v˜sledn‚ nadstaven¡ AF dle n sleduj¡c¡ tabulky:
+
+                        Acc Cy Z  S  P/V
+                        ~~~~~~~~~~~~~~~~~
+        NIC             7F  0  0  0  0
+        ESC             3F  0  0  0  1
+        CTRL (+ESC)     20  1  0  0  0
+        SHIFT (+CRTL)   40  1  0  1  ?
+        BREAK (+CRTL)   0   0  1  0  1
+                pro nevˆdouc¡ podot˜k m, ‘e BREAK je SHIFT+ESC
+
+0A2D-31 NOP
+0A32    LD   A,(F8)
+0A34    LD   (E000),A   ;aktivace 8.© dku kl vesnice
+0A37    NOP
+0A38    LD   A,(E001)   ;na‡tem¡ zm ‡kl˜ch kl ves
+0A3B    OR   A          ;nulov n¡ Cy
+0A3C    RRA             ;kontrola SHIFT
+0A3D    JP   C,0980     ;SHIFT nen¡ zm ‡kl˜
+0A40    RLA             ;kontrola ESC
+0A41    RLA
+0A42    JR   NC,0A48    ;je zm ‡kl‚ => BREAK
+0A44    LD   A,40       ;je jen SHIFT pop©. CTRL
+0A46    SCF
+0A47    RET
+
+0A48    XOR  A          ;BREAK
+0A49    RET
+
+                                - 38 -
+
+        wait .23 ms
+                A=0,F=Z,NC,P,PO
+
+0A4A    LD  A,36
+0A4C    JP  0762        ;ode‡¡t n¡ A a‘ k nule
+
+        vstup z kl vesnice do BC z najvy¨¨iho © dku kl vesnice
+        nejni‘¨¡ bit
+                AF=?,BC=dle tabulky
+
+                        B    C          reg C:
+        BREAK           88   -          bit  C7    :0
+        NIC             00   -          bity C6-C3 :‡.©ady(0-7)
+        SHIFT           40   -          bity C2-C0 :‡.bitu(0-7)
+        CTRL            20   -
+        kl vesa         B7=1 viz d le
+                        pokud je nap© SHIFT + kl vesa je
+                        samoz©ejmˆ B=C0
+
+0A4F    NOP
+0A50    PUSH DE
+0A51    PUSH HL
+0A52    XOR  A
+0A53    LD   B,F8       ;za‡¡n  se 8.© dkem
+0A55    LD   D,A        ;nulov n¡ D
+0A56    CALL 0A32       ;test funk‡n¡ch kl ves
+0A59    JR   NZ,0A5F    ;nen¡ BREAK
+0A5B    LD   D,88       ;BREAK
+0A5D    JR   0A73       ;n vrat
+
+0A5F    JR   NC,0A66    ;nen¡ SHIFT ani CTRL
+0A61    LD   D,A        ;D=40(20) dle SHIFT nebo CTRL
+0A62    JR   0A66       ;‡ten¡ ostatn¡ch kl ves
+
+0A64    SET  7,D        ;nˆco je zm ‡kl‚ => nadstav 7 bit
+0A66    DEC  B          ;zmen¨i ‡¡slo © dku kl vesnice o 1
+0A67    LD   A,B
+0A68    LD   (E000),A   ;aktivuj tento © dek kl vesnice
+0A6B    CP   EF 
+0A6D    JR   NZ,0A77    ;pokud nebyl aktivov n ji‘ posledn¡,
+                        ;pak ‡ti kl vesy
+0A6F    CP   F8         ;norm lnˆ nesmysl,jen po £prav ch pro
+                        ;‡ten¡ F1-F5
+0A71    JR   Z,0A66     ;pokud aktivov n n hodou 8, pak ‡ti
+                        ;ni‘¨¡ © dky
+0A73    LD   B,D        ;dej do B v˜sledek
+0A74    POP  HL         ;n vrat
+0A75    POP  DE
+0A76    RET
+
+                                - 39 -
+
+0A77    LD   A,(E001)   ;na‡ten¡ zm ‡kl˜ch kl ves
+0A7A    CPL             ;negace
+0A7B    OR   A
+0A7C    JR   Z,0A66     ;v t‚to ©adˆ nic zm ‡kl‚
+0A7E    LD   E,A        ;ulo‘en¡ zm ‡kl˜ch kl ves do E
+0A7F    LD   H,8        ;8 bit–= po‡¡tadlo po©adov‚ho bitu
+                        ;zm ‡kl‚ kl vesy
+0A81    LD   A,B
+0A82    AND  0F         ;A=‡¡slo sloupce kl vesnice
+0A84    RLCA
+0A85    RLCA
+0A86    RLCA
+0A87    LD   C,A        ;na bitech C6-C3 ‡islo sloupce kl vesn.
+0A88    LD   A,E        ;obnoven¡ zm ‡kl˜ch kl ves
+0A89    DEC  H          ;zmen¨en¡ po©adov‚ho ‡isla bit–
+0A8A    RRCA            ;hled n¡ zm ‡kl‚ kl vesy
+0A8B    JR   NC,0A89    ;opakuj, dokud nenajdena
+0A8D    LD   A,H        ;na‡ten¡ po©adov‚ho ‡isla bitu do Acc
+0A8E    ADD  A,C        ;bitov˜ sou‡et s ‡¡slem sloupce kl vesn.
+0A8F    LD   C,A        ;v˜sledek do C
+0A90    JR   0A64       ;opakuj ‡ten¡ dal¨¡ch ©ad kl vesnice
+                        ;(nadstav B7)
+
+        n sleduje tabulka video znak– pro p©evod z ASCII na
+        video-k¢dy a naopak
+
+adresa| odpov¡daj¡c¡  video-k¢d| po©.‡¡slo| odpov¡daj¡c¡ ASCII
+
+0A92    F0 F0 F0 F3 F0 F5 F0 F0    00   ;
+0A9A    F0 F0 F0 F0 F0 F0 F0 F0    08   ;
+0AA2    F0 C1 C2 C3 C4 C5 C6 F0    10   ; pohyb kursoru
+0AAA    F0 F0 F0 F0 F0 F0 F0 F0    18   ;
+0AB2    00 61 62 63 64 65 66 67    20   ; !"#$%&'
+0ABA    68 69 6B 6A 2F 2A 2E 2D    28   ;()*+,-./
+0AC2    20 21 22 23 24 25 26 27    30   ;01234567
+0ACA    28 29 4F 2C 51 2B 57 49    38   ;89:;<=>?
+0AD2    55 01 02 03 04 05 06 07    40   ;@ABCDEFG
+0ADA    08 09 0A 0B 0C 0D 0E 0F    48   ;HIJKLMNO
+0AE2    10 11 12 13 14 15 16 17    50   ;PQRSTUVW
+0AEA    18 19 1A 52 59 54 50 45    58   ;XYZ[\]^_
+0AF2    C7 C8 C9 CA CB CC CD CE    60   ;
+0AFA    CF DF E7 E8 E5 E9 EC ED    68   ;n sleduj¡
+0B02    D0 D1 D2 D3 D4 D5 D6 D7    70   ; grafick‚
+0B0A    D8 D9 DA DB DC DD DE C0    78   ;  znaky
+0B12    80 BD 9D B1 B5 B9 B4 9E    80   ;
+0B1A    B2 B6 BA BE 9F B3 B7 BB    88   
+0B22    BF A3 85 A4 A5 A6 94 87    90   
+0B2A    88 9C 82 98 84 92 90 83    98   
+0B32    91 81 9A 97 93 95 89 A1    A0
+0B3A    AF 8B 86 96 A2 AB AA 8A    A8   
+0B42    8E B0 AD 8D A7 A8 A9 8F    B0   
+0B4A    8C AE AC 9B A0 99 BC B8    B8   
+
+                        - 40 -
+
+0B52    40 3B 3A 70 3C 71 5A 3D    C0   
+0B5A    43 56 3F 1E 4A 1C 5D 3E    C8   
+0B62    5C 1F 5E 5E 37 7B 7F 36    D0   
+0B6A    7A 7E 33 4B 4C 1D 6C 5B    D8   
+0B72    78 41 35 34 74 30 38 75    E0   
+0B7A    39 4D 6F 6E 32 77 76 72    E8   
+0B82    73 47 7C 53 31 4E 6D 48    F0   
+0B8A    46 7D 44 1B 58 79 42 60    F8   
+
+        prvn¡ podprogram blik n¡ kursoru: ulo‘en¡ znaku kursoru
+        a znaku pod kursorem na syst‚mov‚ promˆnn‚
+                A=FF,F=NC,Z,P,PO
+
+0B92    LD   HL,1192    ;adresa syst. promˆnn‚ pro znak kursoru
+0B95    LD   (HL),EF    ;znak kursoru v textov‚m re‘imu
+0B97    LD   A,(1170)   ;na‡ten¡ syst. promˆnn‚ pro graf. re‘im
+0B9A    RRCA            ;test nult‚ho bitu t‚to promˆnn‚
+0B9B    JR   C,0BA0     ;je jedni‡kov˜ => grafick˜ re‘im
+0B9D    RRCA            ;test prvn¡ho bitu t‚to prom‚nn‚
+0B9E    JR   NC,0BA2    ;pokud je jedni‡kov˜ => grafick˜ re‘im
+0BA0    LD   (HL),FF    ;znak kursoru v grafick‚m re‘imu
+0BA2    LD   A,(HL)     ;na‡ten¡ znaku kursoru
+0BA3    PUSH AF         ;ulo‘en¡ znaku kursoru
+0BA4    CALL 0FB1       ;na‡ten¡ do HL pozici kursoru
+0BA7    LD   A,(HL)     ;na‡ten¡ znaku z VRAM, znaku pod kurs.
+0BA8    LD   (118E),A   ;ulo‘en¡ tohoto znaku na syst. promˆnou
+0BAB    POP  AF         ;vyzvednut¡ znaku kursoru
+0BAC    LD   (HL),A     ;ulo‘en¡ znaku kursoru do VRAM
+0BAD    XOR  A          ;reset sign lu pro blik n¡ kursoru
+0BAE    LD   HL,E000
+0BB1    LD   (HL),A
+0BB2    CPL
+0BB3    LD   (HL),A
+0BB4    RET
+
+        znak kursoru = 'C', inicializa‡n¡ program p©ed blik n¡m
+        kursoru : p©ed vstupem mus¡ b˜t HL=1192
+                A=FF,F=NC,Z,P,PO
+
+0BB5    LD   (HL),43    ;ulo‘en¡ 'C'
+0BB7    JR   0BA2       ;inicializace syst‚mov˜ch promˆnn˜ch
+
+        p©evod ASCII znaku na video-k¢d
+                AF=?
+
+0BB9    PUSH BC
+0BBA    PUSH HL
+0BBB    LD   HL,0A92    ;adresa o©evodn¡ tabulky
+0BBE    LD   C,A        ;BC=obsah Acc
+0BBF    LD   B,0
+0BC1    ADD  HL,BC      ;p©i‡ten¡ k¢du k po‡ t. adrese tabulky
+0BC2    LD   A,(HL)     ;p©e‡ten¡ odpov¡daj¡c¡ho k¢du
+0BC3    JR   0BE0       ;n vrat
+
+                                - 41 -
+
+        data tisku ?
+
+0BC5    DEFW 'V 1.0A'+0D
+
+        p©evod display-k¢du na ASCII
+                AF=?
+
+0BCB-CD NOP     
+0BCE    PUSH BC
+0BCF    PUSH HL
+0BD0    PUSH DE
+0BD1    LD   HL,0A92    ;adresa p©evodn¡ tabulky
+0BD4    LD   D,H        ;tat ‘ adresa do DE
+0BD5    LD   E,L
+0BD6    LD   BC,100     ;d‚lka tabulky
+0BD9    CPIR            ;vyhled n¡ stejn‚ho byte
+0BDB    JR   Z,0BE3     ;znak nalezen
+0BDD    LD   A,F0       ;znak nenalezen => k¢d F0
+0BDF    POP  DE         ;n vrat
+0BE0    POP  HL
+0BE1    POP  BC
+0BE2    RET
+
+0BE3    OR   A          ;nulov n¡ Cy
+0BE4    DEC  HL         ;navr cen¡ adresy na p©edchoz¡ byte
+0BE5    SBC  HL,DE      ;ode‡ten¡ po‡ te‡n¡ adresy
+0BE7    LD   A,L        ;v˜sledn‚ po©adov‚ ‡¡slo =
+                        ;odpov¡daj¡c¡ ASCII znak
+0BE8    JR   0BDF       ;n vrat
+
+        n slesuj¡ tabulky video-k¢d– pro jednotliv‚ re‘imy
+        kl vesnice.
+
+        Pro £plnost p©id v m struktoru kl vesnice:
+
+                BLANK GRAPH libra ALPHA TAB   ;     :     CR
+                Y     Z     @     [     ]
+                Q     R     S     T     U     V     W     X
+                I     J     K     L     M     N     O     P
+                A     B     C     D     E     F     G     H
+                1     2     3     4     5     6     7     8
+                \     ~     -     SP    0     9     ,     .
+                INST  DEL   UP    DOWN  RIGHT LEFT  ?     /
+
+        re‘im: jen kavesa
+
+0BEA    BF  CA  58  C9  F0  2C  4F  CD
+0BF2    19  1A  55  52  54  F0  F0  F0
+0BFA    11  12  13  14  15  16  17  18
+0C02    09  0A  0B  0C  0D  0E  0F  10
+0C0A    01  02  03  04  05  06  07  08
+0C12    21  22  23  24  25  26  27  28
+0C1A    59  50  2A  00  20  29  2F  2E
+0C22    C8  C7  C2  C1  C3  C4  49  2D
+        
+                                        - 42 -
+        
+        
+                re‘im: SHIFT + kl vesa
+        
+        0C2A    BF  CA  1B  C9  F0  6A  6B  CD
+        0C32    99  9A  A4  BC  40  F0  F0  F0
+        0C3A    91  92  93  94  95  96  97  98
+        0C42    88  8A  8B  8C  8D  8E  8F  90
+        0C4A    81  82  83  84  85  86  87  88
+        0C52    61  62  63  64  65  66  67  68
+        0C5A    80  A5  2B  00  60  69  51  57
+        0C62    C6  C5  C2  C1  C3  C4  5A  45
+        
+                re‘im: SHIFT + kl vesa v grafice
+        
+        0C6A    BF  F0  E5  C9  F0  42  B6  CD
+        0C72    75  76  B2  D8  4E  F0  F0  F0
+        0C7A    3C  30  44  71  79  DA  38  6D
+        0C82    7D  5C  5B  B4  1C  32  B0  D6
+        0C8A    53  6F  DE  47  34  4A  4B  72
+        0C92    37  3E  7F  7B  3A  5E  1F  BD
+        0C9A    D4  9E  D2  00  9C  A1  CA  B8
+        0CA2    C8  C7  C2  C1  C3  C4  BA  DB
+        
+                re‘im: CTRL + kl vesa
+        
+        0CAA    F0  F0  F0  F0  F0  F0  F0  F0
+        0CB2    F0  5A  F0  F0  F0  F0  F0  F0
+        0CBA    C1  C2  C3  C4  C5  C6  F0  F0
+        0CC2    F0  F0  F0  F0  F0  F0  F0  F0
+        0CCA    F0  F0  F0  F0  F0  F0  F0  F0
+        0CD2    F0  F0  F0  F0  F0  F0  F0  F0
+        0CDA    F0  F0  F0  F0  F0  F0  F0  F0
+        0CE2    F0  F0  F0  F0  F0  F0  F0  BF
+        
+                re‘im: kl vesa v grafice
+        
+        0CE9    BF  F0  CF  C9  F0  B5  4D  CD
+        0CF1    35  77  D7  B3  B7  F0  F0  F0
+        0CF9    7C  70  41  31  39  A6  78  DD
+        0D01    3D  5D  6C  56  1D  33  D5  B1
+        0D09    46  6E  D9  48  74  43  4C  73
+        0D11    3F  36  7E  3B  7A  1E  5F  A2
+        0D19    D3  9F  D1  00  9D  A3  D0  B9
+        0D21    C6  C5  C2  C1  C3  C4  BB  BE
+        
+                dump - v˜pis pamˆti od zadan‚ adresy
+        
+        0D29    CALL 013D       ;4 ASCII adresovan‚ DE na‡te do HL
+                                ;nejde => skok na 00AD
+        0D2C    CALL 02A6       ;DE=DE+4
+        0D2F    PUSH HL         ;ulo‘en¡ po‡ te‡n¡ adresy v˜pisu
+        0D30    CALL 0410       ;4 ASCII adresovan‚ DE p©evede do HL
+                                ;nejde => SCF
+        
+                                        - 43 -
+        
+        0D33    POP  DE         ;na‡ten¡ do DE po‡ te‡n¡ adresu v˜pisu
+        0D34    JR   C,0D88     ;kone‡n  adresa nen¡ ud na
+        0D36    EX   DE,HL      ;HL=po‡ te‡n¡, DE=koncov  adresa v˜pisu
+        0D37    LD   B,8        ;na 1 © dek 8 byt–
+        0D39    LD   C,17       ;rozd¡l sou©adnic tisku ‡¡sla a ASCII
+        0D3B    CALL 05FA       ;tisk obsahu HL na n sleduj¡c¡ © dek 
+        0D3E    CALL 03B1       ;tisk mezery a obsahu (HL)
+        0D41    INC  HL         ;zvˆt¨en¡ adresy
+        0D42    PUSH AF         ;ulo‘ A=(HL)
+        0D43    LD   A,(1171)   ;na‡ten¡ X-ov‚ sou©adnice kursoru
+        0D46    ADD  A,C        ;p©i‡ten¡ C = pozice tisku ASCII
+        0D47    LD   (1171),C   ;ulo‘en¡ vypo‡ten‚ sou©adnice
+        0D4A    POP  AF         ;vyzvednut¡ A=(HL)
+        0D4B    CP   20         ;pokud men¨¡ 32 =' ',pak tisk '.'
+        0D4D    JR   NC,0D51    ;nen¡ netisknuteln‚ ASCII
+        0D4F    LD   A,2E       ;='.'
+        0D51    CALL 0BB9       ;p©evod ASCII na video-znak
+        0D54    CALL 096C       ;ulo‘en¡ Acc do VRAM
+        0D57    LD   A,(1171)   ;navr cen¡ X-ov‚ sou©adnice spˆt na
+                                ;tisk ‡¡sel
+        0D5A    INC  C
+        0D5B    SUB  C
+        0D5C    LD   (1171),A
+        0D5F    DEC  C          ;zmen¨en¡ rozd¡lu vzd lenosti mezi
+        0D60    DEC  C          ;tiskem ‡¡sel a odpov¡daj¡c¡ch ASCII
+        0D61    DEC  C
+        0D62    PUSH HL
+        0D63    SBC  HL,DE      ;kontrola posledn¡ adresy
+        0D65    POP  HL
+        0D66    JR   Z,0D85     ;je posledn¡ => n vrat na 00AD
+        0D68    LD   A,F8
+        0D6A    LD   (E000),A   ;aktivace 8.© dku kl vesn.(funk‡n¡ kl.)
+        0D6D    NOP
+        0D6E    LD   A,(E001)   ;na‡ten¡ zm ‡kl˜ch kl ves
+        0D71    CP   FE         ;porovn n¡
+        0D73    JR   NZ,0D78    ;pokud zm ‡k˜ SHIFT => wait
+        0D75    CALL 0DA6       ;wait 1/50 s
+        0D78    DJNZ 0D3E       ;opakuj 8* na cel˜ © dek
+        0D7A    CALL 08CA       ;na‡ten¡ zm ‡kl˜ch kl ves ve video-k¢du
+        0D7D    OR   A
+        0D7E    JR   Z,0D7A     ;je zm ‡kl˜ mezern¡k=> opakuj ‡ten¡ kl.
+        0D80    CALL 0A32       ;test funk‡n¡ch kl ves
+        0D83    JR   NZ,0D37    ;nen¡ BREAK =>opakuj
+        0D85    JP   00AD       ;n vrat
+        
+        0D88    LD   HL,00A0    ;d‚lka tisku bude 00A0h
+        0D8B    ADD  HL,DE      ;p©i‡ten¡ d‚lky k po‡ ten¡ adresy
+        0D8C    JR   0D36       ;tisk s novˆ vypo‡tenou d‚lkou
+        
+                                -44-
+
+        wait 1/50 s
+                -
+
+0D8E-A5 NOP
+0DA6    PUSH AF
+0DA7    LD   A,(E002)
+0DAA    RLCA            ;na‡ten¡ vertik ln¡ho zatem. impulsu
+0DAB    JR   NC,0DA7    ;je v 0
+0DAD    LD   A,(E002)
+0DB0    RLCA            ;na‡ten¡ vertik ln¡ho zatem. impulsu
+0DB1    JR   C,0DAD     ;je v 1
+0DB3    POP  AF
+0DB4    RET
+
+        ulo‘en¡ Acc do Vram s kontrolou spojitosti © dk– a
+        jejich nadsteven¡m
+                -
+
+0DB5    PUSH AF
+0DB6    PUSH BC
+0DB7    PUSH DE
+0DB8    PUSH HL
+0DB9    CALL 0FB1       ;na‡ten¡ do HL pozici kursoru
+0DBC    LD   (HL),A     ;ulo‘en¡ Acc do Vram
+0DBD    LD   HL,(1171)  ;na‡ten¡ sou©adnic kursoru
+0DC0    LD   A,L
+0DC1    CP   27         ;=39
+0DC3    JR   NZ,0DD0    ;X-ov  sou©adnice nen¡ 39 => nebyl
+                        ;p©echod na nov˜ © dek
+0DC5    CALL 02F3       ;do Acc s Cy po‡ tku © dk–
+0DC8    JR   C,0DD0     ;© dky ji‘ spojeny
+0DCA    EX   DE,HL      ;do HL adresa promˆn‚ spojitosti
+0DCB    LD   (HL),1     ;nadstaven¡ spojitosti © dk–
+0DCD    INC  HL
+0DCE    LD   (HL),0
+0DD0    LD   A,C3
+0DD2    JR   0DE0       ;posun kursoru v pravo
+
+        kontrola ALPHA/GRAPH
+                A=CA, F=NC,Z pokud graph, C,NZ pokud ALPHA
+
+0DD4    LD   A,(1170)   ;na‡ten¡ znaku ze syst‚mov‚ promˆnn‚
+0DD7    CP   1          ;kontrola
+0DD9    LD   A,CA
+0DDB    RET
+
+        ©¡zen¡ dle Acc
+                -
+
+0DDC    PUSH AF
+0DDD    PUSH BC
+0DDE    PUSH DE
+0DDF    PUSH HL
+
+                                - 45 -
+
+0DE0    LD   B,A
+0DE1    AND  F0
+0DE3    CP   C0         ;kontrola zad n¡ znaku
+0DE5    JR   NZ,0E02    ;nen¡ Cx => n vrat
+0DE7    XOR  B          ;navr cen¡ spodn¡ pooviny Acc
+0DE8    RLCA            ;n soben¡ 2
+0DE9    LD   C,A        ;BC=A
+0DEA    LD   B,0
+0DEC    LD   HL,0EAA    ;adresa tabulky adres
+0DEF    ADD  HL,BC      ;p©i‡ten¡ k¢du k tabulce
+0DF0    LD   E,(HL)     ;na‡ten¡ adresu
+0DF1    INC  HL
+0DF2    LD   D,(HL)
+0DF3    LD   HL,(1171)  ;na‡ten¡ polohy kursoru
+0DF6    EX   DE,HL
+0DF7    JP   (HL)       ;skok na najdenou adresu
+
+        posun kursoru dole, podprogram k 0DDC
+                -
+
+0DF8    EX   DE,HL      ;HL=poloha kursoru
+0DF9    LD   A,H        ;A=Y-ov 
+0DFA    CP   18         ;=24
+0DFC    JR   Z,0E23     ;je posledn¡ © dek => scroll
+0DFE    INC  H          ;zvˆt¨en¡ Y-ov‚ sou©adnice
+0DFF    LD   (1171),HL  ;ulo‘en¡ v˜sledku na syst. promˆnn‚
+0E02    JP   0EE5       ;n vrat
+
+        posun kursoru nahoru,podprogram k 0DDC
+                -
+
+0E05    EX   DE,HL      ;HL=poloha kursoru
+0E06    LD   A,H        ;Acc=Y-ov 
+0E07    OR   A          ;kontrola nulovosti
+0E08    JR   Z,0E02     ;sou©adnice je nulov  => nelze
+0E0A    DEC  H          ;zmen¨en¡ Y-ov‚ sou©adnice o 1
+0E0B    JR   0DFF       ;z pis v˜sledku na syst. promˆnn‚
+
+        posun kursoru vpravo, podprogram k 0DDC
+                -
+
+0E0D    EX   DE,HL      ;HL=poloha kursoru
+0E0E    LD   A,L        ;Acc=X-ov 
+0E0F    CP   27         ;=39
+0E11    JR   NC,0E16    ;konec © dku
+0E13    INC  L          ;zvˆt¨en¡ sou©adnice
+0E14    JR   0DFF       ;ulo‘en¡ v˜sledku na syst. promˆnn‚
+
+        p©echod kursoru na n sleduj¡c¡ © dek
+
+0E16    LD   L,0        ;vynulov n¡ X-ov‚ sou©adnice
+0E18    INC  H          ;zvˆt¨en¡ Y-ov‚ sou©adnice
+
+                                - 46 -
+
+0E19    LD   A,H
+0E1A    CP   19         ;=25
+0E1C    JR   C,0DFF     ;z pis v˜sledku na syst. promˆnn‚
+0E1E    LD   H,18       ;konec obrazovky => scroll
+0E20    LD   (1171),HL  ;z pis na syst. promˆnn‚
+0E23    JR   0E6D       ;scroll
+
+        posun kursoru vlevo, podprogram k 0DDC
+                -
+
+0E25    EX   DE,HL      ;HL=poloha kursoru
+0E26    LD   A,L        ;Acc=X-ov 
+0E27    OR   A          ;kontrola nulovosti
+0E28    JR   Z,0E2D     ;sou©adnice nolov  => p©echod na
+                        ;p©edchoz¡ © dek
+0E2A    DEC  L          ;zmen¨en¡ sou©adnice o 1
+0E2B    JR   0DFF       ;z pis v˜sledku na syst. promˆnn‚
+
+        p©esun kursoru na p©edchoz¡ © dek
+
+0E2D    LD   L,27       ;=39
+0E2F    DEC  H          ;zmen¨en¡ Y-ov‚ sou©adnice
+0E30    JP   P,0E0B     ;z pis v˜sledku na syst. promˆnn‚
+0E33    LD   H,0        ;nelze pounout na p©edchoz¡
+0E35    LD   (1171),HL  ;z pis v˜sledku na syst. promˆnn‚
+0E38    JR   0E02       ;n vrat
+
+        CLR, podprogram k 0DDC
+                -
+0E3A    LD   HL,1173
+0E3D    LD   B,1B
+0E3F    CALL 0FD8       ;vynulov n¡ promˆn˜ch pro spojitost
+                        ;© dk–
+0E42    LD   HL,D000
+0E45    CALL 09D4       ;vynulov n¡ VRAM (D000-D800)
+0E48    LD   A,71       ;barva p¡sma a pozad¡
+0E4A    CALL 09D5       ;inicializace INK a PAPER
+
+        HOME,podprogram k 0DDC
+                -
+
+0E4D    LD   HL,0       ;vynulov n¡ sou©adnic
+0E50    JR   0DFF       ;z pis v˜sledku na syst. promˆn‚
+
+        tisk CR, posun kursoru na n sleduj¡c¡ © dek
+        podprogram k 0DDC
+                -
+0E52-59 NOP
+0E5A    CALL 02F3       ;ulo‘en¡ do Acc a Cy spojitosti © dk–
+0E5D    RRCA
+0E5E    JR   NC,0E16    ;n sleduj¡c¡ © dek nen¡ s t¡mto spojen
+                        ;=> posun kursoru na n sleduj¡c¡ © dek
+
+                                - 47 -
+
+0E60    LD   L,0        ;vynulov n¡ X-ov‚ sou©adnice kursoru
+0E62    INC  H          ;zvˆt¨en¡ Y-ov‚ sou©adnice
+
+zde se nach z¡ prvn¡ chyba v ROM: chyb¡ instrukce LD   A,H
+(pokud jsou posledn¡ 2 © dku spojeny a kursor je na
+p©edposledn¡m © dku,po tisku CR se dostane kursor mimo
+obrezovku.)
+
+0E63    CP   18
+0E65    JR   Z,0E6A     ;scroll
+0E67    INC  H          ;zvˆt¨en¡ Y-ov‚ sou©adnice
+0E68    JR   0DFF       ;ulo‘en¡ v˜sledku na syst. promˆnn‚
+
+        scroll, srotov n¡ obrazovky; podprogram k 0DDC
+                -
+
+0E6A    LD   (1171),HL  ;ulo‘en¡ sou©. kursoru,nepovinn  instr.
+0E6D    LD   BC,03C0    ;d‚lka rotovan‚ oblasti
+0E70    LD   DE,D000    ;po‡ tek VRAM, znaky
+0E73    LD   HL,D028    ;po‡ tek n sleduj¡c¡ho © dku
+0E76    PUSH BC         ;ulo‘en¡ d‚lky
+0E77    LDIR            ;rotace znak–
+0E79    POP  BC         ;vyavednit¡ d‚lky
+0E7A    PUSH DE         ;ulo‘en¡ po‡ tku posledn¡ho © dku
+0E7B    LD   DE,D800    ;po‡ tek VRAM, barvy
+0E7E    LD   HL,D828    ;pa‡ tek n sleduj¡c¡ho © dku
+0E81    LDIR            ;rotace barev
+0E83    LD   B,28       ;=40 =1 © dek
+0E85    EX   DE,HL      ;do HL po‡ tek posledn¡ho © dku
+0E86    LD   A,71       ;ink/paper
+0E88    CALL 0FDD       ;obarven¡ posledn¡ho © dku
+0E8B    POP  HL         ;na‡ten¡ po‡ tku posledn¡ho © dku znak–
+0E8C    LD   B,28       ;d‚lka 1. © dku
+0E8E    CALL 0FD8       ;vymaz n¡ posledn¡ho © dku znak–
+0E91    LD   BC,001A    ;d‚lka syst. promˆn˜ch spojitosti © dk–
+0E94    LD   DE,1173    ;po‡ tek  tˆchto promˆn˜ch
+0E97    LD   HL,1174    ;n sleduj¡c¡ pozice
+0E9A    LDIR            ;rotace promˆn˜ch spojitosti © dk–
+0E9C    LD   (HL),0     ;vynulov n¡ posledn¡ promˆn‚
+0E9E    LD   A,(1173)   ;na‡ten¡ prvn¡ promˆnn‚
+0EA1    OR   A          ;kontrola nulovosti
+0EA2    JR   Z,0EE5     ;je nulov  => konec
+0EA4    LD   HL,1172    ;adresa Y-ov‚ sou©adnice
+0EA7    DEC  (HL)       ;zmen¨en¡ Y-ov‚ sou©adnice
+0EA8    JR   0E6D       ;nov  rotace
+
+        tabulka odskokov˜ch adres pro podprogram 0DDC:
+
+0EAA    DEFW 0E6D       ;C0 => scroll
+0EAC    DEFW 0DF8       ;C1 => DOWM
+0EAE    DEFW 0E05       ;C2 => UP
+
+                                - 48 -
+
+0EB0    DEFW 0E0D       ;C3 => RIGHT
+0EB2    DEFW 0E25       ;C4 => LEFT
+0EB4    DEFW 0E4D       ;C5 => HOME
+0EB6    DEFW 0E3A       ;C6 => CLR
+0EB8    DEFW 0EF8       ;C7 => DEL
+0EBA    DEFW 0F38       ;C8 => INST
+0EBC    DEFW 0EE1       ;C9 => ALPHA
+0EBE    DEFW 0EEE       ;CA => GRAPH
+0EC0    DEFW 0EE5       ;CB => n vrat
+0EC2    DEFW 0EE5       ;CC => n vrat
+0EC4    DEFW 0E5A       ;CD => CR
+0EC6    DEFW 0EE5       ;CE => n vrat
+0EC8    DEFW 0EE5       ;CF => n vrat
+
+        INST - vlo‘en¡ mezery,‡ st podprogramu 0F38,kter˜
+        je podprogramem 0DDC
+                -
+
+0ECA    SET  3,H        ;nadstaven¡ pozice kursoru na barvy
+0ECC    LD   A,(HL)     ;p©enos znak
+0ECD    INC  HL
+0ECE    LD   (HL),A
+0ECF    DEC  HL
+0ED0    RES  3,H        ;nadstaven¡ pozice kursoru na znaky
+0ED2    LDD             ;p©enos barev se zmen¨en¡m BC a HL a DE
+0ED4    LD   A,C        ;kontrola nulovosti BC
+0ED5    OR   B
+0ED6    JR   NZ,0ECA    ;dobud nen¡ nulov‚
+0ED8    EX   DE,HL      ;na‡ten¡ do DE sou©adnice kursoru
+0ED9    LD   (HL),0     ;vynulov n¡ znaku (mezera)
+0EDB    SET  3,H        ;nadstaven¡ posice kursoru na barvy
+0EDD    LD   (HL),71    ;inicializace barev
+0EDF    JR   0EE5       ;n vrat
+
+        ALPHA, podprogram k 0DDC
+                -
+
+0EE1    XOR  A
+0EE2    LD   (1170),A   ;vynulov n¡ syst. promˆnn‚ ALPHA/GRAPH
+0EE5    POP  HL
+0EE6    POP  DE
+0EE7    POP  BC
+0EE8    POP  AF
+0EE9    RET
+
+        GRAPH, podprogram k 0DDC; pokud ji‘ grafick˜ re‘im =>
+        tisk pam ‡ka (ASCII =63)
+                -
+
+0EEA-D  NOP
+0EEE    CALL 0DD4       ;kontrola ALPHA/GRAPH
+0EF1    JP   Z,0DB9     ;ji‘ je grafick˜ re‘im => tisk pan ‡ka
+0EF4    LD   A,1
+0EF6    JR   0EE2       ;nadstaven¡ 1 do syst. promˆnn‚
+
+                                - 49 -
+
+        DEL, vymaz n¡ znaku; podprogram k 0DDC
+                -
+
+0EF8    EX   DE,HL      ;HL = poloha kursoru
+0EF9    LD   A,H        ;Acc = Y-ov 
+0EFA    OR   L
+0EFB    JR   Z,0EE5     ;kursor v z kladn¡ poloze => n vrat
+0EFD    LD   A,L        ;Acc = X-ov 
+0EFE    OR   A          ;kontrola nulovosti
+0EFF    JR   NZ,0F0E    ;X-ov  sou©adnice nen¡ nulov 
+0F01    CALL 02F3       ;na‡ten¡ do Acc a Cy spojitosti © dk–
+0F04    JR   C,0F0E     ;© dek je spojen s p©edchoz¡m
+0F06    CALL 0FB1       ;na‡ten¡ do HL pozici kursoru
+0F09    DEC  HL
+0F0A    LD   (HL),0     ;vymaz n¡ p©edcho¡ho znaku
+0F0C    JR   0F33       ;posun kursoru vlevo
+
+0F0E    CALL 02F3       ;na‡ten¡ do Acc a Cy spojitosti © dk–
+0F11    RRCA
+0F12    LD   A,28       ;=40 =1 © dek
+0F14    JR   NC,0F17    ;© dek nen¡ spojen s n sleduj¡c¡m
+0F16    RLCA            ;Acc=80 =2 © dky
+0F17    SUB  L          ;ode‡ten¡ od v˜sledku X-ov‚ sou©adnice
+0F18    LD   B,A        ;v˜sledek do B
+0F19    CALL 0FB1       ;na‡ten¡ do HL pozise kursoru
+0F1C    LD   A,(HL)     ;vyzvednut¡ znaku pod kursorem
+0F1D    DEC  HL
+0F1E    LD   (HL),A     ;ulo‘en¡ tohoto znaku o posici bl¡‘e
+0F1F    INC  HL
+0F20    SET  3,H        ;nadstaven¡ HL do VRAM pro barvy
+0F22    LD   A,(HL)     ;vyzvednut¡ barvy
+0F23    DEC  HL
+0F24    LD   (HL),A     ;ulo‘en¡ o posici bl¡‘e
+0F25    RES  3,H
+0F27    INC  HL         ;p©esun na n sleduj¡c¡ znak
+0F28    INC  HL
+0F29    DJNZ 0F1C       ;opakuj B*
+0F2B    DEC  HL
+0F2C    LD   (HL),0     ;vlo‘en¡ mezery na konec textu
+0F2E    SET  3,H
+0F30    LD   HL,71
+
+zde je druh  chyba ROM: nam¡sto instrukce LD  HL,71 by mˆlo
+b˜t LD   (HL),71 pro inicializaci barev na konci textu
+(barva na konci © dku se posouv  s textem d l, ale taky
+z–st v  na konci © dku)
+
+0F33    LD   A,C4       ;k¢d pro posun kursoru vlevo
+0F35    JP   0DE0       ;proveden¡ tohoto posunu
+
+                                - 50 -
+
+        INST-vlo‘en¡ mezery; podprogram k 0DDC
+                -
+
+0F38    CALL 02F3       ;na‡ten¡ do Acc a Cy spojitosti © dk–
+0F3B    RRCA
+0F3C    LD   L,27       ;=39
+0F3E    LD   A,L
+0F3F    JR   NC,0F42    ;n sleduj¡c¡ © dek nen¡ spojen s t¡mto
+0F41    INC  H          ;zvˆt¨en¡ Y-ov‚ sou©adnice
+0F42    CALL 0FB4       ;p©epo‡et HL na pozici kursoru
+0F45    PUSH HL         ;ulo‘en¡ vypo‡ten‚ posice kursoru
+0F46    LD   HL,(1171)  ;na‡ten¡ polohy kusoru
+0F49    JR   NC,0F4D    ;n sleduj¡c¡ ©adek nespojen s t¡mto
+0F4B    LD   A,4F       ;=79 = 2 dky
+0F4D    SUB  L          ;ode‡ten¡ skute‡n‚ X-ov‚ sou©adnice
+0F4E    LD   B,0
+0F51    POP  DE         ;na‡ten¡ do DE kone‡n‚ posice kursoru
+0F52    JR   Z,0EE5     ;sou©adnice kursoru je na konci ©adku
+                        ;=> nelze vlo‘it dal¨¡ mezeru
+0F54    LD   A,(DE)     ;na‡ten¡ posledn¡ho znaku © dku
+0F55    OR   A
+0F56    JR   NZ,0EE5    ;nen¡ mezera => text nen¡ kde posunout
+0F58    LD   H,D        ;HL = pozice p©edposledn¡ho znaku
+0F59    LD   L,E
+0F5A    DEC  HL
+0F5B    JP   0ECA       ;srotov n¡ dan‚ oblasti
+
+        save, podprogram 00AD
+
+0F5E    CALL 013D       ;4 ASCII adresovan‚ DE p©evede do HL,
+                        ;pokud nelze => skok na 00AD
+0F61    LD   (1104),HL  ;ulo‘en¡ po‡ te‡n¡ adresy programu
+0F64    LD   B,H        ;na‡ten¡ t‚to adresy do BC
+0F65    LD   C,L
+0F66    CALL 02A6       ;DE=DE+4
+0F69    CALL 013D       ;4 ASCII adresovan‚ DE p©evede do HL,
+                        ;pokud nelze => skok na 00AD
+0F6C    SBC  HL,BC      ;ode‡ten¡ koncov‚ adresy od po‡ te‡n¡
+0F6E    INC  HL         ;=> vypo‡ten¡ d‚lky
+0F6F    LD   (1102),HL  ;ulo‘en¡ d‚lky programu
+0F72    CALL 02A6       ;DE=DE+4
+0F75    CALL 013D       ;4 ASCII adresovan‚ DE p©evede do HL,
+                        ;pokud nelze => skok na 00AD
+0F78    LD   (1106),HL  ;ulo‘en¡ startovac¡ adresy
+0F7B    CALL 9          ;p©esun kursoru na dal¨¡ © dek
+0F7E    LD   DE,098B
+0F81    RST  18         ;tisk 'FILEMANE? '
+0F82    CALL 012F       ;na‡ten¡ © dku od 11A3
+0F85    CALL 02A6       ;p©esko‡en¡ textu FILENAME? (DE=DE+9)
+0F88    CALL 02A6
+0F8B    LD   HL,10F1    ;adresa n zvy programu
+0F8E    INC  DE
+
+                                - 51 -
+
+0F8F    LD   A,(DE)     ;p©esun n zvu programu od adresy 10F1
+0F90    LD   (HL),A
+0F91    INC  HL
+0F92    CP   0D
+0F94    JR   NZ,0F8E    ;opakuj dokud nen¡ konec n zvu
+0F96    LD   A,1        ;typov‚ ‡¡slo programu =01
+0F98    LD   (10F0),A   ;ulo‘en¡ typov‚ho ‡¡sla
+0F9B    CALL 0436       ;nahraje hlavi‡ku programu
+0F9E    JP   C,0107     ;BREAK!
+0FA1    CALL 0475       ;nahraje tˆlo programu
+0FA4    JP   C,0107     ;BREAK!
+0FA7    CALL 9          ;p©esun kursoru na n sleduj¡c¡ © dek
+0FAA    LD   DE,0942
+0FAD    RST  18         ;tisk 'OK!'
+0FAE    JP   00AD       ;n vrat
+
+        na‡ten¡ HL do posice kursoru
+                HL=?
+
+0FB1    LD   HL,(1171)  ;na‡ten¡ sou©adnic kursoru
+
+        p©evod HL na posici kursoru
+                HL=?
+
+0FB4    PUSH AF
+0FB5    PUSH BC
+0FB6    PUSH DE
+0FB7    PUSH HL
+0FB8    POP  BC         ;na‡ten¡ sou©adnic kursoru do BC
+0FB9    LD   DE,0028    ;=40 = 1 © dek
+0FBC    LD   HL,CFD8    ;=D000H-40  = po‡. VRAM-1 © dek
+0FBF    ADD  HL,DE      ;p©i‡ten¡ 40 posic
+0FC0    DEC  B
+0FC1    JP   P,0FBF     ;opakuj dle Y-ov‚ sou©adnice
+0FC4    LD   B,0
+0FC6    ADD  HL,BC      ;p©i‡ten¡ X-ov‚ sou©adnice
+0FC7    POP  DE
+0FC8    POP  BC
+0FC9    POP  AF
+0FCA    RET
+
+        verify, podprogram 00AD
+
+0FCB    CALL 0588       ;verify tˆla programu
+0FCE    JP   C,0107     ;chyba nebo BREAK
+0FD1    LD   BC,0942
+0FD4    RST  18         ;tisk OK!
+0FD5    JP   00AD       ;n vratB
+
+                                - 52 -
+
+        vynulov n¡ B byt– pamˆti od HL
+                A=0, F=?, B=0, HL=HL+B
+
+0FD8    XOR  A          ;nulov n¡ Acc
+0FD9    JR   0FDD       ;zaplnˆn¡ B byt– pamˆti od HL   Acc
+
+        zaplnˆn¡ B byt– pamˆti od HL hodnotou FF
+                A=FF, F=?, B=0, HL=HL+B
+
+0FDB    LD   A,FF
+
+        zaplnˆn¡ B byt– pamˆti od HL akumul torem
+                F=?, B=0, HL=HL+B
+
+0FDD    LD   (HL),A
+0FDE    INC  HL
+0FDF    DJNZ,0FDD       ;opakuj B*
+0FE1    RET
+
+        hled  100 byt– pilotn¡ho t¢nu
+                AF=?
+
+0FE2    PUSH BC
+0FE3    PUSH DE
+0FE4    PUSH HL
+0FE5    LD   BC,E001    ;pro ‡ten¡ kl vesnice
+0FE8    LD   DE,E002    ;pro ‡ten¡ magnetofonu
+0FEB    LD   H,64       ;=100
+0FED    CALL 0601       ;‡ek  na n bˆ‘nou hranu jedni‡ky
+0FF0    JR   C,0FDD     ;BREAK!
+0FF2    CALL 0A4A       ;wait .23 ms
+0FF5    LD   A,(DE)
+0FF6    AND  20         ;na‡ten¡ sign lu z magnetofonu
+0FF8    JR   NZ,0FEB    ;bit byl jedni‡kov˜
+0FFA    DEC  H
+0FFB    JR   NZ,0FED    ;opakuj 100*
+0FFD    JP   069B       ;n vrat
+
+                                - 53 -
+
+SEZNAM SYSTMOVCH PROM‰NNCH POU’‹VANCH  ROM-MONITOREM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1038-3A promˆnn  pro skok p©i p©eru¨en¡ (JP 03D8)
+103B-EF z sobn¡k
+10EF    prvn¡ byte z sobn¡ku => TOS
+10F0-6F hlavi‡ka programu, kter  obsahuje:
+        10F0    typov‚ ‡¡slo programu
+        10F1-   n zev programu um¡stˆn‚ho 0D
+        1102    d‚lka programu
+        1104    po‡ te‡n¡ adresa programu
+        1106    startovac¡ adresa programu
+        1108-6F cokoli
+1170    norm ln¡/grafick˜ re‘im
+1171    X-ov  sou©adnice kursoru
+1172    Y-ov  sou©adnice kursoru
+1173-8D spojitosti © dk–
+118E    znak pod kursorem
+1192    znak kursoru
+1194    promˆn  pro tabelaci
+1195    d‚lka zna‡ky programu
+1197    kontroln¡ sou‡et programu
+1199    kontroln¡ sou‡et programu
+119B    AM/PM
+119C    chod hodin => F0
+119D    p¡p n¡ p©i stisku kl ves on/off
+119E    tempo hudby
+119F    d‚lka t¢nu
+11A0    okt va
+11A1-2  frekvence hudby
+11A3-F3 p©¡kazov˜ © dek
+1
+
+
+SEZNAM POU’ITELNCH PODPROGRAM¦
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pr ce s kl vesnic¡
+~~~~~~~~~~~~~~~~~~
+p©e‡ten¡ znaku z kl vesnice v ASCII do Acc      ....... 001B
+                                                        08BD
+na‡ten¡ znaku z kl vesnice ve vide-k¢du  .............. 08C8-CA
+na‡ten¡ z kl vesnice do pamˆti od DE textov˜ ©adek  ... 0003
+                                                        07E6
+na‡ten¡ z kl vesnice do pamˆti od 11A3 textov˜ © dek .. 012F
+test ©¡d¡c¡ch kl ves (SHIFT,ESC,CTRL)   ............... 001E
+blik n¡ kursoru s kontrolou kl vesnice  ............... 057E
+blik n¡ kursoru 1.5 Hz ................................ 09E3
+                                                        09F6-FF
+na‡ten¡ do Acc pr vˆ zm ‡klou kl vesu s blik. kursoru . 09B0
+vstup z kl vesnice do BC .............................. 0A4C
+vstup z kl vesnice s p©edchoz¡m waitem ................ 0830
+test funk‡n¡ch kl ves (CTRL,ESC,SHIFT) ................ 0A2D-32
+kontrola ALPHA/GRAPH .................................. 0DD4
+
+                                - 54 -
+
+podprogramy tisku
+~~~~~~~~~~~~~~~~~
+tisk ASCII znaku v akumul toru  ....................... 0012
+                                                        0932-35
+tisk ASCII v Acc bez ©¡d¡c¡ch znak– ................... 0947
+tisk ASCII v C bez ©¡d¡c¡ch znak– ..................... 0946
+tisk video-znaku v Acc ................................ 094A
+tisk video-znaku v Acc s kontrolou promˆnn‚ tabelace... 094A
+ulo‘en¡ Acc do Vram ................................... 0DB5
+tisk mezery do pozice kursoru  ........................ 000C
+                                                        091F
+tabelace mezerami po 10 znac¡ch   ..................... 000F
+                                                        0924
+©¡zen¡ dle Acc ........................................ 0DDC
+tisk ©etˆzce adresovan‚ho DE a ukon‡en‚ho 0D (CR)  .... 0015
+                                                        0886-93
+tisk ©etˆzce adresovan‚ho DE ,©¡d¡c¡ znaky netiskne  .. 0018
+                                                        08A1
+p©esun kursoru na n sleduj¡c¡ © dek   ................. 0006
+p©esun kursoru na n sleduj¡c¡ © dek, pokud ji‘ nebylo . 0009
+                                                        0916-18
+na‡ten¡ spojitosti okoln¡ch © dk– ..................... 02F3
+tisk mezery a obsahu pam. bu¤ky (HL)  ................. 03B1
+tisk obsahu pam. bu¤ky (HL)  .......................... 03B4
+tisk obsahu reg. p ru HL  ............................. 03BA
+tisk obsahu reg. p ru HL na n sleduj¡c¡m © dku ........ 05FA
+tisk obsahu akumul toru ............................... 03C1
+tisk obsahu spodn¡ poloviny Acc ....................... 03CF
+navr t¡ znak pod kursorem do VRAM ..................... 05F0
+                                                        097B
+na‡ten¡ do HL posici kursoru   ........................ 0FB1
+p©epo‡et HL (souªadnice kursoru) na posici kursoru .... 0FB4
+
+pr ce s magnetofonem
+~~~~~~~~~~~~~~~~~~~~
+nahraje hlavi‡ku (10F0-) na p sek  .................... 0021
+                                                        0436
+nahraje tˆlo dle hlavi‡ky na p sek  ................... 0024
+                                                        0475
+nahraje hlavi‡ku z p sky a ulo‘¡ od adresy 10F0-  ..... 0027
+                                                        04D6
+nahraje pamˆŸ dle hlavi‡ky z p sky   .................. 002A
+                                                        04F8
+verifikace nahran˜ch dat  ............................. 002D
+                                                        0587-88
+verifink dat po najden¡ pilotn¡ho t¢nu a zna‡ky ....... 05AD
+rutina LOAD ,n vrat na 00AD  .......................... 0111
+rutina SAVE , n vrat na 00AD .......................... 0F5E
+nahr n¡ dat bez pilotn¡ho t¢nu a zna‡ky na magnetofon . 048A
+nahr n¡ dat bez pilotn¡ho t¢nu a zna‡ky z magnetofonu . 050E
+‡ak n¡ na n bˆ‘nou hranu jedni‡kov‚ho sign lu ......... 0601
+nahr n¡ 1 byte z magnetofonu, na 1197 sou‡et .......... 0620-24
+
+                                - 55 -
+
+z pis Acc na nagnetofon ............................... 0767
+z pis nulov‚ho bitu na nagn.  ......................... 0A01
+z pis jedni‡kov‚ho bitu na magnetofon  ................ 0A1A
+hled n¡ pilotn¡ho t¢nu se zna‡kou dle L ............... 0658-5B
+z pis pilotn¡ho t¢nu a zna‡ky dle E  .................. 077A
+hled n¡ 100 byt– pilotn¡ho t¢nu ....................... 0FE2
+v˜po‡et kontroln¡ho sou‡tu programu ................... 071A
+rozbˆh motoru ......................................... 069F
+10* pokus o  rozbˆh motoru ............................ 06FF
+
+hudebn¡ programy
+~~~~~~~~~~~~~~~~
+hran¡ hudby odresovan‚ DE a ukon‡en¡ 0D   ............. 0030
+                                                        01C7
+nadstaven¡ tempa hran¡ hudby dle Acc   ................ 0041
+                                                        02E5
+BEEP -p¡pnut¡ asi 880 Hz  ............................. 003E
+                                                        0577
+zvuk o frekvenci 1.108405MHz/(11A1-11A2)  ............. 0044
+                                                        02AB
+ukon‡¡ hran¡ hudby od popdprogramu 0044 ............... 0047
+                                                        02BE
+
+pr ce s p©eru¨en¡m (mˆ©en¡ ‡asu)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+nadstaven¡ ‡asu dle Acc a DE   ........................ 0033
+                                                        0308
+p©e‡te ‡as do Acc a DE  ............................... 003B
+                                                        0356
+p©eru¨ovac¡ program, zmˆna AM/PM   .................... 0038
+                                                        038D
+                                                        1038
+
+inicializa‡n¡ programy
+~~~~~~~~~~~~~~~~~~~~~~
+inicializace syst‚mu a skok na 00AD,E800 nebo 0000..... 004A
+inicializace 8255  .................................... 073E
+inicializace syst. promˆnn˜ch p©ed blik n¡m kursoru ... 0B92
+
+skokov‚ programy
+~~~~~~~~~~~~~~~~
+skok na adresu 0000 RAM   ............................. 005B
+skok dle 4 ASCII adresovan˜ch DE, pokud nelze => 00AD . 00F3
+pokud na adrese je E000 00 pak skok na E000,jinak 00AD  00FF
+pokud je na adrese HL 00 pak skok dle HL,jinak 00AD ... 0102
+skok na 00AD s tiskem 'CHECK SUM ERROR' pokud A<>2 .... 0107
+skok na 00AD s tiskem 'CHECK SUM ERROR' pokud ZF ...... 0109
+skok na 00AD s tiskem 'CHECK SUM ERROR' ............... 010B
+
+p©evodn¡ programy
+~~~~~~~~~~~~~~~~~
+p©evod ASCII na video-k¢d ............................. 0BB9
+p©evod display na ASCII ............................... 0BCB-CE
+
+                                - 56 -
+
+p©evod 4 ASCII adresovan‚ DE do HL, nelze => 00AD ..... 013D
+p©evod 4 ASCII adresovan‚ DE do HL, nelze => SCF ...... 040C-10
+p©evod 2 ASCII adresovan˜ch DE do Acc,nelze => SCF .... 041F
+p©evod spodn¡ch 4 bit– Acc na ASCII  .................. 03DA
+p©evod ASCII v Acc na ‡¡slo , nelze => SCF  ........... 03E5
+                                                        03F5-F9
+
+waity
+~~~~~
+wait B*1/35s   ........................................ 02D5
+wait B*1/35s s kontrolou BREAK ........................ 02C8
+wait .11 ms  .......................................... 0748-58
+wait .1 ms ............................................ 0760
+wait 3.4 ms ........................................... 0996
+wait 1.33 ms  ......................................... 09A9
+wait .23 ms  .......................................... 0A4A
+wait 1/50 s ........................................... 0D8E-A6
+
+data tisku
+~~~~~~~~~~
+CHECK SUM ER.           0147
+l PLAY                  03FB
+l RECORD                0402
+WRITING                 0467
+**  MONITOR 1Z-013B  ** 06E7
+OK!                     0942
+FILENAME                098B
+LOADING                 09A0
+V 1.0A                  0BC5
+
+data tisku pro tisk rnu
+~~~~~~~~~~~~~~~~~~~~~~~
+01,09,09,09     =80 znak– na © dek .................... 09D5
+01,09,09,0B     =40 znak– na © dek .................... 0470
+
+pr ce s tisk rnou
+~~~~~~~~~~~~~~~~~
+tisk akumul toru na tisk rnˆ  ......................... 018F
+tisk ©etˆzce adresovan‚ho DE, ukon‡en‚ho 0D na tisk rnˆ 01A5
+
+ostatn¡
+~~~~~~~
+vynulov n¡ 800 byt– pamˆti od HL  ..................... 09D4
+vyakumul torov n¡ 800 byt– pamˆti od HL  .............. 09D5
+vyakumul torov n¡ BC byt– pamˆti od HL  ............... 09D5
+vynulov n¡ B byt– pamˆti od HL ........................ 0FD8
+zaplnˆn¡ B byt– pamˆti od HL hodnotou FF .............. 0FDB
+vyakumulŸorov n¡ B byt– pamˆti od HL .................. 0FDD
+syst‚mov˜ program umo‘¤uj¡c¡ L,S,V,J,D,M,P,B  ......... 00AD
+
+
+

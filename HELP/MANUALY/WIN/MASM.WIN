@@ -1,0 +1,803 @@
+ 
++-------------------------------------------------------------------------+
+|                                                                         |
+|                                                                         |
+|               M  A  S  M    -    m a k r o a s s e m b l e r            |
+|                                                                         |
+|                                                                         |
++-------------------------------------------------------------------------+
+                            (c) Miroslav Nìmeèek
+
+    1.- Úvod
+
+    MASM je dvouprùchodovı asembler generující cílové moduly kompatibilní s
+cílovımi  moduly vytvoøenımi kompilátory vyšších programovacích jazykù. Tím
+je  dána  monost sestavovat úplné programy na základì kombinování cílovıch
+modulù   (relokovatelné   kódy)  MASMu  s  cílovımi  moduly  vygenerovanımi
+jazykovımi  kompilátory.  Relokovatelnı  cílovı  kód je soubor, v kterém je
+kadé  instrukci èi jinému pøíkazu pøiøazen offset od jeho segmentové báze.
+Sestavenı kód je moné potom spojit pomocí programu LINK a vytvoøit tak kód
+programu,  kterı lze ji zavést do pamìti. Relokovatelnı kód navíc znamená,
+e je moné programy vytváøet ve formì modulù, z nich kadı lze sestavit a
+odladit samostatnì.
+
+    V prvním prùchodu asembler:
+
+- vyhodnocuje pøíkazy a rozvinuje pøíkazy volání makroinstrukcí
+- vypoèítává velikost kódu, kterı vygeneruje
+- zakládá  tabulku  symbolù,  v  ní  se  symbolùm,  promìnnım,  návìštím a
+  makroinstrukcím pøiøazují hodnoty
+
+    V druhém prùchodu asembler:
+
+- dosazuje za symboly, promìnné, návìští a vırazy hodnoty z tabulky symbolù
+- rozvinuje pøíkazy volání makroinstrukcí
+- zapisuje  relokovatelnı  cílovı kód do souboru, jeho jméno má standardní
+  doplnìk .OBJ.
+
+
+    Další  vlastností  makroasembleru je monost zapsat kódy blokù programu
+zkrácenım  povelem  (makroinstrukce)  -  napø.  pøi èastém opakování tìchto
+blokù programu.
+
+
+
+
+    2.- Prvky asembleru
+
+
+    V asembleru lze pouít tyto èíselné základy:
+
+- dekadické èíslo (èíslice 0 a 9, volitelnì mùe následovat písmeno D)
+- binární èíslo (èíslice 0 nebo 1, následuje písmeno B)
+- oktalové èíslo (èíslice 0 a 7, následuje písmeno O nebo Q)
+- hexadecimální  èíslo  (èíslice  0  a  9  nebo  písmena A a F, následuje
+  písmeno H; øada musí zaèínat vdy èíslicí 0 a 9)
+
+    Standardní  nebo  v  daném  okamiku  platnı  základ  je  moné  zmìnit
+direktivou .RADIX. Implicitnì je èíselná soustava dekadická.
+
+
+
+
+    Lze pouít tyto rozsahy celıch èísel:
++------------------------+------+-----------------+-----------------------+
+|         tvar           | bitù |      rozsah     | poèet platnıch èíslic |
++------------------------+------+-----------------+-----------------------+
+| bajt bez znaménka      |   8  |     0 a 255    |        2 a 3         |
+| bajt se znaménkem      |   8  |   -128 a 127   |        2 a 3         |
+| slovo bez znaménka     |  16  |    0 a 65535   |        4 a 5         |
+| slovo se znaménkem     |  16  | -32768 a 32767 |        4 a 5         |
+| dvouslovo bez znaménka |  32  | 0 a 4294967295 |        9 a 10        |
+| dvouslovo se znaménkem |  32  |  -2147483647 a |        9 a 10        |
+|                        |      |    2147483648   |                       |
+| ètyøslovo bez znaménka |  64  |   0 a 1.84E19  |       19 a 20        |
+| ètyøslovo se znaménkem |  64  |  -9e18 a 9e18  |          18           |
++------------------------+------+-----------------+-----------------------+
+    znaménko se uloí do nejvyššího bitu èísla (napø. FFFFh = -1)
+
+    Reálná èísla:
++------------------------+------+-----------------+-----------------------+
+|         tvar           | bitù |      rozsah     |   pøesnost mantisy    |
++------------------------+------+-----------------+-----------------------+
+| jedn. pøesn. Microsoft |  32  |   3.0E-39 a    |   6 a 7 des. míst    |
+|                        |      |     1.7E38      |                       |
+| dvoj. pøesn. Microsoft |  64  |   3.0E-39 a    |  16 a 17 des. míst   |
+|                        |      |     1.7E38      |                       |
+| jedn. pøesn. IEEE      |  32  |  1.175E-38 a   |   7 a 8 des. míst    |
+|                        |      |    3.40E38      |                       |
+| dvoj. pøesnost IEEE    |  64  |  2.23E-308 a   |   15 a 16 de. míst   |
+|                        |      |    1.80E308     |                       |
++------------------------+------+-----------------+-----------------------+
+ 
+jednoduchá pøesnost Microsoft (znaménko: 0=kladné, 1=záporné èíslo)
++-----------------+---+-----------------------------------------------+
+| 1 1 1 1 1 1 1 1 | 1 | 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 |
+| F E D C B A 9 8 | 7 | 6 5 4 3 2 1 0 F E D C B A 9 8 7 6 5 4 3 2 1 0 |
++-----------------+---+-----------------------------------------------+
+|    exponent     |zna|                                               |
+|     8 bitù      |mén|         normalizovaná mantisa 23 bitù         |
+| (posunutí 129)  |ko |                                               |
++-----------------+---+-----------------------------------------------+
+ 
+dvojnásobná pøesnost Microsoft (znaménko: 0=kladné, 1=záporné èíslo)
++----------+---+---------------------------------------------------------+
+| 33333333 | 3 | 3333333222222222222222211111111111111110000000000000000 |
+| FEDCBA98 | 7 | 6543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210 |
++----------+---+---------------------------------------------------------+
+| exponent |zna|                                                         |
+|  8 bitù  |mén|              normalizovaná mantisa 55 bitù              |
+| posun 129|ko |                                                         |
++----------+---+---------------------------------------------------------+
+ 
+jednoduchá pøesnost IEEE (krátké reálné èíslo) (znam.:0=kladné, 1=záporné)
++---+-----------------+-----------------------------------------------+
+| 1 | 1 1 1 1 1 1 1 1 | 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 |
+| F | E D C B A 9 8 7 | 6 5 4 3 2 1 0 F E D C B A 9 8 7 6 5 4 3 2 1 0 |
++---+-----------------+-----------------------------------------------+
+|zna|    exponent     |         normalizovaná mantisa 23 bitù         |
+|mén|     8 bitù      |   (normalizována s implicitním celoèíselnım   |
+|ko | (posunutí 127)  |     bitem - vdy 1 a za desetinnou teèkou)    |
++---+-----------------+-----------------------------------------------+
+Pozn.: Nula  je  reprezentována  nastavením  všech bitù exponentu a mantisy
+       (signifikantu) na nulu.
+
+ 
+dvojnásobná pøesnost IEEE (dlouhé reálné èíslo) (znam.:0=kladné,1=záporné)
++---+-------------+------------------------------------------------------+
+| 3 | 33333333333 | 3333222222222222222211111111111111110000000000000000 |
+| F | EDCBA987654 | 3210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210 |
++---+-------------+------------------------------------------------------+
+|zna|   exponent  |           normalizovaná mantisa 52 bitù              |
+|mén|   11 bitù   |     (normalizována s implicitním celoèíselnım        |
+|ko |  posun 1023 |       bitem - vdy 1 a za desetinnou teèkou)         |
++---+-------------+------------------------------------------------------+
+Pozn.: Nula  je  reprezentována  nastavením  všech bitù exponentu a mantisy
+       (signifikantu) na nulu.
+
+    Reálná  èísla  lze  vyjadøovat té v kódovém zápisu. Kódovı zápis tvoøí
+øada  hexadecimálních èíslic ukonèená písmenem R (øada musí zaèínat èíslicí
+0·a·9).  Hodnoty exponentu, znaménka atd. jsou uvnitø èísla vyjádøena jako
+bitová pole (napø. 3F800000R znamená 1.0 pøi deklaraci DD). Kódovı zápis je
+moné definovat direktivami DD, DQ nebo DT.
+
+    Posledním  typem  èísel jsou desítková èísla ve zhuštìném formátu. Tato
+èísla  se  ukládají  do  10  bajtù  podle  pravidel  binárního kódu. Øádovì
+nejvyšší   bit  pøedstavuje  znaménko  (1=záporné)  (napø.  DT  -1234567890
+odpovídá binárnímu kódu 80000000001234567890H).
+
+    Znaková konstanta se skládá z jediného znaku ASCII. Øetìzcová konstanta
+se skládá z jednoho nebo více znakù kódu ASCII. Tyto konstanty se uzavírají
+mezi znaky apostrofu '. Je-li souèástí øetìzcové konstanty apostrof, pak se
+zapíše dvakrát (napø. 'a', ''a'', '''nenalezen').
+
+    Identifikátor  je  kombinací  písmen,  èíslic a speciálních znakù. Malá
+písmena se automaticky pøeøazují na velká (pokud není nastaven parametr /ML
+nebo /MX).
+
+    Vyhrazená  jména  jsou  jména, která ji mají pøedem definovanı vıznam.
+Kromì mnemotechnickıch zápisù instrukcí patøí mezi vyhrazená jména:
++--------+--------+--------+--------+--------+--------+--------+--------+
+| .186   | CH     | ELSE   |.ERRNDEF| IFE    | MASK   | RECORD | THIS   |
+| .286c  | CL     | END    | .ERRNZ | IFIDN  | MOD    | REPT   | TITLE  |
+| .286p  | COMMENT| ENDIF  | ES     | IFNB   | NAME   | .SALL  | TYPE   |
+| .287   | CREF   | ENDM   | EVEN   | IFNDEF | NE     | SEG    | .TYPE  |
+| .8086  | CS     | ENDP   | EXITM  | INCLUDE| NEAR   | SEGMENT| WIDTH  |
+| .8087  | CX     | ENDS   | EXTRN  | IRP    | NOT    | .SFCOND| WORD   |
+| =      | DB     | EQ     | FAR    | IRPC   | OFFSET | SHL    | .XALL  |
+| AH     | DD     | EQU    | GE     | LABEL  | OR     | SHORT  | .XREF  |
+| AL     | DH     | .ERR   | GROUP  | .LALL  | ORG    | SHR    | .XLIST |
+| AND    | DI     | .ERR1  | GT     | LE     | %OUT   | SI     | XOR    |
+| ASSUME | DL     | .ERR2  | HIGH   | LENGTH | PAGE   | SIZE   |        |
+| AX     | DQ     | .ERRB  | IF     | .LFCOND| PROC   | SP     |        |
+| BH     | DS     | .ERRDEF| IF1    | .LIST  | PTR    | SS     |        |
+| BL     | DT     | .ERRDIF| IF2    | LOCAL  | PUBLIC | STRUC  |        |
+| BP     | DW     | .ERRE  | IFB    | LOW    | PURGE  | SUBTTL |        |
+| BX     | DWORD  | .ERRIDN| IFDEF  | LT     | QWORD  | TBYTE  |        |
+| BYTE   | DX     | .ERRNB | IFDIF  | MACRO  | .RADIX | .TFCOND|        |
++--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+
+
+
+
+
+
+    Zpùsob zápisu øádku v makroasembleru:
+
+    Kadı  pøíkaz, instrukce èi direktiva je umístìna na samostatném øádku.
+Kadı  øádek  mùe zaèínat návìštím oznaèujícím místo v programu nebo jméno
+promìnné. Na konci øádku mùe bıt umístìna za oddìlovaèem ";" poznámka.
+
+
+
+    3.- Operandy, operátory a vırazy
+
+    Operand  je  konstanta,  návìští,  promìnná  nebo jinı symbol, kterı se
+pouívá  v  instrukci  nebo  direktivì pro oznaèení hodnoty nebo pamìového
+místa, s nimi se má pracovat.
+
+Konstantové_operandy:
+
+- èíslo - nepromìnná hodnota ve tvaru konstanty
+- øetìzec - obsahuje jeden nebo více znakù ASCII v apostrofech
+- identifikátor - konstanta definovaná pomocí direktivy EQU nebo "="
+- vıraz - pøípustnı vıraz, kterı vyhodnocuje èíslo nebo øetìzcovou konst.
+
+Pøímé_pamìové_operandy:
+
+- reprezentují  absolutní  pamìové  adresy jednoho nebo více bajtù pamìti.
+  Syntaxe:    segment:offset   ; kde segment = CS, DS, SS nebo ES
+                                     offset = celé   èíslo,   identifikátor
+                                              konstanty,  vıraz nebo symbol
+                                              (hodnota 0 a 65535)
+
+Relokovatelné_operandy:
+
+- reprezentují pamìové adresy (segment a offset) instrukcí nebo dat.
+  Syntaxe:    symbol           ; kde symbol = návìští, jméno promìnné,
+                                              segmentu nebo skupiny
+
+Operand_lokálního_èítaèe:
+
+- reprezentuje okamitou pozici v okamitém segmentu
+  Syntaxe:    $                ; lokální èítaè má atributy návìští NEAR
+
+
+Registrové_operandy:
+
+- adresují pøíslušné registry procesoru AX,BX,...
+
+
+Operandy_s_bází:
+
+- pøedstavují pamìové adresy závislé relat. na nìkterém bázovém registru.
+  Syntaxe 1:  [posunutí]registr_nepøímé_báze
+  Syntaxe 2:  [bázovı_registr + posunutí]
+  Syntaxe 3:  registr_nepøímé_báze.posunutí
+  Syntaxe 4:  registr_nepøímé_báze + posunutí
+                   kde posunutí = libovolnı pøímı operand
+                       bázovı_registr = BP (rel. v SS) nebo BX (rel. v DS)
+
+
+
+
+
+
+
+
+Operandy_s_indexem:
+
+- pøedstavují pamìové adresy, které jsou relativní vùèi index. registru
+  Syntaxe 1:  [posunutí]registr_nepøímého_indexu
+  Syntaxe 2:  [indexovı_registr + posunutí]
+  Syntaxe 3:  registr_nepøímého_indexu.posunutí
+  Syntaxe 4:  registr_nepøímého_indexu + posunutí
+                   kde posunutí = libovolnı pøímı operand
+                       indexovı_registr = SI (v DS) nebo DI (v DS nebo ES)
+
+Operandy_s_bází_a_indexem:
+
+- reprezentují pamìovou adresu, která je relativní vùèi kombinaci bázového
+  a indexového registru
+  Syntaxe 1:  [posunutí]nepøímı_bázovı_registr registr_nepøímé_báze
+  Syntaxe 2:  [bázovı_registr + indexovı_registr + posunutí]
+  Syntaxe 3:  [bázovı_registr + indexovı_registr]
+  Syntaxe 4:  ukazatel_nepøímé_báze + registr_nepøímého_indexu + posunutí
+
+
+Operandy_struktury:
+
+- reprezentují pamìovou adresu jednoho èlena struktury
+  Syntaxe:    promìnná.pole  ; kde promìnná = jméno operandu struktury
+                                   pole = jméno pole uvnitø struktury
+
+Operandy_vìty:
+
+- operandy vìty se vztahují k hodnotì typu vìty
+  Syntaxe:    jméno_vìty<[hodnota][,[hodnota]]...>
+                   kde jméno_vìty = jméno definováno direktivou RECORD
+                       hodnota = hodnota, která se má umístit do pole vìty
+
+Operandy_polí_vìty:
+
+- urèují polohu pole v jeho odpovídající vìtì
+  Syntaxe:    jméno_pole_vìty
+    Pozn.: Vısledkem   vyhodnocení   operandu   je   bitová  pozice  øádovì
+           nejnišího  bitu v poli, kterou je moné pouít jako konstantovı
+           operand.
+
+
+Aritmetické_operátory:
+ 
++--------------+----------------------------------------------------------+
+|   operátor   |                   vıznam                                 |
++--------------+----------------------------------------------------------+
+|      *       |  násobení                                                |
+|      /       |  celoèíselné dìlení                                      |
+|     MOD      |  modulo - zbytek po celoèíselném dìlení                  |
+|     SHR      |  posuv doprava (následuje poèet posuvù)                  |
+|     SHL      |  posuv doleva (následuje poèet posuvù)                   |
+|   - (unární) |  zmìna znaménka                                          |
+|      +       |  sèítání (jeden z operandù nemusí bıt konstanta)         |
+|      -       |  odeèítání (levı operand nemusí bıt konstanta,           |
+|              |  nebo oba operandy nemusí bıt konstanty                  |
++--------------+----------------------------------------------------------+
+
+
+
+
+Relaèní_operátory:
+ 
++--------------+----------------------------------------------------------+
+|   operátor   |                   vıznam                                 |
++--------------+----------------------------------------------------------+
+|     EQ       |  rovnost - vrací TRUE, jsou-li si operandy rovny         |
+|     NE       |  nerovnost - vrací TRUE, jsou-li si operandy nerovny     |
+|     LT       |  menší ne - vrací TRUE, je-li levı operand < ne pravı  |
+|     LE       |  menší nebo rovno - vrací TRUE, je-li levı oper. <= pravı|
+|     GT       |  vìtší ne - vrací TRUE, je-li levı oper. > pravı        |
+|     GE       |  vìtší nebo rovno - vrací TRUE, je-li levı oper. >= pravı|
++--------------+----------------------------------------------------------+
+    Pozn.: TRUE=0ffffh (=-1), ELSE=0
+
+Logické_operátory:
+ 
++--------------+----------------------------------------------------------+
+|   operátor   |                   vıznam                                 |
++--------------+----------------------------------------------------------+
+|     NOT      |  logické NOT (unární) - vytváøí dvojkovı doplnìk         |
+|     AND      |  logické AND - provádí bitovì operaci AND                |
+|     OR       |  logické OR - provádí bitovì operaci OR                  |
+|     XOR      |  logické XOR - provádí bitovì operaci XOR                |
++--------------+----------------------------------------------------------+
+    Pozn.: Logické  operace  se  provádìjí  s  jednotlivımi  bity operandù,
+           vısledkem  operace  je absolutní adresa. Nejjednodušším pøípadem
+           jsou logické stavy TRUE (hodnota -1) a FALSE (hodnota 0).
+
+Atributové_operátory:
+
+- pøepisné operátory: pouívají  se  pro  pøepis (doèasnou zmìnu) segmentu,
+                      offsetu,   typu   nebo  vzdálenosti  promìnnıch  nebo
+                      návìští
+    Pøepis segmentu:
+
+         Syntaxe 1:   segmentovı_registr:adresovı_vıraz
+                        kde segmentovı_registr = registr CS, DS, ES, SS
+
+         Syntaxe 2:   jméno_segmentu:adresovı_vıraz
+                        kde jméno_segmentu = jméno defin. direkt. SEGMENT
+
+         Syntaxe 3:   jméno_skupiny:adresovı_vıraz
+                        kde jméno_skupiny = jméno defin. direktivou GROUP
+
+         MASM  pøedpokládá,  e  návìští jsou adresovatelná prostøednictvím
+         okamité   hodnoty   registru   CS.   Promìnné   jsou   standardnì
+         adresovatelné  prostøednictvím  okamité  hodnoty  v  registru DS,
+         popø.  ES  (cílové  øetìzce)  nebo  SS  (bázovı registr BP). Je-li
+         operand  v jiném segmentu s nebyla-li pouita direktiva ASSUME, je
+         moné operátor pro pøepis segmentu pouít.
+         +------------------------+------------+--------------+--------+
+         |  typ pamìové promìnné | standardní | alternativní | offset |
+         |                        | segm. reg. |  segm. reg.  |        |
+         +------------------------+------------+--------------+--------+
+         |  vyvolání instrukce    |     CS     |      -       |   IP   |
+         |  operace se zásobníkem |     SS     |      -       |   SP   |
+         |  promìnná              |     DS     |  CS, ES, SS  |   EA   |
+         |  øetìzec (zdroj)       |     DS     |  CS, ES, SS  |   SI   |
+         |  øetìzec (cíl)         |     ES     |      -       |   DI   |
+         |  bázovı registr BP     |     SS     |  CS, DS, ES  |   EA   |
+         +------------------------+------------+--------------+--------+
+           Pozn.: EA znamená "efektivní adresa"
+
+    PTR - pøepis typu pamìové promìnné nebo vzdálenosti návìští:
+
+         Syntaxe:     atribut PTR vıraz
+
+         +-----------+---------------------------------------+
+         |  atribut  |                vıznam                 |
+         +-----------+---------------------------------------+
+         | BYTE      | pamìovı_vıraz dostává atribut BYTE   |
+         | WORD      | pamìovı_vıraz dostává atribut WORD   |
+         | DWORD     | pamìovı_vıraz dostává atribut DWORD  |
+         | QWORD     | pamìovı_vıraz dostává atribut QWORD  |
+         | TBYTE     | pamìovı_vıraz dostává atribut TBYTE  |
+         | NEAR      | návìšovı_vıraz dostává atribut NEAR  |
+         | FAR       | návìšovı_vıraz dostává atribut FAR   |
+         +-----------+---------------------------------------+
+
+         +-------------------+--------------------------------------------+
+         |      vıraz        |             vıznam                         |
+         +-------------------+--------------------------------------------+
+         | pamìovı_vıraz    | platnı vıraz (i jednoduchá promìnná), jen |
+         |                   | se vyhodnocuje na pamìovou adresu         |
+         | návìšovı_vıraz   | platnı vıraz (i jednoduchá promìnná), jen |
+         |                   | se vyhodnocuje na adresu místa, na nì je  |
+         |                   | moné odskoèit nebo které lze volat        |
+         | registrovı_vıraz  | platnı vıraz obsahující referenci na       |
+         |                   | registr, kterı je moné vyhodnotit a pøi  |
+         |                   | bìhu programu                              |
+         | konstantovı_vıraz | platnı vıraz, kterı se vyhodnocuje na      |
+         |                   | celoèíselnı konstantní offset segm. reg.   |
+         +-------------------+--------------------------------------------+
+
+         Operátor   PTR  slouí  pøedevším  pro  dopøednou  referenci  typu
+         promìnné  nebo návìští a pro pøístup k datùm podle jiného typu ne
+         kterı je uveden v definici promìnné.
+
+
+    SHORT - pøepis atributu návìští na vzdálenost NEAR:
+
+         Syntaxe:     SHORT návìští
+
+         Pøepisovı   operátor  SHORT  pøepisuje  atribut  vzdálenosti  NEAR
+         návìští  jako  místa skoku instrukce JMP. Prostøednictvím SHORT se
+         MASM  dozví,  e  vzdálenost mezi pøíkazem JMP a návìštím uvedenım
+         jako  jeho  operand není vìtší ne 127 bajtù v obou smìrech. Pokud
+         tato dopøedná reference není pouita, vyhradí se pro instrukci JMP
+         pøi  1.  prùchodu  3 bajty a pokud je vzdálenost místa skoku menší
+         ne  127,  pouije  se  automaticky  pøi 2. prùchodu instrukce JMP
+         SHORT doplnìna instrukcí NOP.
+
+    THIS - vytvoøení operandu urèitého typu nebo vzdálenosti:
+
+         Syntaxe 1:   THIS vzdálenost
+                        kde vzdálenost = buï NEAR nebo FAR
+                      - vytváøí operand s uvedenım atributem vzdálenosti
+                        a offsetem rovnım okamité hodnotì lok. èítaèe
+
+         Syntaxe 2:   THIS typ
+                        kde typ = BYTE, WORD, DWORD, QWORD nebo TBYTE
+                      - vytváøí operand s uvedenım atributem typu
+                        a offsetem rovnım okamité hodnotì lok. èítaèe
+
+         Pøíklady:      TAG EQU THIS BYTE     (= TAG LABEL BYTE)
+                        KONTROLA = THIS NEAR  (= KONTROLA LABEL NEAR)
+
+    HIGH, LOW - operátory vıbìru bajtu:
+
+         Syntaxe 1:   HIGH vıraz
+                      - vybere a oddìlí horních 8 bitù slova nebo adresy
+
+         Syntaxe 2:   LOW vıraz
+                      - vybere a oddìlí dolních 8 bitù slova nebo adresy
+
+
+- operátory vracející hodnotu: tyto   operátory   vrací   hodnoty  atributù
+                               operandù,  které  jsou  v  zápisu uvedeny za
+                               nimi,    ale   nepøepisují   je.   Argumenty
+                               operátorù jsou návìští nebo promìnné.
+
+    SEG - vrací hodnotu segmentu návìští nebo promìnné:
+
+         Syntaxe 1:   SEG návìští
+         Syntaxe 2:   SEG promìnná
+
+
+    OFFSET - vrací  hodnotu  offsetu  návìští nebo promìnné v segmentu nebo
+             skupinì, kde je tato promìnná nebo návìští definováno
+
+         Syntaxe 1:   OFFSET návìští
+         Syntaxe 2:   OFFSET promìnná
+
+
+    TYPE - vrací poèet bajtù typu promìnné nebo návìští:
+
+         Syntaxe 1:   TYPE návìští
+                        vrací operátor NEAR (FFFFh) nebo FAR (FFFFh)
+         Syntaxe 2:   TYPE promìnná
+                        vrací následující hodnoty
+                         BYTE     ->  1
+                         WORD     ->  2
+                         DWORD    ->  4
+                         QWORD    ->  8
+                         TBYTE    -> 10
+                         STRUC    -> poèet bajtù deklarovanıch pomocí STRUC
+
+    .TYPE - vrací bajt popisující mód promìnné a pøíznak, zda je externí:
+
+         Syntaxe:     .TYPE promìnná
+
+                navrácenı bajt obsahuje tyto informace:
+         +-------------+----------------------------------------------+
+         | bit 0 a 1:  |  0 = mód je absolutní                        |
+         |             |  1 = mód je závislı na programu              |
+         |             |  2 = mód je závislı na datech                |
+         +-------------+----------------------------------------------+
+         | bit 5:      |  0 = vıraz není definován nebo je externí    |
+         |             |  1 = vıraz je definován                      |
+         +-------------+----------------------------------------------+
+         | bit 7:      |  0 = vıraz je lokální nebo obecnı (public)   |
+         |             |  1 = vıraz obsahuje externí referenci        |
+         +-------------+----------------------------------------------+
+          Pozn.: jsou-li nastaveny bity 5 i 7, je vıraz nesprávnı
+
+
+    LENGTH - vrací poèet jednotek typu promìnné:
+
+         Syntaxe:     LENGTH promìnná
+
+              Je-li  promìnná definována jako vıraz DUP, potom LENGTH vrací
+              poèet  jednotek typu, tj. èíslo, které je uvedeno pøed prvním
+              DUP  ve  vırazu.  Není-li  promìnná  definována  pomocí  DUP,
+              navrací se hodnota 1.
+
+
+    SIZE - vrací celkovı poèet bajtù pøiøazenıch promìnné:
+
+         Syntaxe:     SIZE promìnná
+
+              SIZE je souèinem hodnoty LENGTH a hodnoty TYPE.
+
+
+- vìtné operátory: Vìtné  operátory se pouívají pro oddìlení polí ve vìtì.
+                   Vìtné  operátory  se  definují  pomocí direktivy RECORD.
+                   Vìta  mùe  bıt  dlouhá  a  16 bitù, definuje se pomocí
+                   polí o délce 1 a 16 bitù.
+    +-----------------+-------------------------------------------------+
+    |   operátor      |                vıznam                           |
+    +-----------------+-------------------------------------------------+
+    | jméno_pole_vìty | poèet bitù od dolního konce vìty k dolnímu      |
+    |                 | konci pole (poèet bitù, o nì se musí vìta      |
+    |                 | posunout vpravo k nejniším bitùm vìty)         |
+    +-----------------+-------------------------------------------------+
+    | WIDTH pole|vìta | vrací poèet bitù pole nebo vìty                 |
+    +-----------------+-------------------------------------------------+
+    | MASK jméno_pole | hodnota vìty v pøípadì, e pole obsahuje svou   |
+    |                 | maximální hodnotu a všechna ostatní pole jsou   |
+    |                 | nulová (všechny bity v poli obsahují 1, všechny |
+    |                 | ostatní bity obsahují 0)                        |
+    +-----------------+-------------------------------------------------+
+
+
+Priorita_operátorù:
+ 
+ +-------------------------------------------+
+ |                  operátory                |
+ +-------------------------------------------+
+ |  LENGTH, SIZE, WIDTH, MASK, (), [], <>    |  nejvyšší priorita
+ |  . (operátor jména-pole struktury)        |
+ |  : (segment)                              |
+ |  PTR, OFFSET, SEG, TYPE, THIS             |
+ |  HIGH, LOW                                |
+ |  +, - (unární)                            |
+ |  *, /, MOD, SHL, SHR                      |
+ |  +, - (binární)                           |
+ |  EQ, NE, LT, LE, GT, GE                   |
+ |  NOT                                      |
+ |  AND                                      |
+ |  OR, XOR                                  |
+ |  SHORT, .TYPE                             |  nejniší priorita
+ +-------------------------------------------+
+    Pozn.: Operace  se  stejnou  prioritou  se  uskuteèòují  zleva doprava.
+           Poøadí priority lze zmìnit pouitím závorek.
+
+
+
+
+
+
+    4.- Direktivy pro soubor instrukcí a pamìové direktivy
+
+    Zdrojovı  soubor  asembleru  musí  mít standardní formát ASCII (tj. bez
+øídicích  znakù, kadı øádek textu je ukonèen dvojicí znakù CR-LF). Pøíkazy
+je moné psát pomocí velkıch i malıch písmen.
+
+    Pokud  nejsou  pouity  pøepínaèe /R nebo /E, jsou všechna reálná èísla
+zobrazována  ve  formátu  Microsoft  (tj.  tak,  jak  jej pouívá GWBASIC).
+Parametr  /R  vyaduje  pouití koprocesoru, parametr /E vyaduje spojení s
+knihovnou MATH.LIB.
+
+
+Direktivy_pro_soubor_instrukcí
+
+.8086, .8087
+
+    Direktiva  aktivizuje  sestavení  instrukcí  pro  mikroprocesory 8086 a
+8088.  Souèasnì  zabraòuje  sestavení  instrukcí, které pøísluší procesorùm
+80186  a  80286. Podobnì direktiva .8087 aktivizuje sestavení instrukcí pro
+koprocesor 8087 pro práci s pohyblivou øádovou teèkou a zabraòuje sestavení
+instrukcí, které pøísluší koprocesoru 80287.
+
+
+.186
+
+    Direktiva  aktivizuje  instrukce  8086  a  kromì  toho  i instrukce pro
+mikroprocesor 80186.
+
+
+.286 {C|P}
+
+    Direktiva  .286C  aktivizuje  sestavení  instrukcí  8086  a nechánìnıch
+instrukcí  80286  (shodné  s instrukcemi 80186). Direktiva .286P aktivizuje
+chránìné instrukce 80286 a instrukce 8086 a nechránìné instrukce 80286.
+
+
+.287
+
+    Direktiva   aktivizuje  sestavení  instrukcí  pro  koprocesor  80287  s
+pohyblivou øádovou teèkou.
+
+
+Pamìové_direktivy
+
+
+ASSUME
+
+    ASSUME  informuje  asembler  o  tom, e symboly v segmentu nebo skupinì
+jsou pøístupné prostøednictvím uvedeného segmentového registru.
+
+    Syntaxe 1: ASSUME segmentovı_registr:jméno_segmentu[,.....]
+                        kde segmentovı_registr = CS, DS, ES, SS
+                            jméno_segmentu = jméno segmentu nebo NOTHING
+                            (NOTHING=je nutné kadı odkaz opatøit segm.)
+
+    Syntaxe 2: ASSUME NOTHING  - ruší všechna pøiøazení registrù
+
+
+
+
+DB, DW, DD, DQ, DT, (DEFINE)
+
+    Direktivy  DEFINE  se  pouívají  pro  definování  promìnnıch  nebo pro
+inicializaci èástí pamìtí (tj. uloení hodnot).
+
+    Syntaxe: [jméno_promìnné] {DB|DW|DD|DQ|DT} vıraz[,vıraz]....
+
+    Je-li uvedeno volitelné jméno_promìnné, definují direktivy DEFINE jméno
+jako  promìnnou.  Má-li  jméno_promìnné dvojteèku, stává se místo promìnnou
+návìštím typu NEAR.
+
+    DB - pøidìluje jeden bajt (8 bitù)
+    DW - pøidìluje jedno slovo (16 bitù = 2 bajty)
+    DD - pøidìluje dvì slova (32 bitù = 4 bajty)
+    DQ - pøidìluje ètyøi slova (64 bitù = 8 bajtù)
+    DT - pøidìluje deset bajtù
+
+    Vırazem mùe bıt:
+- konstantní vıraz
+- znak ? pro neurèitou hodnotu (dosadí se 0)
+- adresovı vıraz (pouze pro DW a DD)
+- øetìzec ASCII (pouze pro DB)
+- vıraz  DUP(?)  -  pokud  je tento typ vırazu jedinım argumentem definièní
+  direktivy,   vytvoøí  se  neinicializovanı  blok  dat  slouící  pouze  k
+  rezervaci místa (tím se zmenší velikost cílového souboru)
+- vıraz DUP(vıraz[,vıraz]...) - vytvoøí blok dat, ovšem inicializovanı
+
+
+ E N D
+
+    Syntaxe: END startovací_adresa
+
+    Pøíkaz  END urèuje konec programu. Za pøíkazem END lze uvést startovací
+adresu  programu  (pøi  spojování  modulù  mùe tuto adresu obsahovat pouze
+jeden modul).
+
+
+ E Q U
+
+    Syntaxe: jméno EQU vıraz
+
+    Pøíkaz  EQU  pøiøazuje hodnotu vırazu jménu. Je-li vıraz externí symbol
+nebo  má-li  jméno  ji hodotu, vznikne chyba. Jestlie je tøeba v programu
+jméno  znovu  definovat,  pouije  se  místo EQU znak rovnítka (=). V mnoha
+pøípadech  se  EQU  pouívá  jako  náhrada jednoduchého textu jako je napø.
+makroinstrukce.   Jako  vıraz  mùe  bıt  pouit  symbol  ("ALIAS"),  jméno
+instrukce  ("OPCODE"),  platnı  vıraz  (vyhodnocení  na hodnotu 0 a 65535)
+("TEXT") nebo jakıkoliv jinı prvek vèetnì textu ("TEXT").
+
+
+ = (rovnítko)
+
+    Syntaxe: jméno = vıraz
+
+    Rovnítko  "="  se  pouívá  k nastavení a novému pøedefinování symbolu.
+Vırazem  musí  bıt platnı vıraz (vyhodnocení na hodnotu 0 a 65535). Symbol
+je moné znovu definovat.
+
+
+
+
+
+ E V E N
+
+    Syntaxe: EVEN
+
+    Direktivou  EVEN  se lokaèní èítaè pøednastaví na sudou hranici, tj. na
+hranici,  kde  zaèíná  slovo.  Pokud  není  lokaèní  èítaè na sudé hranici,
+vygeneruje se instrukce NOP. Jestlie se EVEN pouije pro segment zarovnanı
+na  hranici  bajtu,  vznikne chyba. Tato direktiva se pouívá pøedevším pro
+zrychlení  operací  s  pamìtí,  nebo  k  pøenosu slova postaèí pouze jeden
+pøístup k pamìti.
+
+
+ E X T R N
+
+    Syntaxe: EXTRN jméno:typ [,jméno:typ]...
+
+    Direktiva  oznaèuje  proceduru  nebo funkci, která je souèástí jiného v
+pamìti  uloeného  modulu.  "jméno"  je  symbol, kterı je definován v jiném
+modulu  jako PUBLIC. "typ" mùe bıt jakıkoliv prvek následujícího seznamu a
+musí bıt pro jméno platnım typem:
+
+    - BYTE, WORD, DWORD, QWORD, TBYTE
+    - NEAR nebo FAR
+    - ABS pro èistá èísla (implicitní velikost WORD, ale i BYTE)
+
+    Je-li  direktiva  uvedena  se  segmentem,  pøedpokládá se, e je symbol
+umístìn  uvnitø  segmentu.  Není-li segment znám, potom se direktiva zapíše
+vnì všech segmentù a pak se pouije buï
+            "ASSUME·segmentovı_registr:SEG·jméno"
+nebo explicitní segmentovı prefix.
+
+
+ G R O U P
+
+    Syntaxe: jméno GROUP jméno_segmentu[,jméno_segmentu]...
+
+    Direktiva  GROUP  sdruuje  segmenty  uvedené  za  GROUP  do skupiny se
+stejnım jménem. Pouívá se k tomu, aby program LINK zjistil, které segmenty
+se  mají  do pamìti uloit souèasnì. Poøadí segmentù pro zavádìní do pamìti
+je  urèeno pomocí CLASS v direktivì SEGMENT anebo poøadím, v nìm se cílové
+moduly  uvedou  v  odpovìdi na vızvu programu LINK uvést seznam spojovanıch
+modulù.  Všechny  segmenty  v  GROUP  se musí vejít do 64K pamìti (kontrolu
+provádí LINK). Jako "jméno_segmentu" mùe byt:
+
+    - jméno segmentu pøiøazené direktivou SEGMENT
+    - vıraz: buï SEG promìnná nebo SEG návìští
+
+
+ L A B E L
+
+    Syntaxe: jméno LABEL typ
+
+    Definováním  jména pomocí LABEL dostává asembler informaci o tom, e má
+okamitému  offsetu  pøiøadit  jméno uvedené v LABEL. Jako "typ" lze pouít
+NEAR, FAR, BYTE, WORD, DWORD, QWORD, TWORD, jméno_struktury nebo jméno_vìty
+(pøiøadí  jménu  velikost  struktury  nebo vìty). Tato direktiva se pouívá
+napø.  k  vícenásobné definici prvku (napø. lze definovat slovo jako bajt a
+odkazovat se tak na nìj bez nutnosti pouívání PTR).
+
+
+
+
+ O R G
+
+    Syntaxe: ORG vıraz
+
+    Touto  direktivou  se  nastaví lokaèní èítaè na hodnotu danou vırazem a
+assembler  uloí  vygenerovanı kód od této hodnoty. Hodnota vırazu musí bıt
+absolutní.
+
+
+ P R O C
+
+    Syntaxe: jméno_procedury PROC [NEAR|FAR]
+                   .......
+             jméno_procedury ENDP
+
+    Direktiva  PROC  slouí  jako  prostøedek  strukturalizace programu pro
+zvıšení  jeho  pøehlednosti, oznaèuje èást programu jako proceduru. Není-li
+uveden typ, pouije se NEAR. Direktiva informuje, zda se budou pøíkazy CALL
+a  RET  uvnitø  procedury pøekládat jako typ FAR nebo NEAR. Procedury mohou
+bıt vzájemnì vøazeny.
+
+
+ P U B L I C
+
+    Syntaxe: PUBLIC symbol[,symbol]....
+
+    Direktiva  se uvádí v kadém modulu, kterı obsahuje symboly pouívané v
+ostatních  modulech.  Takto  definované  symboly  jsou k dispozici ostatním
+modulùm.
+
+
+ R E C O R D
+
+    Syntaxe: jméno_vìty RECORD jméno_pole:délka[=vıraz][,jméno_pole: ....
+
+    Vìta   je  urèité  rozvrení  bitù  v  pamìti,  které  se  pouívá  pro
+formátování bajtù a slov na bitové úrovní.
+
+
+
+
+
+
+
+
+
+
+
+
+ C O M M E N T
+
+Syntaxe: COMMENT omezovaè
+
+    Direktiva   COMMENT   slouí   k   oddìlení   následující  èásti  textu
+o·libovolném  poètu øádkù (a po následující znak omezovaèe) jako poznámky.
+Jako  omezovaè  lze  pouít  libovolnı  pøípustnı  znak  kromì  mezery nebo
+tabelátoru.  Následující text je povaován za poznámku a do chvíle, kdy je
+opìt nalezen znak omezovaèe. Tímto zpùsobem lze "vypnout" èásti programu.
+

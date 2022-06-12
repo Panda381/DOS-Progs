@@ -1,0 +1,1082 @@
+CONTEXT   0 241   0   3  72
+
+
+
+Syst‚mov  disketa SSE (nulov  disketa):
+(start zavadˆ‡e syst‚mu od adresy 1036H)
+
+stopa 0, sektor 7:
+
+af0f:   db      0e5h,0d6h,0d3h,0f1h,0c1h
+af14:   db      "@"
+af15:   db      0f6h,0f4h,0f2h,0f2h
+af19:   db      "@@@@@@SYS1NULOVA900524"
+af2f:   db      0
+af30:   db      "@"
+af31:   db      1,0,0,0,0,0,0,0,0,0,0,0,0,0
+af3f:   db      "@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+af5a:   db      0f2h
+af5b:   db      "@@@"
+af5e:   db      0e6h
+af5f:   db      "SYS"
+af62:   db      80h,0,0,0,0
+af67:   db      "F"
+af68:   db      0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+==========================================================================
+
+
+stopa 0, sektor 12 a‘ 26:
+
+; Zavadˆ‡ syst‚mu je zaveden od adresy 1000H po adr. 16FFH a je startov n
+; od adresy 1036H z pamˆti ROM.
+
+1000:  c3 7a 11        tbl1:   jp      lab1
+ ......................................................
+1003:                  byt1:   db      0                        ; p©¡znak diskety PSU (= "P")
+1004:                  tbl14:  db      0cfh,0bch,26h,0b7h,7fh   ; inicializace portu B-PIO/ZRE
+                                                                ; bitov˜ vstup/v˜stup, bity 6,1,0
+                                                                ; v˜stup, ostatn¡ vstup, p©eru¨en¡
+                                                                ; 0b426h (0b43ch), povoleno p©eru¨en¡
+                                                                ; bitem 7 --> "1"
+1009:                  tbl15:  db      0fh,24h,83h              ; inicializace kan lu A-PIO/ZRE
+                                                                ; bajtov˜ vstup, p©eru¨. 0b424h (0b43ch)
+100c:                  tbl16:  db      0cfh,0bch,26h,0b7h,0fbh  ; inicializace portu B-PIO/ZRE
+                                                                ; bitov˜ vstup/v˜stup, bity 6,1,0
+                                                                ; v˜stup, ostatn¡ vstup, p©eru¨en¡
+                                                                ; 0b426h (0b43ch), povoleno p©eru¨en¡
+                                                                ; bitem 2 --> "1"
+
+1011:  01 04 08        tbl13:  ld      bc,804h
+
+1014:  3e 52           lab24:  ld      a,52h          ; k¢d chyby - nen¡ p©eru¨en¡ od ILA
+1016:  b7              lab22:  or      a              ; nen¡ v˜stup sign lu na port
+                                                      ; test p©eru¨en¡
+                                                      ; z t‚to procedury je mo‘n˜ n vrat
+                                                      ; pomoc¡ p©eru¨en¡ na adrese 0B430H,
+                                                      ; kter  p©eru¨¡ ‡ekac¡ smy‡ku a navr t¡
+                                                      ; ©¡zen¡ do hlavn¡ho programu
+                                                      ; A=k¢d chyby, DE=data pro zap/vyp sign lu
+                                                      ; CF=1 je v˜stup sign lu
+1017:  21 60 ea        lab23:  ld      hl,0ea60h      ; konstanta pro ‡ekac¡ smy‡ku
+101a:  fb                      ei
+101b:  30 02                   jr      nc,lab18       ; nen¡ v˜stup sign lu
+101d:  ed 51           lab21:  out     (c),d          ; zapnut¡ sign lu povelu
+101f:  06 bc           lab18:  ld      b,0bch
+1021:  10 fe           lab19:  djnz    lab19          ; prodleva
+1023:  30 02                   jr      nc,lab20       ; nen¡ indikace chyby
+1025:  ed 59                   out     (c),e          ; vypnut¡ sign lu povelu
+1027:  2d              lab20:  dec     l
+1028:  20 f3                   jr      nz,lab21
+102a:  25                      dec     h
+102b:  20 f0                   jr      nz,lab21       ; opakovac¡ cyklus
+102d:  f3                      di
+102e:  47                      ld      b,a            ; k¢d chyby
+102f:  c3 f9 b4                jp      0b4f9h         ; chybov‚ hl ¨en¡
+ ......................................................
+1032:  3e 62           lab27:  ld      a,62h          ; chyba - nen¡ p©eru¨en¡ KON
+1034:  18 e0                   jr      lab22
+ ......................................................
+
+                                                      ; standardn¡ start zavadˆ‡e syst‚mu
+1036:  3e b4                   ld      a,0b4h         ; tabulka p©eru¨en¡
+1038:  ed 47                   ld      i,a
+103a:  01 87 05                ld      bc,587h        ; paraleln¡ port pro spojen¡ s KON a ILA
+103d:  21 04 10                ld      hl,tbl14       ; tabulka pro inicializaci PIO
+1040:  ed b3                   otir                   ; inicializace portu (p©eru¨en¡
+                                                      ; bitem 7 --> "1" ; 0b43cH)
+1042:  0d                      dec     c
+1043:  0d                      dec     c              ; data kan lu B PIO
+1044:  11 41 01                ld      de,141h        ; data pro v˜stup chybov‚ho k¢du 01h/41h
+1047:  3e 50                   ld      a,50h          ; chyba - nen¡ synchronizace od ILA
+1049:  37                      scf                    ; zapnut¡ v˜stupu sign lu
+104a:  cd 17 10                call    lab23          ; test p©eru¨en¡ synchronizac¡ od ILA
+
+104d:  3e 03                   ld      a,3
+104f:  d3 87                   out     (87h),a        ; z kaz p©eru¨en¡ kan lu B
+1051:  11 00 00                ld      de,0           ; D=vzorek pro testov n¡ synchronizace
+1054:  d5                      push    de             ; E=‡¡ta‡ pr–chod– testu
+1055:  01 86 03        lab25:  ld      bc,386h        ; adresa ©¡zen¡ kan lu A PIO/ZRE
+1058:  21 09 10                ld      hl,tbl15       ; tabulka pro inicializaci kan lu A-PIO/ZRE
+105b:  ed b3                   otir                   ; bajtov˜ vstup, p©eru¨en¡ 0b43ch
+                                                      ; test p©eru¨en¡ p©i p©¡jmu znaku z ILA
+105d:  3e 07                   ld      a,7
+105f:  d3 87                   out     (87h),a        ; z kaz p©eru¨en¡ od kan lu B-PIO/ZRE
+1061:  0e 84                   ld      c,84h          ; kan l A-PIO/ZRE (data pro ILA,KON)
+1063:  ed 51                   out     (c),d          ; 00 -> A-PIO/ZRE (informace, zde je test PSU)
+1065:  3e 03                   ld      a,3
+1067:  d3 85                   out     (85h),a        ; data kan lu B (©¡zen¡ p©enosu ILA,KON)
+1069:  cd 14 10                call    lab24          ; test p©eru¨en¡ od ILA
+
+106c:  3e 03                   ld      a,3
+106e:  d3 86                   out     (86h),a        ; z kaz p©eru¨en¡ kan lu A
+1070:  3e 4f                   ld      a,4fh
+1072:  d3 86                   out     (86h),a        ; bajtov˜ v˜stup kan lu A
+1074:  3e 43                   ld      a,43h
+1076:  d3 85                   out     (85h),a        ; v˜stup na kan l B
+1078:  3e 83                   ld      a,83h
+107a:  d3 87                   out     (87h),a        ; ©¡zen¡ kan lu B - povolen¡ p©eru¨en¡
+107c:  cd 14 10                call    lab24          ; test p©eru¨en¡ od ILA
+
+107f:  3e 27                   ld      a,27h
+1081:  d3 87                   out     (87h),a        ; p©eru¨en¡ od kan lu B zak z no
+1083:  db 84                   in      a,(84h)        ; vstup dat z kan lu A (obsluha vstupu)
+1085:  3e 83                   ld      a,83h
+1087:  d3 86                   out     (86h),a        ; povolen¡ p©eru¨en¡ od kan lu A
+1089:  cd 14 10                call    lab24          ; test p©eru¨en¡ od ILA
+
+108c:  3e 03                   ld      a,3
+108e:  d3 86                   out     (86h),a        ; z kaz p©eru¨en¡ od kan lu A
+1090:  3e 41                   ld      a,41h
+1092:  d3 85                   out     (85h),a        ; v˜stup na kan l B
+1094:  db 84                   in      a,(84h)        ; vstup dat z kan lu A - spojen¡ s ILA
+1096:  82                      add     a,d
+1097:  3c                      inc     a              ; test synchroniza‡n¡ho bajtu
+1098:  06 51                   ld      b,51h          ; chyba spojen¡ STR-->ILA
+109a:  c2 f9 b4                jp      nz,0b4f9h      ; chybov‚ hl ¨en¡
+109d:  3e 83                   ld      a,83h
+109f:  d3 87                   out     (87h),a        ; povolen¡ p©eru¨en¡ kan lu B
+10a1:  cd 14 10                call    lab24          ; test p©eru¨en¡ od ILA
+
+10a4:  3e 03                   ld      a,3
+10a6:  d3 87                   out     (87h),a        ; z kaz p©eru¨en¡ kan lu B
+10a8:  14                      inc     d              ; zv˜¨en¡ vzorku 1
+10a9:  1c                      inc     e              ; zv˜¨en¡ vzorku 2
+10aa:  20 a9                   jr      nz,lab25       ; dal¨¡ test (s nov˜mi vzorky)
+10ac:  1d                      dec     e
+10ad:  e1                      pop     hl
+10ae:  2d                      dec     l
+10af:  e5                      push    hl
+10b0:  2c                      inc     l
+10b1:  20 07                   jr      nz,lab26
+10b3:  3a 03 10                ld      a,(byt1)       ; p©¡znak diskety PSU (= "P")
+10b6:  57                      ld      d,a
+10b7:  c3 55 10                jp      lab25          ; nov˜ test
+
+10ba:  01 87 05        lab26:  ld      bc,587h        ; ©¡zen¡ kan lu B-PIO/ZRE
+10bd:  21 0c 10                ld      hl,tbl16
+10c0:  ed b3                   otir                   ; nastaven¡ B-PIO/ZRE, p©eru¨en¡
+                                                      ; bitem 2-->"1" (0b43ch)
+10c2:  0d                      dec     c
+10c3:  0d                      dec     c              ; 85h
+10c4:  11 41 40                ld      de,4041h       ; vzorek pro synchron. KON
+10c7:  3e 60                   ld      a,60h          ; chyba - nen¡ synchronizace od KON
+10c9:  37                      scf
+10ca:  cd 17 10                call    lab23          ; test p©eru¨en¡
+
+10cd:  3e 03                   ld      a,3
+10cf:  d3 87                   out     (87h),a
+10d1:  11 00 00                ld      de,0
+10d4:  d5                      push    de
+10d5:  01 86 03        lab28:  ld      bc,386h
+10d8:  21 09 10                ld      hl,tbl15
+10db:  ed b3                   otir
+10dd:  3e 07                   ld      a,7
+10df:  d3 87                   out     (87h),a
+10e1:  0e 84                   ld      c,84h
+10e3:  ed 51                   out     (c),d          ; vysl n¡ informace, zda je PSU
+10e5:  3e 42                   ld      a,42h
+10e7:  d3 85                   out     (85h),a
+10e9:  cd 32 10                call    lab27          ; chyba - nen¡ p©eru¨en¡ od KON
+
+10ec:  3e 03                   ld      a,3
+10ee:  d3 86                   out     (86h),a
+10f0:  3e 4f                   ld      a,4fh
+10f2:  d3 86                   out     (86h),a
+10f4:  3e 43                   ld      a,43h
+10f6:  d3 85                   out     (85h),a
+10f8:  3e 83                   ld      a,83h
+10fa:  d3 87                   out     (87h),a
+10fc:  cd 32 10                call    lab27          ; chyba - nen¡ p©eru¨en¡ od KON
+
+10ff:  3e 27                   ld      a,27h
+1101:  d3 87                   out     (87h),a
+1103:  db 84                   in      a,(84h)
+1105:  3e 83                   ld      a,83h
+1107:  d3 86                   out     (86h),a
+1109:  cd 32 10                call    lab27          ; chyba - nen¡ p©eru¨en¡ od KON
+
+110c:  3e 03                   ld      a,3
+110e:  d3 86                   out     (86h),a
+1110:  3e 41                   ld      a,41h
+1112:  d3 85                   out     (85h),a
+1114:  db 84                   in      a,(84h)
+1116:  82                      add     a,d
+1117:  3c                      inc     a
+1118:  06 61                   ld      b,61h          ; chyba - chyba dat od KON
+111a:  c2 f9 b4                jp      nz,0b4f9h      ; chybov‚ hl ¨en¡
+
+111d:  3e 83                   ld      a,83h
+111f:  d3 87                   out     (87h),a
+1121:  cd 32 10                call    lab27          ; chyba - nen¡ p©eru¨en¡ od KON
+
+1124:  3e 03                   ld      a,3
+1126:  d3 87                   out     (87h),a
+1128:  14                      inc     d
+1129:  1c                      inc     e
+112a:  20 a9                   jr      nz,lab28
+112c:  1d                      dec     e
+112d:  e1                      pop     hl
+112e:  2d                      dec     l
+112f:  e5                      push    hl
+1130:  2c                      inc     l
+1131:  20 17                   jr      nz,lab29
+1133:  3a 03 10                ld      a,(byt1)       ; p©¡znak diskety PSU (= "P")
+1136:  57                      ld      d,a
+1137:  b7                      or      a
+1138:  28 0d                   jr      z,lab47
+113a:  db e1                   in      a,(0e1h)
+113c:  cb 5f                   bit     3,a
+113e:  20 07                   jr      nz,lab47
+1140:  db e0                   in      a,(0e0h)
+1142:  fe 9d                   cp      9dh
+1144:  20 01                   jr      nz,lab47
+1146:  57                      ld      d,a
+1147:  c3 d5 10        lab47:  jp      lab28
+ ......................................................
+
+114a:  15              lab29:  dec     d
+114b:  3e 9d                   ld      a,9dh
+114d:  ba                      cp      d
+114e:  28 10                   jr      z,lab30
+1150:  01 2c 15                ld      bc,tbl17       ; po‡ te‡n¡ adresa dat
+1153:  21 9d 16                ld      hl,tbl18       ; kone‡n  adresa dat
+1156:  cd bd 12                call    lab2           ; vysl n¡ dat na KON
+1159:  3e b4                   ld      a,0b4h
+115b:  ed 47                   ld      i,a            ; n vrat vektoru p©eru¨en¡
+115d:  cd b8 11                call    lab32          ; test pamˆti CMOS a desky ATS
+1160:  3a 03 10        lab30:  ld      a,(byt1)       ; p©¡znak diskety PSU (= "P")
+1163:  fe 50                   cp      50h            ; je PSU (="P") ?
+1165:  28 10                   jr      z,lab31        ; p©¡znak - je disketa PSU
+1167:  01 2c 15                ld      bc,tbl17       ; po‡ te‡n¡ adresa dat
+116a:  21 2c 15                ld      hl,tbl17       ; kone‡n  adresa dat
+116d:  cd bd 12                call    lab2           ; vysl n¡ dat na KON (znak "G")
+1170:  3e 01                   ld      a,1
+1172:  d3 e4                   out     (0e4h),a       ; rozsv¡cen¡ indikace
+1174:  31 00 b4                ld      sp,0b400h      ; n vrat z sobn¡ku
+1177:  c3 16 b8        lab31:  jp      0b816h         ; zaveden¡ vlastn¡ch obslu‘n˜ch procedur
+ ......................................................
+
+117a:  31 00 10        lab1:   ld      sp,tbl1        ; vlastn¡ z sobn¡k
+117d:  3e b4                   ld      a,0b4h         ; tabulka vektor– p©eru¨en¡
+117f:  ed 47                   ld      i,a
+1181:  21 00 20                ld      hl,2000h       ; za‡ tek dat v pamˆti
+1184:  01 01 14                ld      bc,1401h       ; d‚lka testovan˜ch dat
+1187:  cd d3 b4                call    0b4d3h         ; test dat v pamˆti
+118a:  21 00 20                ld      hl,2000h       ; p©enos dat na adresu 0000h
+118d:  11 00 00                ld      de,0
+1190:  01 00 08                ld      bc,800h        ; d‚lka dat
+1193:  ed b0                   ldir
+1195:  01 00 00                ld      bc,0           ; po‡ te‡n¡ adresa dat
+1198:  21 ff 07                ld      hl,7ffh        ; kone‡n  adresa dat
+119b:  cd bd 12                call    lab2           ; vysl n¡ dat na KON
+119e:  21 00 28                ld      hl,2800h
+11a1:  11 00 00                ld      de,0
+11a4:  01 00 0c                ld      bc,0c00h
+11a7:  ed b0                   ldir
+11a9:  21 00 00                ld      hl,0
+11ac:  11 11 10                ld      de,tbl13
+11af:  01 03 24                ld      bc,2403h
+11b2:  cd 5b b4                call    0b45bh
+11b5:  c3 00 04                jp      400h
+ ......................................................
+
+11b8:  21 00 b4        lab32:  ld      hl,0b400h      ; kopie zavadˆ‡e ROM
+11bb:  11 00 20                ld      de,2000h
+11be:  01 00 0c                ld      bc,0c00h       ; d‚lka zavadˆ‡e ROM
+11c1:  ed b0                   ldir                   ; £schova zavadˆ‡e ROM
+11c3:  21 00 b4                ld      hl,0b400h      ; za‡ tek pamˆti RAM
+11c6:  16 15                   ld      d,15h          ; chybov˜ k¢d
+11c8:  01 00 0c                ld      bc,0c00h       ; d‚lka testovan‚ho £seku pamˆti RAM
+11cb:  cd 9b 20                call    209bh          ; test pamˆti RAM
+11ce:  21 00 20                ld      hl,2000h       ; uschovan  kopie ROM
+11d1:  11 00 b4                ld      de,0b400h      ; p–vodn¡ adresa ROM
+11d4:  01 00 0c                ld      bc,0c00h       ; d‚lka uschovan‚ oblasti
+11d7:  ed b0                   ldir                   ; n vrat p–vodn¡ho obsahu pamˆti
+11d9:  cd 0e 12                call    lab33          ; kontroln¡ sou‡et dat v CMOS
+11dc:  32 04 0c                ld      (0c04h),a      ; £schova kontroln¡ho sou‡tu v CMOS
+11df:  21 00 c0                ld      hl,0c000h      ; za‡ tek dat v CMOS
+11e2:  11 00 40                ld      de,4000h
+11e5:  01 00 40                ld      bc,4000h       ; d‚lka CMOS
+11e8:  ed b0                   ldir                   ; £schova dat z pamˆti CMOS
+11ea:  21 00 c0                ld      hl,0c000h      ; za‡ tek pamˆti CMOS
+11ed:  16 14                   ld      d,14h          ; chybov˜ k¢d
+11ef:  01 00 40                ld      bc,4000h       ; d‚lka CMOS
+11f2:  cd 9b b4                call    0b49bh         ; kontrola pamˆti C000H...FFFFH
+11f5:  21 00 40                ld      hl,4000h
+11f8:  11 00 c0                ld      de,0c000h
+11fb:  01 00 40                ld      bc,4000h
+11fe:  ed b0                   ldir                   ; n vrat p–vodn¡ho obsahu CMOS
+1200:  cd 0e 12                call    lab33          ; kontroln¡ sou‡et dat v CMOS
+1203:  21 04 0c                ld      hl,0c04h       ; p–vodn¡ kontroln¡ sou‡et dat v CMOS
+1206:  06 17                   ld      b,17h          ; chybov˜ k¢d
+1208:  be                      cp      (hl)           ; kontrola s p–vodn¡m obsahem dat
+1209:  c2 f9 b4                jp      nz,0b4f9h      ; chybov‚ hl ¨en¡ - chyba CMOS
+120c:  18 0f                   jr      lab35
+ ......................................................
+                                                      ; kontroln¡ sou‡et dat v CMOS
+120e:  21 00 c0        lab33:  ld      hl,0c000h      ; za‡ tek CMOS
+1211:  01 00 40                ld      bc,4000h       ; d‚lka CMOS
+1214:  af                      xor     a
+1215:  86              lab34:  add     a,(hl)         ; kontroln¡ sou‡et obsahu CMOS
+1216:  07                      rlca
+1217:  ed a1                   cpi
+1219:  ea 15 12                jp      pe,lab34
+121c:  c9                      ret
+ ......................................................
+121d:  db 85           lab35:  in      a,(85h)        ; port PIO/ZRE
+121f:  cb 67                   bit     4,a            ; byl v˜padek nap jen¡ CMOS ?
+1221:  06 16                   ld      b,16h          ; chyba dat v CMOS
+1223:  ca f9 b4                jp      z,0b4f9h       ; chybov‚ hl ¨en¡
+1226:  01 f8 32                ld      bc,32f8h
+1229:  cd 71 b4                call    0b471h         ; test ‡¡ta‡e na desce ATS
+122c:  3e 07                   ld      a,7
+122e:  d3 f8                   out     (0f8h),a
+1230:  d3 f9                   out     (0f9h),a
+1232:  3e 01                   ld      a,1
+1234:  d3 f8                   out     (0f8h),a
+1236:  d3 f9                   out     (0f9h),a
+1238:  21 a6 12                ld      hl,tbl19
+123b:  01 f5 08                ld      bc,8f5h
+123e:  ed b3                   otir
+1240:  3e 01                   ld      a,1
+1242:  57                      ld      d,a
+1243:  0e f4                   ld      c,0f4h
+1245:  18 12                   jr      lab36
+ ......................................................
+1247:  3e 07           lab44:  ld      a,7
+1249:  d3 fa                   out     (0fah),a
+124b:  3e 01                   ld      a,1
+124d:  d3 fa                   out     (0fah),a
+124f:  21 a6 12                ld      hl,tbl19
+1252:  01 f7 0a                ld      bc,0af7h
+1255:  ed b3                   otir
+1257:  0e f6                   ld      c,0f6h
+1259:  1e 55           lab36:  ld      e,55h
+125b:  7b              lab46:  ld      a,e
+125c:  ed 79                   out     (c),a
+125e:  0c                      inc     c
+125f:  06 00                   ld      b,0
+1261:  3e 01           lab38:  ld      a,1
+1263:  ed 79                   out     (c),a
+1265:  ed 78                   in      a,(c)
+1267:  e6 01                   and     1
+1269:  28 34                   jr      z,lab37
+126b:  06 00                   ld      b,0
+126d:  af              lab40:  xor     a
+126e:  ed 79                   out     (c),a
+1270:  ed 78                   in      a,(c)
+1272:  e6 01                   and     1
+1274:  28 25                   jr      z,lab39
+1276:  0d                      dec     c
+1277:  ed 78                   in      a,(c)
+1279:  bb                      cp      e
+127a:  20 25                   jr      nz,lab41
+127c:  7b                      ld      a,e
+127d:  fe aa                   cp      0aah
+127f:  28 04                   jr      z,lab42
+1281:  1e aa                   ld      e,0aah
+1283:  18 d6                   jr      lab46
+ ......................................................
+1285:  7a              lab42:  ld      a,d
+1286:  fe 01                   cp      1
+1288:  28 0d                   jr      z,lab43
+128a:  af                      xor     a
+128b:  d3 f1                   out     (0f1h),a
+128d:  d3 f3                   out     (0f3h),a
+128f:  3e 18                   ld      a,18h
+1291:  d3 f1                   out     (0f1h),a
+1293:  d3 f3                   out     (0f3h),a
+1295:  18 19                   jr      lab45
+ ......................................................
+1297:  af              lab43:  xor     a
+1298:  57                      ld      d,a
+1299:  18 ac                   jr      lab44
+ ......................................................
+129b:  10 d0           lab39:  djnz    lab40
+129d:  18 02                   jr      lab41
+ ......................................................
+129f:  10 c0           lab37:  djnz    lab38
+12a1:  06 40           lab41:  ld      b,40h          ; chyba ATS
+12a3:  c3 f9 b4                jp      0b4f9h         ; chybov‚ hl ¨en¡
+ ......................................................
+12a6:                  tbl19:  db      4,4fh,5,68h,3,0c1h,1,0,2,0
+12b0:  21 00 b4        lab45:  ld      hl,0b400h
+12b3:  11 3f b4                ld      de,0b43fh
+12b6:  01 03 21                ld      bc,2103h
+12b9:  cd 5b b4                call    0b45bh
+12bc:  c9                      ret
+ ......................................................
+                                                      ; vysl n¡ dat na KON
+12bd:  ed 43 00 0c     lab2:   ld      (0c00h),bc     ; po‡ te‡n¡ adresa dat
+12c1:  22 02 0c                ld      (0c02h),hl     ; kone‡n  adresa dat
+12c4:  af                      xor     a
+12c5:  ed 42                   sbc     hl,bc          ; d‚lka dat
+12c7:  c5                      push    bc             ; po‡ te‡n¡ adresa dat
+12c8:  e5                      push    hl             ; d‚lka dat
+12c9:  c1                      pop     bc             ; d‚lka dat
+12ca:  03                      inc     bc             ; d‚lka dat
+12cb:  e1                      pop     hl             ; po‡ te‡n¡ adresa dat
+12cc:  e5                      push    hl             ; po‡ te‡n¡ adresa dat
+12cd:  c5                      push    bc             ; d‚lka dat
+12ce:  86              lab3:   add     a,(hl)         ; kontroln¡ sou‡et dat
+12cf:  07                      rlca
+12d0:  ed a1                   cpi
+12d2:  ea ce 12                jp      pe,lab3        ; dal¨¡ bajt
+12d5:  d6 55                   sub     55h            ; po‘adovan  hodnota
+12d7:  ed 44                   neg                    ; diference dat
+12d9:  32 04 0c                ld      (0c04h),a      ; vypo‡ten  diference
+12dc:  3e 0d                   ld      a,0dh
+12de:  ed 47                   ld      i,a            ; vektory p©eru¨en¡ 0d00h
+12e0:  21 29 14                ld      hl,tbl3        ; tabulka vektor– p©eru¨en¡
+12e3:  11 0a 0d                ld      de,0d0ah       ; pracovn¡ tabulka vektor– p©eru¨en¡
+12e6:  01 04 00                ld      bc,4           ; d‚lka tabulky
+12e9:  ed b0                   ldir                   ; p©enos tabulky
+12eb:  cd bf 13                call    lab4           ; ‡ek n¡ na p©ipravenost KON
+12ee:  3e dc                   ld      a,0dch
+12f0:  d3 85                   out     (85h),a        ; v˜zva k potvrzen¡ p©ipravenosti
+12f2:  1e 1e                   ld      e,1eh          ; doba pro ‡ek n¡ na p©ipravenost
+12f4:  01 00 00                ld      bc,0
+12f7:  db 85           lab17:  in      a,(85h)
+12f9:  cb 57                   bit     2,a
+12fb:  28 11                   jr      z,lab7         ; KON je p©ipraven
+12fd:  10 f8                   djnz    lab17          ; ‡ek n¡ na p©ipravenost KON
+12ff:  0d                      dec     c
+1300:  20 f5                   jr      nz,lab17       ; ‡ek n¡ na p©ipravenost KON
+1302:  1d                      dec     e
+1303:  20 f2                   jr      nz,lab17       ; ‡ek n¡ na p©ipravenost KON
+1305:  21 6a 14                ld      hl,tbl12       ; text "KON nicht empfangsbereit"
+1308:  01 19 00                ld      bc,19h
+130b:  c3 9d 13                jp      lab6           ; chybov‚ hl ¨en¡ (KON nep©ij¡m )
+
+130e:  3e 0f           lab7:   ld      a,0fh
+1310:  d3 86                   out     (86h),a        ; kan l A-PIO/ZRE = bajtov˜ v˜stup
+1312:  3e 0c                   ld      a,0ch
+1314:  d3 86                   out     (86h),a        ; adresa p©eru¨en¡ 0d0ch (142fh)
+1316:  3e 83                   ld      a,83h
+1318:  d3 86                   out     (86h),a        ; povolen¡ p©eru¨en¡ po vysl n¡ znaku
+131a:  3e 02                   ld      a,2            ; znak STX (za‡ tek textu)
+131c:  cd eb 13                call    lab8           ; vysl n¡ znaku na KON,ILA
+131f:  3e 31                   ld      a,31h          ; znak "1"
+1321:  cd eb 13                call    lab8           ; vysl n¡ znaku na KON,ILA
+1324:  21 00 0c                ld      hl,0c00h       ; text k vysl n¡ - hlavi‡ka dat
+                                                      ; hlavi‡ka obsahuje: - po‡ te‡n¡ adresa dat (2B)
+                                                      ;                    - kone‡n  adresa dat (2B)
+1327:  06 04                   ld      b,4            ; po‡et znak– textu
+1329:  7e              lab12:  ld      a,(hl)         ; vysl n¡ textu hlavi‡ky
+132a:  cd eb 13                call    lab8           ; vysl n¡ znaku na KON,ILA
+132d:  23                      inc     hl
+132e:  10 f9                   djnz    lab12          ; dal¨¡ znak
+1330:  c1                      pop     bc             ; d‚lka dat k vysl n¡
+1331:  e1                      pop     hl             ; po‡ te‡n¡ adresa dat
+1332:  7e              lab13:  ld      a,(hl)         ; vysl n¡ bajtu dat
+1333:  cd eb 13                call    lab8           ; vysl n¡ znaku na KON,ILA
+1336:  ed a1                   cpi
+1338:  ea 32 13                jp      pe,lab13       ; dal¨¡ znak dat
+133b:  3a 04 0c                ld      a,(0c04h)      ; kontroln¡ sou‡et dat
+133e:  cd eb 13                call    lab8           ; vysl n¡ znaku na KON,ILA
+1341:  3e 03                   ld      a,3            ; znak ETX (konec textu)
+1343:  cd eb 13                call    lab8           ; vysl n¡ znaku na KON,ILA
+1346:  cd 91 13                call    lab14          ; ukon‡en¡ p©enosu STR/KON,ILA
+1349:  cd bf 13                call    lab4           ; ‡ek n¡ na p©ipravenost KON
+134c:  3e 4f                   ld      a,4fh          ; bajtov˜ vstup
+134e:  d3 86                   out     (86h),a        ; nastaven¡ kan lu A-PIO/ZRE na vstup
+1350:  3e 0a                   ld      a,0ah
+1352:  d3 86                   out     (86h),a        ; vektor p©eru¨en¡ 0d0ah (142dh)
+1354:  db 84                   in      a,(84h)        ; uvolnˆn¡ vstupu dat ze sbˆrnice
+1356:  3e 83                   ld      a,83h
+1358:  d3 86                   out     (86h),a        ; povolen¡ p©eru¨en¡ pro p©¡jem dat
+135a:  3e fe                   ld      a,0feh
+135c:  d3 85                   out     (85h),a        ; v˜zva k potvrzen¡ p©ijet¡ textu
+135e:  cd 1a 14                call    lab15          ; p©¡jem znaku z KON,ILA
+1361:  fe 02                   cp      2              ; je znak STX ? (za‡ tek textu)
+1363:  21 b0 14                ld      hl,tbl8        ; text "Erstes Zeichen nicht STX"
+1366:  01 19 00                ld      bc,19h
+1369:  20 32                   jr      nz,lab6        ; chybov‚ hl ¨en¡ (prvn¡ znak nen¡ STX)
+136b:  cd 1a 14                call    lab15          ; p©¡jem znaku z KON,ILA
+136e:  fe 51                   cp      51h            ; znak "Q"
+1370:  28 12                   jr      z,lab16        ; je znak "Q" - p©enos probˆhl OK
+1372:  fe 46                   cp      46h            ; znak "F" (chyba p©enosu)
+1374:  21 e3 14                ld      hl,tbl10       ; text "Bei Uebertragung oder im..."
+1377:  01 22 00                ld      bc,22h
+137a:  28 21                   jr      z,lab6         ; chybov‚ hl ¨en¡ (chyba bˆhem p©enosu)
+137c:  21 05 15                ld      hl,tbl11       ; text "Falsches Kennzeichen"
+137f:  01 15 00                ld      bc,15h
+1382:  18 19                   jr      lab6           ; chybov‚ hl ¨en¡ (chybn˜ znak z KON,ILA)
+1384:  cd 1a 14        lab16:  call    lab15          ; p©¡jem znaku z KON,ILA
+1387:  fe 03                   cp      3              ; je znak ETX ? (konec textu)
+1389:  21 c9 14                ld      hl,tbl9        ; text "Letztes Zeichen nicht ETX"
+138c:  01 1a 00                ld      bc,1ah
+138f:  20 0c                   jr      nz,lab6        ; chybov‚ hl ¨en¡ (nen¡ znak ETX)
+                                                      ; ukon‡en¡ p©enosu STR/KON,ILA
+1391:  3e 03           lab14:  ld      a,3
+1393:  d3 86                   out     (86h),a        ; z kaz p©eru¨en¡ od A-PIO/ZRE
+1395:  3e fd                   ld      a,0fdh
+1397:  d3 85                   out     (85h),a        ; uvolnˆn¡ ©¡d¡c¡ho kan lu
+1399:  af                      xor     a
+139a:  d3 e4                   out     (0e4h),a       ; zru¨en¡ indikace
+139c:  c9                      ret
+ ......................................................
+                                                      ; chybov‚ hl ¨en¡ (HL-text)
+139d:  0b              lab6:   dec     bc
+139e:  11 cf af                ld      de,0afcfh      ; zobrazen¡ textu chybov‚ho hl ¨en¡
+13a1:  ed b0                   ldir
+13a3:  e5                      push    hl
+13a4:  21 1a 15                ld      hl,tbl5        ; zobrazen¡ textu "Fehler: "
+13a7:  11 c3 af                ld      de,0afc3h
+13aa:  01 08 00                ld      bc,8
+13ad:  ed b0                   ldir
+13af:  21 22 15                ld      hl,tbl6        ; text "SSE-RESET!"
+13b2:  11 f6 af                ld      de,0aff6h
+13b5:  01 0a 00                ld      bc,0ah
+13b8:  ed b0                   ldir
+13ba:  e1                      pop     hl
+13bb:  46                      ld      b,(hl)         ; k¢d chybov‚ho hl ¨en¡
+13bc:  c3 f9 b4                jp      0b4f9h         ; chybov‚ hl ¨en¡
+ ......................................................
+                                                      ; ‡ek n¡ na p©ipravenost KON
+13bf:  3e cf           lab4:   ld      a,0cfh         ; bitov˜ vstup/v˜stup
+13c1:  d3 87                   out     (87h),a        ; nastaven¡ kan lu B-PIO/ZRE
+13c3:  3e 9c                   ld      a,9ch          ; maska - bity 6,5,1,0 v˜stupy
+13c5:  d3 87                   out     (87h),a        ; nastaven¡ masky
+13c7:  3e 03                   ld      a,3
+13c9:  d3 87                   out     (87h),a        ; z kaz p©eru¨en¡ od kan lu B
+13cb:  3e 01                   ld      a,1
+13cd:  d3 e4                   out     (0e4h),a       ; zapnut¡ indikace LED
+13cf:  1e 3c                   ld      e,3ch
+13d1:  01 00 00                ld      bc,0
+13d4:  db 85           lab5:   in      a,(85h)        ; vstup stavov‚ho slova z B-PIO/ZRE
+13d6:  e6 04                   and     4              ; ‡ek n¡ na p©ipravenost KON
+13d8:  d6 04                   sub     4
+13da:  c8                      ret     z              ; KON je p©ipraven
+13db:  10 f7                   djnz    lab5           ; ‡ek n¡ na potvrzen¡ p©ipravenosti
+13dd:  0d                      dec     c
+13de:  20 f4                   jr      nz,lab5        ; ‡ek n¡ na potvrzen¡ p©ipravenosti
+13e0:  1d                      dec     e
+13e1:  20 f1                   jr      nz,lab5        ; ‡ek n¡ na potvrzen¡ p©ipravenosti
+13e3:  21 36 14                ld      hl,tbl4        ; text "KON nicht im Grundzustand"
+13e6:  01 1a 00                ld      bc,1ah
+13e9:  18 b2                   jr      lab6           ; tisk textu (KON nen¡ p©ipraven)
+ ......................................................
+                                                      ; vysl n¡ znaku na KON,ILA
+13eb:  c5              lab8:   push    bc
+13ec:  d5                      push    de
+13ed:  e5                      push    hl
+13ee:  d3 84                   out     (84h),a        ; vysl n¡ znaku na KON,ILA
+13f0:  db 85                   in      a,(85h)        ; v˜stupn¡ bajt na ©¡d¡c¡ port
+13f2:  cb cf                   set     1,a            ; nastaven¡ indikace p©ipravenosti
+13f4:  d3 85                   out     (85h),a
+13f6:  cd 01 14                call    tbl2           ; ‡ek n¡ na p©eru¨en¡ p©i vys¡l n¡/p©¡jmu
+13f9:  21 83 14                ld      hl,tbl7        ; chyba - text "Kein INT. beim Senden"
+13fc:  01 16 00                ld      bc,16h
+13ff:  18 9c                   jr      lab6           ; chybov‚ hl ¨en¡ (nen¡ p©eru¨en¡)
+ ......................................................
+                                                      ; ‡ek n¡ na p©eru¨en¡ p©i vysl n¡
+                                                      ; nebo p©¡jmu znaku na KON,ILA
+1401:  1e 01           tbl2:   ld      e,1
+1403:  0e bf           lab11:  ld      c,0bfh
+1405:  06 fc           lab10:  ld      b,0fch         ; doba pro ‡ek n¡
+1407:  fb              lab9:   ei
+1408:  dd cb 00 46             bit     0,(ix+0)       ; instrukce pouze pro zpo‘dˆn¡
+140c:  dd cb 00 46             bit     0,(ix+0)       ; instrukce pouze pro zpo‘dˆn¡
+1410:  f3                      di
+1411:  10 f4                   djnz    lab9           ; ‡ek n¡ na p©eru¨en¡
+1413:  0d                      dec     c
+1414:  20 ef                   jr      nz,lab10       ; ‡ek n¡ na p©eru¨en¡
+1416:  1d                      dec     e
+1417:  c8                      ret     z              ; chybov˜ n vrat
+1418:  18 e9                   jr      lab11          ; ‡ek n¡ na p©eru¨en¡
+ ......................................................
+                                                      ; p©¡jem znaku z KON,ILA
+141a:  c5              lab15:  push    bc
+141b:  d5                      push    de
+141c:  e5                      push    hl
+141d:  cd 01 14                call    tbl2           ; ‡ek n¡ na p©eru¨en¡ p©i vys¡l n¡/p©¡jmu
+1420:  21 83 14                ld      hl,tbl7        ; chyba - "Kein INT. beim Senden"
+1423:  01 16 00                ld      bc,16h
+1426:  c3 9d 13                jp      lab6           ; chybov‚ hl ¨en¡ (nenastalo p©eru¨en¡)
+ ......................................................
+                                                      ; tato tabulka vektor– p©eru¨en¡
+                                                      ; se p©enese na adresu 0d0ah
+1429:  2d              tbl3:   dw      142dh          ; vstup dato od ILA,KON
+142b:  2f                      dw      142fh
+
+142d:  db 84                 * in      a,(84h)        ; vstup dat od ILA,KON
+142f:  e1                    * pop     hl             ; zru¨en¡ n vratov‚ adresy p©eru¨en¡
+1430:  e1                      pop     hl
+1431:  e1                      pop     hl
+1432:  d1                      pop     de
+1433:  c1                      pop     bc
+1434:  ed 4d                   reti
+ ......................................................
+1436:                  tbl4:   db      "KON nicht im Grundzustand",77h
+1450:                          db      "ILA nicht im Grundzustand",78h
+146a:                  tbl12:  db      "KON nicht empfangsbereit",79h
+1483:                  tbl7:   db      "Kein INT. beim Senden",73h
+1499:                          db      "Kein INT. beim Empfang",72h
+14b0:                  tbl8:   db      "Erstes Zeichen nicht STX",74h
+14c9:                  tbl9:   db      "Letztes Zeichen nicht ETX",76h
+14e3:                  tbl10:  db      "Bei Uebertragung oder im"
+14fb:                          db      " Speicher",7ah
+1505:                  tbl11:  db      "Falsches Kennzeichen",75h
+151a:                  tbl5:   db      "Fehler: "
+1522:                  tbl6:   db      0d3h,0d3h,0c5h,0adh,0d2h ; text "SSE-RESET!"
+1527:                          db      0c5h,0d3h,0c5h,0d4h,0a1h ; (podtr‘en˜ text)
+
+
+                                                      ; data 152ch a‘ 169dh se
+                                                      ; kop¡ruj¡ do KON
+
+152c:                  tbl17:  db      47h            ; "G" - znak vysl n na KON
+
+152d:                          db      55h,0,87h,0c8h
+
+1531:                  tbl28:  db      18h,4,47h,5,68h,3,0c1h,2,10h,1,17h
+
+                                                      ; tabulky vektor– p©eru¨en¡
+153c:                  tbl27:  dw      1616h
+153e:                          dw      1663h
+1540:                          dw      162ah
+1542:                          dw      1668h
+
+1544:                          dw      1616h
+1546:                          dw      1663h
+1548:                          dw      162ah
+154a:                          dw      1668h
+
+154c:                          dw      1554h
+154e:                          dw      1554h
+1550:                          dw      1554h
+1552:                          dw      1554h
+
+
+1554:  fe 02                   cp      2
+1556:  28 04                   jr      z,lab48
+1558:  fe 18                   cp      18h
+155a:  20 2e                   jr      nz,lab49
+155c:  2e 03           lab48:  ld      l,3
+155e:  ed 69                   out     (c),l
+1560:  e1                      pop     hl
+1561:  ed 4d                   reti
+
+ ......................................................
+1563:  c5              lab52:  push    bc
+1564:  21 2c 15                ld      hl,tbl17
+1567:  06 02                   ld      b,2
+1569:  ed b3                   otir
+156b:  ed 78                   in      a,(c)
+156d:  fe 55                   cp      55h
+156f:  c1                      pop     bc
+1570:  20 18                   jr      nz,lab49
+1572:  c5                      push    bc
+1573:  06 03                   ld      b,3
+1575:  ed b3                   otir
+1577:  c1                      pop     bc
+1578:  cd 82 15                call    lab50
+157b:  0c                      inc     c
+157c:  3e 03                   ld      a,3
+157e:  a1                      and     c
+157f:  20 e2                   jr      nz,lab52
+1581:  c9                      ret
+
+ ......................................................
+1582:  fb              lab50:  ei
+1583:  3e c8                   ld      a,0c8h
+1585:  00                      nop
+1586:  3d              lab51:  dec     a
+1587:  20 fd                   jr      nz,lab51
+1589:  f3                      di
+158a:  c3 ab bc        lab49:  jp      0bcabh
+ ......................................................
+158d:  21 9b 15        lab59:  ld      hl,tbl20
+1590:  3e 18                   ld      a,18h
+1592:  06 08                   ld      b,8
+1594:  4e              lab53:  ld      c,(hl)
+1595:  ed 79                   out     (c),a
+1597:  23                      inc     hl
+1598:  10 fa                   djnz    lab53
+159a:  c9                      ret
+ ......................................................
+159b:  02              tbl20:  ld      (bc),a
+159c:  03                      inc     bc
+159d:  12                      ld      (de),a
+159e:  13                      inc     de
+159f:  22 23 32                ld      (3223h),hl
+15a2:  33                      inc     sp
+15a3:  21 3c 15                ld      hl,tbl27
+15a6:  11 10 0d                ld      de,0d10h
+15a9:  01 10 00                ld      bc,10h
+15ac:  ed b0                   ldir
+15ae:  11 00 0d                ld      de,0d00h
+15b1:  01 08 00                ld      bc,8
+15b4:  ed b0                   ldir
+15b6:  21 00 c0                ld      hl,0c000h
+15b9:  16 14                   ld      d,14h
+15bb:  01 00 40                ld      bc,4000h
+15be:  cd 59 bc                call    0bc59h
+15c1:  01 80 31                ld      bc,3180h
+15c4:  cd 63 15                call    lab52
+15c7:  01 0c 32                ld      bc,320ch
+15ca:  cd 63 15                call    lab52
+15cd:  01 2c 33                ld      bc,332ch
+15d0:  cd 63 15                call    lab52
+15d3:  dd 21 00 0f             ld      ix,0f00h
+15d7:  dd 36 00 40             ld      (ix+0),40h
+15db:  0e 08                   ld      c,8
+15dd:  21 16 47        tbl24:  ld      hl,4716h
+15e0:  ed 61                   out     (c),h
+15e2:  ed 69                   out     (c),l
+15e4:  0d                      dec     c
+15e5:  ed 49                   out     (c),c
+15e7:  0d                      dec     c
+15e8:  ed 49                   out     (c),c
+15ea:  cb 91                   res     2,c
+15ec:  06 0b           lab60:  ld      b,0bh
+15ee:  21 31 15                ld      hl,tbl28
+15f1:  ed b3                   otir
+15f3:  0c                      inc     c
+15f4:  cb 41                   bit     0,c
+15f6:  20 f4                   jr      nz,lab60
+15f8:  cb 91                   res     2,c
+15fa:  dd 34 00        tbl25:  inc     (ix+0)
+15fd:  11 00 00                ld      de,0
+1600:  ed 51           tbl22:  out     (c),d
+1602:  fb              tbl21:  ei
+1603:  21 ff ff                ld      hl,0ffffh
+1606:  2d              lab61:  dec     l
+1607:  20 fd                   jr      nz,lab61
+1609:  25                      dec     h
+160a:  20 fa                   jr      nz,lab61
+160c:  f3                      di
+160d:  cd 8d 15        tbl26:  call    lab59
+1610:  dd 46 00                ld      b,(ix+0)
+1613:  c3 ab bc                jp      0bcabh
+ ......................................................
+1616:  0c                      inc     c
+1617:  0c                      inc     c
+1618:  2e 28                   ld      l,28h
+161a:  ed 69                   out     (c),l
+161c:  14                      inc     d
+161d:  21 02 16                ld      hl,tbl21
+1620:  28 03                   jr      z,lab54
+1622:  21 00 16                ld      hl,tbl22
+1625:  0d              lab54:  dec     c
+1626:  0d                      dec     c
+1627:  e3              lab58:  ex      (sp),hl
+1628:  ed 4d                   reti
+ ......................................................
+162a:  ed 78                   in      a,(c)
+162c:  bb                      cp      e
+162d:  28 05                   jr      z,lab55
+162f:  21 0d 16                ld      hl,tbl26
+1632:  18 f3                   jr      lab58
+ ......................................................
+1634:  1c              lab55:  inc     e
+1635:  28 05                   jr      z,lab56
+1637:  21 02 16                ld      hl,tbl21
+163a:  18 eb                   jr      lab58
+ ......................................................
+163c:  0c              lab56:  inc     c
+163d:  cb 49                   bit     1,c
+163f:  20 05                   jr      nz,lab57
+1641:  21 fa 15                ld      hl,tbl25
+1644:  18 e1                   jr      lab58
+ ......................................................
+1646:  3e 18           lab57:  ld      a,18h
+1648:  ed 79                   out     (c),a
+164a:  0c                      inc     c
+164b:  ed 79                   out     (c),a
+164d:  0c                      inc     c
+164e:  ed 49                   out     (c),c
+1650:  0c                      inc     c
+1651:  ed 49                   out     (c),c
+1653:  3e 13                   ld      a,13h
+1655:  81                      add     a,c
+1656:  4f                      ld      c,a
+1657:  fe 48                   cp      48h
+1659:  21 6d 16                ld      hl,tbl23
+165c:  28 c9                   jr      z,lab58
+165e:  21 dd 15                ld      hl,tbl24
+1661:  18 c4                   jr      lab58
+ ......................................................
+                                                      ;
+1663:  21 0d 16                ld      hl,tbl26
+1666:  18 bf                   jr      lab58
+ ......................................................
+1668:  21 0d 16                ld      hl,tbl26
+166b:  18 ba                   jr      lab58
+ ......................................................
+166d:  cd 8d 15        tbl23:  call    lab59
+1670:  21 00 b4                ld      hl,0b400h
+1673:  11 f2 d7                ld      de,0d7f2h
+1676:  01 00 0c                ld      bc,0c00h
+1679:  ed b0                   ldir                   ; £schova obsahu zav dˆc¡ ROM
+167b:  21 00 b4                ld      hl,0b400h
+167e:  16 15                   ld      d,15h
+1680:  01 00 0c                ld      bc,0c00h
+1683:  cd 4b e0                call    0e04bh
+1686:  21 f2 d7                ld      hl,0d7f2h
+1689:  11 25 e0                ld      de,0e025h
+168c:  01 02 21                ld      bc,2102h
+168f:  cd 2f e0                call    0e02fh
+1692:  21 f2 d7                ld      hl,0d7f2h      ; n vrat p–vodn¡ho obsahu zav dˆc¡ ROM
+1695:  11 00 b4                ld      de,0b400h
+1698:  01 00 0c                ld      bc,0c00h
+169b:  ed b0                   ldir
+169d:  c9              tbl18:  ret
+
+ ......................................................
+169e:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16a5:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16ac:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16b3:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16ba:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16c1:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16c8:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16cf:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16d6:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16dd:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16e4:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16eb:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16f2:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+16f9:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0f8h
+1700:                          db      0c4h,40h,40h,40h,40h,40h,40h,40h
+1708:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+1711:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+171a:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+1723:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+172c:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+1735:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+173e:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+1747:                          db      40h,40h,40h,40h,40h,40h,40h,40h,40h
+1750:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1761:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1772:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0d2h
+
+
+
+
+stopa 0, sektor 8 a‘ 11 (adresa 0af90h a‘ 0b18fh):
+
+                                                      ; driver pro FD-form t 512 bajt–/sektor
+
+                                                      ; sem sk ‡e obsluha z adr. B913 v ROM
+af90:  06 00                   ld      b,0
+af92:  dd 4e 08                ld      c,(ix+8)       ; aktivn¡ mechanika
+af95:  cb 21                   sla     c              ; C*2
+af97:  21 8e bf                ld      hl,0bf8eh      ; tabulka pro inicializaci mechanik
+af9a:  09                      add     hl,bc          ; adresa polo‘ky mechaniky
+af9b:  7e                      ld      a,(hl)         ; v˜stupn¡ bajt pro v˜bˆr mechaniky
+af9c:  32 ae ac                ld      (0acaeh),a     ; v˜stupn¡ bajt pro v˜bˆr mechaniky
+af9f:  23                      inc     hl
+afa0:  7e                      ld      a,(hl)         ; b zov  adresa port– ©adi‡e AFS
+afa1:  21 a3 ac                ld      hl,0aca3h      ; b zov  adresa port– ©adi‡e AFS
+afa4:  77                      ld      (hl),a
+afa5:  23                      inc     hl
+afa6:  3c                      inc     a
+afa7:  77                      ld      (hl),a         ; adresa portu pro v˜stup dat
+afa8:  3a 92 ac                ld      a,(0ac92h)
+afab:  d6 01                   sub     1
+afad:  c3 33 b9                jp      0b933h         ; skok do podprogramu pro ‡ten¡ sektoru
+ ......................................................
+afb0:  cb 6e                   bit     5,(hl)
+afb2:  c2 f5 af                jp      nz,lab1
+afb5:  cb 46                   bit     0,(hl)
+afb7:  fb                      ei
+afb8:  20 00                   jr      nz,lab2
+afba:  21 d1 ac        lab2:   ld      hl,0acd1h      ; buffer pro hlavi‡ku sektoru
+afbd:  36 fe                   ld      (hl),0feh      ; identifika‡n¡ bajt hlavi‡ky sektoru
+afbf:  23                      inc     hl
+afc0:  3a a8 ac                ld      a,(0aca8h)     ; po‘adovan  stopa ke ‡ten¡ sektoru
+afc3:  77                      ld      (hl),a
+afc4:  23                      inc     hl
+afc5:  06 05                   ld      b,5
+afc7:  af                      xor     a
+afc8:  77              lab3:   ld      (hl),a         ; vymaz n¡ bufferu pro na‡ten¡ hlavi‡ky
+afc9:  23                      inc     hl
+afca:  10 fc                   djnz    lab3
+afcc:  2b                      dec     hl
+afcd:  e5                      push    hl
+afce:  3a a9 ac                ld      a,(0aca9h)     ; ‡¡slo po‘adovan‚ho sektoru
+afd1:  32 d4 ac                ld      (0acd4h),a     ; po‘adovan˜ sektor ke ‡ten¡
+afd4:  3e 02                   ld      a,2            ; velikost sektoru = 512 bajt–
+afd6:  32 d5 ac                ld      (0acd5h),a     ; velikost po‘adovan‚ho sektoru
+afd9:  21 d1 ac                ld      hl,0acd1h      ; hlavi‡ka sektoru
+afdc:  01 05 00                ld      bc,5           ; d‚lka hlavi‡ky sektoru
+afdf:  cd 61 be                call    0be61h         ; v˜po‡et kontroln¡ho sou‡tu CRC
+afe2:  e1                      pop     hl
+afe3:  73                      ld      (hl),e         ; ni‘¨¡ bajt kontroln¡ho sou‡tu
+afe4:  2b                      dec     hl
+afe5:  72                      ld      (hl),d         ; vy¨¨¡ bajt kontroln¡ho sou‡tu hlavi‡ky
+afe6:  21 a6 ac                ld      hl,0aca6h
+afe9:  cb ee                   set     5,(hl)
+afeb:  21 c9 ac                ld      hl,0acc9h
+afee:  36 04                   ld      (hl),4
+aff0:  21 b3 ac                ld      hl,0acb3h
+aff3:  36 08                   ld      (hl),8
+
+aff5:  21 b4 ac        lab1:   ld      hl,0acb4h
+aff8:  36 40                   ld      (hl),"@"
+affa:  f3                      di
+affb:  cd 2b be        lab5:   call    0be2bh
+affe:  21 0b b0                ld      hl,tbl1
+b001:  22 c2 ac                ld      (0acc2h),hl
+b004:  af                      xor     a
+b005:  32 57 ab                ld      (0ab57h),a
+b008:  c3 d4 bf                jp      0bfd4h
+ ......................................................
+b00b:  eb              tbl1:   ex      de,hl
+b00c:  cb 9e                   res     3,(hl)
+b00e:  21 d0 ac                ld      hl,0acd0h
+b011:  11 c9 ac                ld      de,0acc9h
+b014:  06 07                   ld      b,7
+b016:  23              lab6:   inc     hl
+b017:  13                      inc     de
+b018:  1a                      ld      a,(de)
+b019:  96                      sub     (hl)
+b01a:  20 05                   jr      nz,lab4
+b01c:  10 f8                   djnz    lab6
+b01e:  c3 2e b0                jp      lab7
+ ......................................................
+b021:  cd 8b be        lab4:   call    0be8bh
+b024:  21 b4 ac                ld      hl,0acb4h
+b027:  35                      dec     (hl)
+b028:  c2 fb af                jp      nz,lab5
+b02b:  c3 4a bb                jp      0bb4ah
+ ......................................................
+b02e:  3a a6 ac        lab7:   ld      a,(0aca6h)
+b031:  3a a3 ac                ld      a,(0aca3h)     ; b zov  adresa port– ©adi‡e AFS
+b034:  c6 04                   add     a,4
+b036:  4f                      ld      c,a            ; ©¡d¡c¡ kan l A
+b037:  3a ae ac                ld      a,(0acaeh)     ; v˜stupn¡ bajt pro v˜bˆr mechaniky
+b03a:  e6 bf                   and     0bfh           ; reset bitu 6
+b03c:  ed 79                   out     (c),a          ; start operace hled n¡ zna‡ky MK
+b03e:  06 11                   ld      b,11h
+b040:  10 fe           lab8:   djnz    lab8           ; prodleva
+b042:  21 de ac                ld      hl,0acdeh      ; buffer pro z znam dat sektoru
+b045:  11 02 03                ld      de,302h        ; d‚lka na‡¡tan‚ datov‚ ‡ sti + 100H + 2 (CRC)
+b048:  0d                      dec     c
+b049:  0d                      dec     c
+b04a:  0d                      dec     c              ; 71H - vstupn¡ datov˜ kan l AFS
+b04b:  06 09                   ld      b,9            ; max. po‡et pokus– o nalezen¡ zna‡ky
+b04d:  00                      nop
+b04e:  00                      nop
+b04f:  00                      nop
+b050:  ed 78           lab17:  in      a,(c)          ; vstup zna‡ky MK
+b052:  10 0a                   djnz    lab9           ; dal¨¡ pokus
+b054:  0c                      inc     c
+b055:  0c                      inc     c
+b056:  0c                      inc     c              ; 74H - ©¡d¡c¡ kan l A
+b057:  3a ae ac                ld      a,(0acaeh)     ; v˜stupn¡ bajt pro v˜bˆr mechaniky
+b05a:  ed 79                   out     (c),a          ; ukon‡en¡ sign lu hled n¡ zn‡ky MK
+b05c:  18 4b                   jr      lab18          ; ne£spˆ¨n  operace nalezen¡ sektoru
+ ......................................................
+b05e:  fe fb           lab9:   cp      0fbh           ; je datov‚ pole ?
+b060:  28 04                   jr      z,lab10
+b062:  fe f8                   cp      0f8h           ; jsou vymazan  data ?
+b064:  20 ea                   jr      nz,lab17       ; nen¡ - dal¨¡ hled n¡
+b066:  77              lab10:  ld      (hl),a         ; ulo‘en¡ identifika‡n¡ zna‡ky dat sektoru
+b067:  23                      inc     hl
+b068:  43                      ld      b,e            ; po‡et bajt– datov‚ho pole
+b069:  ed a2           lab11:  ini                    ; na‡ten¡ 1 bajtu dat
+b06b:  20 fc                   jr      nz,lab11       ; dal¨¡ bajt
+b06d:  15                      dec     d
+b06e:  20 f9                   jr      nz,lab11       ; dal¨¡ blok dat 256 bajt–
+b070:  0c                      inc     c
+b071:  0c                      inc     c
+b072:  0c                      inc     c              ; ©¡d¡c¡ kan l A
+b073:  3a ae ac                ld      a,(0acaeh)     ; v˜stupn¡ bajt pro v˜bˆr mechaniky
+b076:  ed 79                   out     (c),a          ; ukon‡en¡ sign lu pro hled n¡ zna‡ky MK
+b078:  cd 8b be                call    0be8bh
+b07b:  21 a6 ac                ld      hl,0aca6h
+b07e:  cb ae                   res     5,(hl)
+b080:  21 d8 ac                ld      hl,0acd8h
+b083:  11 06 00                ld      de,6
+b086:  19                      add     hl,de          ; = 0acdeh identif. zna‡ka datov‚ho pole
+b087:  3e f8                   ld      a,0f8h         ; jsou vymazan  data ?
+b089:  be                      cp      (hl)
+b08a:  ca ae bc                jp      z,0bcaeh       ; jsou vymazan  data
+b08d:  af                      xor     a
+b08e:  32 57 ab                ld      (0ab57h),a
+b091:  01 03 02                ld      bc,203h        ; d‚lka datov‚ho pole + zna‡ka + CRC
+b094:  fb                      ei
+b095:  cd 61 be                call    0be61h         ; v˜po‡et kontroln¡ho sou‡tu CRC datov‚ho pole
+b098:  f3                      di
+b099:  7b                      ld      a,e
+b09a:  b2                      or      d              ; je kontroln¡ sou‡et v po© dku ?
+b09b:  20 0f                   jr      nz,lab12       ; chyba kontroln¡ho sou‡tu
+b09d:  3a a7 ac                ld      a,(0aca7h)
+b0a0:  cb 4f                   bit     1,a
+b0a2:  3e 00                   ld      a,0
+b0a4:  ca c8 b0                jp      z,lab14
+b0a7:  18 11                   jr      lab16
+ ......................................................
+                                                      ; sektor nenalezen
+b0a9:  cd 8b be        lab18:  call    0be8bh
+                                                      ; chyba kontroln¡ho sou‡tu
+b0ac:  21 b3 ac        lab12:  ld      hl,0acb3h
+b0af:  35                      dec     (hl)
+b0b0:  c2 f5 af                jp      nz,lab1
+b0b3:  3a a7 ac                ld      a,(0aca7h)
+b0b6:  cb 4f                   bit     1,a
+b0b8:  28 04                   jr      z,lab13
+b0ba:  2a c6 ac        lab16:  ld      hl,(0acc6h)
+b0bd:  e9                      jp      (hl)
+ ......................................................
+b0be:  3e 81           lab13:  ld      a,81h
+b0c0:  b7                      or      a
+b0c1:  c3 d9 bd                jp      0bdd9h
+ ......................................................
+b0c4:                          db      0,0,0,0
+b0c8:  21 d8 ac        lab14:  ld      hl,0acd8h
+b0cb:  11 07 00                ld      de,7
+b0ce:  19                      add     hl,de
+b0cf:  ed 5b 93 ac             ld      de,(0ac93h)
+b0d3:  01 00 02                ld      bc,200h
+b0d6:  af                      xor     a
+b0d7:  32 57 ab                ld      (0ab57h),a
+b0da:  fb                      ei
+b0db:  ed b0                   ldir
+b0dd:  f3                      di
+b0de:  ed 53 93 ac             ld      (0ac93h),de
+b0e2:  2a 95 ac                ld      hl,(0ac95h)
+b0e5:  2b                      dec     hl
+b0e6:  7c                      ld      a,h
+b0e7:  b5                      or      l
+b0e8:  ca c1 bd                jp      z,0bdc1h
+b0eb:  22 95 ac                ld      (0ac95h),hl
+b0ee:  21 a9 ac                ld      hl,0aca9h      ; po‘adovan˜ sektor, kter˜ se m  na‡¡st
+b0f1:  7e                      ld      a,(hl)         ; sektor
+b0f2:  fd e5                   push    iy
+b0f4:  fd 21 c3 c3             ld      iy,0c3c3h
+b0f8:  cd 77 b6                call    0b677h         ; p©evod bajtu v A do HEX tvaru (--> IY)
+b0fb:  3e 07                   ld      a,7
+b0fd:  96                      sub     (hl)
+b0fe:  30 12                   jr      nc,lab15
+b100:  ed 44                   neg
+b102:  77                      ld      (hl),a
+b103:  21 98 ac                ld      hl,0ac98h
+b106:  34                      inc     (hl)
+b107:  7e                      ld      a,(hl)
+b108:  fd 21 c0 c3             ld      iy,0c3c0h
+b10c:  cd 77 b6                call    0b677h
+b10f:  21 a8 ac                ld      hl,0aca8h      ; po‘adovan  stopa ke ‡ten¡ sektoru
+b112:  34              lab15:  inc     (hl)
+b113:  fd e1                   pop     iy
+b115:  da 5e b9                jp      c,0b95eh
+b118:  21 a7 ac                ld      hl,0aca7h
+b11b:  c3 c3 ba                jp      0bac3h
+ ......................................................
+b11e:                          db      0ffh,0ffh,0,0,0,0,0,0,0,0,0,0,0,0
+b12c:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+b13d:                          db      0,0,0,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+b146:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+b14d:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+b154:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+b15b:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0,0,0,0
+b164:                          db      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+b175:                          db      0,0,0,0,0,0,0,0,0,0,0,0ffh,0ffh,0ffh
+b183:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+b18a:                          db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0a5h
+

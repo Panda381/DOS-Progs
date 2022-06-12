@@ -1,0 +1,134 @@
+
+                              +--------+
+                              | PCTIME |                          v1.0
+                              +--------+
+                      synchronizace èasu poèítaèù
+                         (c) Miroslav Nìmeèek
+
+
+Syntace          PCTIME   vstup  vıstup
+-------
+                 vstup ...... èíslo portu COM pro vstup èasu
+                              (1 a 4, 0 = není vstup)
+                 vıstup ..... èíslo portu COM pro vıstup èasu
+                              (1 a 4, 0 = není vıstup)
+
+nebo:       PCTIME  !         odinstalování programu z pamìti
+
+
+Charakteristika
+---------------
+Program  PCTIME umoòuje pøenášet informace o aktuálním èasu a datu po
+sériové  lince  mezi poèítaèi a synchronizovat tak všechny poèítaèe na
+stejnı èas. Nejvhodnìjším pouitím je pouití jednotky zdroje pøesného
+èasu  DCF77.  Pøesnı èas je prostøednictvím sériové linky COM pøenášen
+ke všem poèítaèùm.
+
+
+Propojení poèítaèù
+------------------
+Poèítaèe  se  propojí  pomocí  sériové  linky jako pøi bìném zapojení
+nulového modemu:
+
+ Canon         Canon                    Canon
+ 9 pin        25 pin                   25 pin
++----+        +----+                   +----+
+|  5 +-----   |  7 +-------------------+  7 |  GND   zem 0 V
+|  2 +-----   |  3 +--------\ /--------+  3 |  RxD   pøijímaná data
+|  3 +-----   |  2 +--------/ \--------+  2 |  TxD   vysílaná data
+|  7 +--+     |  4 +--+             +--+  4 |  RTS   ádost vysílaèe
+|  8 +<-+     |  5 +<-+             +->+  5 |  CTS   vysílání povoleno
+|  6 +<-+     |  6 +<-+             +->+  6 |  DSR   pøenos povolen
+|  4 +--+     | 20 +--+             +--+ 20 |  DTR   kanál pøipraven
+|  9 |        | 22 |                   | 22 |  RI    vızva
+|  1 |        |  8 |                   |  8 |  DCD   úroveò signálu
++----+        +----+                   +----+
+
+Není  potøeba  zapojovat signály RTS->CTS a DTR->DSR, doporuèuje se je
+ale propojit kvùli testování èi jinému vyuití portù.
+
+Pøenos  èasu  se  provádí  pouze jednosmìrnì bez zpìtného potvrzování,
+tzn.  e  z vysílacího poèítaèe (nebo z jednotky zdroje pøesného èasu)
+se  pøivádí  signál  TxD (vysílaná data) na vstup RxD (pøijímaná data)
+pøijímacího   poèítaèe.  Pøijímací  poèítaè  mùe  slouit  k  pøenosu
+informace  k  následujícímu poèítaèi, zapojí se opìt signál TxD na RxD
+následujícího poèítaèe.
+
+
+Vysílání èasu
+-------------
+Slouí-li  jako  jednotka  zdroje èasu nìkterı z poèítaèù, zadá se pøi
+instalaci  programu PCTIME èíslo portu COM pro vıstup èasu, jako èíslo
+portu COM pro vstup èasu se zadá 0 (tj. napø. pro COM1 se zadá pøíkaz
+"PCTIME  0 1"). Vıstupní signál z portu COM je pøiveden na vstup portu
+COM následujícího poèítaèe.
+
+
+Pøenos èasu
+-----------
+Má-li  bıt  obsloueno  více  poèítaèù  ne 2, je nutno pouít nìkteré
+poèítaèe  k  pøenosu  èasu  (stejnì  tak  pøi  pouití jednotky zdroje
+pøesného  èasu).  V  tomto pøípadì se program instaluje se zadáním jak
+portu  pro  vstup,  tak  portu pro vıstup. Vstupní i vıstupní port COM
+pøitom  mohou (ale nemusí) bıt stejné, nebo vstupní a vıstupní signál
+se  pouívá  oddìlenì.  Pøi  pøenosu èasu se vyšle èas k následujícímu
+poèítaè  teprve  a po pøíjmu èasu od pøedešlého poèítaèe (èi jednotky
+zdroje èasu).
+
+
+Pøíjem èasu
+-----------
+Poslední  poèítaè  v  øetìzci pro pøenos èasu je pouit pouze k pøíjmu
+èasu.  Program se nainstaluje pouze se zadanım èíslem vstupního portu,
+èíslo  vıstupního  portu je nastaveno na 0 (tj. napø. pro COM1 se zadá
+pøíkaz "PCTIME 1 0").
+
+
+Vypnutí/zmìna funkce programu
+-----------------------------
+Vstupní  a vıstupní port pro pøenos èasu lze kdykoliv dodateènì zmìnit
+spuštìním  programu  s  novımi  zadanımi  parametry.  Je-li  potøeba z
+nìjakého  dùvodu  uvést  program  do  neaktivního  stavu,  je to moné
+zadáním 0 pro vstupní i vıstupní port.
+
+
+Odinstalování programu
+----------------------
+Zadáním  znaku  "!"  jako parametr programu lze program odinstalovat z
+pamìti.  Ohlásí-li  program  chybu,  nìkterı z pozdìji nainstalovanıch
+rezidentních programù pouívá pøerušení INT 08h, INT 21h nebo INT 28h.
+
+
+Komunikaèní protokol
+--------------------
+Pøenos  èasu se provádí pøenosovou rychlostí 1200 Baud, 8 bitù, 1 stop
+bit, ádná parita. Mezi jednotlivımi pøenášenımi znaky je prodleva 110
+ms  (minimálnì  povoleno  60  ms).  Pøenáší  se  9 znakù, celková doba
+pøenosu  je proto asi 1 sekunda. Z dùvodu minimalizace zátìe poèítaèe
+se provádí další pøenos èasu a po 15 a 30 sekundách.
+
+Struktura jedné zprávy:
+
+      1. synchronizaèní znak (1 nebo více) ....... (92)      + 32
+      2. rok-1980 (tj. offset od roku 1980) ...... (0 a 90) + 32
+      3. mìsíc ................................... (1 a 12) + 32
+      4. den ..................................... (1 a 31) + 32
+      5. hodina .................................. (0 a 23) + 32
+      6. minuta .................................. (0 a 59) + 32
+      7. sekunda ................................. (0 a 59) + 32
+      8. setina sekundy / 2 ...................... (0 a 49) + 32
+      9. kontrolní souèet dat (2. a 8.) MOD 64 .. (0 a 63) + 32
+
+Uvedené  èíselné  údaje  jsou v dekadickém tvaru. Jednotlivé pøenášené
+bajty   mají  hodnotu  0  a  90  (synchronizaèní  znak  92).  Hodnota
+pøenášeného  bajtu  se  pøi pøenosu zvıší o 32, aby byl pøenášen bìnı
+znak  ASCII  o  hodnotì  32 a 124 (z dùvodu monosti pouití modemu).
+Kontrolní  souèet  se  získá  jako  bìnı  souèet  bajtù 2. a 8. (bez
+korekce "+32"), vısledek se zarovná na 6 bitù (tj. operace MOD 64).
+
+Pøenášená  informace o èase je definována v okamiku zahájení vysílání
+posledního  synchronizaèního  znaku  pøed  zprávou  (z  dùvodu korekce
+citlivosti  zesilovaèù  modemu  je moné vysílat více synchronizaèních
+znakù). Oprava pøijatého èasu se provádí na pøijímací stranì s ohledem
+na skuteènou délku pøenosu.
+
