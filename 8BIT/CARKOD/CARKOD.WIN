@@ -1,0 +1,871 @@
+CONTEXT   0  71   6   6  72
+Snímaè èárového kódu             - # -
+
+----------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               4 S n í m a è   è á r o v é h o   k ó d u5
+
+
+
+
+
+
+
+
+
+     Obsah:
+
+                                                       Str.
+
+1.  Popis ............................................. 2
+
+2.  Popis zapojení adaptoru ........................... 2
+
+3.  Konstrukèní øešení adaptoru ....................... 4
+
+4.  Program - popis ................................... 7
+
+5.  Èárovı kód CKN .................................... 9
+
+6.  Popis èinnosti snímaèe èarového kódu ............. 14
+
+
+
+
+
+
+
+Pøílohy:
+
+
+
+1.  Schéma adaptoru
+
+2.  Plošnı spoj - strana 1 (strana souèástek)
+
+3.  Plošnı spoj - strana 2 (strana spojù)
+
+4.  Rozmístìní souèástek na plošném spoji
+
+
+
+
+
+
+
+1.- Popis
+
+   Adaptor  pro snímání èárového kódu CK-001 rozšiøuje monosti vstupù
+dílenského  terminálu BDT K8901 o vstup èárového  kódu.  Jako  vstupní
+zaøízení  se pouívá ruèní snímací sonda pracující na principu  odrazu
+infraèerveného  paprsku od snímaného kódu.  Data ze snímací sondy jsou
+pøekódována  adaptorem umístìnım v terminálu jako doplòující  deska  a
+pøi  bezchybném pøekódování jsou vyslána na terminál.  Z dùvodu  neza-
+sahování do hardware èi software terminálu je pouita jako komunikaèní
+brána  port  pro  vstup z klávesnice.  Vıstup z adaptoru  je  pøipojen
+paralelnì  ke  klávesnici terminálu a data z  adaptoru  jsou  vysílána
+stejnım zpùsobem, jakoby byla zadávána z klávesnice. To pøináší vıhodu
+v tom, e není potøeba provádìt ádné zásahy do terminálu - adaptor se
+jednoduše  pøipojí do terminálu mezi konektory pro klávesnici.  Funkce
+klávesnice zùstává i nadále zachována beze zmìny.  Vstupy z klávesnice
+nebo ze snímaèe lze kombinovat - napø. pøi poruše snímaèe lze pokraèo-
+vat ve vkládání dat pomocí klávesnice.  Nevıhodou tohoto øešení je, e
+není moná zpìtná vazba z terminálu k adaptoru, take je nutná kontro-
+la  terminálu obsluhou (zda je pøipraven pøijímat ètená data a  pod.).
+Jistım omezením je také to,  e soubor vstupních znakù je omezen pouze
+na znaky,  které je mono zadávat z klávesnice - tedy je mono zadávat
+v podstatì jen èíslice popø. øídící klávesy.
+
+
+
+
+
+2.- Popis zapojení adaptoru
+
+
+
+                       Napájení desky,
+                    signály TAKT a RESET
+vstup ze                       |
+sondy-data                    \|/
+----------------+     +--------+-------+     vıstup na sondu
+vstup ze        |     |                |  - napájení a indikace
+sondy-aktivace  +-->--+    Paralelní   +--->--------------------------
+------------------->--+                |
+                      |vstupnì/vıstupní|sloupec znaku +-------+ vıstup
+          vstup --->--+                +--->----------+       |  znaku
+        pøedvolby     |      port      |              | dekód.|
+          kódu  --->--+                | øádek znaku  | obvod +-------
+                      |                +--->----------+       |
+                      |                |        +-----+       |
+vstup øádku znaku     +---------+------+        |     +-------+
+------------------->----------------------->----+
+               vnitøní sbìrnice |
+      +-----------<-->----------+----------<-->-----------+
++-----+-----+             +-----+-----+             +-----+-----+
+| procesor  |             |   pamì   |             |   pamì   |
+|           |             |           |             |           |
+|    CPU    |             |    ROM    |             |    RAM    |
+|           |             |           |             |           |
++-----------+             +-----------+             +-----------+
+
+
+Obr.1.: Blokové zapojení adaptoru
+
+
+     Blokové zapojení adaptoru je na obr. 1. Øídící jednotkou adaptoru
+je  mikroprocesor  U880D  (ekvivalent  Z80-CPU).  Ovládací  program je
+uloen  v  pamìti  EPROM,  jako  pracovní pamì pro vstupní a vıstupní
+buffery  slouí  pamì RAM. Komunikace procesoru s okolím probíhá pøes
+paralelní  vstupnì/vıstupní port. Na tento port jsou pøipojeny signály
+ze  snímací  sondy  -  snímanı  signál  a signál tlaèítka pro aktivaci
+sondy.   Jako  další  vstupní  signály  vstupuje  do  portu  informace
+z·pøepínaèù  DIL slouící k pøednastavení pouitého snímaného kódu. Je
+mono navolit jeden ze ètyø kódù, zároveò je moná i pøedvolba zpùsobu
+vıstupu  dat z adaptoru, pokud je adaptor pøizpùsoben k více vıstupním
+zaøízením.  Jako  standardní  vıstup  je pouit vıstup na klávesnicovı
+vstup  terminálu. Na vıstupu paralelního portu je nastaven kód klávesy
+terminálu  (5  bitù  sloupec  v  kódu  1 z 5 a 3 bity øádek v binárním
+kódu).  Tento  vıstupní  kód  jde spolu se signálem multiplexeru øádku
+klávesnice   z   desky  ATS  do  dekódovacího  obvodu,  kterı  porovná
+poadovanı   øádek   klávesy   z   obvodu   PIO  se  skuteènım  øádkem
+z·multiplexeru. Pøi shodì øádkù aktivuje vıstupní budièe sloupcù, èím
+dojde  k  vybuzení sloupcù pøíslušejících poadované klávese. K obvodu
+paralelního  portu  jsou  dále  napojeny  pomocné  singály, jako napø.
+spínání  napájení  sondy,  co  je  pouito  k indikaci stavu adaptoru
+pomocí diody LED, umístìné uvnitø sondy.
+
+     Podrobné zapojení adaptoru je v pøíloze 1. Centrální jednotkou je
+mikroprocesor  U880D  (IO1  -  ekvivalent  Z80-CPU). Program je zapsán
+v·pamìtech  EPROM  MHB  2716 (IO3 a IO5). Poèet pamìtí mùe bıt podle
+rozsahu  programu  1 a 3 (kapacita 2 KB, 4 KB nebo 6 KB) . Jednotlivé
+pamìti  EPROM  tvoøí  souvislı  adresovı  prostor zaèínající na adrese
+0000H.  Pro  zápis  dat jsou pouity pamìti RAM MHB 2114 (IO6 a IO9).
+Lze  pouít  buï 2 pamìti nebo 4 (kapacita 1 KB nebo 2 KB). Pamìti RAM
+IO6  a  IO7  jsou  adresovány  od  adresy 1800H a zrcadlí se od adrese
+1C00H.  Pamìti RAM IO8 a IO9 jsou adresovány od adresy 2000H a zrcadlí
+se od adresy 2400H. Toto adresování pamìtí je pouito z dùvodù napodo-
+bení zapojení desku STE terminálu BDT, aby bylo mono pouít k servisu
+testovacího a servisního zaøízení BPE. K tomuto úèelu slouí i propoj-
+ky X1 a X3, obvody IO18A a IO18C hradlující signály /CS pamìtí EPROM
+a  pøepínaè  SW1  a  SW2  slouící k pøipojování programovacího napìtí
+pamìtí  EPROM.  Tímto  je umonìn provádìt servis adaptoru pomocí BPE,
+jako  je testování a programování pamìtí a ostatních obvodù bez jejich
+vyjímání z desky adaptoru, krokování programu a pod.
+
+     Jako  paralelní  vstupnì/vıstupní obvod slouí obvod U855D (IO2 -
+ekvivalent  Z80-PIO).  Obvod  má  adresy  7Ch a 7Fh (data A,B, øízení
+A,B),  které se zrcadlí do celé oblasti 00h a 7Fh. Vstupní signály ze
+sondy  jsou  pøivedeny  do  PIO pøes integraèní a pøizpùsobovací èleny
+C2/R9  a  C3/R10  na  vstupy  PA0 a PA1. Vıstupní adresa øádku klávesy
+z·vıstupù  PIO PB0 a PB2 je pøivedena v negované formì na porovnávací
+obvody  IO16A  a  IO16C.  Pøi  shodì  poadované  adresy se skuteènou
+(signály  ZL1  a  ZL3) je z obvodu NAND IO17A vyslán impuls úrovnì L,
+kterı po negaci hradlem IO16D aktivuje vıstupní budièe IO14A a IO15A.
+Tyto  budièe  pøivedou  na  klávesnicové  vstupy sloupcù BDT aktivaèní
+signály  pøivedené  z  obvodu  PIO - PB3 a PB7 (sloupec, kterı má bıt
+aktivován,  má  úroveò  H, ostatní L). Vıstupy budièù jsou s otevøenım
+kolektorem,  èím  je  umonìna paralelní funkce klávesnice a adaptoru
+(klávesnici  je  ovšem  mono  pouít  pouze kdy neprobíhá vıstup dat
+z·adaptoru,  jinak se budou data navzájem blokovat). Napájení sondy je
+spínáno tranzistorem T1 ovládanım budícím hradlem IO15B pomocí vıstupu
+PA5  z  PIO.  Vstupy  PA6  a  PA7  obvodu  PIO  jsou pouity pro vstup
+nastavení pøedvolby kódu z pøepínaèù DIL SW3 a SW4. Obvody IO12 a IO13
+slouí k pøípadnému pouití vıstupu na vstup ze snímaèe dìrnıch štítkù
+(napø.  pøi  poadavku rychlejšího vstupu dat nebo pouití pro formáty
+pouívající  tento  vstup),  v  základní verzi proto nejsou osazovány.
+Tyto  obvody  jsou zaøazeny do cesty signálù pøicházejících od snímaèe
+dìrnıch štítkù a slouí k pøepínání vstupu do terminálu boï ze snímaèe
+dìrnıch  štítkù nebo z adaptoru. Je-li pøipraven v adaptoru znak k vı-
+stupu,  je  ohledáván  klopnı  obvod IO11B zaznamenávající signál /RES
+(nulování  registrù  snímaèe)  pøicházející  od terminálu. Pokud tento
+signál pøišel, je tento stav identifikován jako pøipravenost terminálu
+ke  vstupu  ze  snímaèe  štítkù  a  multiplexery pøepojí vstup snímaèe
+štítkù  ze  snímaèe  na  adaptor  a vıstup znaku probìhne na vstup pro
+snímaè štítkù.
+
+     Z  terminálu  BDT  jsou dále odebírány signály  /RESET  a  TAKT1.
+Signál  /RESET  slouí k resetování adaptoru pøi resetování  terminálu
+(vıpadek  napájení  a pod.) a je slouèen se  signálem  z  resetovacího
+obvodu  adaptoru  C1/D1/R2,  kterı provádí funkci RESET pøi  pøipojení
+adaptoru na napájení napø.  pøi instalaci adaptoru do zapnutého termi-
+nálu.  Signál TAKT1 je hodinovı takt pro procesor a PIO.  Na rozdíl od
+desky STE je systémovı takt vydìlen dìlièkou dvìma IO11A,  èím odpadá
+nutnost  korekce èasování pøístupù do pamìti pøi  pouití  pomalejších
+pamìtí (tedy vydìlí 2,4578 MHz na 1,2289 MHz).
+
+
+
+3.- Konstrukèní øešení adaptoru
+
+
+     Adaptor  je nainstalován do terminálu BDT jako tøetí  nadstavbová
+deska  EEL.  Je  našroubována nad desku ZEL.  Desky plošnıch  spojù  a
+rozmístìní souèástek jsou v pøílohách 2, 3 a 4.
+
+     Rozpis souèástek:
+
+IO1            U 880 D .................. 1 ks
+IO2            U 855 D .................. 1 ks
+IO3...IO5      MHB 2716 ................. 2 ks (a 3 ks)
+IO6...IO9      MHB 2114 ................. 2 ks (nebo 4 ks)
+IO10           MH 3205 .................. 1 ks
+IO11           MH 74ALS74 ............... 1 ks
+IO12, IO13     UCY 74LS157 .............. 0 ks (nebo 2 ks)
+IO14, IO15     MH 74ALS38 ............... 2 ks
+IO16           MH 74ALS86 ............... 1 ks
+IO17           MH 74ALS20 ............... 1 ks
+IO18           MH 74ALS08 ............... 1 ks
+IO19           MH 74ALS00 ............... 1 ks
+
+T1             KD 140 ................... 1 ks
+
+D1, D2         KA 501 ................... 2 ks
+
+C1             1µ0/6,3V ................. 1 ks
+C2             680p ..................... 1 ks
+C3             2n2 ...................... 1 ks
+C4,C5          2µ2/6,3V ................. 2 ks
+C6...C11       68n ...................... 6 ks
+
+R1, R4, R5
+R6, R7, R9
+R10,R12,R13
+R14,R15,R16
+R17,R18,R19    2K2 ...................... 15 ks
+R2             33K ...................... 1 ks
+R3, R21        120 ...................... 2 ks
+R8, R20        3K3 ...................... 2 ks
+R11            680 ...................... 1 ks
+
+SW1, SW2       pøepínaè DIL 2x2 pólù .... 1 ks
+SW3, SW4       dvojitı spínaè DIL 2x2 p.. 1 ks
+
+X2, X3         konektor 2x13 pólù ....... 1 ks (1 nebo 2)
+X4             konektor 2x5 pólù ........ 1 ks
+
+sonda          3WN16601 ................. 1 ks
+
+
+     Zapojení  adaptoru  do  terminálu  je na obr.2. Vstup adaptoru je
+napojen  na vsuvku zapojenou mezi kabel pro strojovı interface a desku
+ZEL  resp.  STE.  Vıstup  adaptoru je napojen pomocí vsuvky mezi desku
+displeje  ATS  a  desku  STE-vstup  z  klávesnice a vıstup na displej.
+Z·tohoto  konektoru  se  té  odebírá napájecí napìtí, signál /RESET a
+signál TAKT1.
+
+
+          sonda                                         ATS (kabel)
+            + X3                                           |
+základna BDT+ X1                  +---------+              +
+kabel k ZEL |                     |         |              |
+          + +                     |         |              |
+          | |                     | adaptor |              |
+   vsuvka + +--------------------++         ++-------------+ vsuvka
+          | |                   X4|         | X3           |
+          + + X4                  |         |              |
+       ZEL nebo STE               |         |              + X8
+   (strojní interface)            +---------+   STE-vstup klávesnice
+                                       .
+                                   X2 ...
+                                       .             snímaè štítkù
+                                       .                   .
+                                       .                   .
+                                       .                   .
+                                       .....................
+                                                           .
+                                                           . X6
+                                                 STE-vstup ze snímaèe
+
+Obr. 2.: Zapojení adaptoru do terminálu
+
+
+    Všechny  signály  konektoru  X3 jsou pøipojeny paralelnì ke stejnì
+pojmenovanım  signálùm konektoru X6 (vsuvka je prùchozí a slouí pouze
+k odboèení signálù na desku snímaèe).
+
+    Signály  sondy  jsou  pøivedeny  pøes  vsuvku  a  kabel  strojního
+interface  na  vıstup  BDT  a  na  desku strojního interface, která je
+umístìna  v  konzole  BDT. Pøíslušné signály na desku ZEL jsou vsuvkou
+odpojeny.
+
+    Signály  pøicházející  od  snímaèe  dìrnıch štítkù procházejí pøes
+desku  adaptoru.  V  tabulce  zapojení  signálù jsou s èárkou oznaèeny
+signály  vystupující  z adaptoru a jdoucí na desku STE, bez èárek jsou
+oznaèené signály pøicházející od snímaèe dìrnıch štítkù.
+Konektory:
+
+Programátor BPE:                    Snímaè dìrnıch štítkù
+ +----+---------+---------+          +----+---------+---------+
+ | X1 |    A    |    B    |          | X2 |    A    |    B    |
+ +----+---------+---------+          +----+---------+---------+
+ |  1 |   0 0   |   0 0   |          |  1 |    -    |    -    |
+ |  2 |   0 0   |   0 0   |          |  2 |    -    |    -    |
+ |  3 |   5 P   |  25 PP  |          |  3 |   RES   |    -    |
+ |  4 |   DB7   |   DB6   |          |  4 |  /TOR'  |  /TOR   |
+ |  5 |   DB5   |   DB4   |          |  5 | /START' | /START  |
+ |  6 |   DB3   |   DB2   |          |  6 | /ODAT5' | /ODAT5  |
+ |  7 |   DB1   |   DB0   |          |  7 | /ODAT4' | /ODAT4  |
+ |  8 |   /WR   |   /RD   |          |  8 | /ODAT3' | /ODAT3  |
+ |  9 |  /MREQ  | /MEMDI  |          |  9 | /ODAT2' | /ODAT2  |
+ | 10 | K2/PCE4 | K1/PCE3 |          | 10 | /ODAT1' | /ODAT1  |
+ | 11 |   AB14  |   AB15  |          | 11 |    -    |    -    |
+ | 12 |   AB12  |   AB13  |          | 12 |    -    |    -    |
+ | 13 |   AB10  |   AB11  |          | 13 |    -    |    -    |
+ | 14 |   AB8   |   AB9   |          +----+---------+---------+
+ | 15 |   5 P   |   5 P   |
+ | 16 |   AB6   |   AB7   |          ATS (klávesnice/displej)
+ | 17 |   AB4   |   AB5   |          +----+---------+---------+
+ | 18 |   AB2   |   AB3   |          | X3 |    A    |    B    |
+ | 19 |   AB0   |   AB1   |          +----+---------+---------+
+ | 20 |  /RESET | /BUSRQ  |          |  1 |  TAKT1  |    -    |
+ | 21 |   TAKT  |  /PCE1  |          |  2 |    -    | /RESET  |
+ | 22 |  /PCE0  |  /PCE2  |          |  3 |  /ZL3   |    -    |
+ | 23 |  /NMI   |  /INT   |          |  4 |    -    |  /ZL2   |
+ | 24 |  /WAIT  |  /IORQ  |          |  5 |  /ZL1   |    -    |
+ | 25 |  /RFSH  | K3/PCE5 |          |  6 |    -    |  TAA4   |
+ | 26 |   /M1   |/HLT/PCE6|          |  7 |  TAA3   |    -    |
+ | 27 | /BUSAK  |   POE   |          |  8 |    -    |  TAA2   |
+ | 28 |   0 0   |   0 0   |          |  9 |  TAA1   |    -    |
+ | 29 |   0 0   |   0 0   |          | 10 |    -    |  TAA0   |
+ +----+---------+---------+          | 11 |   5 P   |    -    |
+                                     | 12 |    -    |   0 0   |
+                                     | 13 |   0 0   |    -    |
+                                     +----+---------+---------+
+ Sonda:                              Konektor sondy:
+ +----+---------+---------+          +----+---------+---------+
+ | X4 |    A    |    B    |          | è. |  vodiè  | signál  |
+ +----+---------+---------+          +----+---------+---------+
+ |  1 |   5 P   |    -    |          |  1 |  lutá  |  + Ucc  |
+ |  2 |    -    |  /DATA  |          |  2 |  zelená |   GND   |
+ |  3 |   0 0   |    -    |          |  3 |  hnìdá  |   OUT   |
+ |  4 |    -    |  /AKT   |          |  4 | stínìní |    S    |
+ |  5 | stínìní |    -    |          |  5 |   bílá  |  /INT   |
+ +----+---------+---------+          +----+---------+---------+
+
+ Signály sondy:
+ +---+---------+---------+---------+---------+---------+
+ | è.|  signál |  sonda  | konzola | konz.X1 |  ZEL X4 |
+ +---+---------+---------+---------+---------+---------+
+ | 1 |  + Ucc  |    1    |    76   |   B05   |   A09   |
+ | 2 |   GND   |    2    |    74   |   B01   |   A13   |
+ | 3 |   OUT   |    3    |    75   |   B03   |   A11   |
+ | 4 |    S    |    4    |    60   |   A01   |   B13   |
+ | 5 |   /INT  |    5    |    61   |   A03   |   B11   |
+ +---+---------+---------+---------+---------+---------+
+4. Program - popis
+
+                           +---------------+
+                           |               |
+                           |   R E S E T   |
+                           |               |
+                           +-------+-------+
+            (RST0)                 |
+           +-----------------------+----------------------+
+           |                                              |
+           |            inicializace adaptoru             |
+           |                                              |
+           +-----------------------+----------------------+
+                                   |  pøerušení tlaèítkem aktivace
+                                   |<-------------------------------+
+           (AKTIV)                 |   pøi vypnuté sondì (INTERA)   |
+           +-----------------------+----------------------+         |
+           |                zapnutí sondy                 |(AKTIV1) |
+           |      nastavení èítaèe pro vypnutí sondy      |<---+    |
+           |           nastavení pøerušení daty           |    |    |
+           +-----------------------+----------------------+    |    |
+                                   |                           |    |
+                                   |<------------------------+ |    |
+           (TSTROM)                |                         | |    |
+           +-----------------------+----------------------+  | | \  |
+ chyba ROM |                                              |  | | /  |
+  +------<-+                   test ROM                   |  | | \--+
+  | (-.)   |                                              |  | | /
+  |        +-----------------------+----------------------+  | | \
+  |        (TSTRAM)                |                         | | /
+  |  chyba +-----------------------+----------------------+  | | \
+  |   RAM  |                                              |  | | /
+  |  +---<-+                   test RAM                   |  | | \
+  |  | (.-)|                                              |  | | /
+  |  |     +-----------------------+----------------------+  | | \
+  |  |     (TSTPIO)                |                         | | /
+  |  |chyba+-----------------------+----------------------+  | | \--+
+  |  | PIO |                                              |  | | /  |
+  |  |  +<-+                   test PIO                   |  | | \  |
+  |  |  |  |                                              |  | | /  |
+  |  |  |  +-----------------------+----------------------+  | |    |
+  |  |  |(--)                      |                         | |    |
+  |  |  |  +-----------------------+----------------------+  | |    |
+  |  |  |  |         sniení èítaèe prodlevy pro          |- | |    |
+  |  |  |  |                vypnutí sondy                 +->| |    |
+  |  |  |  |          (je èítaè prodlevy = 0 ?)           |  | |    |
+  |  |  |  +-----------------------+----------------------+  | |    |
+  |  |  |                         +| (èítaè prodlevy = 0)    | |    |
+  |  |  |  +-----------------------+----------------------+  | |    |
+  |  |  |  |                                              |  | |    |
+  |  |  |  |                vypnutí sondy                 |  | |    |
+  |  |  |  |          nastavení pøerušení aktivací        |  | |    |
+  |  |  |  +-----------------------+----------------------+  | |    |
+  |  |  |                          |                         | |    |
+  |  |  |                          +------------------------>+ |    |
+  |  |  | (ERROR)                                              |    |
++-+--+--+---------+             pøerušení datovım vstupem pøi  |    |
+| indikace  chyby +-<---+       zapnuté sondì (obsluha ètení)  |    |
++--------+--------+     |          +---------------------------+----+
+         +--------------+          |(INTERD)                   |
+                                   |                    návrat |
+        (pøerušení datovım vstupem)|     (návrat ze vstupu dat)|
+                                   |                           |
+           (DATINI)                |                           |
+           +-----------------------+----------------------+    |
+           |                                              |    |
+      +--->|      inicializace dat pøi prvním vstupu      |    |
+      |    |          - nastavení ukazatele textu         |    |
+      |    +-----------------------+----------------------+    |
+      |    (OUTPUT)                |                           |
+      |    +-----------------------+----------------------+    |
+      |    |                                              |    | \
+      |    |         vıstup textu na vıstupní port        +----+ /
+      |    |                                              |      \
+      |    +----------------------------------------------+      /
+      |                           /|\                            \<-+
+      |                            |                             /  |
+      |    (OUTZNK)               \|/                            \  |
+      |    +----------------------------------------------+      /  |
+      |    |                                              |      \  |
+      |    |     podprogram pro vıstup jednoho znaku      |      /  |
+      |    |           (podle nastavené volby)            |         |
+      |    +----------------------------------------------+         |
+      |                              pøerušení datovım vstupem pøi  |
+      |                            +--------------------------------+
+      |    (ZÁZNAM)               \|/ vıstupu dat (INTERZ)
+      |    +----------------------------------------------+
+      |    |                                              |
+      |    |          vstup novıch dat ze sondy           |
+      |    |                                              |
+      |    +----------------------------------------------+
+      |                           /|\
+      |                            |
+      +-----------------------+    |
+                              |    |
+  (ZAZN0)                    \|/  \|/
+  +----------------------------------------------------------------+
+  |                 podprogram vstupu dat ze sondy                 |
+  +----------------------------------------------------------------+
+  |        +----------------------------------------------+        |
+  |        |  nastavení ukazatele pro ukládání do bufferu |        |
+  |        +-----------------------+----------------------+        |
+  |                                |<---------------------------+  |
+  |        +-----------------------+----------------------+     |  |
+  |        | èítací smyèka (mìøení prodlevy mezi hranami) |     |  |
+  |        +----+-----------------------------------------+     |  |
+  |             |pøeteèení        /\/\/\/\/\/\/\/\/\/\/\/\      |  |
+  |             | impulsu         +-----------------------+     |  |
+  |             |                 | uloení délky impulsu |další|  |
+  |             |         +--<----+     do bufferu pøi    +--->-+  |
+  |             |         | max.  |   pøerušení (INTERV)  |impuls  |
+  |             |         |poèet  +-----------------------+        |
+  |             |         |impulsù                                 |
+  |       +-----+---------+-------------------------------+        |
+  |       | - pøevod absolut. impulsù na relativní (TRANS)|        |
+  |       | - dekódování záznamu a uloení do buff.(DEKOD)|        |
+  |       |    (podprogram pro dekódování jednoho znaku   |        |
+  |       |       ZNAK vyvolává podprogram podle kódu     |        |
+  |       +-----------------------------------------------+        |
+  +----------------------------------------------------------------+
+
+Pøiøazení kódù kláves terminálu BDT jednotlivım znakùm èárovıch kódù:
+
+    Kódy jsou voleny vzhledem na mnoinu znakù kódù CKn (kódy 48 a 54
+nejsou  v tabulce uvedeny, nahrazují se mezerami), 39 a 2 z 5. Zkratka
+mez.   znamená,  e  do  posloupnosti  vıstupních  kódù  bude  vloena
+oddìlovací mezera mezi kódy (odpovídající dobì vıstupu jednoho znaku).
+Vıjimku  tvoøí  nìkteré  speciální znaky, slouící k ovládání adaptoru
+pro  ètení  kódu.  Kód  0FFh  má speciální vıznam, ukládá jej na konec
+èteného   textu   dekódující   podprogram   automaticky,  pokud  vloí
+automaticky  znak  odeslání  \/  (kód  16) a znamená vloení mezery do
+vıstupu  na  klávesnici v dobì trvání 8 znakù. Znak odeslání se vkládá
+automaticky  na  konec textu pøi pøeètení záznamu v kódu CK5 (tedy kód
+èíslic 0 a 9). Oznaèení P1 a P8 pøedstavují rezervní kódy BDT, které
+nejsou  vyvedeny  na  klávesnici,  ale  je moné je generovat vyuitím
+øádku èíslo 8 dekodéru klávesnice.
+
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+    |  0 |  0 |  8 |  8 | 16 | \/ | 24 | M7 | 32 | P1 | 40 |mez.|
+    |  1 |  1 |  9 |  9 | 17 |  < | 25 | M8 | 33 | P2 | 41 |mez.|
+    |  2 |  2 | 10 |  A | 18 | M1 | 26 |  > | 34 | P3 | 42 |mez.|
+    |  3 |  3 | 11 |  B | 19 | M2 | 27 |  * | 35 | P4 | 43 |mez.|
+    |  4 |  4 | 12 |  C | 20 | M3 | 28 |  - | 36 | P5 | 44 | P7 |
+    |  5 |  5 | 13 |  D | 21 | M4 | 29 |  . | 37 | P6 | 45 | P8 |
+    |  6 |  6 | 14 |  E | 22 | M5 | 30 |  X | 38 |mez.| 46 |mez.|
+    |  7 |  7 | 15 |  F | 23 | M6 | 31 |  Y | 39 |mez.| 47 |mez.|
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+
+
+5.- Èárovı kód CKn
+
+    Kódovı  systém CKn je systém pro záznam dat pomocí èárového kódu a
+jejich  ètení  pomocí  ruèního  snímaèe.  Umoòuje minimalizovat délku
+záznamu  pøi zachování dostateèné spolehlivosti ètení. Kód CKn vychází
+z nìkolika zásad:
+
+    1.-Délka  kódu  jednoho znaku je v jednom záznamu konstantní a je
+        volitelná  v rozmezí 2 a 8 jednotek (tj. nejmenší moná šíøka
+        èáry nebo mezery).
+
+    2.-Poèet èar ani mezer v jednom znaku není konstantní, jednotlivé
+        znaky,  jako  i celı záznam mohou mít rùznou polaritu (tedy i
+        bílı  tisk  na  èerném  podkladì).  Kódování  se provádí pouze
+        pomocí   hran  pøechodu  mezi  èarami  a  mezerami,  je  proto
+        libovolné, zda jde o èáry nebo mezery.
+
+    3.-Pomìry  mezi  impulsy  jsou v pomìru 1:2, co umoòuje snadnou
+        synchronizaci  pøi  ètení  kódu.  Jednotlivé  relativní  délky
+        impulsù jsou 1, 2 a 4.
+
+    4.-Jednotlivım  znakùm  pøisuzuje  vıznam  a  dodateènì uivatel
+        podle  oblasti  aplikace  kódu,  mohou  tedy  mít vıznam znakù
+        ASCII,  jako  i  øídících  a ovládacích kódù zaøízení. Hlavní
+        aplikací  kódu CKn je tedy vkládání dat do zaøízení a ovládání
+        zaøízení.
+
+        Pozn.: Je  vhodné, aby uivatel pøiøazoval své znaky v poøadí
+               od  znakù  s  nejèetnìjším  vıskytem,  nebo znaky jsou
+               øazeny  podle snadnosti zasynchronizování pøi ètení. To
+               umoòuje dále zvıšit spolehlivost ètení.
+
+    5.-Jeden  záznam  kódu  CKn  má konstantní strukturu. Poèet znakù
+        v·jednom  záznamu  mùe  bıt  0  a 17. Záznam lze èíst z obou
+        stran a obsahuje kromì datovıch znakù synchronizaèní znaky pro
+        synchronizaci  ètení  a  rozpoznání  smìru  ètení, informaci o
+        pouitém  kódu v záznamu CK3 a CK8 (délka znakù 3 a 8·jedno-
+        tek  podle  mnoiny znakù), informaci o délce záznamu (0 a 17
+        znakù)  a kontrolní souèet pro zabezpeèení spolehlivosti ètení
+        kódu.
+
+
+Struktura záznamu kódu CKn:
+
+
+prvkù:     x   2  4    7                        8     4   x
+         +----+-+---+------+-----/   /------+-------+---+----+
+         |    |S|   |      |                |       | S |    |
+         |SYN0|Y|KOD|DELKA |   D  A  T  A   |CHKSUM | Y |SYN0|
+         |    |N|   |      |                |       | N |    |
+         |    |1|   |      |                |       | 2 |    |
+         +----+-+---+------+----/    /------+-------+---+----+
+kód:             CK4  CK7        KOD          CK8
+
+
+SYN0  -Synchronizaèní  znak  -  slouí  k  synchronizaci referenèních
+        hodin  pøi  ètení  (a  to  z  jedné  i druhé strany). Obsahuje
+        libovolné  mnoství  prvkù  o  relativní délce 1. Tyto impulsy
+        musí bıt alespoò dva (tedy jedna èára a jedna mezera).
+
+SYN1  -Synchronizaèní  znak  -  oznaèuje  zaèátek  záznamu.  Zahrnuje
+        1·prvek o relativní délce 2 jednotky.
+
+SYN2  -Synchronizaèní  znak  -  oznaèuje  konec  záznamu.  Tvoøí  jej
+        1·prvek  o  relativní délce 4 jednotky. Spolu se SYN1 umoòuje
+        rozpoznání smìru ètení záznamu.
+
+KOD   -Informace  o  pouitém  kódu  z  mnoiny  kódù.  Tento znak je
+        zaznamenán  v  kódu  CK4  (délka 4 jednotky), jednotlivım jeho
+        znakùm odpovídají délky oznaèení kódù CK3 a CK8 (celkem mono
+        volit  6  kódù).  Volba  kódu mùe zároveò slouit jako øídící
+        informace   pro  ètecí  dekodér.  Napø.  lze  nastavením  kódu
+        rozlišit,  na které zaøízení má probíhat vıstup, zda má bıt za
+        vysláním  znakù  záznamu  vyslán  automaticky znak odesílající
+        vyslané znaky do zaøízení apod.
+
+DELKA -Informace  o  délce  záznamu  (poètu znakù v záznamu). Znak je
+        zaznamenán  v  kódu  CK7  (délka 7 jednotek), jednotlivım jeho
+        znakùm  odpovídá  poèet  znakù  v  záznamu  0  a  30  (záznam
+        s·nulovou  délkou  mùe  bıt pouit k testování ètení sondou a
+        k·vyvolání speciálních akcí - napø. ovládání dekodéru snímaèe,
+        ovládání signálù, pøepínání kódù pro ètení).
+
+DATA  -Vlastní  záznam  - datové znaky jsou zaznamenány v kódu udaném
+        znakem KOD, jejich poèet je udán znakem DELKA.
+
+CHKSUM-Kontrolní  souèet  záznamu.  Kontrolní souèet je zapsán v kódu
+        CK8.  Provádí se vıpoètem ze znakù KOD, DELKA a z jednotlivıch
+        datovıch  znakù  (v uvedeném poøadí). Vıpoèet se provádí podle
+        následujícího vıpisu èásti programu:
+
+                   LD   B,DELKA+2 ; poèet znakù záznamu + 2
+                   LD   HL,buff   ; adresa bufferu dat se strukturou:
+                                  ;    buff  :   KOD
+                                  ;    buff+1:   DELKA
+                                  ;    buff+2:   DATA - 1.znak
+                                  ;     ....     DATA - další znaky
+                   LD   A,28      ; vıchozí konstanta
+         CHKSM1:   RLCA           ; rotace A o 1 bit doleva
+                   XOR  (HL)      ; operace XOR s datovım znakem
+                   INC  HL        ; zvıšení ukazatele na další znak
+                   DJNZ CHKSM1    ; další znak
+         CHKSM2:   SUB  55        ; operace MOD 55
+                   JR   NC,CHKSM2
+                   ADD  A,55      ; vıslednı kontrolní souèet CHKSUM
+
+Tabulky kódù CKn:
+
+    Tabulky  jsou  psány  ve  tvaru  vhodném  ke  vloení  do programu
+slouícího ke kódování èi dekódování kódu CKn. Je pouita forma zápisu
+pro makroassembler M80 (pro 8-mi bitové poèítaèe), po menší úpravì té
+pro  assembler  16-ti  bitového  poèítaèe. Kadá tabulka zaèíná bajtem
+udávajícím poèet znakù v pøíslušném kódu. Následují posloupnosti bajtù
+definujících  kadı  znak.  Jednotlivé  bajty  udávají relativní délky
+prvkù,  z  kterıch  se  pøíslušnı  znak skládá. Poslední bajt znaku má
+nastaven  7.  bit  na 1 (je tedy o 80h vìtší), co slouí k rozpoznání
+konce  znaku.  Napø.  znak  s  kódem  "6" z kódu CK5 má v tabulce údaj
+2,1,82h,  co  znamená,  e  v záznamu bude vytištìna èára o relativní
+šíøce  2,  mezera o relativní šíøce 1 a èára o relativní šíøce 2. Nebo
+mohou bıt prvky znaku negované (tedy mezera, èára, mezera).
+
+kodck3:  db        3                        ; poèet kódù CK3
+         db        1,1,81h                  ; "0"
+         db        1,82h                    ; "1"
+         db        2,81h                    ; "2"
+
+kodck4:  db        6                        ; poèet kódù CK4
+         db        1,1,1,81h                ; "0"  (CK3)
+         db        1,1,82h                  ; "1"  (CK4)
+         db        1,2,81h                  ; "2"  (CK5)
+         db        2,1,81h                  ; "3"  (CK6)
+         db        2,82h                    ; "4"  (CK7)
+         db        84h                      ; "5"  (CK8)
+
+kodck5:  db        10                       ; poèet kódù CK5
+         db        1,1,1,1,81h              ; "0"
+         db        1,1,1,82h                ; "1"
+         db        1,1,2,81h                ; "2"
+         db        1,2,1,81h                ; "3"
+         db        2,1,1,81h                ; "4"
+         db        1,2,82h                  ; "5"
+         db        2,1,82h                  ; "6"
+         db        2,2,81h                  ; "7"
+         db        1,84h                    ; "8"
+         db        4,81h                    ; "9"
+
+kodck6:  db        18                       ; poèet kódù CK6
+         db        1,1,1,1,1,81h            ; "0"
+         db        1,1,1,1,82h              ; "1"
+         db        1,1,1,2,81h              ; "2"
+         db        1,1,2,1,81h              ; "3"
+         db        1,2,1,1,81h              ; "4"
+         db        2,1,1,1,81h              ; "5"
+         db        1,1,2,82h                ; "6"
+         db        1,2,1,82h                ; "7"
+         db        2,1,1,82h                ; "8"
+         db        1,2,2,81h                ; "9"
+         db        2,1,2,81h                ; "10"
+         db        2,2,1,81h                ; "11"
+         db        2,2,82h                  ; "12"
+         db        1,1,84h                  ; "13"
+         db        1,4,81h                  ; "14"
+         db        4,1,81h                  ; "15"
+         db        2,84h                    ; "16"
+         db        4,82h                    ; "17"
+
+kodck7:  db        31                       ; poèet kódù CK7
+         db        1,1,1,1,1,1,81h          ; "0"
+         db        1,1,1,1,1,82h            ; "1"
+         db        1,1,1,1,2,81h            ; "2"
+         db        1,1,1,2,1,81h            ; "3"
+         db        1,1,2,1,1,81h            ; "4"
+         db        1,2,1,1,1,81h            ; "5"
+         db        2,1,1,1,1,81h            ; "6"
+         db        1,1,1,2,82h              ; "7"
+         db        1,1,2,1,82h              ; "8"
+         db        1,2,1,1,82h              ; "9"
+         db        2,1,1,1,82h              ; "10"
+         db        1,1,2,2,81h              ; "11"
+         db        1,2,1,2,81h              ; "12"
+         db        2,1,1,2,81h              ; "13"
+         db        1,2,2,1,81h              ; "14"
+         db        2,1,2,1,81h              ; "15"
+         db        2,2,1,1,81h              ; "16"
+         db        1,2,2,82h                ; "17"
+         db        2,1,2,82h                ; "18"
+         db        2,2,1,82h                ; "19"
+         db        2,2,2,81h                ; "20"
+         db        1,1,1,84h                ; "21"
+         db        1,1,4,81h                ; "22"
+         db        1,4,1,81h                ; "23"
+         db        4,1,1,81h                ; "24"
+         db        1,2,84h                  ; "25"
+         db        2,1,84h                  ; "26"
+         db        1,4,82h                  ; "27"
+         db        2,4,81h                  ; "28"
+         db        4,1,82h                  ; "29"
+         db        4,2,81h                  ; "30"
+
+
+kodck8:  db        55                       ; poèet kódù CK8
+         db        1,1,1,1,1,1,1,81h        ; "0"
+         db        1,1,1,1,1,1,82h          ; "1"
+         db        1,1,1,1,1,2,81h          ; "2"
+         db        1,1,1,1,2,1,81h          ; "3"
+         db        1,1,1,2,1,1,81h          ; "4"
+         db        1,1,2,1,1,1,81h          ; "5"
+         db        1,2,1,1,1,1,81h          ; "6"
+         db        2,1,1,1,1,1,81h          ; "7"
+         db        1,1,1,1,2,82h            ; "8"
+         db        1,1,1,2,1,82h            ; "9"
+         db        1,1,2,1,1,82h            ; "10"
+         db        1,2,1,1,1,82h            ; "11"
+         db        2,1,1,1,1,82h            ; "12"
+         db        1,1,1,2,2,81h            ; "13"
+         db        1,1,2,1,2,81h            ; "14"
+         db        1,2,1,1,2,81h            ; "15"
+         db        2,1,1,1,2,81h            ; "16"
+         db        1,1,2,2,1,81h            ; "17"
+         db        1,2,1,2,1,81h            ; "18"
+         db        2,1,1,2,1,81h            ; "19"
+         db        1,2,2,1,1,81h            ; "20"
+         db        2,1,2,1,1,81h            ; "21"
+         db        2,2,1,1,1,81h            ; "22"
+         db        1,1,2,2,82h              ; "23"
+         db        1,2,1,2,82h              ; "24"
+         db        2,1,1,2,82h              ; "25"
+         db        1,2,2,1,82h              ; "26"
+         db        2,1,2,1,82h              ; "27"
+         db        2,2,1,1,82h              ; "28"
+         db        1,2,2,2,81h              ; "29"
+         db        2,1,2,2,81h              ; "30"
+         db        2,2,1,2,81h              ; "31"
+         db        2,2,2,1,81h              ; "32"
+         db        1,1,1,1,84h              ; "33"
+         db        1,1,1,4,81h              ; "34"
+         db        1,1,4,1,81h              ; "35"
+         db        1,4,1,1,81h              ; "36"
+         db        4,1,1,1,81h              ; "37"
+         db        2,2,2,82h                ; "38"
+         db        1,1,2,84h                ; "39"
+         db        1,2,1,84h                ; "40"
+         db        2,1,1,84h                ; "41"
+         db        1,1,4,82h                ; "42"
+         db        1,2,4,81h                ; "43"
+         db        2,1,4,81h                ; "44"
+         db        1,4,1,82h                ; "45"
+         db        1,4,2,81h                ; "46"
+         db        2,4,1,81h                ; "47"
+         db        4,1,1,82h                ; "48"
+         db        4,1,2,81h                ; "49"
+         db        4,2,1,81h                ; "50"
+         db        2,2,84h                  ; "51"
+         db        2,4,82h                  ; "52"
+         db        4,2,82h                  ; "53"
+         db        4,84h                    ; "54"
+
+
+Pøiklad - èíslo 714976 v kódu CK5:
+
+       CK5  6 zn.   7    1    4    9    7    6     41
+«   »«»«  »«     »«   »«   »«   »«   »«   »«   »«      »«  »«    »
+                                                                  
+                                                                  
+                                                                  
+                                                                  
+                                                                  
+                                                                  
+
+SYN0   KOD        ************ DATA ************        SYN2
+    SYN1   DELKA                                 CHKSUM      SYN0
+
+6.- Popis èinnosti snímaèe èárovıch kódù
+
+    Kód,  kterı  bude  èten  pomocí  sondy,  je  mono nastavit pomocí
+pøepínaèù  DIL  na  adaptoru.  Jako  standardní  kód  pro  adaptor  se
+doporuèuje  kód  CKn, kterı je speciálnì vyvinutı pro pouití s ruèním
+snímaèem èárového kódu.
+
+Nastavení pøepínaèù na adaptoru:
+
+ +-----+-----+-------------------------+
+ | SW3 | SW4 |           kód           |
+ +-----+-----+-------------------------+
+ |  ON |  ON |           CKn           |
+ | OFF |  ON |     2/5  prokládanı     |
+ |  ON | OFF |            39           |
+ | OFF | OFF |   2/5 prokládanı, 39    |
+ +-----+-----+-------------------------+
+
+ +-----+-----+-------------------------+
+ | SW1 | SW2 |      reim provozu      |
+ +-----+-----+-------------------------+
+ |  ON | OFF |    programování EPROM   |
+ | OFF |  ON |       bìnı provoz      |
+ +-----+-----+-------------------------+
+
+ostatní kombinace pøepínaèù nejsou povoleny
+
+
+    Na  sondì  je  umístìna  indikaèní svítivá dioda LED, která slouí
+k·indikaci  chybovıch  stavù  adaptoru a k indikaci správného pøeètení
+záznamu  èárového kódu. Tato dioda je v sondì pøipojena pøímo k jejímu
+napájecímu napìtí, indikuje tedy zároveò to, e je sonda v provozu. Po
+zapnutí  adaptoru  je  sonda zapnuta, tj. je v aktivním stavu, kdy lze
+snímat  data.  Pokud  je sonda delší dobu v klidu (tj. není èten ádnı
+kód),  je  automaticky  vypnuta.  Doba  pro  vypnutí  je 5 minut. Toto
+automatické  vypnutí  slouí  k  sníení opotøebení sondy a ke zvıšení
+její  spolehlivosti. Nové uvedení do provozu je moné stiskem tlaèítka
+pro aktivaci sondy.
+
+    Pokud je adaptor v klidu (tj. neprobíhá ani vstup dat ze sondy ani
+vıstup  dat  na zaøízení), provádí adaptor cyklicky testy pamìtí ROM a
+RAM a obvodu PIO. Pokud narazí na chybu pamìtí nebo portu, rozbliká se
+sonda  v  intervalech  danıch  chybovım  kódem.  Tyto  testy slouí ke
+kontrole   vlastní   èinnosti   adaptoru   a   tím   ke  zvıšení  jeho
+spolehlivosti. Chybové kódy jsou:
+
+         - .       chyba pamìti ROM (EPROM)
+         . -       chyba pamìti RAM
+         - -       chyba obvodu PIO
+
+         kde: .  pøedstavuje svit sondy s krátkım intervalem,
+              -  znamená svit sondy s dlouhım intervalem.
+
+        Mezi  chybovımi  kódy  je  zøetelnì  delší  interval ne mezi
+         jednotlivımi elementy jednoho kódu.
+
+    Indikaèní  dioda  LED  slouí  té  k  indikaci správného pøeètení
+èárového  kódu  a to tím zpùsobem, e po správném pøeètení kódu krátce
+zabliká. Pøi chybném ètení kódu svítí LED beze zmìny intenzity dále.
+
+    Ètené  kódy  se  po  pøekódování ukládají do vyrovnávacího bufferu
+textu,  co  umoòuje  vstup a vıstup textu nezávisle na sobì. Je tedy
+mono  èíst  sondou  další  kódy  bez ohledu na to, zda zrovna probíhá
+vıstup  pøeètenıch  kódù na zaøízení. Ètení dalších kódù bìhem vıstupu
+pøeètenıch  kódù  na  zaøízení  je  moné  a  do zaplnìní vyrovnávací
+pamìti,  co  se  projeví  tím,  e  adaptor  ji další kódy nepøijímá
+(projeví  se  to tak, jakoby kód byl chybnì pøeèten, sonda nezabliká).
+Kapacita vyrovnávacího bufferu je asi 500 znakù.
+
+    Pøi  ètení  kódu  sondou  je vhodné dodrovat správnı sklon sondy,
+kterı  èiní  asi  30°  od  osy  kolmé k podkladu s èárovım kódem, smìr
+odklonu  sondy  je  kolmı  k podélnému smìru kódu (tedy kolmı ke smìru
+posuvu  sondou).  Sondou  je  tøeba  pohybovat pokud mono rovnomìrnou
+rychlostí a v pøímém smìru a vést ji po podkladì lehce, avšak tak, aby
+nedošlo ke ztrátì kontaktu sondy s podkladem. Sondu je té nutno dret
+lehce a to zpùsobem, jakım se drí pero.
+
